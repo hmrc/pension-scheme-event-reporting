@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pensionschemeeventreporting.config
+package config
 
-import javax.inject.{Inject, Singleton}
-import play.api.Configuration
+import com.google.inject.AbstractModule
 
-@Singleton
-class AppConfig @Inject()(config: Configuration) {
+class Module extends AbstractModule {
 
-  val appName: String = config.get[String]("appName")
+  override def configure(): Unit = {
+
+    bind(classOf[AppConfig]).asEagerSingleton()
+  }
 }
