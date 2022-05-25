@@ -13,7 +13,9 @@ object AppDependencies {
     "com.vladsch.flexmark"    %  "flexmark-all"               % "0.36.8"              % "test, it",
     "org.mockito"             % "mockito-core"                % "4.0.0"               % "test",
     "org.mockito"             %% "mockito-scala"              % "1.16.42"             % "test",
-    "org.mockito"             %% "mockito-scala-scalatest"    % "1.16.42"             % "test"
+    "org.mockito"             %% "mockito-scala-scalatest"    % "1.16.42"             % "test",
+    "com.github.tomakehurst"  %  "wiremock"                 % "2.26.0"                % "test",
+    "com.github.tomakehurst"  %  "wiremock-jre8"            % "2.26.0"                % "test"
   )
 
   def apply(): Seq[ModuleID] = compile ++ test
