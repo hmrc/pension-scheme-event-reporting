@@ -28,24 +28,23 @@ trait WireMockHelper extends BeforeAndAfterAll with BeforeAndAfterEach {
 
   protected val server: WireMockServer = new WireMockServer(wireMockConfig().dynamicPort())
 
-  protected def portConfigKey: String
+  protected def portConfigKeys: String
 
-  protected lazy val app: Application =
+  protected lazy val app: Application = {
+    val keyValueConfig = portConfigKeys.split(",").map(_ -> server.port().toString) ++ Seq("auditing.enabled" -> false, "metrics.enabled" -> false)
     new GuiceApplicationBuilder()
-      .configure(
-        portConfigKey -> server.port().toString,
-        "auditing.enabled" -> false,
-        "metrics.enabled" -> false
-      )
+      .configure(keyValueConfig: _*)
       .overrides(bindings: _*)
       .build()
-
-  protected def bindings: Seq[GuiceableModule] = Seq.empty[GuiceableModule]
+  }
 
   protected lazy val injector: Injector = app.injector
 
+  protected def bindings: Seq[GuiceableModule] = Seq.empty[GuiceableModule]
+
   override def beforeAll(): Unit = {
     server.start()
+    app
     super.beforeAll()
   }
 

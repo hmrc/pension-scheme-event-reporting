@@ -25,20 +25,21 @@ import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.Json
 import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.test.HttpClientSupport
 import utils.{JsonFileReader, WireMockHelper}
 
-class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMockHelper with JsonFileReader with MockitoSugar {
+class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMockHelper with HttpClientSupport  with JsonFileReader with MockitoSugar {
 
   private implicit lazy val hc: HeaderCarrier = HeaderCarrier()
 
-  override protected def portConfigKey: String = "microservice.services.if-hod.port"
+  override protected def portConfigKeys: String = "microservice.services.if-hod.port"
 
   private val mockHeaderUtils = mock[HeaderUtils]
-
   private lazy val connector: EventReportConnector = injector.instanceOf[EventReportConnector]
 
   override protected def bindings: Seq[GuiceableModule] =
     Seq(
+      bind[HttpClient].toInstance(httpClient),
       bind[HeaderUtils].toInstance(mockHeaderUtils)
     )
 
@@ -57,6 +58,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       val data = Json.obj(fields = "Id" -> "value")
       server.stubFor(
         post(urlEqualTo(eventReportSummaryUrl))
+          .withHeader("Content-Type", equalTo("application/json"))
           .withRequestBody(equalTo(Json.stringify(data)))
           .willReturn(
             ok

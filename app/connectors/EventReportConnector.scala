@@ -16,7 +16,7 @@
 
 package connectors
 
-import com.google.inject.Inject
+import com.google.inject.{ImplementedBy, Inject}
 import config.AppConfig
 import play.api.Logger
 import play.api.http.Status._
@@ -26,17 +26,25 @@ import utils.HttpResponseHelper
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class EventReportConnector @Inject()(
+@ImplementedBy(classOf[EventReportConnectorImpl])
+trait EventReportConnector {
+
+  def compileEventReportSummary(pstr: String, data: JsValue)
+                               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse]
+}
+
+class EventReportConnectorImpl @Inject()(
+                                          config: AppConfig,
                                       http: HttpClient,
-                                      config: AppConfig,
                                       headerUtils: HeaderUtils
                                     )
-  extends HttpErrorFunctions
+  extends EventReportConnector
+    with HttpErrorFunctions
     with HttpResponseHelper {
 
   private val logger = Logger(classOf[EventReportConnector])
 
-  def compileEventReportSummary(pstr: String, data: JsValue)
+ override def compileEventReportSummary(pstr: String, data: JsValue)
                                (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
     val createCompileEventReportSummaryUrl = config.createCompileEventReportSummaryUrl.format(pstr)
     logger.warn("Compile Event Report Summary called - URL:" + createCompileEventReportSummaryUrl)
