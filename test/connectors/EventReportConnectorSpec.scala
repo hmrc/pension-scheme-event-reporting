@@ -26,7 +26,7 @@ import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.Json
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.test.HttpClientSupport
-import utils.{JsonFileReader, WireMockHelper}
+import utils.{JsonFileReader, UnrecognisedHttpResponseException, WireMockHelper}
 
 class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMockHelper with HttpClientSupport  with JsonFileReader with MockitoSugar {
 
@@ -115,6 +115,35 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         _.statusCode mustBe INTERNAL_SERVER_ERROR
       }
     }
+
+    "return 4xx when ETMP has returned Upstream error response" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(eventReportSummaryUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            forbidden()
+          )
+      )
+      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventReportSummary(pstr, data)) map {
+        _.statusCode mustBe FORBIDDEN
+      }
+    }
+
+    "return 204 when ETMP has returned Unrecognized http response" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(eventReportSummaryUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            noContent()
+          )
+      )
+      recoverToExceptionIf[UnrecognisedHttpResponseException](connector.compileEventReportSummary(pstr, data)) map { response =>
+        response.getMessage must include("204")
+      }
+    }
+
   }
 }
 

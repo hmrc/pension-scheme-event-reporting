@@ -81,6 +81,31 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         _.statusCode mustBe INTERNAL_SERVER_ERROR
       }
     }
+
+    "throw BadRequestException when PSTR is not present in the header" in {
+
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.compileEventReportSummary()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+        response.message must include(s"Bad Request without pstr (Some($pstr)) or request body (None)")
+      }
+    }
+
+    "throw Unauthorized exception if auth fails" in {
+      when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[UnauthorizedException] {
+        controller.compileEventReportSummary()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
+      } map { response =>
+        response.responseCode mustBe UNAUTHORIZED
+        response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
+      }
+    }
+
   }
 }
 

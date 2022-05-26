@@ -16,14 +16,20 @@
 
 package connectors
 
-import com.google.inject.Inject
 import config.AppConfig
+import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-import java.util.UUID.randomUUID
+class HeaderUtilsSpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfterEach {
+  private val mockConfig = mock[AppConfig]
+  private val headerUtils = new HeaderUtils(mockConfig)
 
-class HeaderUtils @Inject()(config: AppConfig) {
-
-  val maxLengthCorrelationIdIF = 36
-
-  def getCorrelationId: String = randomUUID.toString.slice(0, maxLengthCorrelationIdIF)
+  "call getCorrelationId" must {
+    "return a CorrelationId of the correct size" in {
+      val result = headerUtils.getCorrelationId
+      result.length mustEqual headerUtils.maxLengthCorrelationIdIF
+    }
+  }
 }
