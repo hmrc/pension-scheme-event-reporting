@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pensionschemeeventreporting.config
+package connectors
 
-import javax.inject.{Inject, Singleton}
-import play.api.Configuration
+import com.google.inject.Inject
+import config.AppConfig
 
-@Singleton
-class AppConfig @Inject()(config: Configuration) {
+import java.util.UUID.randomUUID
 
-  val appName: String = config.get[String]("appName")
+class HeaderUtils @Inject()(config: AppConfig) {
+
+  val maxLengthCorrelationIdIF = 36
+
+  def getCorrelationId: String = randomUUID.toString.slice(0, maxLengthCorrelationIdIF)
 }

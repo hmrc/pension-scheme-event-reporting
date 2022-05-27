@@ -14,14 +14,22 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pensionschemeeventreporting.config
+package connectors
 
-import com.google.inject.AbstractModule
+import config.AppConfig
+import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 
-class Module extends AbstractModule {
+class HeaderUtilsSpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfterEach {
+  private val mockConfig = mock[AppConfig]
+  private val headerUtils = new HeaderUtils(mockConfig)
 
-  override def configure(): Unit = {
-
-    bind(classOf[AppConfig]).asEagerSingleton()
+  "call getCorrelationId" must {
+    "return a CorrelationId of the correct size" in {
+      val result = headerUtils.getCorrelationId
+      result.length mustEqual headerUtils.maxLengthCorrelationIdIF
+    }
   }
 }
