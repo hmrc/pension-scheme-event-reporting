@@ -17,6 +17,7 @@
 package controllers
 
 import connectors.EventReportConnector
+import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
@@ -38,10 +39,12 @@ class EventReportController @Inject()(
     with Results
     with AuthorisedFunctions {
 
+  private val logger = Logger(classOf[EventReportController])
 
   def compileEventReportSummary: Action[AnyContent] = Action.async {
     implicit request =>
       post { (pstr, userAnswersJson) =>
+        logger.debug(message = s"[Compile File Return: Incoming-Payload]$userAnswersJson")
         eventReportConnector.compileEventReportSummary(pstr, userAnswersJson).map { response =>
           Ok(response.body)
         }
@@ -51,7 +54,9 @@ class EventReportController @Inject()(
 
   private def post(block: (String, JsValue) => Future[Result])
                   (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
-    
+
+    logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
+
     authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
       case Some(_) =>
         (
