@@ -75,6 +75,22 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         post(urlEqualTo(eventReportSummaryUrl))
           .withRequestBody(equalTo(Json.stringify(data)))
           .willReturn(
+            badRequest().withBody("INVALID_PAYLOAD")
+          )
+      )
+      recoverToExceptionIf[BadRequestException] {
+        connector.compileEventReportSummary(pstr, data)
+      } map {
+        _.responseCode mustEqual BAD_REQUEST
+      }
+    }
+
+    "return BAD REQUEST when ETMP has returned BadRequestException without Invalid " in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(eventReportSummaryUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
             badRequest()
           )
       )
