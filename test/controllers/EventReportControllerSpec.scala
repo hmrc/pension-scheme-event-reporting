@@ -30,6 +30,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http._
+import utils.{ErrorReport, JSONPayloadSchemaValidator}
 
 import java.time.LocalDate
 import scala.concurrent.Future
@@ -41,11 +42,13 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   implicit val hc: HeaderCarrier = HeaderCarrier()
   private val fakeRequest = FakeRequest("GET", "/")
   private val mockEventReportConnector = mock[EventReportConnector]
+  private val mockJSONPayloadSchemaValidator = mock[JSONPayloadSchemaValidator]
   private val authConnector: AuthConnector = mock[AuthConnector]
   val modules: Seq[GuiceableModule] =
     Seq(
       bind[AuthConnector].toInstance(authConnector),
-      bind[EventReportConnector].toInstance(mockEventReportConnector)
+      bind[EventReportConnector].toInstance(mockEventReportConnector),
+      bind[JSONPayloadSchemaValidator].toInstance(mockJSONPayloadSchemaValidator)
     )
 
   val application: Application = new GuiceApplicationBuilder()
@@ -55,6 +58,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   before {
     reset(mockEventReportConnector, authConnector)
     when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"))
+    when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Right(true)
   }
 
   "compileEventReportSummary" must {
@@ -67,6 +71,29 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       val result = controller.compileEventReportSummary(fakeRequest.withJsonBody(compileEventReportSummaryResponseJson).withHeaders(
         newHeaders = "pstr" -> pstr))
       status(result) mustBe OK
+    }
+
+    "return OK when validation errors response" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
+        .thenReturn(Future.successful(HttpResponse(OK, compileEventReportSummaryResponseJson.toString)))
+
+      val listErrors: List[ErrorReport] = List(
+        ErrorReport("instance1", "errors1"),
+        ErrorReport("instance2", "errors2")
+      )
+
+      when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Left(listErrors)
+
+
+      recoverToExceptionIf[EventReportValidationFailureException] {
+        controller.compileEventReportSummary(fakeRequest.withJsonBody(compileEventReportSummaryResponseJson).withHeaders(
+          newHeaders = "pstr" -> pstr))
+      } map {
+         failure =>
+           failure.exMessage mustBe "Schema validation errors:-\nErrorReport(instance1,errors1),ErrorReport(instance2,errors2)"
+      }
     }
 
     "throw Upstream5XXResponse on Internal Server Error" in {

@@ -21,7 +21,9 @@ import com.github.fge.jsonschema.core.report.ListProcessingReport
 import com.github.fge.jsonschema.main.JsonSchemaFactory
 import play.api.libs.json._
 
-case class ErrorReport(instance: String, errors: String)
+case class ErrorReport(instance: String, errors: String) {
+  override def toString: String = s"$instance: $errors"
+}
 
 class JSONPayloadSchemaValidator {
   type ValidationReport = Either[List[ErrorReport], Boolean]
