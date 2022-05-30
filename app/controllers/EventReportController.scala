@@ -24,10 +24,11 @@ import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, Enrolment}
 import uk.gov.hmrc.http.{UnauthorizedException, Request => _, _}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import utils.JSONPayloadSchemaValidator
+import utils.{ErrorReport, JSONPayloadSchemaValidator}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+
 
 @Singleton()
 class EventReportController @Inject()(
@@ -51,7 +52,7 @@ class EventReportController @Inject()(
           case Right(true) =>
             eventReportConnector.compileEventReportSummary(pstr, userAnswersJson).map { response =>
               Ok(response.body)
-          case Left(invalid) =>
+          case Left(invalid) => throw EventReportValidationFailureException("")
         }
       }
   }
@@ -79,3 +80,5 @@ class EventReportController @Inject()(
     }
   }
 }
+  case class EventReportValidationFailureException(exMessage: String) extends Exception(exMessage)
+
