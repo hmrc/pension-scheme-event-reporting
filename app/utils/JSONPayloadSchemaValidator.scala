@@ -22,7 +22,7 @@ import com.github.fge.jsonschema.main.JsonSchemaFactory
 import play.api.libs.json._
 
 case class ErrorReport(instance: String, errors: String) {
-  override def toString: String = s"$instance: $errors"
+  override def toString: String = s"($instance: $errors)"
 }
 
 class JSONPayloadSchemaValidator {

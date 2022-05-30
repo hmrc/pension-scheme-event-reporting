@@ -92,7 +92,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
           newHeaders = "pstr" -> pstr))
       } map {
          failure =>
-           failure.exMessage mustBe "Schema validation errors:-\nErrorReport(instance1,errors1),ErrorReport(instance2,errors2)"
+           failure.exMessage mustBe "Schema validation errors:-\n(instance1: errors1),\n(instance2: errors2)"
       }
     }
 

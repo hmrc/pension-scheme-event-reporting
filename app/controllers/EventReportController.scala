@@ -57,7 +57,7 @@ class EventReportController @Inject()(
               Ok(response.body)
             }
           case Left(errors) =>
-            val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",")
+            val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
             throw EventReportValidationFailureException(allErrorsAsString)
           case _ => throw EventReportValidationFailureException("Schema validation failed (returned false)")
         }
