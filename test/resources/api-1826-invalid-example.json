@@ -1,0 +1,60 @@
+{
+    "eventReportDetails": {
+      "reportStartDate": "2021-04-06",
+      "reportEndDate": "2022-04-05"
+    },
+    "eventDetails": {
+      "event10": [
+        {
+          "invRegScheme": {
+            "startDateDetails": {
+              "startDateOfInvReg": "THIS BREAKS THE VALIDATION",
+              "contractsOrPolicies": "Yes"
+            }
+          }
+        },
+        {
+          "invRegScheme": {
+            "ceaseDateDetails": {
+              "ceaseDateOfInvReg": "THIS BREAKS THE VALIDATION AGAIN"
+            }
+          }
+        }
+      ],
+      "event11": {
+        "unauthorisedPmtsDate": "2022-01-31",
+        "contractsOrPoliciesDate": "2022-01-10"
+      },
+      "event12": {
+        "twoOrMoreSchemesDate": "2022-01-02"
+      },
+      "event13": [
+        {
+          "schemeStructure": "A group life/death in service scheme",
+          "dateOfChange": "2022-01-02"
+        }
+      ],
+      "event14": {
+        "schemeMembers": "12 to 50"
+      },
+      "event18": {
+        "chargeablePmt": "Yes"
+      },
+      "event19": [
+        {
+          "countryCode": "GB",
+          "dateOfChange": "2022-01-14"
+        }
+      ],
+      "event20": [
+        {
+          "occSchemeDetails": {
+            "startDateOfOccScheme": "2022-01-27"
+          }
+        }
+      ],
+      "eventWindUp": {
+        "dateOfWindUp": "2022-01-28"
+      }
+    }
+  }

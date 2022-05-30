@@ -24,6 +24,7 @@ import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, Enrolment}
 import uk.gov.hmrc.http.{UnauthorizedException, Request => _, _}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import utils.JSONPayloadSchemaValidator
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -32,7 +33,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class EventReportController @Inject()(
                                        cc: ControllerComponents,
                                        eventReportConnector: EventReportConnector,
-                                       val authConnector: AuthConnector
+                                       val authConnector: AuthConnector,
+                                       jsonPayloadSchemaValidator: JSONPayloadSchemaValidator
                                      )(implicit ec: ExecutionContext)
   extends BackendController(cc)
     with HttpErrorFunctions
@@ -45,8 +47,11 @@ class EventReportController @Inject()(
     implicit request =>
       post { (pstr, userAnswersJson) =>
         logger.debug(message = s"[Compile File Return: Incoming-Payload]$userAnswersJson")
-        eventReportConnector.compileEventReportSummary(pstr, userAnswersJson).map { response =>
-          Ok(response.body)
+        jsonPayloadSchemaValidator.validateJsonPayload(userAnswersJson) match {
+          case Right(true) =>
+            eventReportConnector.compileEventReportSummary(pstr, userAnswersJson).map { response =>
+              Ok(response.body)
+          case Left(invalid) =>
         }
       }
   }

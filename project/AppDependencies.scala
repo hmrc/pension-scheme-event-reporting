@@ -4,7 +4,8 @@ object AppDependencies {
 
   val compile = Seq(
     "uk.gov.hmrc"             %% "bootstrap-backend-play-28"  % "5.24.0",
-    "uk.gov.hmrc.mongo"       %% "hmrc-mongo-play-28"         % "0.64.0"
+    "uk.gov.hmrc.mongo"       %% "hmrc-mongo-play-28"         % "0.64.0",
+    "com.github.java-json-tools" %% "json-schema-validator" % "2.2.14"
   )
 
   val test = Seq(
@@ -15,7 +16,8 @@ object AppDependencies {
     "org.mockito"             %% "mockito-scala"              % "1.16.42"             % "test",
     "org.mockito"             %% "mockito-scala-scalatest"    % "1.16.42"             % "test",
     "com.github.tomakehurst"  %  "wiremock"                 % "2.26.0"                % "test",
-    "com.github.tomakehurst"  %  "wiremock-jre8"            % "2.26.0"                % "test"
+    "com.github.tomakehurst"  %  "wiremock-jre8"            % "2.26.0"                % "test",
+
   )
 
   def apply(): Seq[ModuleID] = compile ++ test
