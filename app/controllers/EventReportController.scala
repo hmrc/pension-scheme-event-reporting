@@ -24,29 +24,42 @@ import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, Enrolment}
 import uk.gov.hmrc.http.{UnauthorizedException, Request => _, _}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import utils.JSONPayloadSchemaValidator
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+
 
 @Singleton()
 class EventReportController @Inject()(
                                        cc: ControllerComponents,
                                        eventReportConnector: EventReportConnector,
-                                       val authConnector: AuthConnector
+                                       val authConnector: AuthConnector,
+                                       jsonPayloadSchemaValidator: JSONPayloadSchemaValidator
                                      )(implicit ec: ExecutionContext)
   extends BackendController(cc)
     with HttpErrorFunctions
     with Results
     with AuthorisedFunctions {
 
+
+  private val schemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
+
   private val logger = Logger(classOf[EventReportController])
 
   def compileEventReportSummary: Action[AnyContent] = Action.async {
     implicit request =>
       post { (pstr, userAnswersJson) =>
-        logger.debug(message = s"[Compile File Return: Incoming-Payload]$userAnswersJson")
-        eventReportConnector.compileEventReportSummary(pstr, userAnswersJson).map { response =>
-          Ok(response.body)
+        logger.debug(message = s"[Compile Event Summary Report: Incoming-Payload]$userAnswersJson")
+        jsonPayloadSchemaValidator.validateJsonPayload(schemaPath, userAnswersJson) match {
+          case Right(true) =>
+            eventReportConnector.compileEventReportSummary(pstr, userAnswersJson).map { response =>
+              Ok(response.body)
+            }
+          case Left(errors) =>
+            val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
+            throw EventReportValidationFailureException(allErrorsAsString)
+          case _ => throw EventReportValidationFailureException("Schema validation failed (returned false)")
         }
       }
   }
@@ -74,3 +87,6 @@ class EventReportController @Inject()(
     }
   }
 }
+
+case class EventReportValidationFailureException(exMessage: String) extends Exception(exMessage)
+
