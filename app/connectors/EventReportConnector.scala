@@ -18,8 +18,10 @@ package connectors
 
 import com.google.inject.{ImplementedBy, Inject}
 import config.AppConfig
+import models.EROverview
 import play.api.Logger
 import play.api.http.Status._
+import play.api.libs.json
 import play.api.libs.json._
 import uk.gov.hmrc.http.{HttpClient, _}
 import utils.HttpResponseHelper
@@ -62,5 +64,43 @@ class EventReportConnectorImpl @Inject()(
     Seq("Environment" -> config.integrationframeworkEnvironment,
       "Authorization" -> config.integrationframeworkAuthorization,
       "Content-Type" -> "application/json", "CorrelationId" -> headerUtils.getCorrelationId)
+  }
+
+  def getErOverview(pstr: String, startDate: String, endDate: String)
+                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]] = {
+
+    val getErVersionUrl: String = config.getErOverviewUrl.format(pstr, startDate, endDate)
+
+    logger.warn("Get overview (IF) called - URL:" + getErVersionUrl)
+
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+
+    http.GET[HttpResponse](getErVersionUrl)(implicitly, hc, implicitly).map { response =>
+      response.status match {
+        case OK =>
+          Json.parse(response.body).validate[Seq[EROverview]](Reads.seq(EROverview.rds)) match {
+            case JsSuccess(versions, _) => versions
+            case JsError(errors) => throw JsResultException(errors)
+          }
+        case NOT_FOUND =>
+          val singleError = (Json.parse(response.body) \ "code").asOpt[String]
+          val multipleError = (Json.parse(response.body) \ "failures").asOpt[JsArray]
+          (singleError, multipleError) match {
+            case (Some(err), _) if err.equals("NO_REPORT_FOUND") =>
+              logger.info("The remote endpoin has indicated No Scheme report was found for the given period.")
+              Seq.empty[EROverview]
+            case (_, Some(seqErr)) =>
+              val isAnyNoReportFound = seqErr.value.exists(jsValue => (jsValue \ "code" ).asOpt[String].contains("NO_REPORT_FOUND"))
+              if (isAnyNoReportFound) {
+                logger.info("The remote endpoint has indicated No Schema report was found for the given period.")
+                Seq.empty[EROverview]
+              } else {
+                handleErrorResponse("GET", getErVersionUrl)(response)
+              }
+            case _ => handleErrorResponse("GET", getErVersionUrl)(response)
+          }
+        case _ => handleErrorResponse("GET", getErVersionUrl)(response)
+      }
+    }
   }
 }

@@ -28,7 +28,7 @@ case class EROverviewVersion(
                             )
 
 object EROverviewVersion {
-  implicit val rds: Reads[Option[EROverviewVersion]] =
+  implicit val rds: Reads[Option[EROverviewVersion]] = {
     (JsPath \ "tpssReportPresent").readNullable[String].flatMap {
       case Some("Yes") => Reads(_ => JsSuccess(None))
       case _ => (
@@ -43,6 +43,8 @@ object EROverviewVersion {
             isCompiled.equals("Yes")
           )))
     }
+    implicit val formats: Format[EROverviewVersion] = Json.format[EROverviewVersion]
+  }
 }
 
 case class EROverview(
@@ -67,4 +69,6 @@ object EROverview {
         LocalDate.parse(endDate),
         tpssReport,
         versionDetails))
+
+  implicit val formats: Format[EROverview] = Json.format[EROverview]
 }
