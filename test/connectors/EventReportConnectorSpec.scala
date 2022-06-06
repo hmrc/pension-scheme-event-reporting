@@ -45,6 +45,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
 
   private val pstr = "test-pstr"
   private val eventReportSummaryUrl = s"/pension-online/event-reports/pods/$pstr"
+  private val compileEventOneReportUrl = s"/pension-online/event1-report/pods/$pstr"
   private val testCorrelationId = "testCorrelationId"
 
   override def beforeEach(): Unit = {
@@ -160,6 +161,116 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       }
     }
 
+  }
+
+  "compileEventOneReport" must {
+
+    "return successfully when ETMP has returned OK" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileEventOneReportUrl))
+          .withHeader("Content-Type", equalTo("application/json"))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            ok
+          )
+      )
+      connector.compileEventOneReport(pstr, data) map {
+        _.status mustBe OK
+      }
+    }
+
+
+    "return BAD REQUEST when ETMP has returned BadRequestException" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileEventOneReportUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            badRequest().withBody("INVALID_PAYLOAD")
+          )
+      )
+      recoverToExceptionIf[BadRequestException] {
+        connector.compileEventOneReport(pstr, data)
+      } map {
+        _.responseCode mustEqual BAD_REQUEST
+      }
+    }
+
+    "return BAD REQUEST when ETMP has returned BadRequestException without Invalid " in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileEventOneReportUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            badRequest()
+          )
+      )
+      recoverToExceptionIf[BadRequestException] {
+        connector.compileEventOneReport(pstr, data)
+      } map {
+        _.responseCode mustEqual BAD_REQUEST
+      }
+    }
+
+    "return NOT FOUND when ETMP has returned NotFoundException" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileEventOneReportUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            notFound()
+          )
+      )
+
+      recoverToExceptionIf[NotFoundException] {
+        connector.compileEventOneReport(pstr, data)
+      } map {
+        _.responseCode mustEqual NOT_FOUND
+      }
+    }
+
+    "return Upstream5xxResponse when ETMP has returned Internal Server Error" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileEventOneReportUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            serverError()
+          )
+      )
+      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventOneReport(pstr, data)) map {
+        _.statusCode mustBe INTERNAL_SERVER_ERROR
+      }
+    }
+
+    "return 4xx when ETMP has returned Upstream error response" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileEventOneReportUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            forbidden()
+          )
+      )
+      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventOneReport(pstr, data)) map {
+        _.statusCode mustBe FORBIDDEN
+      }
+    }
+
+    "return 204 when ETMP has returned Unrecognized http response" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileEventOneReportUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            noContent()
+          )
+      )
+      recoverToExceptionIf[UnrecognisedHttpResponseException](connector.compileEventOneReport(pstr, data)) map { response =>
+        response.getMessage must include("204")
+      }
+    }
   }
 }
 
