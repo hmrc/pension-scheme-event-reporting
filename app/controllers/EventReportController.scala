@@ -43,7 +43,8 @@ class EventReportController @Inject()(
     with AuthorisedFunctions {
 
 
-  private val schemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
+  private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
+  private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-compile-event-one-report-request-schema-v1.0.0.json"
 
   private val logger = Logger(classOf[EventReportController])
 
@@ -51,7 +52,7 @@ class EventReportController @Inject()(
     implicit request =>
       post { (pstr, userAnswersJson) =>
         logger.debug(message = s"[Compile Event Summary Report: Incoming-Payload]$userAnswersJson")
-        jsonPayloadSchemaValidator.validateJsonPayload(schemaPath, userAnswersJson) match {
+        jsonPayloadSchemaValidator.validateJsonPayload(createCompiledEventSummaryReportSchemaPath, userAnswersJson) match {
           case Right(true) =>
             eventReportConnector.compileEventReportSummary(pstr, userAnswersJson).map { response =>
               Ok(response.body)
@@ -68,16 +69,16 @@ class EventReportController @Inject()(
     implicit request =>
       post { (pstr, userAnswersJson) =>
         logger.debug(message = s"[Compile Event 1 Report: Incoming-Payload]$userAnswersJson")
-//        jsonPayloadSchemaValidator.validateJsonPayload(schemaPath, userAnswersJson) match {
-//          case Right(true) =>
-            eventReportConnector.compileEventOneReport(pstr, userAnswersJson).map { response =>
-              Ok(response.body)
-            }
-//          case Left(errors) =>
-//            val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
-//            throw EventReportValidationFailureException(allErrorsAsString)
-//          case _ => throw EventReportValidationFailureException("Schema validation failed (returned false)")
-//        }
+       jsonPayloadSchemaValidator.validateJsonPayload(compileEventOneReportSchemaPath, userAnswersJson) match {
+         case Right(true) =>
+         eventReportConnector.compileEventOneReport(pstr, userAnswersJson).map { response =>
+           Ok(response.body)
+         }
+         case Left(errors) =>
+           val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
+           throw EventReportValidationFailureException(allErrorsAsString)
+         case _ => throw EventReportValidationFailureException("Schema validation failed (returned false)")
+       }
       }
   }
 
