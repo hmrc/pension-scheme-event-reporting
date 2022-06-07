@@ -1,0 +1,28 @@
+{
+  "eventReportDetails": {
+    "reportStartDate": "2020-04-06",
+    "reportEndDate": "THIS BREAKS THE VALIDATION"
+  },
+  "event1Details": {
+    "memberStatus": "New",
+    "memberType": "01",
+    "individualMemberDetails": {
+      "title": "0001",
+      "firstName": "John",
+      "middleName": "Mac",
+      "lastName": "Smith",
+      "nino": "AA999999A",
+      "signedMandate": "Yes",
+      "pmtMoreThan25PerFundValue": "No",
+      "schemePayingSurcharge": "Yes"
+    },
+    "unAuthorisedPaymentDetails": {
+      "unAuthorisedPmtType1": "Transfer to non-registered pensions scheme",
+      "unAuthorisedPmtType2": "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
+      "freeTxtOrSchemeOrRecipientName": "ABCDEFGHIJKLMNOPQRSTUV",
+      "pstrOrReference": "20034565RX",
+      "dateOfUnauthorisedPayment": "THIS BREAKS THE VALIDATION TOO",
+      "valueOfUnauthorisedPayment": 723
+    }
+  }
+}

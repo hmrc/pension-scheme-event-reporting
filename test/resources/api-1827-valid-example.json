@@ -1,0 +1,56 @@
+{
+  "eventReportDetails": {
+    "reportStartDate": "2020-04-06",
+    "reportEndDate": "2021-04-05"
+  },
+  "event1Details": [
+    {
+      "memberStatus": "New",
+      "memberType": "02",
+      "employerMemDetails": {
+        "compOrOrgName": "ABC Ltd",
+        "crnNumber": "1234567",
+        "addressLine1": "Street1",
+        "addressLine2": "Street2",
+        "addressLine3": "Street3",
+        "addressLine4": "Street4",
+        "postCode": "BN3 5LK",
+        "countryCode": "GB"
+      },
+      "unAuthorisedPaymentDetails": {
+        "unAuthorisedPmtType1": "Residential property held directly or indirectly by an investment-regulated pension scheme",
+        "dateOfUnauthorisedPayment": "2020-06-30",
+        "valueOfUnauthorisedPayment": 723,
+        "residentialPropertyAddress": {
+          "addressLine1": "Street1",
+          "addressLine2": "Street2",
+          "addressLine3": "Street3",
+          "addressLine4": "Street4",
+          "countryCode": "AD"
+        }
+      }
+    },
+    {
+      "amendedVersion": "001",
+      "memberStatus": "New",
+      "memberType": "01",
+      "individualMemberDetails": {
+        "title": "0001",
+        "firstName": "John",
+        "lastName": "Smith",
+        "nino": "AA999999A",
+        "signedMandate": "Yes",
+        "pmtMoreThan25PerFundValue": "No",
+        "schemePayingSurcharge": "Yes"
+      },
+      "unAuthorisedPaymentDetails": {
+        "unAuthorisedPmtType1": "Transfer to non-registered pensions scheme",
+        "unAuthorisedPmtType2": "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
+        "freeTxtOrSchemeOrRecipientName": "ABCDEFGHIJKLMNOPQRSTUV",
+        "pstrOrReference": "20034565RX",
+        "dateOfUnauthorisedPayment": "2020-06-30",
+        "valueOfUnauthorisedPayment": 723
+      }
+    }
+  ]
+}
