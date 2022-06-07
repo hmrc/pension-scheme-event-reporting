@@ -142,8 +142,9 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       when(mockEventReportConnector.compileEventOneReport(any(), any())(any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, compileEventOneReportSuccessResponse.toString)))
 
-      val result = controller.compileEventReportSummary(fakeRequest.withJsonBody(compileEventOneReportSuccessResponse).withHeaders(
+      val result = controller.compileEventOneReport(fakeRequest.withJsonBody(compileEventOneReportSuccessResponse).withHeaders(
         newHeaders = "pstr" -> pstr))
+
       status(result) mustBe OK
     }
 
