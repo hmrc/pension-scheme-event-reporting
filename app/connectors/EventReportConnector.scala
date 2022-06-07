@@ -21,7 +21,6 @@ import config.AppConfig
 import models.EROverview
 import play.api.Logger
 import play.api.http.Status._
-import play.api.libs.json
 import play.api.libs.json._
 import uk.gov.hmrc.http.{HttpClient, _}
 import utils.HttpResponseHelper

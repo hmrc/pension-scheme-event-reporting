@@ -1,2 +1,4 @@
 # microservice specific routes
 POST       /compile-event-reporting-summary         controllers.EventReportController.compileEventReportSummary
+
+GET        /get-er-overview                         controllers.EventReportController.getOverview

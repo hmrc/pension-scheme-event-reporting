@@ -16,7 +16,7 @@
 
 package controllers
 
-import connectors.EventReportConnector
+import connectors.EventReportConnectorImpl
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
@@ -33,7 +33,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton()
 class EventReportController @Inject()(
                                        cc: ControllerComponents,
-                                       eventReportConnector: EventReportConnector,
+                                       eventReportConnector: EventReportConnectorImpl,
                                        val authConnector: AuthConnector,
                                        jsonPayloadSchemaValidator: JSONPayloadSchemaValidator
                                      )(implicit ec: ExecutionContext)
@@ -64,15 +64,16 @@ class EventReportController @Inject()(
       }
   }
 
-//  def getOverview: Action[AnyContent] = Action.async {
-//    implicit request =>
-//      get { (pstr, startDate) =>
-//        request.headers.get("endDate").flatMap {
-//          case Some(endDate) =>
-//            erOverviewC
-//        }
-//      }
-//  }
+  def getOverview: Action[AnyContent] = Action.async {
+    implicit request =>
+      get { (pstr, startDate, endDate) => {
+          eventReportConnector.getErOverview(pstr, startDate, endDate).map {
+            data =>
+              Ok(Json.toJson(data))
+          }
+        }
+      }
+  }
 
   private def post(block: (String, JsValue) => Future[Result])
                   (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
@@ -95,6 +96,27 @@ class EventReportController @Inject()(
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
     }
   }
+
+  private def get(block: (String, String, String) => Future[Result])
+                 (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+
+    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
+      case Some(_) =>
+        (
+          request.headers.get("pstr"),
+          request.headers.get("startDate"),
+          request.headers.get("endDate")
+        ) match {
+          case (Some(pstr), Some(startDate), Some(endDate)) =>
+            block(pstr, startDate, endDate)
+          case _ =>
+            Future.failed(new BadRequestException("Bad Request with missing PSTR/ Start Date/ End Date"))
+        }
+      case _ =>
+        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
+    }
+  }
+
 }
 
 case class EventReportValidationFailureException(exMessage: String) extends Exception(exMessage)
