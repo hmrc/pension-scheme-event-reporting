@@ -44,7 +44,7 @@ class EventReportController @Inject()(
 
 
   private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
-  private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-compile-event-one-report-request-schema-v1.0.0.json"
+  private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
 
   private val logger = Logger(classOf[EventReportController])
 
