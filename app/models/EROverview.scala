@@ -43,8 +43,8 @@ object EROverviewVersion {
             isCompiled.equals("Yes")
           )))
     }
-    implicit val formats: Format[EROverviewVersion] = Json.format[EROverviewVersion]
   }
+    implicit val formats: Format[EROverviewVersion] = Json.format[EROverviewVersion]
 }
 
 case class EROverview(

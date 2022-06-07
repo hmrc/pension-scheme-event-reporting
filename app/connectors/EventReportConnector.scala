@@ -69,17 +69,17 @@ class EventReportConnectorImpl @Inject()(
   def getErOverview(pstr: String, startDate: String, endDate: String)
                    (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]] = {
 
-    val getErVersionUrl: String = config.getErOverviewUrl.format(pstr, startDate, endDate)
+    val getErOverviewUrl: String = config.getErOverviewUrl.format(pstr, startDate, endDate)
 
-    logger.warn("Get overview (IF) called - URL:" + getErVersionUrl)
+    logger.warn("Get overview (IF) called - URL:" + getErOverviewUrl)
 
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
 
-    http.GET[HttpResponse](getErVersionUrl)(implicitly, hc, implicitly).map { response =>
+    http.GET[HttpResponse](getErOverviewUrl)(implicitly, hc, implicitly).map { response =>
       response.status match {
         case OK =>
           Json.parse(response.body).validate[Seq[EROverview]](Reads.seq(EROverview.rds)) match {
-            case JsSuccess(versions, _) => versions
+            case JsSuccess(data, _) => data
             case JsError(errors) => throw JsResultException(errors)
           }
         case NOT_FOUND =>
@@ -95,11 +95,11 @@ class EventReportConnectorImpl @Inject()(
                 logger.info("The remote endpoint has indicated No Schema report was found for the given period.")
                 Seq.empty[EROverview]
               } else {
-                handleErrorResponse("GET", getErVersionUrl)(response)
+                handleErrorResponse("GET", getErOverviewUrl)(response)
               }
-            case _ => handleErrorResponse("GET", getErVersionUrl)(response)
+            case _ => handleErrorResponse("GET", getErOverviewUrl)(response)
           }
-        case _ => handleErrorResponse("GET", getErVersionUrl)(response)
+        case _ => handleErrorResponse("GET", getErOverviewUrl)(response)
       }
     }
   }

@@ -64,6 +64,15 @@ class EventReportController @Inject()(
       }
   }
 
+//  def getOverview: Action[AnyContent] = Action.async {
+//    implicit request =>
+//      get { (pstr, startDate) =>
+//        request.headers.get("endDate").flatMap {
+//          case Some(endDate) =>
+//            erOverviewC
+//        }
+//      }
+//  }
 
   private def post(block: (String, JsValue) => Future[Result])
                   (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
