@@ -16,7 +16,7 @@
 
 package controllers
 
-import connectors.EventReportConnectorImpl
+import connectors.EventReportConnector
 import play.api.Logger
 import play.api.libs.json._
 import play.api.mvc._
@@ -33,7 +33,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton()
 class EventReportController @Inject()(
                                        cc: ControllerComponents,
-                                       eventReportConnector: EventReportConnectorImpl,
+                                       eventReportConnector: EventReportConnector,
                                        val authConnector: AuthConnector,
                                        jsonPayloadSchemaValidator: JSONPayloadSchemaValidator
                                      )(implicit ec: ExecutionContext)
@@ -64,10 +64,21 @@ class EventReportController @Inject()(
       }
   }
 
-  def getOverview: Action[AnyContent] = Action.async {
+  def getErOverview: Action[AnyContent] = Action.async {
     implicit request =>
       get { (pstr, startDate, endDate) => {
           eventReportConnector.getErOverview(pstr, startDate, endDate).map {
+            data =>
+              Ok(Json.toJson(data))
+          }
+        }
+      }
+  }
+
+  def getEr20AOverview: Action[AnyContent] = Action.async {
+    implicit request =>
+      get { (pstr, startDate, endDate) => {
+          eventReportConnector.getEr20AOverview(pstr, startDate, endDate).map {
             data =>
               Ok(Json.toJson(data))
           }

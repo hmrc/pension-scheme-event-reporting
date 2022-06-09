@@ -161,5 +161,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
     }
 
   }
+
+  "getErOverview"
 }
 

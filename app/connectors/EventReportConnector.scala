@@ -32,6 +32,12 @@ trait EventReportConnector {
 
   def compileEventReportSummary(pstr: String, data: JsValue)
                                (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse]
+
+  def getErOverview(pstr: String, startDate: String, endDate: String)
+                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]]
+
+  def getEr20AOverview(pstr: String, startDate: String, endDate: String)
+                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]]
 }
 
 class EventReportConnectorImpl @Inject()(
@@ -65,6 +71,7 @@ class EventReportConnectorImpl @Inject()(
       "Content-Type" -> "application/json", "CorrelationId" -> headerUtils.getCorrelationId)
   }
 
+  //scalastyle:off cyclomatic.complexity
   def getErOverview(pstr: String, startDate: String, endDate: String)
                    (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]] = {
 
@@ -99,6 +106,46 @@ class EventReportConnectorImpl @Inject()(
             case _ => handleErrorResponse("GET", getErOverviewUrl)(response)
           }
         case _ => handleErrorResponse("GET", getErOverviewUrl)(response)
+      }
+    }
+  }
+
+  //scalastyle:off cyclomatic.complexity
+  //scalastyle:off method.name
+  def getEr20AOverview(pstr: String, startDate: String, endDate: String)
+                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]] = {
+
+    val getEr20aOverviewUrl: String = config.getEr20AOverviewUrl.format(pstr, startDate, endDate)
+
+    logger.warn("Get overview (IF) called - URL:" + getEr20aOverviewUrl)
+
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+
+    http.GET[HttpResponse](getEr20aOverviewUrl)(implicitly, hc, implicitly).map { response =>
+      response.status match {
+        case OK =>
+          Json.parse(response.body).validate[Seq[EROverview]](Reads.seq(EROverview.rds)) match {
+            case JsSuccess(data, _) => data
+            case JsError(errors) => throw JsResultException(errors)
+          }
+        case NOT_FOUND =>
+          val singleError = (Json.parse(response.body) \ "code").asOpt[String]
+          val multipleError = (Json.parse(response.body) \ "failures").asOpt[JsArray]
+          (singleError, multipleError) match {
+            case (Some(err), _) if err.equals("NO_REPORT_FOUND") =>
+              logger.info("The remote endpoin has indicated No Scheme report was found for the given period.")
+              Seq.empty[EROverview]
+            case (_, Some(seqErr)) =>
+              val isAnyNoReportFound = seqErr.value.exists(jsValue => (jsValue \ "code" ).asOpt[String].contains("NO_REPORT_FOUND"))
+              if (isAnyNoReportFound) {
+                logger.info("The remote endpoint has indicated No Schema report was found for the given period.")
+                Seq.empty[EROverview]
+              } else {
+                handleErrorResponse("GET", getEr20aOverviewUrl)(response)
+              }
+            case _ => handleErrorResponse("GET", getEr20aOverviewUrl)(response)
+          }
+        case _ => handleErrorResponse("GET", getEr20aOverviewUrl)(response)
       }
     }
   }
