@@ -42,6 +42,6 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig,
   val createCompileEventReportSummaryUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.create-compile-event-report-summary")}"
 
   def getErOverviewUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.get-er-overview")}"
-  def getEr20AOverviewUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.get-er20A-overview")}"
+  def getEr20AOverviewUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.get-er20a-overview")}"
 
 }

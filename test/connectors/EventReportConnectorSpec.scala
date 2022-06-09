@@ -17,16 +17,19 @@
 package connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock._
+import models.{EROverview, EROverviewVersion}
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 import play.api.http.Status._
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
-import play.api.libs.json.Json
+import play.api.libs.json.{JsArray, Json}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.test.HttpClientSupport
 import utils.{JsonFileReader, UnrecognisedHttpResponseException, WireMockHelper}
+
+import java.time.LocalDate
 
 class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMockHelper with HttpClientSupport  with JsonFileReader with MockitoSugar {
 
@@ -44,8 +47,32 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
     )
 
   private val pstr = "test-pstr"
+  private val fromDt = "2022-04-06"
+  private val toDt = "2022-04-05"
   private val eventReportSummaryUrl = s"/pension-online/event-reports/pods/$pstr"
   private val testCorrelationId = "testCorrelationId"
+  private val getErOverviewUrl = s"/pension-online/reports/overview/pods/$pstr/ER?fromDate=$fromDt&toDate=$toDt"
+  private val getErOverview20aUrl = s"/pension-online/reports/overview/pods/$pstr/ER20A?fromDate=$fromDt&toDate=$toDt"
+
+  private val overview1 = EROverview(
+    LocalDate.of(2022, 4, 6),
+    LocalDate.of(2023, 4, 5),
+    tpssReportPresent = false,
+    Some(EROverviewVersion(
+      3,
+      submittedVersionAvailable = false,
+      compiledVersionAvailable = true)))
+
+  private val overview2 = EROverview(
+    LocalDate.of(2022, 4, 6),
+    LocalDate.of(2023, 4, 5),
+    tpssReportPresent = false,
+    Some(EROverviewVersion(
+      2,
+      submittedVersionAvailable = true,
+      compiledVersionAvailable = true)))
+
+  private val erOverview = Seq(overview1, overview2)
 
   override def beforeEach(): Unit = {
     when(mockHeaderUtils.getCorrelationId).thenReturn(testCorrelationId)
@@ -162,6 +189,69 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
 
   }
 
-  "getErOverview"
+  "getErOverview" must {
+    "return the seq of overviewDetails returned from the ETMP" in {
+      val erOverviewResponseJson: JsArray = Json.arr(
+        Json.obj(
+          "periodStartDate" -> "2022-04-06",
+          "periodEndDate" -> "2023-04-05",
+            "numberOfVersions" -> 3,
+            "submittedVersionAvailable" -> "No",
+            "compiledVersionAvailable" -> "Yes"
+          ),
+        Json.obj(
+          "periodStartDate" -> "2022-04-06",
+          "periodEndDate" -> "2023-04-05",
+            "numberOfVersions" -> 2,
+            "submittedVersionAvailable" -> "Yes",
+            "compiledVersionAvailable" -> "Yes"
+          )
+      )
+
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            ok
+              .withHeader("Content-Type", "application/json")
+              .withBody(erOverviewResponseJson.toString())
+          )
+      )
+      connector.getErOverview(pstr, fromDt, toDt).map { response =>
+        response mustBe erOverview
+      }
+    }
+  }
+  "getErOverview20A" must {
+    "return the seq of overviewDetails returned from the ETMP" in {
+      val er20aOverviewResponseJson: JsArray = Json.arr(
+        Json.obj(
+          "periodStartDate" -> "2022-04-06",
+          "periodEndDate" -> "2023-04-05",
+            "numberOfVersions" -> 3,
+            "submittedVersionAvailable" -> "No",
+            "compiledVersionAvailable" -> "Yes"
+          ),
+        Json.obj(
+          "periodStartDate" -> "2022-04-06",
+          "periodEndDate" -> "2023-04-05",
+            "numberOfVersions" -> 2,
+            "submittedVersionAvailable" -> "Yes",
+            "compiledVersionAvailable" -> "Yes"
+          )
+      )
+
+      server.stubFor(
+        get(urlEqualTo(getErOverview20aUrl))
+          .willReturn(
+            ok
+              .withHeader("Content-Type", "application/json")
+              .withBody(er20aOverviewResponseJson.toString())
+          )
+      )
+      connector.getEr20AOverview(pstr, fromDt, toDt).map { response =>
+        response mustBe erOverview
+      }
+    }
+  }
 }
 
