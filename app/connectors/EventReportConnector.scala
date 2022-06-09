@@ -50,7 +50,7 @@ class EventReportConnectorImpl @Inject()(
  override def compileEventReportSummary(pstr: String, data: JsValue)
                                (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
     val createCompileEventReportSummaryUrl = config.createCompileEventReportSummaryUrl.format(pstr)
-    logger.warn("Compile Event Report Summary called - URL:" + createCompileEventReportSummaryUrl)
+    logger.debug("Compile Event Report Summary called - URL:" + createCompileEventReportSummaryUrl)
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
     http.POST[JsValue, HttpResponse](createCompileEventReportSummaryUrl, data)(implicitly, implicitly, hc, implicitly) map {
       response =>

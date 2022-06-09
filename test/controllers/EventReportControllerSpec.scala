@@ -91,8 +91,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         controller.compileEventReportSummary(fakeRequest.withJsonBody(compileEventReportSummaryResponseJson).withHeaders(
           newHeaders = "pstr" -> pstr))
       } map {
-         failure =>
-           failure.exMessage mustBe "Schema validation errors:-\n(instance1: errors1),\n(instance2: errors2)"
+        failure =>
+          failure.exMessage mustBe "Schema validation errors:-\n(instance1: errors1),\n(instance2: errors2)"
       }
     }
 
@@ -109,7 +109,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       }
     }
 
-    "throw BadRequestException when PSTR is not present in the header" in {
+    "throw BadRequestException when request body not provided" in {
 
       val controller = application.injector.instanceOf[EventReportController]
 
@@ -118,6 +118,18 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       } map { response =>
         response.responseCode mustBe BAD_REQUEST
         response.message must include(s"Bad Request without pstr (Some($pstr)) or request body (None)")
+      }
+    }
+
+    "throw BadRequestException when PSTR missing in header" in {
+
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.compileEventReportSummary(fakeRequest.withJsonBody(compileEventReportSummaryResponseJson))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+        response.message must include(s"Bad Request without pstr (None) or request body (Some($compileEventReportSummaryResponseJson))")
       }
     }
 
@@ -184,15 +196,27 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       }
     }
 
-    "throw BadRequestException when PSTR is not present in the header" in {
+    "throw BadRequestException when request body not provided" in {
 
       val controller = application.injector.instanceOf[EventReportController]
 
       recoverToExceptionIf[BadRequestException] {
-        controller.compileEventOneReport()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
+        controller.compileEventReportSummary()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
       } map { response =>
         response.responseCode mustBe BAD_REQUEST
         response.message must include(s"Bad Request without pstr (Some($pstr)) or request body (None)")
+      }
+    }
+
+    "throw BadRequestException when PSTR missing in header" in {
+
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.compileEventReportSummary(fakeRequest.withJsonBody(compileEventOneReportSuccessResponse))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+        response.message must include(s"Bad Request without pstr (None) or request body (Some($compileEventOneReportSuccessResponse))")
       }
     }
 

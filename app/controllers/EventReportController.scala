@@ -106,5 +106,5 @@ class EventReportController @Inject()(
   }
 }
 
-case class EventReportValidationFailureException(exMessage: String) extends Exception(exMessage)
+case class EventReportValidationFailureException(exMessage: String) extends BadRequestException(exMessage)
 
