@@ -92,8 +92,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         controller.compileEventReportSummary(fakeRequest.withJsonBody(compileEventReportSummaryResponseJson).withHeaders(
           newHeaders = "pstr" -> pstr))
       } map {
-         failure =>
-           failure.exMessage mustBe "Schema validation errors:-\n(instance1: errors1),\n(instance2: errors2)"
+        failure =>
+          failure.exMessage mustBe "Schema validation errors:-\n(instance1: errors1),\n(instance2: errors2)"
       }
     }
 
@@ -134,6 +134,30 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       }
     }
 
+  }
+
+  "get method" must {
+    "throw a Bad Request Exception when toDate parameter is missing in header" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.getErOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "fromDate" -> "2022-04-06"))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+        response.message must include("Bad Request with missing PSTR/ Start Date/ End Date")
+      }
+    }
+    "throw a Unauthorised Exception if auth fails" in {
+      when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[UnauthorizedException] {
+        controller.getErOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "fromDate" -> "2021-04-06", "toDate" -> "2022-04-05"))
+      } map { response =>
+        response.responseCode mustBe UNAUTHORIZED
+        response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
+      }
+    }
   }
 
   "getErOverview" must {
