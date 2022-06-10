@@ -220,6 +220,101 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         response mustBe erOverview
       }
     }
+
+    "return a Seq.empty for NOT FOUND - 404 with response code NO_REPORT_FOUND" in {
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            notFound
+              .withBody(errorResponse("NO_REPORT_FOUND"))
+          )
+      )
+
+      connector.getErOverview(pstr, fromDt, toDt) map { response =>
+        response mustEqual Seq.empty
+      }
+    }
+
+    "return a Seq.empty for 404 with response code NO_REPORT_FOUND in a sequence of errors" in {
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            notFound
+              .withBody(seqErrorResponse("NO_REPORT_FOUND"))
+          )
+      )
+
+      connector.getErOverview(pstr, fromDt, toDt) map { response =>
+        response mustEqual Seq.empty
+      }
+    }
+
+    "return a NotFoundException for a 404 response code without NO_REPORT_FOUND in a sequence of errors" in {
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            notFound
+              .withBody(seqErrorResponse("SOME_OTHER_ERROR"))
+          )
+      )
+
+      recoverToExceptionIf[NotFoundException] {
+        connector.getErOverview(pstr, fromDt, toDt)
+      } map { response =>
+        response.responseCode mustEqual NOT_FOUND
+        response.message must include("SOME_OTHER_ERROR")
+      }
+    }
+
+    "return a NotFoundException for NOT FOUND - 404" in {
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            notFound
+              .withBody(errorResponse("NOT_FOUND"))
+          )
+      )
+
+      recoverToExceptionIf[NotFoundException] {
+        connector.getErOverview(pstr, fromDt, toDt)
+      } map { response =>
+        response.responseCode mustEqual NOT_FOUND
+        response.message must include("NOT_FOUND")
+      }
+    }
+
+    "throw Upstream4XX for FORBIDDEN - 403" in {
+
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            forbidden
+              .withBody(errorResponse("FORBIDDEN"))
+          )
+      )
+      recoverToExceptionIf[UpstreamErrorResponse](connector.getErOverview(pstr, fromDt, toDt)) map {
+        ex =>
+          ex.statusCode mustBe FORBIDDEN
+          ex.message must include("FORBIDDEN")
+      }
+    }
+
+    "throw Upstream5XX for INTERNAL SERVER ERROR - 500" in {
+
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            serverError
+              .withBody(errorResponse("SERVER_ERROR"))
+          )
+      )
+
+      recoverToExceptionIf[UpstreamErrorResponse](connector.getErOverview(pstr, fromDt, toDt)) map {
+        ex =>
+          ex.statusCode mustBe INTERNAL_SERVER_ERROR
+          ex.message must include("SERVER_ERROR")
+      }
+    }
   }
   "getErOverview20A" must {
     "return the seq of overviewDetails returned from the ETMP" in {
@@ -252,6 +347,48 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         response mustBe erOverview
       }
     }
+
+    "return a BadRequestException for BAD REQUEST - 400" in {
+      server.stubFor(
+        get(urlEqualTo(getErOverview20aUrl))
+          .willReturn(
+            badRequest
+              .withHeader("Content-Type", "application/json")
+              .withBody(errorResponse("INVALID_PSTR"))
+          )
+      )
+
+      recoverToExceptionIf[BadRequestException] {
+        connector.getEr20AOverview(pstr, fromDt, toDt)
+      } map { errorResponse =>
+        errorResponse.responseCode mustEqual BAD_REQUEST
+        errorResponse.message must include("INVALID_PSTR")
+      }
+    }
   }
+
+  private def errorResponse(code: String): String = {
+    Json.stringify(
+      Json.obj(
+        "code" -> code,
+        "reason" -> s"Reason for $code"
+      )
+    )
+  }
+
+  private def seqErrorResponse(code: String): String = {
+    Json.stringify(
+      Json.obj(
+        "failures" ->
+          Json.arr(
+            Json.obj(
+              "code" -> code,
+              "reason" -> s"Reason for $code"
+            )
+          )
+      )
+    )
+  }
+
 }
 
