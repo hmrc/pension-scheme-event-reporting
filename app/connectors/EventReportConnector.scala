@@ -38,6 +38,8 @@ trait EventReportConnector {
 
   def getEr20AOverview(pstr: String, startDate: String, endDate: String)
                    (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]]
+  def compileEventOneReport(pstr: String, data: JsValue)
+                               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse]
 }
 
 class EventReportConnectorImpl @Inject()(
@@ -54,7 +56,7 @@ class EventReportConnectorImpl @Inject()(
  override def compileEventReportSummary(pstr: String, data: JsValue)
                                (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
     val createCompileEventReportSummaryUrl = config.createCompileEventReportSummaryUrl.format(pstr)
-    logger.warn("Compile Event Report Summary called - URL:" + createCompileEventReportSummaryUrl)
+    logger.debug("Compile Event Report Summary called - URL:" + createCompileEventReportSummaryUrl)
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
     http.POST[JsValue, HttpResponse](createCompileEventReportSummaryUrl, data)(implicitly, implicitly, hc, implicitly) map {
       response =>
@@ -65,6 +67,19 @@ class EventReportConnectorImpl @Inject()(
     }
   }
 
+  override def compileEventOneReport(pstr: String, data: JsValue)
+                                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
+    val compileEvent1ReportUrl = config.compileEvent1ReportUrl.format(pstr)
+    logger.warn("Compile Event Report One - URL:" + compileEvent1ReportUrl)
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+    http.POST[JsValue, HttpResponse](compileEvent1ReportUrl, data)(implicitly, implicitly, hc, implicitly) map {
+      response =>
+        response.status match {
+          case OK => response
+          case _ => handleErrorResponse("POST", compileEvent1ReportUrl)(response)
+        }
+    }
+  }
   private def integrationFrameworkHeader: Seq[(String, String)] = {
     Seq("Environment" -> config.integrationframeworkEnvironment,
       "Authorization" -> config.integrationframeworkAuthorization,
