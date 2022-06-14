@@ -17,16 +17,21 @@
 package connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock._
+import models.{EROverview, EROverviewVersion}
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 import play.api.http.Status._
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
-import play.api.libs.json.Json
+import play.api.libs.json.{JsArray, Json}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.test.HttpClientSupport
 import utils.{JsonFileReader, UnrecognisedHttpResponseException, WireMockHelper}
+
+import java.time.LocalDate
+
+
 
 class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMockHelper with HttpClientSupport  with JsonFileReader with MockitoSugar {
 
@@ -44,13 +49,60 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
     )
 
   private val pstr = "test-pstr"
+  private val fromDt = "2022-04-06"
+  private val toDt = "2022-04-05"
   private val eventReportSummaryUrl = s"/pension-online/event-reports/pods/$pstr"
   private val compileEventOneReportUrl = s"/pension-online/event1-report/pods/$pstr"
   private val testCorrelationId = "testCorrelationId"
+  private val getErOverviewUrl = s"/pension-online/reports/overview/pods/$pstr/ER?fromDate=$fromDt&toDate=$toDt"
+  private val getErOverview20aUrl = s"/pension-online/reports/overview/pods/$pstr/ER20A?fromDate=$fromDt&toDate=$toDt"
+
+  private val overview1 = EROverview(
+    LocalDate.of(2022, 4, 6),
+    LocalDate.of(2023, 4, 5),
+    tpssReportPresent = false,
+    Some(EROverviewVersion(
+      3,
+      submittedVersionAvailable = false,
+      compiledVersionAvailable = true)))
+
+  private val overview2 = EROverview(
+    LocalDate.of(2022, 4, 6),
+    LocalDate.of(2023, 4, 5),
+    tpssReportPresent = false,
+    Some(EROverviewVersion(
+      2,
+      submittedVersionAvailable = true,
+      compiledVersionAvailable = true)))
+
+  private val erOverview = Seq(overview1, overview2)
 
   override def beforeEach(): Unit = {
     when(mockHeaderUtils.getCorrelationId).thenReturn(testCorrelationId)
     super.beforeEach()
+  }
+
+  private def errorResponse(code: String): String = {
+    Json.stringify(
+      Json.obj(
+        "code" -> code,
+        "reason" -> s"Reason for $code"
+      )
+    )
+  }
+
+  private def seqErrorResponse(code: String): String = {
+    Json.stringify(
+      Json.obj(
+        "failures" ->
+          Json.arr(
+            Json.obj(
+              "code" -> code,
+              "reason" -> s"Reason for $code"
+            )
+          )
+      )
+    )
   }
 
   "compileEventReportSummary" must {
@@ -160,7 +212,230 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         response.getMessage must include("204")
       }
     }
+  }
 
+  "getErOverview" must {
+    "return the seq of overviewDetails returned from the ETMP" in {
+      val erOverviewResponseJson: JsArray = Json.arr(
+        Json.obj(
+          "periodStartDate" -> "2022-04-06",
+          "periodEndDate" -> "2023-04-05",
+          "numberOfVersions" -> 3,
+          "submittedVersionAvailable" -> "No",
+          "compiledVersionAvailable" -> "Yes"
+        ),
+        Json.obj(
+          "periodStartDate" -> "2022-04-06",
+          "periodEndDate" -> "2023-04-05",
+          "numberOfVersions" -> 2,
+          "submittedVersionAvailable" -> "Yes",
+          "compiledVersionAvailable" -> "Yes"
+        )
+      )
+
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            ok
+              .withHeader("Content-Type", "application/json")
+              .withBody(erOverviewResponseJson.toString())
+          )
+      )
+      connector.getErOverview(pstr, fromDt, toDt).map { response =>
+        response mustBe erOverview
+      }
+    }
+
+    "return a Seq.empty for NOT FOUND - 404 with response code NO_REPORT_FOUND" in {
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            notFound
+              .withBody(errorResponse("NO_REPORT_FOUND"))
+          )
+      )
+
+      connector.getErOverview(pstr, fromDt, toDt) map { response =>
+        response mustEqual Seq.empty
+      }
+    }
+
+    "return a Seq.empty for 404 with response code NO_REPORT_FOUND in a sequence of errors" in {
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            notFound
+              .withBody(seqErrorResponse("NO_REPORT_FOUND"))
+          )
+      )
+
+      connector.getErOverview(pstr, fromDt, toDt) map { response =>
+        response mustEqual Seq.empty
+      }
+    }
+
+    "return a NotFoundException for a 404 response code without NO_REPORT_FOUND in a sequence of errors" in {
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            notFound
+              .withBody(seqErrorResponse("SOME_OTHER_ERROR"))
+          )
+      )
+
+      recoverToExceptionIf[NotFoundException] {
+        connector.getErOverview(pstr, fromDt, toDt)
+      } map { response =>
+        response.responseCode mustEqual NOT_FOUND
+        response.message must include("SOME_OTHER_ERROR")
+      }
+    }
+
+    "return a NotFoundException for NOT FOUND - 404" in {
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            notFound
+              .withBody(errorResponse("NOT_FOUND"))
+          )
+      )
+
+      recoverToExceptionIf[NotFoundException] {
+        connector.getErOverview(pstr, fromDt, toDt)
+      } map { response =>
+        response.responseCode mustEqual NOT_FOUND
+        response.message must include("NOT_FOUND")
+      }
+    }
+
+    "throw Upstream4XX for FORBIDDEN - 403" in {
+
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            forbidden
+              .withBody(errorResponse("FORBIDDEN"))
+          )
+      )
+      recoverToExceptionIf[UpstreamErrorResponse](connector.getErOverview(pstr, fromDt, toDt)) map {
+        ex =>
+          ex.statusCode mustBe FORBIDDEN
+          ex.message must include("FORBIDDEN")
+      }
+    }
+
+    "throw Upstream5XX for INTERNAL SERVER ERROR - 500" in {
+
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            serverError
+              .withBody(errorResponse("SERVER_ERROR"))
+          )
+      )
+
+      recoverToExceptionIf[UpstreamErrorResponse](connector.getErOverview(pstr, fromDt, toDt)) map {
+        ex =>
+          ex.statusCode mustBe INTERNAL_SERVER_ERROR
+          ex.message must include("SERVER_ERROR")
+      }
+    }
+  }
+
+  "getErOverview20A" must {
+    "return the seq of overviewDetails returned from the ETMP" in {
+      val er20aOverviewResponseJson: JsArray = Json.arr(
+        Json.obj(
+          "periodStartDate" -> "2022-04-06",
+          "periodEndDate" -> "2023-04-05",
+            "numberOfVersions" -> 3,
+            "submittedVersionAvailable" -> "No",
+            "compiledVersionAvailable" -> "Yes"
+          ),
+        Json.obj(
+          "periodStartDate" -> "2022-04-06",
+          "periodEndDate" -> "2023-04-05",
+            "numberOfVersions" -> 2,
+            "submittedVersionAvailable" -> "Yes",
+            "compiledVersionAvailable" -> "Yes"
+          )
+      )
+
+      server.stubFor(
+        get(urlEqualTo(getErOverview20aUrl))
+          .willReturn(
+            ok
+              .withHeader("Content-Type", "application/json")
+              .withBody(er20aOverviewResponseJson.toString())
+          )
+      )
+      connector.getEr20AOverview(pstr, fromDt, toDt).map { response =>
+        response mustBe erOverview
+      }
+    }
+
+    "return a BadRequestException for BAD REQUEST - 400" in {
+      server.stubFor(
+        get(urlEqualTo(getErOverview20aUrl))
+          .willReturn(
+            badRequest
+              .withHeader("Content-Type", "application/json")
+              .withBody(errorResponse("INVALID_PSTR"))
+          )
+      )
+
+      recoverToExceptionIf[BadRequestException] {
+        connector.getEr20AOverview(pstr, fromDt, toDt)
+      } map { errorResponse =>
+        errorResponse.responseCode mustEqual BAD_REQUEST
+        errorResponse.message must include("INVALID_PSTR")
+      }
+    }
+
+    "return a Seq.empty for NOT FOUND - 404 with response code NO_REPORT_FOUND" in {
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            notFound
+              .withBody(errorResponse("NO_REPORT_FOUND"))
+          )
+      )
+
+      connector.getErOverview(pstr, fromDt, toDt) map { response =>
+        response mustEqual Seq.empty
+      }
+    }
+
+    "return a Seq.empty for 404 with response code NO_REPORT_FOUND in a sequence of errors" in {
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            notFound
+              .withBody(seqErrorResponse("NO_REPORT_FOUND"))
+          )
+      )
+
+      connector.getErOverview(pstr, fromDt, toDt) map { response =>
+        response mustEqual Seq.empty
+      }
+    }
+
+    "return a NotFoundException for a 404 response code without NO_REPORT_FOUND in a sequence of errors" in {
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            notFound
+              .withBody(seqErrorResponse("SOME_OTHER_ERROR"))
+          )
+      )
+
+      recoverToExceptionIf[NotFoundException] {
+        connector.getErOverview(pstr, fromDt, toDt)
+      } map { response =>
+        response.responseCode mustEqual NOT_FOUND
+        response.message must include("SOME_OTHER_ERROR")
+      }
+    }
   }
 
   "compileEventOneReport" must {
@@ -179,7 +454,6 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         _.status mustBe OK
       }
     }
-
 
     "return BAD REQUEST when ETMP has returned BadRequestException" in {
       val data = Json.obj(fields = "Id" -> "value")
@@ -230,6 +504,57 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       }
     }
 
+    "return a NotFoundException for NOT FOUND - 404" in {
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            notFound
+              .withBody(errorResponse("NOT_FOUND"))
+          )
+      )
+
+      recoverToExceptionIf[NotFoundException] {
+        connector.getErOverview(pstr, fromDt, toDt)
+      } map { response =>
+        response.responseCode mustEqual NOT_FOUND
+        response.message must include("NOT_FOUND")
+      }
+    }
+
+    "throw Upstream4XX for FORBIDDEN - 403" in {
+
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            forbidden
+              .withBody(errorResponse("FORBIDDEN"))
+          )
+      )
+      recoverToExceptionIf[UpstreamErrorResponse](connector.getErOverview(pstr, fromDt, toDt)) map {
+        ex =>
+          ex.statusCode mustBe FORBIDDEN
+          ex.message must include("FORBIDDEN")
+      }
+    }
+
+    "throw Upstream5XX for INTERNAL SERVER ERROR - 500" in {
+
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            serverError
+              .withBody(errorResponse("SERVER_ERROR"))
+          )
+      )
+
+      recoverToExceptionIf[UpstreamErrorResponse](connector.getErOverview(pstr, fromDt, toDt)) map {
+        ex =>
+          ex.statusCode mustBe INTERNAL_SERVER_ERROR
+          ex.message must include("SERVER_ERROR")
+      }
+    }
+  }
+
     "return Upstream5xxResponse when ETMP has returned Internal Server Error" in {
       val data = Json.obj(fields = "Id" -> "value")
       server.stubFor(
@@ -271,6 +596,5 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         response.getMessage must include("204")
       }
     }
-  }
 }
 

@@ -31,7 +31,8 @@ trait HttpResponseHelper extends HttpErrorFunctions {
   def handleErrorResponse(httpMethod: String, url: String, args: String*)(response: HttpResponse): Nothing =
     response.status match {
       case BAD_REQUEST =>
-        if (response.body.contains("INVALID_PAYLOAD")) logger.warn(s"INVALID_PAYLOAD returned for: ${args.headOption.getOrElse(url)} from: $url")
+        if (response.body.contains("INVALID_PAYLOAD"))
+          logger.warn(s"INVALID_PAYLOAD returned for: ${args.headOption.getOrElse(url)} from: $url")
         throw new BadRequestException(
           badRequestMessage(httpMethod, url, response.body)
         )

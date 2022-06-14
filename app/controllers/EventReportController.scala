@@ -17,7 +17,7 @@
 package controllers
 
 import connectors.EventReportConnector
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
@@ -40,13 +40,11 @@ class EventReportController @Inject()(
   extends BackendController(cc)
     with HttpErrorFunctions
     with Results
-    with AuthorisedFunctions {
-
+    with AuthorisedFunctions
+    with Logging {
 
   private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
-
-  private val logger = Logger(classOf[EventReportController])
 
   def compileEventReportSummary: Action[AnyContent] = Action.async {
     implicit request =>
@@ -65,6 +63,28 @@ class EventReportController @Inject()(
       }
   }
 
+  def getErOverview: Action[AnyContent] = Action.async {
+    implicit request =>
+      get { (pstr, startDate, endDate) => {
+          eventReportConnector.getErOverview(pstr, startDate, endDate).map {
+            data =>
+              Ok(Json.toJson(data))
+          }
+        }
+      }
+  }
+
+  def getEr20AOverview: Action[AnyContent] = Action.async {
+    implicit request =>
+      get { (pstr, startDate, endDate) => {
+          eventReportConnector.getEr20AOverview(pstr, startDate, endDate).map {
+            data =>
+              Ok(Json.toJson(data))
+          }
+        }
+      }
+  }
+      
   def compileEventOneReport: Action[AnyContent] = Action.async {
     implicit request =>
       post { (pstr, userAnswersJson) =>
@@ -81,7 +101,6 @@ class EventReportController @Inject()(
        }
       }
   }
-
 
   private def post(block: (String, JsValue) => Future[Result])
                   (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
@@ -104,6 +123,27 @@ class EventReportController @Inject()(
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
     }
   }
+
+  private def get(block: (String, String, String) => Future[Result])
+                 (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+
+    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
+      case Some(_) =>
+        (
+          request.headers.get("pstr"),
+          request.headers.get("startDate"),
+          request.headers.get("endDate")
+        ) match {
+          case (Some(pstr), Some(startDate), Some(endDate)) =>
+            block(pstr, startDate, endDate)
+          case _ =>
+            Future.failed(new BadRequestException("Bad Request with missing PSTR/ Start Date/ End Date"))
+        }
+      case _ =>
+        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
+    }
+  }
+
 }
 
 case class EventReportValidationFailureException(exMessage: String) extends BadRequestException(exMessage)

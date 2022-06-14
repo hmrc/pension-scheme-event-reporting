@@ -17,8 +17,9 @@
 package controllers
 
 import connectors.EventReportConnector
+import models.{EROverview, EROverviewVersion}
 import org.mockito.ArgumentMatchers.any
-import org.mockito.MockitoSugar
+import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
@@ -147,6 +148,56 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
   }
 
+  "get method" must {
+    "throw a Bad Request Exception when toDate parameter is missing in header" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.getErOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "fromDate" -> "2022-04-06"))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+        response.message must include("Bad Request with missing PSTR/ Start Date/ End Date")
+      }
+    }
+    "throw a Unauthorised Exception if auth fails" in {
+      when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[UnauthorizedException] {
+        controller.getErOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "fromDate" -> "2021-04-06", "toDate" -> "2022-04-05"))
+      } map { response =>
+        response.responseCode mustBe UNAUTHORIZED
+        response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
+      }
+    }
+  }
+
+  "getErOverview" must {
+    "return OK with the Seq of overview details" in {
+      when(mockEventReportConnector.getErOverview(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(startDt), ArgumentMatchers.eq(endDt))(any(), any()))
+        .thenReturn(Future.successful(erOverview))
+
+      val controller = application.injector.instanceOf[EventReportController]
+      val result = controller.getErOverview(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "startDate" -> startDt, "endDate" -> endDt))
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe erOverviewResponseJson
+    }
+  }
+
+  "getEr20aOverview" must {
+    "return OK with the Seq of overview details" in {
+      when(mockEventReportConnector.getEr20AOverview(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(startDt), ArgumentMatchers.eq(endDt))(any(), any()))
+        .thenReturn(Future.successful(erOverview))
+
+      val controller = application.injector.instanceOf[EventReportController]
+      val result = controller.getEr20AOverview(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "startDate" -> startDt, "endDate" -> endDt))
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe erOverviewResponseJson
+    }
+  }
+    
   "compileEventReportOne" must {
     "return OK when valid response" in {
       val controller = application.injector.instanceOf[EventReportController]
@@ -239,6 +290,51 @@ object EventReportControllerSpec {
   val pstr = "pstr"
   val compileEventReportSummaryResponseJson: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678912")
+
+  private val startDt = "2022-04-06"
+  private val endDt = "2023-04-05"
+
+  val erOverviewResponseJson: JsArray = Json.arr(
+    Json.obj(
+      "periodStartDate" -> "2022-04-06",
+      "periodEndDate" -> "2023-04-05",
+      "tpssReportPresent" -> false,
+      "versionDetails" -> Json.obj(
+        "numberOfVersions" -> 3,
+        "submittedVersionAvailable" -> false,
+        "compiledVersionAvailable" -> true
+      )),
+    Json.obj(
+      "periodStartDate" -> "2022-04-06",
+      "periodEndDate" -> "2023-04-05",
+      "tpssReportPresent" -> false,
+      "versionDetails" -> Json.obj(
+        "numberOfVersions" -> 2,
+        "submittedVersionAvailable" -> true,
+        "compiledVersionAvailable" -> true
+      )),
+  )
+
+  private val overview1 = EROverview(
+    LocalDate.of(2022, 4, 6),
+    LocalDate.of(2023, 4, 5),
+    tpssReportPresent = false,
+    Some(EROverviewVersion(
+      3,
+      submittedVersionAvailable = false,
+      compiledVersionAvailable = true)))
+
+  private val overview2 = EROverview(
+    LocalDate.of(2022, 4, 6),
+    LocalDate.of(2023, 4, 5),
+    tpssReportPresent = false,
+    Some(EROverviewVersion(
+      2,
+      submittedVersionAvailable = true,
+      compiledVersionAvailable = true)))
+
+  private val erOverview = Seq(overview1, overview2)
+
 
   val compileEventOneReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678988")
