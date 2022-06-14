@@ -31,6 +31,8 @@ import utils.{JsonFileReader, UnrecognisedHttpResponseException, WireMockHelper}
 
 import java.time.LocalDate
 
+
+
 class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMockHelper with HttpClientSupport  with JsonFileReader with MockitoSugar {
 
   private implicit lazy val hc: HeaderCarrier = HeaderCarrier()
@@ -78,6 +80,29 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
   override def beforeEach(): Unit = {
     when(mockHeaderUtils.getCorrelationId).thenReturn(testCorrelationId)
     super.beforeEach()
+  }
+
+  private def errorResponse(code: String): String = {
+    Json.stringify(
+      Json.obj(
+        "code" -> code,
+        "reason" -> s"Reason for $code"
+      )
+    )
+  }
+
+  private def seqErrorResponse(code: String): String = {
+    Json.stringify(
+      Json.obj(
+        "failures" ->
+          Json.arr(
+            Json.obj(
+              "code" -> code,
+              "reason" -> s"Reason for $code"
+            )
+          )
+      )
+    )
   }
 
   "compileEventReportSummary" must {
@@ -187,7 +212,6 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         response.getMessage must include("204")
       }
     }
-
   }
 
   "getErOverview" must {
@@ -196,17 +220,17 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         Json.obj(
           "periodStartDate" -> "2022-04-06",
           "periodEndDate" -> "2023-04-05",
-            "numberOfVersions" -> 3,
-            "submittedVersionAvailable" -> "No",
-            "compiledVersionAvailable" -> "Yes"
-          ),
+          "numberOfVersions" -> 3,
+          "submittedVersionAvailable" -> "No",
+          "compiledVersionAvailable" -> "Yes"
+        ),
         Json.obj(
           "periodStartDate" -> "2022-04-06",
           "periodEndDate" -> "2023-04-05",
-            "numberOfVersions" -> 2,
-            "submittedVersionAvailable" -> "Yes",
-            "compiledVersionAvailable" -> "Yes"
-          )
+          "numberOfVersions" -> 2,
+          "submittedVersionAvailable" -> "Yes",
+          "compiledVersionAvailable" -> "Yes"
+        )
       )
 
       server.stubFor(
@@ -317,6 +341,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       }
     }
   }
+
   "getErOverview20A" must {
     "return the seq of overviewDetails returned from the ETMP" in {
       val er20aOverviewResponseJson: JsArray = Json.arr(
@@ -401,6 +426,17 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           .willReturn(
             notFound
               .withBody(seqErrorResponse("SOME_OTHER_ERROR"))
+          )
+      )
+
+      recoverToExceptionIf[NotFoundException] {
+        connector.getErOverview(pstr, fromDt, toDt)
+      } map { response =>
+        response.responseCode mustEqual NOT_FOUND
+        response.message must include("SOME_OTHER_ERROR")
+      }
+    }
+  }
 
   "compileEventOneReport" must {
 
@@ -418,7 +454,6 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         _.status mustBe OK
       }
     }
-
 
     "return BAD REQUEST when ETMP has returned BadRequestException" in {
       val data = Json.obj(fields = "Id" -> "value")
@@ -463,10 +498,9 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       )
 
       recoverToExceptionIf[NotFoundException] {
-        connector.getErOverview(pstr, fromDt, toDt)
-      } map { response =>
-        response.responseCode mustEqual NOT_FOUND
-        response.message must include("SOME_OTHER_ERROR")
+        connector.compileEventOneReport(pstr, data)
+      } map {
+        _.responseCode mustEqual NOT_FOUND
       }
     }
 
@@ -521,34 +555,6 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
     }
   }
 
-  private def errorResponse(code: String): String = {
-    Json.stringify(
-      Json.obj(
-        "code" -> code,
-        "reason" -> s"Reason for $code"
-      )
-    )
-  }
-
-  private def seqErrorResponse(code: String): String = {
-    Json.stringify(
-      Json.obj(
-        "failures" ->
-          Json.arr(
-            Json.obj(
-              "code" -> code,
-              "reason" -> s"Reason for $code"
-            )
-          )
-      )
-    )
-  }
-        connector.compileEventOneReport(pstr, data)
-      } map {
-        _.responseCode mustEqual NOT_FOUND
-      }
-    }
-
     "return Upstream5xxResponse when ETMP has returned Internal Server Error" in {
       val data = Json.obj(fields = "Id" -> "value")
       server.stubFor(
@@ -590,6 +596,5 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         response.getMessage must include("204")
       }
     }
-  }
 }
 

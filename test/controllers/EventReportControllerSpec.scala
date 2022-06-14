@@ -196,6 +196,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       status(result) mustBe OK
       contentAsJson(result) mustBe erOverviewResponseJson
     }
+  }
     
   "compileEventReportOne" must {
     "return OK when valid response" in {
