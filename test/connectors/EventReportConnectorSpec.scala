@@ -51,11 +51,15 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
   private val pstr = "test-pstr"
   private val fromDt = "2022-04-06"
   private val toDt = "2022-04-05"
+  private val testCorrelationId = "testCorrelationId"
+
   private val eventReportSummaryUrl = s"/pension-online/event-reports/pods/$pstr"
   private val compileEventOneReportUrl = s"/pension-online/event1-report/pods/$pstr"
-  private val testCorrelationId = "testCorrelationId"
+
   private val getErOverviewUrl = s"/pension-online/reports/overview/pods/$pstr/ER?fromDate=$fromDt&toDate=$toDt"
   private val getErOverview20aUrl = s"/pension-online/reports/overview/pods/$pstr/ER20A?fromDate=$fromDt&toDate=$toDt"
+
+  private val submitEventDeclaration = s"/pension-online/event-declaration-reports/$pstr"
 
   private val overview1 = EROverview(
     LocalDate.of(2022, 4, 6),

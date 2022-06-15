@@ -41,10 +41,13 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig,
 
   val createCompileEventReportSummaryUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.create-compile-event-report-summary")}"
 
+  val compileEvent1ReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.compile-event1-report")}"
+
   def getErOverviewUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.get-er-overview")}"
 
+  // scalastyle:off
   def getEr20AOverviewUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.get-er20a-overview")}"
 
-  val compileEvent1ReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.compile-event1-report")}"
+  val submitEventDeclarationUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event-declaration")}"
 
 }

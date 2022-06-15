@@ -33,14 +33,15 @@ trait EventReportConnector {
   def compileEventReportSummary(pstr: String, data: JsValue)
                                (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse]
 
+  def compileEventOneReport(pstr: String, data: JsValue)
+                           (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse]
+
   def getErOverview(pstr: String, startDate: String, endDate: String)
                    (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]]
-
+  //scalastyle:off
   def getEr20AOverview(pstr: String, startDate: String, endDate: String)
                       (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]]
 
-  def compileEventOneReport(pstr: String, data: JsValue)
-                           (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse]
 }
 
 class EventReportConnectorImpl @Inject()(
