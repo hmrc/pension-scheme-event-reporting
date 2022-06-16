@@ -16,7 +16,7 @@
 
 package connectors
 
-import com.google.inject.{ImplementedBy, Inject}
+import com.google.inject.Inject
 import config.AppConfig
 import models.EROverview
 import play.api.Logging
@@ -27,33 +27,18 @@ import utils.HttpResponseHelper
 
 import scala.concurrent.{ExecutionContext, Future}
 
-@ImplementedBy(classOf[EventReportConnectorImpl])
-trait EventReportConnector {
-
-  def compileEventReportSummary(pstr: String, data: JsValue)
-                               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse]
-
-  def getOverview(pstr: String, reportType: String, startDate: String, endDate: String)
-                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]]
-
-  def compileEventOneReport(pstr: String, data: JsValue)
-                           (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse]
-}
-
-class EventReportConnectorImpl @Inject()(
-                                          config: AppConfig,
-                                          http: HttpClient,
-                                          headerUtils: HeaderUtils
-                                        )
-  extends EventReportConnector
-    with HttpErrorFunctions
+class EventReportConnector @Inject()(
+                                      config: AppConfig,
+                                      http: HttpClient,
+                                      headerUtils: HeaderUtils
+                                    )
+  extends HttpErrorFunctions
     with HttpResponseHelper
     with Logging {
 
 
-
-  override def compileEventReportSummary(pstr: String, data: JsValue)
-                                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
+  def compileEventReportSummary(pstr: String, data: JsValue)
+                               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
     val createCompileEventReportSummaryUrl = config.createCompileEventReportSummaryUrl.format(pstr)
     logger.debug("Compile Event Report Summary called - URL:" + createCompileEventReportSummaryUrl)
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
@@ -66,8 +51,8 @@ class EventReportConnectorImpl @Inject()(
     }
   }
 
-  override def compileEventOneReport(pstr: String, data: JsValue)
-                                    (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
+  def compileEventOneReport(pstr: String, data: JsValue)
+                           (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
     val compileEvent1ReportUrl = config.compileEvent1ReportUrl.format(pstr)
     logger.debug("Compile Event Report One - URL:" + compileEvent1ReportUrl)
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
@@ -81,8 +66,8 @@ class EventReportConnectorImpl @Inject()(
   }
 
   //scalastyle:off cyclomatic.complexity
-  override def getOverview(pstr: String, reportType: String, startDate: String, endDate: String)
-                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]] = {
+  def getOverview(pstr: String, reportType: String, startDate: String, endDate: String)
+                 (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]] = {
 
     val getErOverviewUrl: String = config.overviewUrl.format(pstr, reportType, startDate, endDate)
 
