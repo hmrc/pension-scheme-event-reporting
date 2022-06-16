@@ -63,42 +63,30 @@ class EventReportController @Inject()(
       }
   }
 
-  def getErOverview: Action[AnyContent] = Action.async {
+  def getOverview: Action[AnyContent] = Action.async {
     implicit request =>
-      get { (pstr, startDate, endDate) => {
-          eventReportConnector.getErOverview(pstr, startDate, endDate).map {
-            data =>
-              Ok(Json.toJson(data))
-          }
+      withAuthAndOverviewParameters { (pstr, reportType, startDate, endDate) =>
+        eventReportConnector.getOverview(pstr, reportType, startDate, endDate).map {
+          data =>
+            Ok(Json.toJson(data))
         }
       }
   }
 
-  def getEr20AOverview: Action[AnyContent] = Action.async {
-    implicit request =>
-      get { (pstr, startDate, endDate) => {
-          eventReportConnector.getEr20AOverview(pstr, startDate, endDate).map {
-            data =>
-              Ok(Json.toJson(data))
-          }
-        }
-      }
-  }
-      
   def compileEventOneReport: Action[AnyContent] = Action.async {
     implicit request =>
       post { (pstr, userAnswersJson) =>
         logger.debug(message = s"[Compile Event 1 Report: Incoming-Payload]$userAnswersJson")
-       jsonPayloadSchemaValidator.validateJsonPayload(compileEventOneReportSchemaPath, userAnswersJson) match {
-         case Right(true) =>
-         eventReportConnector.compileEventOneReport(pstr, userAnswersJson).map { response =>
-           Ok(response.body)
-         }
-         case Left(errors) =>
-           val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
-           throw EventReportValidationFailureException(allErrorsAsString)
-         case _ => throw EventReportValidationFailureException("Schema validation failed (returned false)")
-       }
+        jsonPayloadSchemaValidator.validateJsonPayload(compileEventOneReportSchemaPath, userAnswersJson) match {
+          case Right(true) =>
+            eventReportConnector.compileEventOneReport(pstr, userAnswersJson).map { response =>
+              Ok(response.body)
+            }
+          case Left(errors) =>
+            val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
+            throw EventReportValidationFailureException(allErrorsAsString)
+          case _ => throw EventReportValidationFailureException("Schema validation failed (returned false)")
+        }
       }
   }
 
@@ -124,20 +112,21 @@ class EventReportController @Inject()(
     }
   }
 
-  private def get(block: (String, String, String) => Future[Result])
-                 (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+  private def withAuthAndOverviewParameters(block: (String, String, String, String) => Future[Result])
+                                           (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
       case Some(_) =>
         (
           request.headers.get("pstr"),
+          request.headers.get("reportType"),
           request.headers.get("startDate"),
           request.headers.get("endDate")
         ) match {
-          case (Some(pstr), Some(startDate), Some(endDate)) =>
-            block(pstr, startDate, endDate)
+          case (Some(pstr), Some(reportType), Some(startDate), Some(endDate)) =>
+            block(pstr, reportType, startDate, endDate)
           case _ =>
-            Future.failed(new BadRequestException("Bad Request with missing PSTR/ Start Date/ End Date"))
+            Future.failed(new BadRequestException("Bad Request with missing PSTR/ Report Type/ Start Date/ End Date"))
         }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
