@@ -125,8 +125,12 @@ class EventReportController @Inject()(
         ) match {
           case (Some(pstr), Some(reportType), Some(startDate), Some(endDate)) =>
             block(pstr, reportType, startDate, endDate)
-          case _ =>
-            Future.failed(new BadRequestException("Bad Request with missing PSTR/ Report Type/ Start Date/ End Date"))
+          case (optPstr, optReportType, optstartDate, optEndDate) =>
+            val pstrMissing = optPstr.getOrElse("PSTR missing")
+            val reportTypeMissing = optReportType.getOrElse("report type missing")
+            val startDateMissing = optstartDate.getOrElse("start date missing")
+            val endDateMissing = optEndDate.getOrElse("end date missing")
+            Future.failed(new BadRequestException(s"Bad Request with missing parameters: $pstrMissing $reportTypeMissing $startDateMissing $endDateMissing "))
         }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))

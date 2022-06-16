@@ -156,7 +156,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "fromDate" -> "2022-04-06"))
       } map { response =>
         response.responseCode mustBe BAD_REQUEST
-        response.message must include("Bad Request with missing PSTR/ Report Type/ Start Date/ End Date")
+        response.message must include("Bad Request with missing parameters: pstr report type missing start date missing end date missing ")
       }
     }
     "throw a Unauthorised Exception if auth fails" in {
