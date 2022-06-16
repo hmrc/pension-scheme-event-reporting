@@ -63,6 +63,23 @@ class EventReportController @Inject()(
       }
   }
 
+  def compileEventOneReport: Action[AnyContent] = Action.async {
+    implicit request =>
+      post { (pstr, userAnswersJson) =>
+        logger.debug(message = s"[Compile Event 1 Report: Incoming-Payload]$userAnswersJson")
+        jsonPayloadSchemaValidator.validateJsonPayload(compileEventOneReportSchemaPath, userAnswersJson) match {
+          case Right(true) =>
+            eventReportConnector.compileEventOneReport(pstr, userAnswersJson).map { response =>
+              Ok(response.body)
+            }
+          case Left(errors) =>
+            val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
+            throw EventReportValidationFailureException(allErrorsAsString)
+          case _ => throw EventReportValidationFailureException("Schema validation failed (returned false)")
+        }
+      }
+  }
+
   def getErOverview: Action[AnyContent] = Action.async {
     implicit request =>
       get { (pstr, startDate, endDate) => {
@@ -74,6 +91,7 @@ class EventReportController @Inject()(
       }
   }
 
+  // scalastyle:off
   def getEr20AOverview: Action[AnyContent] = Action.async {
     implicit request =>
       get { (pstr, startDate, endDate) => {
@@ -84,23 +102,17 @@ class EventReportController @Inject()(
         }
       }
   }
-      
-  def compileEventOneReport: Action[AnyContent] = Action.async {
+
+  def submitEventDeclarationReport: Action[AnyContent] = Action.async {
     implicit request =>
       post { (pstr, userAnswersJson) =>
-        logger.debug(message = s"[Compile Event 1 Report: Incoming-Payload]$userAnswersJson")
-       jsonPayloadSchemaValidator.validateJsonPayload(compileEventOneReportSchemaPath, userAnswersJson) match {
-         case Right(true) =>
-         eventReportConnector.compileEventOneReport(pstr, userAnswersJson).map { response =>
-           Ok(response.body)
-         }
-         case Left(errors) =>
-           val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
-           throw EventReportValidationFailureException(allErrorsAsString)
-         case _ => throw EventReportValidationFailureException("Schema validation failed (returned false)")
-       }
+        logger.debug(message = s"[Submit Event Declaration Report - Incoming payload]$userAnswersJson")
+            eventReportConnector.submitEventDeclarationReport(pstr, userAnswersJson).map { response =>
+              Ok(response.body)
+            }
+        }
       }
-  }
+
 
   private def post(block: (String, JsValue) => Future[Result])
                   (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {

@@ -42,6 +42,9 @@ trait EventReportConnector {
   def getEr20AOverview(pstr: String, startDate: String, endDate: String)
                       (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]]
 
+  def submitEventDeclarationReport(pstr: String, data: JsValue)
+                                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse]
+
 }
 
 class EventReportConnectorImpl @Inject()(
@@ -160,6 +163,19 @@ class EventReportConnectorImpl @Inject()(
           }
         case _ => handleErrorResponse("GET", getEr20aOverviewUrl)(response)
       }
+    }
+  }
+
+  override def submitEventDeclarationReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
+    val submitEventDeclarationReportUrl = config.submitEventDeclarationReportUrl.format(pstr)
+    logger.debug("Submit Event Declaration Report called URL:" + submitEventDeclarationReportUrl)
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+    http.POST[JsValue, HttpResponse](submitEventDeclarationReportUrl, data)(implicitly, implicitly, hc, implicitly) map {
+      response =>
+        response.status match {
+          case OK => response
+          case _ => handleErrorResponse("POST", submitEventDeclarationReportUrl)(response)
+        }
     }
   }
 

@@ -48,6 +48,6 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig,
   // scalastyle:off
   def getEr20AOverviewUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.get-er20a-overview")}"
 
-  val submitEventDeclarationUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event-declaration")}"
+  val submitEventDeclarationReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event-declaration-report")}"
 
 }
