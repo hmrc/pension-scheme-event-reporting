@@ -1,7 +1,6 @@
 # microservice specific routes
 
-GET         /get-er-overview                        controllers.EventReportController.getErOverview
-GET         /get-er20a-overview                     controllers.EventReportController.getEr20AOverview
+GET        /overview                                controllers.EventReportController.getOverview
 
 POST       /compile-event-reporting-summary         controllers.EventReportController.compileEventReportSummary
 POST       /compile-event1-report                   controllers.EventReportController.compileEventOneReport

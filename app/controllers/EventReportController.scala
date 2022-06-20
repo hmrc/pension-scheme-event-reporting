@@ -80,25 +80,12 @@ class EventReportController @Inject()(
       }
   }
 
-  def getErOverview: Action[AnyContent] = Action.async {
+  def getOverview: Action[AnyContent] = Action.async {
     implicit request =>
-      get { (pstr, startDate, endDate) => {
-          eventReportConnector.getErOverview(pstr, startDate, endDate).map {
-            data =>
-              Ok(Json.toJson(data))
-          }
-        }
-      }
-  }
-
-  // scalastyle:off
-  def getEr20AOverview: Action[AnyContent] = Action.async {
-    implicit request =>
-      get { (pstr, startDate, endDate) => {
-          eventReportConnector.getEr20AOverview(pstr, startDate, endDate).map {
-            data =>
-              Ok(Json.toJson(data))
-          }
+      withAuthAndOverviewParameters { (pstr, reportType, startDate, endDate) =>
+        eventReportConnector.getOverview(pstr, reportType, startDate, endDate).map {
+          data =>
+            Ok(Json.toJson(data))
         }
       }
   }
@@ -107,11 +94,11 @@ class EventReportController @Inject()(
     implicit request =>
       post { (pstr, userAnswersJson) =>
         logger.debug(message = s"[Submit Event Declaration Report - Incoming payload]$userAnswersJson")
-            eventReportConnector.submitEventDeclarationReport(pstr, userAnswersJson).map { response =>
-              Ok(response.body)
-            }
+        eventReportConnector.submitEventDeclarationReport(pstr, userAnswersJson).map { response =>
+          Ok(response.body)
         }
       }
+  }
 
 
   private def post(block: (String, JsValue) => Future[Result])
@@ -136,27 +123,30 @@ class EventReportController @Inject()(
     }
   }
 
-  private def get(block: (String, String, String) => Future[Result])
-                 (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+  private def withAuthAndOverviewParameters(block: (String, String, String, String) => Future[Result])
+                                           (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
       case Some(_) =>
         (
           request.headers.get("pstr"),
+          request.headers.get("reportType"),
           request.headers.get("startDate"),
           request.headers.get("endDate")
         ) match {
-          case (Some(pstr), Some(startDate), Some(endDate)) =>
-            block(pstr, startDate, endDate)
-          case _ =>
-            Future.failed(new BadRequestException("Bad Request with missing PSTR/ Start Date/ End Date"))
+          case (Some(pstr), Some(reportType), Some(startDate), Some(endDate)) =>
+            block(pstr, reportType, startDate, endDate)
+          case (optPstr, optReportType, optstartDate, optEndDate) =>
+            val pstrMissing = optPstr.getOrElse("PSTR missing")
+            val reportTypeMissing = optReportType.getOrElse("report type missing")
+            val startDateMissing = optstartDate.getOrElse("start date missing")
+            val endDateMissing = optEndDate.getOrElse("end date missing")
+            Future.failed(new BadRequestException(s"Bad Request with missing parameters: $pstrMissing $reportTypeMissing $startDateMissing $endDateMissing "))
         }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
     }
   }
-
 }
 
 case class EventReportValidationFailureException(exMessage: String) extends BadRequestException(exMessage)
-

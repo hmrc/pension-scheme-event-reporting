@@ -148,15 +148,32 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
   }
 
-  "get method" must {
+  "getOverview" must {
+
+    "return OK with the Seq of overview details" in {
+      when(mockEventReportConnector.getOverview(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(reportTypeER),
+        ArgumentMatchers.eq(startDt),
+        ArgumentMatchers.eq(endDt))(any(), any()))
+        .thenReturn(Future.successful(erOverview))
+
+      val controller = application.injector.instanceOf[EventReportController]
+      val result = controller.getOverview(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDt, "endDate" -> endDt))
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe erOverviewResponseJson
+    }
+
     "throw a Bad Request Exception when toDate parameter is missing in header" in {
       val controller = application.injector.instanceOf[EventReportController]
 
       recoverToExceptionIf[BadRequestException] {
-        controller.getErOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "fromDate" -> "2022-04-06"))
+        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "fromDate" -> "2022-04-06"))
       } map { response =>
         response.responseCode mustBe BAD_REQUEST
-        response.message must include("Bad Request with missing PSTR/ Start Date/ End Date")
+        response.message must include("Bad Request with missing parameters: pstr report type missing start date missing end date missing")
       }
     }
     "throw a Unauthorised Exception if auth fails" in {
@@ -164,7 +181,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       val controller = application.injector.instanceOf[EventReportController]
 
       recoverToExceptionIf[UnauthorizedException] {
-        controller.getErOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "fromDate" -> "2021-04-06", "toDate" -> "2022-04-05"))
+        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "fromDate" -> "2021-04-06", "toDate" -> "2022-04-05"))
       } map { response =>
         response.responseCode mustBe UNAUTHORIZED
         response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
@@ -258,32 +275,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
   }
 
-  "getErOverview" must {
-    "return OK with the Seq of overview details" in {
-      when(mockEventReportConnector.getErOverview(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(startDt), ArgumentMatchers.eq(endDt))(any(), any()))
-        .thenReturn(Future.successful(erOverview))
-
-      val controller = application.injector.instanceOf[EventReportController]
-      val result = controller.getErOverview(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "startDate" -> startDt, "endDate" -> endDt))
-
-      status(result) mustBe OK
-      contentAsJson(result) mustBe erOverviewResponseJson
-    }
-  }
-
-  "getEr20aOverview" must {
-    "return OK with the Seq of overview details" in {
-      when(mockEventReportConnector.getEr20AOverview(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(startDt), ArgumentMatchers.eq(endDt))(any(), any()))
-        .thenReturn(Future.successful(erOverview))
-
-      val controller = application.injector.instanceOf[EventReportController]
-      val result = controller.getEr20AOverview(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "startDate" -> startDt, "endDate" -> endDt))
-
-      status(result) mustBe OK
-      contentAsJson(result) mustBe erOverviewResponseJson
-    }
-  }
-
   "submitEventDeclarationReport" must {
     "return OK when valid response" in {
       val controller = application.injector.instanceOf[EventReportController]
@@ -358,6 +349,7 @@ object EventReportControllerSpec {
 
   private val startDt = "2022-04-06"
   private val endDt = "2023-04-05"
+  private val reportTypeER = "ER"
 
   val erOverviewResponseJson: JsArray = Json.arr(
     Json.obj(
