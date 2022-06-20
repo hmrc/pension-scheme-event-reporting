@@ -17,7 +17,7 @@
 package connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import models.{EROverview, EROverviewVersion}
+import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
@@ -34,6 +34,8 @@ import java.time.LocalDate
 
 class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMockHelper with HttpClientSupport with JsonFileReader with MockitoSugar {
 
+  import EventReportConnectorSpec._
+
   private implicit lazy val hc: HeaderCarrier = HeaderCarrier()
 
   override protected def portConfigKeys: String = "microservice.services.if-hod.port"
@@ -47,34 +49,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       bind[HeaderUtils].toInstance(mockHeaderUtils)
     )
 
-  private val pstr = "test-pstr"
-  private val reportTypeER = "ER"
-  private val fromDt = "2022-04-06"
-  private val toDt = "2022-04-05"
-  private val eventReportSummaryUrl = s"/pension-online/event-reports/pods/$pstr"
-  private val compileEventOneReportUrl = s"/pension-online/event1-report/pods/$pstr"
-  private val testCorrelationId = "testCorrelationId"
-  private val getErOverviewUrl = s"/pension-online/reports/overview/pods/$pstr/ER?fromDate=$fromDt&toDate=$toDt"
 
-  private val overview1 = EROverview(
-    LocalDate.of(2022, 4, 6),
-    LocalDate.of(2023, 4, 5),
-    tpssReportPresent = false,
-    Some(EROverviewVersion(
-      3,
-      submittedVersionAvailable = false,
-      compiledVersionAvailable = true)))
-
-  private val overview2 = EROverview(
-    LocalDate.of(2022, 4, 6),
-    LocalDate.of(2023, 4, 5),
-    tpssReportPresent = false,
-    Some(EROverviewVersion(
-      2,
-      submittedVersionAvailable = true,
-      compiledVersionAvailable = true)))
-
-  private val erOverview = Seq(overview1, overview2)
 
   override def beforeEach(): Unit = {
     when(mockHeaderUtils.getCorrelationId).thenReturn(testCorrelationId)
@@ -341,6 +316,40 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
     }
   }
 
+  "getVersions" must {
+    "return successfully when DES has returned OK" in {
+
+      server.stubFor(
+        get(urlEqualTo(getErVersionUrl(reportTypeER)))
+          .willReturn(
+            ok
+              .withHeader("Content-Type", "application/json")
+              .withBody(erVersionResponseJson.toString())
+          )
+      )
+      connector.getVersions(pstr, reportTypeER, startDate = startDt).map { response =>
+        response mustBe erVersions
+      }
+    }
+
+    "throw Upstream4XX for FORBIDDEN - 403" in {
+
+      server.stubFor(
+        get(urlEqualTo(getErVersionUrl(reportTypeER)))
+          .willReturn(
+            forbidden
+              .withBody(errorResponse("The remote endpoint has indicated that Period Start Date must be provided."))
+          )
+      )
+      recoverToExceptionIf[UpstreamErrorResponse](connector.getVersions(pstr, reportTypeER, "")) map {
+        ex =>
+          ex.statusCode mustBe FORBIDDEN
+          ex.message must include("The remote endpoint has indicated that Period Start Date must be provided.")
+      }
+    }
+
+  }
+
   "compileEventOneReport" must {
 
     "return successfully when ETMP has returned OK" in {
@@ -449,5 +458,63 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       response.getMessage must include("204")
     }
   }
+}
+
+object EventReportConnectorSpec {
+  private val pstr = "test-pstr"
+  private val reportTypeER = "ER"
+  private val startDt = "2022-04-01"
+  private val fromDt = "2022-04-06"
+  private val toDt = "2022-04-05"
+  private val eventReportSummaryUrl = s"/pension-online/event-reports/pods/$pstr"
+  private val compileEventOneReportUrl = s"/pension-online/event1-report/pods/$pstr"
+  private val testCorrelationId = "testCorrelationId"
+  private val getErOverviewUrl = s"/pension-online/reports/overview/pods/$pstr/ER?fromDate=$fromDt&toDate=$toDt"
+  private def getErVersionUrl(reportType: String) = s"/pension-online/reports/$pstr/$reportType/versions?startDate=$startDt"
+
+  private val overview1 = EROverview(
+    LocalDate.of(2022, 4, 6),
+    LocalDate.of(2023, 4, 5),
+    tpssReportPresent = false,
+    Some(EROverviewVersion(
+      3,
+      submittedVersionAvailable = false,
+      compiledVersionAvailable = true)))
+
+  private val overview2 = EROverview(
+    LocalDate.of(2022, 4, 6),
+    LocalDate.of(2023, 4, 5),
+    tpssReportPresent = false,
+    Some(EROverviewVersion(
+      2,
+      submittedVersionAvailable = true,
+      compiledVersionAvailable = true)))
+
+  private val erOverview = Seq(overview1, overview2)
+
+  private val erVersionResponseJson: JsArray = Json.arr(
+    Json.obj(
+      "reportFormBundleNumber" -> "123456789012",
+      "reportVersion" -> 1,
+      "reportStatus" -> "Compiled",
+      "compilationOrSubmissionDate" -> s"${startDt}T09:30:47Z",
+      "reportSubmitterDetails" -> Json.obj(
+        "reportSubmittedBy" -> "PSP",
+        "orgOrPartnershipDetails" -> Json.obj(
+          "orgOrPartnershipName" -> "ABC Limited"
+        )
+      ),
+      "psaDetails" -> Json.obj(
+        "psaOrgOrPartnershipDetails" -> Json.obj(
+          "orgOrPartnershipName" -> "XYZ Limited"
+        )
+      )
+    )
+  )
+
+  private val version = ERVersion( 1,
+    LocalDate.of(2022, 4, 1),
+    "Compiled")
+  private val erVersions = Seq(version)
 }
 

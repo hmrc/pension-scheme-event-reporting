@@ -73,6 +73,16 @@ class EventReportController @Inject()(
       }
   }
 
+  def getVersions: Action[AnyContent] = Action.async {
+    implicit request =>
+      withAuthAndVersionParameters { (pstr, reportType, startDate) =>
+        eventReportConnector.getVersions(pstr, reportType, startDate).map {
+          data =>
+            Ok(Json.toJson(data))
+        }
+      }
+  }
+
   def compileEventOneReport: Action[AnyContent] = Action.async {
     implicit request =>
       post { (pstr, userAnswersJson) =>
@@ -131,6 +141,29 @@ class EventReportController @Inject()(
             val startDateMissing = optstartDate.getOrElse("start date missing")
             val endDateMissing = optEndDate.getOrElse("end date missing")
             Future.failed(new BadRequestException(s"Bad Request with missing parameters: $pstrMissing $reportTypeMissing $startDateMissing $endDateMissing "))
+        }
+      case _ =>
+        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
+    }
+  }
+
+  private def withAuthAndVersionParameters(block: (String, String, String) => Future[Result])
+                                           (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+
+    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
+      case Some(_) =>
+        (
+          request.headers.get("pstr"),
+          request.headers.get("reportType"),
+          request.headers.get("startDate")
+        ) match {
+          case (Some(pstr), Some(reportType), Some(startDate)) =>
+            block(pstr, reportType, startDate)
+          case (optPstr, optReportType, optstartDate) =>
+            val pstrMissing = optPstr.getOrElse("PSTR missing")
+            val reportTypeMissing = optReportType.getOrElse("report type missing")
+            val startDateMissing = optstartDate.getOrElse("start date missing")
+            Future.failed(new BadRequestException(s"Bad Request for version with missing parameters: $pstrMissing $reportTypeMissing $startDateMissing"))
         }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))

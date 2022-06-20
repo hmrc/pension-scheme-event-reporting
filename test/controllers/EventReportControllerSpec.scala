@@ -17,7 +17,8 @@
 package controllers
 
 import connectors.EventReportConnector
-import models.{EROverview, EROverviewVersion}
+import connectors.EventReportConnectorSpec.startDt
+import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfter
@@ -149,6 +150,22 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   }
 
   "getOverview" must {
+    "return OK with the Seq of overview details" in {
+      when(mockEventReportConnector.getOverview(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(reportTypeER),
+        ArgumentMatchers.eq(startDt),
+        ArgumentMatchers.eq(endDt))(any(), any()))
+        .thenReturn(Future.successful(erOverview))
+
+      val controller = application.injector.instanceOf[EventReportController]
+      val result = controller.getOverview(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDt, "endDate" -> endDt))
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe erOverviewResponseJson
+    }
+
     "throw a Bad Request Exception when toDate parameter is missing in header" in {
       val controller = application.injector.instanceOf[EventReportController]
 
@@ -172,21 +189,42 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
   }
 
-  "getOverview" must {
-    "return OK with the Seq of overview details" in {
-      when(mockEventReportConnector.getOverview(
+  "getVersions" must {
+    "return OK with the Seq of Version" in {
+      when(mockEventReportConnector.getVersions(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(reportTypeER),
-        ArgumentMatchers.eq(startDt),
-        ArgumentMatchers.eq(endDt))(any(), any()))
-        .thenReturn(Future.successful(erOverview))
+        ArgumentMatchers.eq(startDt))(any(), any()))
+        .thenReturn(Future.successful(erVersions))
 
       val controller = application.injector.instanceOf[EventReportController]
-      val result = controller.getOverview(fakeRequest.withHeaders(
-        newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDt, "endDate" -> endDt))
+      val result = controller.getVersions(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDt))
 
       status(result) mustBe OK
-      contentAsJson(result) mustBe erOverviewResponseJson
+      contentAsJson(result) mustBe erVersionResponseJson
+    }
+
+    "throw a Bad Request Exception when startDt parameter is missing in header" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.getVersions()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "reportType" -> "ER"))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+        response.message must include("Bad Request for version with missing parameters: pstr ER start date missing")
+      }
+    }
+    "throw a Unauthorised Exception if auth fails" in {
+      when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[UnauthorizedException] {
+        controller.getVersions()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> "2021-04-06"))
+      } map { response =>
+        response.responseCode mustBe UNAUTHORIZED
+        response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
+      }
     }
   }
 
@@ -331,5 +369,18 @@ object EventReportControllerSpec {
 
   val compileEventOneReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678988")
+
+  private val erVersionResponseJson: JsArray = Json.arr(
+    Json.obj(
+      "reportVersion" -> 1,
+      "reportStatus" -> "Compiled",
+      "date" -> startDt
+      )
+  )
+
+  private val version = ERVersion( 1,
+    LocalDate.of(2022, 4, 6),
+    "Compiled")
+  private val erVersions = Seq(version)
 }
 
