@@ -27,7 +27,6 @@ import utils.HttpResponseHelper
 
 import scala.concurrent.{ExecutionContext, Future}
 
-
 class EventReportConnector @Inject()(
                                       config: AppConfig,
                                       http: HttpClient,

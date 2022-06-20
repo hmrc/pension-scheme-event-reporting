@@ -149,7 +149,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   }
 
   "getOverview" must {
-
+    
     "return OK with the Seq of overview details" in {
       when(mockEventReportConnector.getOverview(
         ArgumentMatchers.eq(pstr),
@@ -173,9 +173,11 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "fromDate" -> "2022-04-06"))
       } map { response =>
         response.responseCode mustBe BAD_REQUEST
+
         response.message must include("Bad Request with missing parameters: pstr report type missing start date missing end date missing")
       }
     }
+    
     "throw a Unauthorised Exception if auth fails" in {
       when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
       val controller = application.injector.instanceOf[EventReportController]
@@ -394,6 +396,5 @@ object EventReportControllerSpec {
 
   val submitEventDeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678933")
-
 }
 

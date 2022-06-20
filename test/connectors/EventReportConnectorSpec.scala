@@ -33,6 +33,7 @@ import java.time.LocalDate
 
 
 class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMockHelper with HttpClientSupport with JsonFileReader with MockitoSugar {
+
   private implicit lazy val hc: HeaderCarrier = HeaderCarrier()
 
   override protected def portConfigKeys: String = "microservice.services.if-hod.port"
@@ -47,6 +48,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
     )
 
   private val pstr = "test-pstr"
+  private val reportTypeER = "ER"
   private val fromDt = "2022-04-06"
   private val toDt = "2022-04-05"
   private val testCorrelationId = "testCorrelationId"
@@ -57,6 +59,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
   private val getErOverviewUrl = s"/pension-online/reports/overview/pods/$pstr/ER?fromDate=$fromDt&toDate=$toDt"
 
   private val submitEventDeclarationReportUrl = s"/pension-online/event-declaration-reports/$pstr"
+
 
   private val overview1 = EROverview(
     LocalDate.of(2022, 4, 6),
@@ -390,67 +393,8 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           .willReturn(
             notFound
               .withBody(seqErrorResponse("SOME_OTHER_ERROR"))
-          )
-      )
 
-      recoverToExceptionIf[NotFoundException] {
-        connector.getOverview(pstr, reportTypeER, fromDt, toDt)
-      } map { response =>
-        response.responseCode mustEqual NOT_FOUND
-        response.message must include("SOME_OTHER_ERROR")
-      }
-    }
-
-    "return a NotFoundException for NOT FOUND - 404" in {
-      server.stubFor(
-        get(urlEqualTo(getErOverviewUrl))
-          .willReturn(
-            notFound
-              .withBody(errorResponse("NOT_FOUND"))
-          )
-      )
-
-      recoverToExceptionIf[NotFoundException] {
-        connector.getOverview(pstr, reportTypeER, fromDt, toDt)
-      } map { response =>
-        response.responseCode mustEqual NOT_FOUND
-        response.message must include("NOT_FOUND")
-      }
-    }
-
-    "throw Upstream4XX for FORBIDDEN - 403" in {
-
-      server.stubFor(
-        get(urlEqualTo(getErOverviewUrl))
-          .willReturn(
-            forbidden
-              .withBody(errorResponse("FORBIDDEN"))
-          )
-      )
-      recoverToExceptionIf[UpstreamErrorResponse](connector.getOverview(pstr, reportTypeER, fromDt, toDt)) map {
-        ex =>
-          ex.statusCode mustBe FORBIDDEN
-          ex.message must include("FORBIDDEN")
-      }
-    }
-
-    "throw Upstream5XX for INTERNAL SERVER ERROR - 500" in {
-
-      server.stubFor(
-        get(urlEqualTo(getErOverviewUrl))
-          .willReturn(
-            serverError
-              .withBody(errorResponse("SERVER_ERROR"))
-          )
-      )
-
-      recoverToExceptionIf[UpstreamErrorResponse](connector.getOverview(pstr, reportTypeER, fromDt, toDt)) map {
-        ex =>
-          ex.statusCode mustBe INTERNAL_SERVER_ERROR
-          ex.message must include("SERVER_ERROR")
-      }
-    }
-  }
+            }
 
   "submitEventDeclarationReport" must {
     "return 200 when ETMP has returned OK" in {
@@ -466,7 +410,20 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       connector.submitEventDeclarationReport(pstr, data) map {
         _.status mustBe OK
       }
+      
+  "return Upstream5xxResponse when ETMP has returned Internal Server Error" in {
+    val data = Json.obj(fields = "Id" -> "value")
+    server.stubFor(
+      post(urlEqualTo(compileEventOneReportUrl))
+        .withRequestBody(equalTo(Json.stringify(data)))
+        .willReturn(
+          serverError()
+        )
+    )
+    recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventOneReport(pstr, data)) map {
+      _.statusCode mustBe INTERNAL_SERVER_ERROR
     }
+  }
 
     "return 400 when ETMP has returned BadRequestException" in {
       val data = Json.obj(fields = "Id" -> "value")
@@ -559,6 +516,5 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       response.getMessage must include("204")
     }
   }
-
 }
 

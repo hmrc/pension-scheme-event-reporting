@@ -63,6 +63,7 @@ class EventReportController @Inject()(
       }
   }
 
+
   def compileEventOneReport: Action[AnyContent] = Action.async {
     implicit request =>
       post { (pstr, userAnswersJson) =>
@@ -96,10 +97,6 @@ class EventReportController @Inject()(
         logger.debug(message = s"[Submit Event Declaration Report - Incoming payload]$userAnswersJson")
         eventReportConnector.submitEventDeclarationReport(pstr, userAnswersJson).map { response =>
           Ok(response.body)
-        }
-      }
-  }
-
 
   private def post(block: (String, JsValue) => Future[Result])
                   (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
