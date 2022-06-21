@@ -104,6 +104,19 @@ class EventReportConnector @Inject()(
     }
   }
 
+  def submitEventDeclarationReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
+    val submitEventDeclarationReportUrl = config.submitEventDeclarationReportUrl.format(pstr)
+    logger.debug("Submit Event Declaration Report called URL:" + submitEventDeclarationReportUrl)
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+    http.POST[JsValue, HttpResponse](submitEventDeclarationReportUrl, data)(implicitly, implicitly, hc, implicitly) map {
+      response =>
+        response.status match {
+          case OK => response
+          case _ => handleErrorResponse("POST", submitEventDeclarationReportUrl)(response)
+        }
+    }
+  }
+
   def getVersions(pstr: String, reportType: String, startDate: String)
                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[ERVersion]] = {
 
