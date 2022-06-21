@@ -63,15 +63,6 @@ class EventReportController @Inject()(
       }
   }
 
-  def getOverview: Action[AnyContent] = Action.async {
-    implicit request =>
-      withAuthAndOverviewParameters { (pstr, reportType, startDate, endDate) =>
-        eventReportConnector.getOverview(pstr, reportType, startDate, endDate).map {
-          data =>
-            Ok(Json.toJson(data))
-        }
-      }
-  }
 
   def compileEventOneReport: Action[AnyContent] = Action.async {
     implicit request =>
@@ -86,6 +77,26 @@ class EventReportController @Inject()(
             val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
             throw EventReportValidationFailureException(allErrorsAsString)
           case _ => throw EventReportValidationFailureException("Schema validation failed (returned false)")
+        }
+      }
+  }
+
+  def getOverview: Action[AnyContent] = Action.async {
+    implicit request =>
+      withAuthAndOverviewParameters { (pstr, reportType, startDate, endDate) =>
+        eventReportConnector.getOverview(pstr, reportType, startDate, endDate).map {
+          data =>
+            Ok(Json.toJson(data))
+        }
+      }
+  }
+
+  def submitEventDeclarationReport: Action[AnyContent] = Action.async {
+    implicit request =>
+      post { (pstr, userAnswersJson) =>
+        logger.debug(message = s"[Submit Event Declaration Report - Incoming payload]$userAnswersJson")
+        eventReportConnector.submitEventDeclarationReport(pstr, userAnswersJson).map { response =>
+          Ok(response.body)
         }
       }
   }
@@ -125,10 +136,10 @@ class EventReportController @Inject()(
         ) match {
           case (Some(pstr), Some(reportType), Some(startDate), Some(endDate)) =>
             block(pstr, reportType, startDate, endDate)
-          case (optPstr, optReportType, optstartDate, optEndDate) =>
+          case (optPstr, optReportType, optStartDate, optEndDate) =>
             val pstrMissing = optPstr.getOrElse("PSTR missing")
             val reportTypeMissing = optReportType.getOrElse("report type missing")
-            val startDateMissing = optstartDate.getOrElse("start date missing")
+            val startDateMissing = optStartDate.getOrElse("start date missing")
             val endDateMissing = optEndDate.getOrElse("end date missing")
             Future.failed(new BadRequestException(s"Bad Request with missing parameters: $pstrMissing $reportTypeMissing $startDateMissing $endDateMissing "))
         }
@@ -136,8 +147,6 @@ class EventReportController @Inject()(
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
     }
   }
-
 }
 
 case class EventReportValidationFailureException(exMessage: String) extends BadRequestException(exMessage)
-
