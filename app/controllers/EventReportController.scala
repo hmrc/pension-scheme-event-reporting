@@ -137,16 +137,18 @@ class EventReportController @Inject()(
           case (Some(pstr), Some(reportType), Some(startDate), Some(endDate)) =>
             block(pstr, reportType, startDate, endDate)
           case (optPstr, optReportType, optStartDate, optEndDate) =>
-            val pstrMissing = optPstr.getOrElse("PSTR missing")
-            val reportTypeMissing = optReportType.getOrElse("report type missing")
-            val startDateMissing = optStartDate.getOrElse("start date missing")
-            val endDateMissing = optEndDate.getOrElse("end date missing")
-            Future.failed(new BadRequestException(s"Bad Request with missing parameters: $pstrMissing $reportTypeMissing $startDateMissing $endDateMissing "))
+            val pstrMissing = prettyMissingParamError(optPstr, "PSTR missing")
+            val reportTypeMissing = prettyMissingParamError(optReportType, "report type missing")
+            val startDateMissing = prettyMissingParamError(optStartDate, "start date missing")
+            val endDateMissing = prettyMissingParamError(optEndDate, "end date missing")
+            Future.failed(new BadRequestException(s"Bad Request with missing parameters: $pstrMissing$reportTypeMissing$startDateMissing$endDateMissing"))
         }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
     }
   }
+
+  private def prettyMissingParamError(param: Option[String], error: String) = if(param.isEmpty) s"$error " else ""
 }
 
 case class EventReportValidationFailureException(exMessage: String) extends BadRequestException(exMessage)

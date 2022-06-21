@@ -74,7 +74,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       status(result) mustBe OK
     }
 
-    "return OK when validation errors response" in {
+    "return 400 when validation errors response" in {
       val controller = application.injector.instanceOf[EventReportController]
 
       when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
@@ -86,7 +86,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       )
 
       when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Left(listErrors)
-
 
       recoverToExceptionIf[EventReportValidationFailureException] {
         controller.compileEventReportSummary(fakeRequest.withJsonBody(compileEventReportSummaryResponseJson).withHeaders(
@@ -166,15 +165,63 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       contentAsJson(result) mustBe erOverviewResponseJson
     }
 
-    "throw a Bad Request Exception when toDate parameter is missing in header" in {
+    "throw a Bad Request Exception when endDate parameter is missing in header" in {
       val controller = application.injector.instanceOf[EventReportController]
 
       recoverToExceptionIf[BadRequestException] {
-        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "fromDate" -> "2022-04-06"))
+        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "startDate" -> "2022-04-06", "reportType" -> "er"))
       } map { response =>
         response.responseCode mustBe BAD_REQUEST
 
-        response.message must include("Bad Request with missing parameters: pstr report type missing start date missing end date missing")
+        response.message must include("Bad Request with missing parameters: end date missing")
+      }
+    }
+
+    "throw a Bad Request Exception when startDate parameter is missing in header" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "endDate" -> "2022-04-06", "reportType" -> "er"))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+
+        response.message must include("Bad Request with missing parameters: start date missing")
+      }
+    }
+
+    "throw a Bad Request Exception when pstr parameter is missing in header" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "startDate" -> "2022-04-06", "endDate" -> "2022-04-06", "reportType" -> "er"))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+
+        response.message must include("Bad Request with missing parameters: PSTR missing")
+      }
+    }
+
+    "throw a Bad Request Exception when reportType parameter is missing in header" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "startDate" -> "2022-04-06", "endDate" -> "2022-04-06"))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+
+        response.message must include("Bad Request with missing parameters: report type missing")
+      }
+    }
+
+    "throw a Bad Request Exception when all required parameters are missing in header" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.getOverview()(fakeRequest)
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+
+        response.message must include("Bad Request with missing parameters: PSTR missing report type missing start date missing end date missing")
       }
     }
     
