@@ -402,6 +402,56 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         response.message must include("SOME_OTHER_ERROR")
       }
     }
+
+    "return a NotFoundException for NOT FOUND - 404" in {
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            notFound
+              .withBody(errorResponse("NOT_FOUND"))
+          )
+      )
+
+      recoverToExceptionIf[NotFoundException] {
+        connector.getOverview(pstr, reportTypeER, fromDt, toDt)
+      } map { response =>
+        response.responseCode mustEqual NOT_FOUND
+        response.message must include("NOT_FOUND")
+      }
+    }
+
+    "throw Upstream4XX for FORBIDDEN - 403" in {
+
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            forbidden
+              .withBody(errorResponse("FORBIDDEN"))
+          )
+      )
+      recoverToExceptionIf[UpstreamErrorResponse](connector.getOverview(pstr, reportTypeER, fromDt, toDt)) map {
+        ex =>
+          ex.statusCode mustBe FORBIDDEN
+          ex.message must include("FORBIDDEN")
+      }
+    }
+
+    "throw Upstream5XX for INTERNAL SERVER ERROR - 500" in {
+
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(
+            serverError
+              .withBody(errorResponse("SERVER_ERROR"))
+          )
+      )
+
+      recoverToExceptionIf[UpstreamErrorResponse](connector.getOverview(pstr, reportTypeER, fromDt, toDt)) map {
+        ex =>
+          ex.statusCode mustBe INTERNAL_SERVER_ERROR
+          ex.message must include("SERVER_ERROR")
+      }
+    }
   }
 
   "submitEventDeclarationReport" must {
