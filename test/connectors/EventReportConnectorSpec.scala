@@ -52,7 +52,6 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
   private val fromDt = "2022-04-06"
   private val toDt = "2022-04-05"
   private val testCorrelationId = "testCorrelationId"
-  private val reportTypeER = "ER"
   private val eventReportSummaryUrl = s"/pension-online/event-reports/pods/$pstr"
   private val compileEventOneReportUrl = s"/pension-online/event1-report/pods/$pstr"
 
@@ -393,8 +392,17 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           .willReturn(
             notFound
               .withBody(seqErrorResponse("SOME_OTHER_ERROR"))
+          )
+      )
 
-            }
+      recoverToExceptionIf[NotFoundException] {
+        connector.getOverview(pstr, reportTypeER, fromDt, toDt)
+      } map { response =>
+        response.responseCode mustEqual NOT_FOUND
+        response.message must include("SOME_OTHER_ERROR")
+      }
+    }
+  }
 
   "submitEventDeclarationReport" must {
     "return 200 when ETMP has returned OK" in {
@@ -410,6 +418,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       connector.submitEventDeclarationReport(pstr, data) map {
         _.status mustBe OK
       }
+    }
       
   "return Upstream5xxResponse when ETMP has returned Internal Server Error" in {
     val data = Json.obj(fields = "Id" -> "value")
