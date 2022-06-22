@@ -16,24 +16,89 @@
 
 package repository
 
+
 import com.google.inject.Inject
-import play.api.libs.json.JsValue
+import org.joda.time.{DateTime, DateTimeZone}
+import org.slf4j.{Logger, LoggerFactory}
+import play.api.libs.json.{Format, JsValue, Json}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.BSONObjectID
+import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import uk.gov.hmrc.mongo.ReactiveRepository
+import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import reactivemongo.play.json.ImplicitBSONHandlers._
+import scala.concurrent.{ExecutionContext, Future}
 
 class CacheRepository @Inject()(collectionName: String,
-                                mongoComponent: ReactiveMongoComponent)
+                                expireInSeconds: Int,
+                                mongoComponent: ReactiveMongoComponent)(implicit val ec: ExecutionContext)
   extends ReactiveRepository[JsValue, BSONObjectID](
     collectionName,
     mongoComponent.mongoConnector.db,
     implicitly
   ) {
 
-  val collectionIndexes: Index = Index(key = Seq(("id", IndexType.Ascending)))
+  private val collectionIndexes: Seq[Index] = Seq(
+    Index(key = Seq(("id", IndexType.Ascending)), name = Some("id"), background = true, unique = true),
+    Index(key = Seq(("expireAt", IndexType.Ascending)), name = Some("dataExpiry"), background = true,
+      options = BSONDocument("expireAfterSeconds" -> 0))
+  )
+  override val logger: Logger = LoggerFactory.getLogger("CacheRepository")
+
+  (for {
+    _ <- createIndex(collectionIndexes)
+  } yield {
+    ()
+  }) recoverWith {
+    case t: Throwable => Future.successful(logger.error(s"Error creating indexes on collection ${collection.name}", t))
+  } andThen {
+    case _ => CollectionDiagnostics.logCollectionInfo(collection)
+  }
+
+  private def createIndex(indexes: Seq[Index]): Future[Seq[Boolean]] = {
+    Future.sequence(
+      indexes.map { index =>
+        collection.indexesManager.ensure(index) map { result =>
+          logger.debug(s"Index $index was created successfully and result is: $result")
+          result
+        } recover {
+          case e: Exception => logger.error(s"Failed to create index $index", e)
+            false
+        }
+      }
+    )
+  }
+
+  private def cacheExpiry: DateTime = {
+    DateTime
+      .now(DateTimeZone.UTC)
+      .plusSeconds(1800)
+  }
 
 
+  private case class ReportingOverviewCache(id: String, eventDetail: JsValue, lastUpdated: DateTime, expiredAt: DateTime)
+
+  private object ReportingOverviewCache {
+    implicit val dateFormat: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
+    implicit val format: Format[ReportingOverviewCache] = Json.format[ReportingOverviewCache]
+
+    def reportingOverviewCache(id: String,
+                               eventDetail: JsValue,
+                               lastUpdated: DateTime = DateTime.now(DateTimeZone.UTC),
+                               expiredAt: DateTime): ReportingOverviewCache = {
+      ReportingOverviewCache(id, eventDetail, lastUpdated, expiredAt)
+    }
+  }
+
+  def save(id: String, eventDetail: JsValue)(implicit ec: ExecutionContext): Future[Boolean] = {
+    logger.debug(s"Changes implemented in $collectionName cache")
+    val content: JsValue = Json.toJson(ReportingOverviewCache.reportingOverviewCache(
+      id = id, eventDetail = eventDetail, lastUpdated = DateTime.now(DateTimeZone.UTC), expiredAt = cacheExpiry))
+    val selector = BSONDocument("id" -> id)
+    val modifier = BSONDocument("$set" -> content)
+    collection.update.one(selector, modifier, upsert = true).map(_.ok)
+
+  }
 
 
 }
