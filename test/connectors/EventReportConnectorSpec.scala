@@ -38,7 +38,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
 
   private implicit lazy val hc: HeaderCarrier = HeaderCarrier()
 
-  override protected def portConfigKeys: String = "microservice.services.if-hod.port"
+  override protected def portConfigKeys: String = "microservice.services.if-hod.port,microservice.services.des-hod.port"
 
   private val mockHeaderUtils = mock[HeaderUtils]
   private lazy val connector: EventReportConnector = injector.instanceOf[EventReportConnector]
@@ -560,19 +560,17 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       }
     }
 
-    "throw Upstream4XX for FORBIDDEN - 403" in {
+    "throw NotFoundException" in {
 
       server.stubFor(
         get(urlEqualTo(getErVersionUrl(reportTypeER)))
           .willReturn(
-            forbidden
-              .withBody(errorResponse("The remote endpoint has indicated that Period Start Date must be provided."))
+            badRequest()
           )
       )
-      recoverToExceptionIf[UpstreamErrorResponse](connector.getVersions(pstr, reportTypeER, "")) map {
+      recoverToExceptionIf[NotFoundException](connector.getVersions(pstr, reportTypeER, "")) map {
         ex =>
-          ex.statusCode mustBe FORBIDDEN
-          ex.message must include("The remote endpoint has indicated that Period Start Date must be provided.")
+          ex.responseCode mustBe NOT_FOUND
       }
     }
 
