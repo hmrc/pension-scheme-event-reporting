@@ -20,13 +20,14 @@ package repository
 import com.google.inject.Inject
 import org.joda.time.{DateTime, DateTimeZone}
 import org.slf4j.{Logger, LoggerFactory}
-import play.api.libs.json.{Format, JsValue, Json}
+import play.api.libs.json.{Format, JsObject, JsValue, Json}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import reactivemongo.play.json.ImplicitBSONHandlers._
+
 import scala.concurrent.{ExecutionContext, Future}
 
 class CacheRepository @Inject()(collectionName: String,
@@ -97,8 +98,17 @@ class CacheRepository @Inject()(collectionName: String,
     val selector = BSONDocument("id" -> id)
     val modifier = BSONDocument("$set" -> content)
     collection.update.one(selector, modifier, upsert = true).map(_.ok)
-
   }
 
+  def get(id: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
+    logger.debug(s"Retrieving data from $collectionName cache")
+
+    collection.find(BSONDocument("id" -> id), projection = Option.empty[JsObject]).one[ReportingOverviewCache].map {
+      _.map {
+        overviewCache =>
+          overviewCache.eventDetail
+      }
+    }
+  }
 
 }
