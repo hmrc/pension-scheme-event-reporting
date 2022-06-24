@@ -27,12 +27,11 @@ import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import uk.gov.hmrc.mongo.ReactiveRepository
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import reactivemongo.play.json.ImplicitBSONHandlers._
-
 import scala.concurrent.{ExecutionContext, Future}
 
-class CacheRepository @Inject()(collectionName: String,
-                                expireInSeconds: Int,
-                                mongoComponent: ReactiveMongoComponent)(implicit val ec: ExecutionContext)
+class OverviewCacheRepository @Inject()(collectionName: String,
+                                        expireInSeconds: Int,
+                                        mongoComponent: ReactiveMongoComponent)(implicit val ec: ExecutionContext)
   extends ReactiveRepository[JsValue, BSONObjectID](
     collectionName,
     mongoComponent.mongoConnector.db,
@@ -44,7 +43,7 @@ class CacheRepository @Inject()(collectionName: String,
     Index(key = Seq(("expireAt", IndexType.Ascending)), name = Some("dataExpiry"), background = true,
       options = BSONDocument("expireAfterSeconds" -> 0))
   )
-  override val logger: Logger = LoggerFactory.getLogger("CacheRepository")
+  override val logger: Logger = LoggerFactory.getLogger("OverviewCacheRepository")
 
   (for {
     _ <- createIndex(collectionIndexes)
