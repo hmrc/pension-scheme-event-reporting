@@ -45,6 +45,7 @@ class EventReportController @Inject()(
 
   private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
+  private val submitEventDeclarationReportSchemaPath = "/resources.schemas/api-1828-submit-event-declaration-report-request-schema-v1.0.0.json"
 
   def compileEventReportSummary: Action[AnyContent] = Action.async {
     implicit request =>
@@ -105,8 +106,15 @@ class EventReportController @Inject()(
     implicit request =>
       post { (pstr, userAnswersJson) =>
         logger.debug(message = s"[Submit Event Declaration Report - Incoming payload]$userAnswersJson")
-        eventReportConnector.submitEventDeclarationReport(pstr, userAnswersJson).map { response =>
-          Ok(response.body)
+        jsonPayloadSchemaValidator.validateJsonPayload(submitEventDeclarationReportSchemaPath, userAnswersJson) match {
+          case Right(true) =>
+            eventReportConnector.submitEventDeclarationReport(pstr, userAnswersJson).map { response =>
+              Ok(response.body)
+            }
+          case Left(errors) =>
+            val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
+            throw EventReportValidationFailureException(allErrorsAsString)
+          case _ => throw EventReportValidationFailureException("Schema validation failed (returned false)")
         }
       }
   }

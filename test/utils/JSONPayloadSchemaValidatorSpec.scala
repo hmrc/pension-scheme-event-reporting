@@ -25,6 +25,8 @@ import play.api.inject.guice.GuiceApplicationBuilder
 class JSONPayloadSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with JsonFileReader {
   val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
+  val submitEventDeclarationReportSchemaPath = "/resources.schemas/api-1828-submit-event-declaration-report-request-schema-v1.0.0.json"
+
   private val app = new GuiceApplicationBuilder()
     .overrides(
     )
@@ -53,6 +55,18 @@ class JSONPayloadSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with 
     "Behaviour for invalid payload with 2 invalid inputs for API 1827" in {
       val json = readJsonFromFile("/api-1827-invalid-example.json")
       val result = jsonPayloadSchemaValidator.validateJsonPayload(compileEventOneReportSchemaPath, json)
+      result.left.get.size mustBe 2
+    }
+
+    "Behaviour for valid payload for API 1828" in {
+      val json = readJsonFromFile("/api-1828-valid-example.json")
+      val result = jsonPayloadSchemaValidator.validateJsonPayload(submitEventDeclarationReportSchemaPath, json)
+      result.right.get mustBe true
+    }
+
+    "Behaviour for invalid payload with 2 invalid inputs for API 1828" in {
+      val json = readJsonFromFile("/api-1828-invalid-example.json")
+      val result = jsonPayloadSchemaValidator.validateJsonPayload(submitEventDeclarationReportSchemaPath, json)
       result.left.get.size mustBe 2
     }
   }

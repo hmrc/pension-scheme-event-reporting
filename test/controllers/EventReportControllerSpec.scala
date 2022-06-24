@@ -337,6 +337,29 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       status(result) mustBe OK
     }
 
+    "return OK when validation errors response" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      when(mockEventReportConnector.submitEventDeclarationReport(any(), any())(any(), any()))
+        .thenReturn(Future.successful(HttpResponse(OK, submitEventDeclarationReportSuccessResponse.toString)))
+
+      val listErrors: List[ErrorReport] = List(
+        ErrorReport("instance1", "errors1"),
+        ErrorReport("instance2", "errors2")
+      )
+
+      when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Left(listErrors)
+
+
+      recoverToExceptionIf[EventReportValidationFailureException] {
+        controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse).withHeaders(
+          newHeaders = "pstr" -> pstr))
+      } map {
+        failure =>
+          failure.exMessage mustBe "Schema validation errors:-\n(instance1: errors1),\n(instance2: errors2)"
+      }
+    }
+
     "throw Upstream5XXResponse on Internal Server Error" in {
       val controller = application.injector.instanceOf[EventReportController]
 

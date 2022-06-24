@@ -439,19 +439,19 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       }
     }
 
-  "return Upstream5xxResponse when ETMP has returned Internal Server Error" in {
-    val data = Json.obj(fields = "Id" -> "value")
-    server.stubFor(
-      post(urlEqualTo(compileEventOneReportUrl))
-        .withRequestBody(equalTo(Json.stringify(data)))
-        .willReturn(
-          serverError()
-        )
-    )
-    recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventOneReport(pstr, data)) map {
-      _.statusCode mustBe INTERNAL_SERVER_ERROR
+    "return Upstream5xxResponse when ETMP has returned Internal Server Error" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(submitEventDeclarationReportUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            serverError()
+          )
+      )
+      recoverToExceptionIf[UpstreamErrorResponse](connector.submitEventDeclarationReport(pstr, data)) map {
+        _.statusCode mustBe INTERNAL_SERVER_ERROR
+      }
     }
-  }
 
     "return 400 when ETMP has returned BadRequestException" in {
       val data = Json.obj(fields = "Id" -> "value")
@@ -503,20 +503,6 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
     }
   }
 
-  "return Upstream5xxResponse when ETMP has returned Internal Server Error" in {
-    val data = Json.obj(fields = "Id" -> "value")
-    server.stubFor(
-      post(urlEqualTo(submitEventDeclarationReportUrl))
-        .withRequestBody(equalTo(Json.stringify(data)))
-        .willReturn(
-          serverError()
-        )
-    )
-    recoverToExceptionIf[UpstreamErrorResponse](connector.submitEventDeclarationReport(pstr, data)) map {
-      _.statusCode mustBe INTERNAL_SERVER_ERROR
-    }
-  }
-
   "return 4xx when ETMP has returned Upstream error response" in {
     val data = Json.obj(fields = "Id" -> "value")
     server.stubFor(
@@ -544,6 +530,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       response.getMessage must include("204")
     }
   }
+
   "getVersions" must {
     "return successfully when DES has returned OK" in {
 

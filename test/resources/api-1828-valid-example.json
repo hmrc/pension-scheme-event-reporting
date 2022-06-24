@@ -11,8 +11,8 @@
     },
     "pspDeclaration": {
       "authorisedPSAID": "A2345678",
-      "pspDeclaration1": true,
-      "pspDeclaration2": true
+      "pspDeclaration1": "Selected",
+      "pspDeclaration2": "Selected"
     }
   }
 }

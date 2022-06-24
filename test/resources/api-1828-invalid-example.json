@@ -10,7 +10,7 @@
       "submittedID": "A2345678"
     },
     "psaDeclaration": {
-      "psaDeclaration1": true,
+      "psaDeclaration1": "Selected",
       "psaDeclaration2": "THIS BREAKS THE VALIDATION TOO"
     }
   }
