@@ -17,6 +17,7 @@
 package controllers
 
 import connectors.EventReportConnector
+import connectors.cache.OverviewCacheConnector
 import models.{EROverview, EROverviewVersion}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.{ArgumentMatchers, MockitoSugar}
@@ -45,11 +46,14 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   private val mockEventReportConnector = mock[EventReportConnector]
   private val mockJSONPayloadSchemaValidator = mock[JSONPayloadSchemaValidator]
   private val authConnector: AuthConnector = mock[AuthConnector]
+//  private val mockOverviewCache = mock[OverviewCacheRepository]
+  private val mockOverviewCacheConnector= mock[OverviewCacheConnector]
   val modules: Seq[GuiceableModule] =
     Seq(
       bind[AuthConnector].toInstance(authConnector),
       bind[EventReportConnector].toInstance(mockEventReportConnector),
-      bind[JSONPayloadSchemaValidator].toInstance(mockJSONPayloadSchemaValidator)
+      bind[JSONPayloadSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
+      bind[OverviewCacheConnector].toInstance(mockOverviewCacheConnector)
     )
 
   val application: Application = new GuiceApplicationBuilder()
@@ -173,21 +177,45 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   }
 
   "getOverview" must {
-    "return OK with the Seq of overview details" in {
+    "return OK with the Seq of overview details and save the data in cache if no data was found in the cache to begin with" in {
       when(mockEventReportConnector.getOverview(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(reportTypeER),
-        ArgumentMatchers.eq(startDt),
-        ArgumentMatchers.eq(endDt))(any(), any()))
+        ArgumentMatchers.eq(startDate),
+        ArgumentMatchers.eq(endDate))(any(), any()))
         .thenReturn(Future.successful(erOverview))
-
+      when(mockOverviewCacheConnector.get(any())(any())).thenReturn(Future.successful(None))
+      when(mockOverviewCacheConnector.save(any(),any())(any())).thenReturn(Future.successful(true))
       val controller = application.injector.instanceOf[EventReportController]
       val result = controller.getOverview(fakeRequest.withHeaders(
-        newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDt, "endDate" -> endDt))
+        newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDate, "endDate" -> endDate))
+      verify(mockOverviewCacheConnector, times(1)).get(any())(any())
+      verify(mockOverviewCacheConnector, times(1)).save(any(),any())(any())
+      verify(mockEventReportConnector, times(1)).getOverview(any(),any(),any(),any())(any(),any())
 
       status(result) mustBe OK
       contentAsJson(result) mustBe erOverviewResponseJson
     }
+    "return OK with the Seq of overview details and save the data in cache if the data already exists in the cache" in {
+      when(mockEventReportConnector.getOverview(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(reportTypeER),
+        ArgumentMatchers.eq(startDate),
+        ArgumentMatchers.eq(endDate))(any(), any()))
+        .thenReturn(Future.successful(erOverview))
+      when(mockOverviewCacheConnector.get(any())(any())).thenReturn(Future.successful(Some(Json.toJson(erOverview))))
+      when(mockOverviewCacheConnector.save(any(),any())(any())).thenReturn(Future.successful(true))
+      val controller = application.injector.instanceOf[EventReportController]
+      val result = controller.getOverview(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDate, "endDate" -> endDate))
+      verify(mockOverviewCacheConnector, times(1)).get(any())(any())
+      verify(mockOverviewCacheConnector, times(1)).save(any(),any())(any())
+      verify(mockEventReportConnector, times(0)).getOverview(any(),any(),any(),any())(any(),any())
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe erOverviewResponseJson
+    }
+
   }
 
   "compileEventReportOne" must {
@@ -283,8 +311,8 @@ object EventReportControllerSpec {
   val compileEventReportSummaryResponseJson: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678912")
 
-  private val startDt = "2022-04-06"
-  private val endDt = "2023-04-05"
+  private val startDate = "2022-04-06"
+  private val endDate = "2023-04-05"
   private val reportTypeER = "ER"
 
   val erOverviewResponseJson: JsArray = Json.arr(

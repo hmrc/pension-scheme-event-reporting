@@ -16,12 +16,18 @@
 
 package connectors.cache
 
+import play.api.Configuration
+import play.modules.reactivemongo.ReactiveMongoComponent
 import repository.OverviewCacheRepository
 
 import javax.inject.Inject
+import scala.concurrent.ExecutionContext
 
-class OverviewCacheConnector @Inject()(overviewCacheRepository: OverviewCacheRepository) {
+class OverviewCacheConnector @Inject()(configuration: Configuration,
+                                       mongoComponent: ReactiveMongoComponent) (implicit ec: ExecutionContext)
+extends OverviewCacheRepository(
+  collectionName = configuration.get[String](path= "mongodb.overview-cache.name"),
+  expireInSeconds = configuration.get[Int]("mongodb.overview-cache.timeToLiveInSeconds"),
+  mongoComponent = mongoComponent
 
-
-
-}
+)
