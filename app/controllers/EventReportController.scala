@@ -17,6 +17,7 @@
 package controllers
 
 import connectors.EventReportConnector
+import models.EventTypes
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
@@ -46,6 +47,14 @@ class EventReportController @Inject()(
   private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
   private val submitEventDeclarationReportSchemaPath = "/resources.schemas/api-1828-submit-event-declaration-report-request-schema-v1.0.0.json"
+
+  def saveEvent: Action[AnyContent] = Action.async {
+    implicit request =>
+      postWithEventType { (pstr, eventType, userAnswersJson) =>
+        logger.debug(message = s"[Save Event: Incoming-Payload]$userAnswersJson")
+
+      }
+  }
 
   def compileEventReportSummary: Action[AnyContent] = Action.async {
     implicit request =>
@@ -135,6 +144,32 @@ class EventReportController @Inject()(
           case (pstr, jsValue) =>
             Future.failed(new BadRequestException(
               s"Bad Request without pstr ($pstr) or request body ($jsValue)"))
+        }
+      case _ =>
+        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
+    }
+  }
+
+  private def postWithEventType(block: (String, String, JsValue) => Future[Result])
+                  (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+
+    logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
+
+    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
+      case Some(_) =>
+        (
+          request.headers.get("pstr"),
+          request.headers.get("eventType"),
+          request.body.asJson
+        ) match {
+          case (Some(pstr), Some(et), Some(js)) =>
+            EventTypes.nameWithValue(et) match {
+              case Some(_) => block(pstr, et, js)
+              case _ =>  Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
+            }
+          case (pstr, et, jsValue) =>
+            Future.failed(new BadRequestException(
+              s"Bad Request without pstr ($pstr) or eventType ($et) or request body ($jsValue)"))
         }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
