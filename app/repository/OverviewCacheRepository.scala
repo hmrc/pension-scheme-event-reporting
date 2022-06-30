@@ -40,7 +40,11 @@ class OverviewCacheRepository @Inject()(collectionName: String,
   ) {
 
   private val collectionIndexes: Seq[Index] = Seq(
-    Index(key = Seq(("id", IndexType.Ascending)), name = Some("id"), background = true, unique = true),
+    Index(key = Seq(("pstr", IndexType.Ascending),
+      ("eventType", IndexType.Text),
+      ("startDate", IndexType.Ascending),
+      ("endDate", IndexType.Text)),
+      name = Some("primaryKey"), background = true, unique = true),
     Index(key = Seq(("expireAt", IndexType.Ascending)), name = Some("dataExpiry"), background = true,
       options = BSONDocument("expireAfterSeconds" -> 0))
   )
@@ -72,39 +76,40 @@ class OverviewCacheRepository @Inject()(collectionName: String,
 
 
 
-  private case class ReportingOverviewCache(id: String, eventDetail: JsValue, lastUpdated: DateTime, expiredAt: DateTime)
+  private case class ReportingOverviewCache(pstr: String, eventDetail: JsValue, lastUpdated: DateTime, expiredAt: DateTime)
 
   private object ReportingOverviewCache {
     implicit val dateFormat: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
     implicit val format: Format[ReportingOverviewCache] = Json.format[ReportingOverviewCache]
 
-    def reportingOverviewCache(id: String,
+    def reportingOverviewCache(pstr: String,
                                eventDetail: JsValue,
                                lastUpdated: DateTime = DateTime.now(DateTimeZone.UTC),
                                expiredAt: DateTime): ReportingOverviewCache = {
-      ReportingOverviewCache(id, eventDetail, lastUpdated, expiredAt)
+      ReportingOverviewCache(pstr, eventDetail, lastUpdated, expiredAt)
     }
   }
 
-  def save(id: String, eventDetail: JsValue)(implicit ec: ExecutionContext): Future[Boolean] = {
+  def save(pstr: String, eventType: String, startDate: String, endDate: String, eventDetail: JsValue)
+          (implicit ec: ExecutionContext): Future[Boolean] = {
     logger.debug(s"Changes implemented in $collectionName cache")
     val content: JsValue = Json.toJson(ReportingOverviewCache.reportingOverviewCache(
-      id = id, eventDetail = eventDetail, lastUpdated = DateTime.now(DateTimeZone.UTC),
+      pstr = pstr, eventDetail = eventDetail, lastUpdated = DateTime.now(DateTimeZone.UTC),
       expiredAt = DateTime.now(DateTimeZone.UTC).plusSeconds(expireInSeconds)))
-    val selector = BSONDocument("id" -> id)
+    val selector = BSONDocument("pstr"-> pstr, "eventType"-> eventType, "startDate"-> startDate, "endDate"-> endDate)
     val modifier = BSONDocument("$set" -> content)
     collection.update.one(selector, modifier, upsert = true).map(_.ok)
   }
 
-  def get(id: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
+  def get(pstr: String, eventType: String, startDate: String, endDate: String)
+         (implicit ec: ExecutionContext): Future[Option[JsValue]] = {
     logger.debug(s"Retrieving data from $collectionName cache")
-
-    collection.find(BSONDocument("id" -> id), projection = Option.empty[JsObject]).one[ReportingOverviewCache].map {
+    val selectors = BSONDocument("pstr"-> pstr, "eventType"-> eventType, "startDate"-> startDate, "endDate"-> endDate)
+    collection.find(BSONDocument(selectors), projection = Option.empty[JsObject]).one[ReportingOverviewCache].map {
       _.map {
         overviewCache =>
           overviewCache.eventDetail
       }
     }
   }
-
 }

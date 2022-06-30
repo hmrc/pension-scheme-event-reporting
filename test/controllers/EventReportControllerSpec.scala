@@ -184,13 +184,13 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         ArgumentMatchers.eq(startDate),
         ArgumentMatchers.eq(endDate))(any(), any()))
         .thenReturn(Future.successful(erOverview))
-      when(mockOverviewCacheConnector.get(any())(any())).thenReturn(Future.successful(None))
-      when(mockOverviewCacheConnector.save(any(),any())(any())).thenReturn(Future.successful(true))
+      when(mockOverviewCacheConnector.get(any(),any(),any(),any())(any())).thenReturn(Future.successful(None))
+      when(mockOverviewCacheConnector.save(any(),any(),any(),any(),any())(any())).thenReturn(Future.successful(true))
       val controller = application.injector.instanceOf[EventReportController]
       val result = controller.getOverview(fakeRequest.withHeaders(
         newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDate, "endDate" -> endDate))
-      verify(mockOverviewCacheConnector, times(1)).get(any())(any())
-      verify(mockOverviewCacheConnector, times(1)).save(any(),any())(any())
+      verify(mockOverviewCacheConnector, times(1)).get(any(),any(),any(),any())(any())
+      verify(mockOverviewCacheConnector, times(1)).save(any(),any(),any(),any(),any())(any())
       verify(mockEventReportConnector, times(1)).getOverview(any(),any(),any(),any())(any(),any())
 
       status(result) mustBe OK
@@ -203,13 +203,13 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         ArgumentMatchers.eq(startDate),
         ArgumentMatchers.eq(endDate))(any(), any()))
         .thenReturn(Future.successful(erOverview))
-      when(mockOverviewCacheConnector.get(any())(any())).thenReturn(Future.successful(Some(Json.toJson(erOverview))))
-      when(mockOverviewCacheConnector.save(any(),any())(any())).thenReturn(Future.successful(true))
+      when(mockOverviewCacheConnector.get(any(),any(),any(),any())(any())).thenReturn(Future.successful(Some(Json.toJson(erOverview))))
+      when(mockOverviewCacheConnector.save(any(),any(),any(),any(),any())(any())).thenReturn(Future.successful(true))
       val controller = application.injector.instanceOf[EventReportController]
       val result = controller.getOverview(fakeRequest.withHeaders(
         newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDate, "endDate" -> endDate))
-      verify(mockOverviewCacheConnector, times(1)).get(any())(any())
-      verify(mockOverviewCacheConnector, times(1)).save(any(),any())(any())
+      verify(mockOverviewCacheConnector, times(1)).get(any(),any(),any(),any())(any())
+      verify(mockOverviewCacheConnector, times(1)).save(any(),any(),any(),any(),any())(any())
       verify(mockEventReportConnector, times(0)).getOverview(any(),any(),any(),any())(any(),any())
 
       status(result) mustBe OK

@@ -68,11 +68,11 @@ class EventReportController @Inject()(
   def getOverview: Action[AnyContent] = Action.async {
     implicit request =>
       withAuthAndOverviewParameters { (pstr, reportType, startDate, endDate) =>
-        overviewCacheConnector.get(pstr).flatMap{
+        overviewCacheConnector.get(pstr, reportType, startDate, endDate).flatMap{
           case Some(data) => Future.successful(Ok(data))
           case _ => eventReportConnector.getOverview(pstr, reportType, startDate, endDate).flatMap {
              data=>
-               overviewCacheConnector.save(pstr, Json.toJson(data)).map{_ =>
+               overviewCacheConnector.save(pstr,reportType, startDate, endDate, Json.toJson(data)).map{_ =>
                  Ok(Json.toJson(data))
                }
           }
