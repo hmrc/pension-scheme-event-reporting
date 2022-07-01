@@ -43,7 +43,7 @@ class OverviewCacheRepository @Inject()(collectionName: String,
     Index(key = Seq(("pstr", IndexType.Ascending),
       ("eventType", IndexType.Text),
       ("startDate", IndexType.Ascending),
-      ("endDate", IndexType.Text)),
+      ("endDate", IndexType.Ascending)),
       name = Some("primaryKey"), background = true, unique = true),
     Index(key = Seq(("expireAt", IndexType.Ascending)), name = Some("dataExpiry"), background = true,
       options = BSONDocument("expireAfterSeconds" -> 0))
@@ -92,7 +92,7 @@ class OverviewCacheRepository @Inject()(collectionName: String,
 
   def save(pstr: String, eventType: String, startDate: String, endDate: String, eventDetail: JsValue)
           (implicit ec: ExecutionContext): Future[Boolean] = {
-    logger.debug(s"Changes implemented in $collectionName cache")
+    logger.info(s"Changes implemented in $collectionName cache")
     val content: JsValue = Json.toJson(ReportingOverviewCache.reportingOverviewCache(
       pstr = pstr, eventDetail = eventDetail, lastUpdated = DateTime.now(DateTimeZone.UTC),
       expiredAt = DateTime.now(DateTimeZone.UTC).plusSeconds(expireInSeconds)))
@@ -103,7 +103,7 @@ class OverviewCacheRepository @Inject()(collectionName: String,
 
   def get(pstr: String, eventType: String, startDate: String, endDate: String)
          (implicit ec: ExecutionContext): Future[Option[JsValue]] = {
-    logger.debug(s"Retrieving data from $collectionName cache")
+    logger.info(s"Retrieving data from $collectionName cache")
     val selectors = BSONDocument("pstr"-> pstr, "eventType"-> eventType, "startDate"-> startDate, "endDate"-> endDate)
     collection.find(BSONDocument(selectors), projection = Option.empty[JsObject]).one[ReportingOverviewCache].map {
       _.map {

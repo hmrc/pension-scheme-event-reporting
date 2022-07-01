@@ -22,6 +22,7 @@ import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfter
+import org.scalatest.concurrent.ScalaFutures.whenReady
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 import play.api.Application
@@ -45,11 +46,12 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   private val fakeRequest = FakeRequest("GET", "/")
   private val mockEventReportConnector = mock[EventReportConnector]
   private val mockJSONPayloadSchemaValidator = mock[JSONPayloadSchemaValidator]
-  private val authConnector: AuthConnector = mock[AuthConnector]
-  private val mockOverviewCacheConnector= mock[OverviewCacheConnector]
+  private val mockAuthConnector: AuthConnector = mock[AuthConnector]
+  private val mockOverviewCacheConnector = mock[OverviewCacheConnector]
+
   val modules: Seq[GuiceableModule] =
     Seq(
-      bind[AuthConnector].toInstance(authConnector),
+      bind[AuthConnector].toInstance(mockAuthConnector),
       bind[EventReportConnector].toInstance(mockEventReportConnector),
       bind[JSONPayloadSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
       bind[OverviewCacheConnector].toInstance(mockOverviewCacheConnector)
@@ -60,8 +62,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     overrides(modules: _*).build()
 
   before {
-    reset(mockEventReportConnector, authConnector)
-    when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"))
+    reset(mockEventReportConnector, mockAuthConnector, mockOverviewCacheConnector, mockJSONPayloadSchemaValidator)
+    when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"))
     when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Right(true)
   }
 
@@ -137,7 +139,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw Unauthorized exception if auth fails" in {
-      when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+      when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
       val controller = application.injector.instanceOf[EventReportController]
 
       recoverToExceptionIf[UnauthorizedException] {
@@ -159,39 +161,36 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         ArgumentMatchers.eq(startDate),
         ArgumentMatchers.eq(endDate))(any(), any()))
         .thenReturn(Future.successful(erOverview))
-      when(mockOverviewCacheConnector.get(any(),any(),any(),any())(any())).thenReturn(Future.successful(None))
-      when(mockOverviewCacheConnector.save(any(),any(),any(),any(),any())(any())).thenReturn(Future.successful(true))
+      when(mockOverviewCacheConnector.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
+      when(mockOverviewCacheConnector.save(any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(true))
       val controller = application.injector.instanceOf[EventReportController]
       val result = controller.getOverview(fakeRequest.withHeaders(
         newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDate, "endDate" -> endDate))
-      verify(mockOverviewCacheConnector, times(1)).get(any(),any(),any(),any())(any())
-      verify(mockOverviewCacheConnector, times(1)).save(any(),any(),any(),any(),any())(any())
-      verify(mockEventReportConnector, times(1)).getOverview(any(),any(),any(),any())(any(),any())
 
-      status(result) mustBe OK
-      contentAsJson(result) mustBe erOverviewResponseJson
+      whenReady(result) { _ =>
+        verify(mockOverviewCacheConnector, times(1)).get(any(), any(), any(), any())(any())
+        verify(mockOverviewCacheConnector, times(1)).save(any(), any(), any(), any(), any())(any())
+        verify(mockEventReportConnector, times(1)).getOverview(any(), any(), any(), any())(any(), any())
+
+        status(result) mustBe OK
+        contentAsJson(result) mustBe erOverviewResponseJson
+      }
     }
 
-    "return OK with the Seq of overview details and save the data in cache if the data already exists in the cache" in {
-      when(mockEventReportConnector.getOverview(
-        ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(reportTypeER),
-        ArgumentMatchers.eq(startDate),
-        ArgumentMatchers.eq(endDate))(any(), any()))
-        .thenReturn(Future.successful(erOverview))
-      when(mockOverviewCacheConnector.get(any(),any(),any(),any())(any())).thenReturn(Future.successful(Some(Json.toJson(erOverview))))
-      when(mockOverviewCacheConnector.save(any(),any(),any(),any(),any())(any())).thenReturn(Future.successful(true))
+    "return OK with the Seq of overview details and don't try to save the data in cache if the data already exists in the cache" in {
+      when(mockOverviewCacheConnector.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(Some(Json.toJson(erOverview))))
       val controller = application.injector.instanceOf[EventReportController]
       val result = controller.getOverview(fakeRequest.withHeaders(
         newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDate, "endDate" -> endDate))
-      verify(mockOverviewCacheConnector, times(1)).get(any(),any(),any(),any())(any())
-      verify(mockOverviewCacheConnector, times(1)).save(any(),any(),any(),any(),any())(any())
-      verify(mockEventReportConnector, times(0)).getOverview(any(),any(),any(),any())(any(),any())
 
-      status(result) mustBe OK
-      contentAsJson(result) mustBe erOverviewResponseJson
+      whenReady(result) { _ =>
+        verify(mockOverviewCacheConnector, times(1)).get(any(), any(), any(), any())(any())
+        verify(mockOverviewCacheConnector, never).save(any(), any(), any(), any(), any())(any())
+        verify(mockEventReportConnector, never).getOverview(any(), any(), any(), any())(any(), any())
+        status(result) mustBe OK
+        contentAsJson(result) mustBe erOverviewResponseJson
+      }
     }
-
 
     "throw a Bad Request Exception when endDate parameter is missing in header" in {
       val controller = application.injector.instanceOf[EventReportController]
@@ -254,7 +253,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw a Unauthorised Exception if auth fails" in {
-      when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+      when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
       val controller = application.injector.instanceOf[EventReportController]
 
       recoverToExceptionIf[UnauthorizedException] {
@@ -340,7 +339,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw Unauthorized exception if auth fails" in {
-      when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+      when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
       val controller = application.injector.instanceOf[EventReportController]
 
       recoverToExceptionIf[UnauthorizedException] {
@@ -426,7 +425,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw Unauthorized exception if auth fails" in {
-      when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+      when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
       val controller = application.injector.instanceOf[EventReportController]
 
       recoverToExceptionIf[UnauthorizedException] {
@@ -465,7 +464,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       }
     }
     "throw a Unauthorised Exception if auth fails" in {
-      when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+      when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
       val controller = application.injector.instanceOf[EventReportController]
 
       recoverToExceptionIf[UnauthorizedException] {
@@ -539,10 +538,10 @@ object EventReportControllerSpec {
       "reportVersion" -> 1,
       "reportStatus" -> "Compiled",
       "date" -> startDate
-      )
+    )
   )
 
-  private val version = ERVersion( 1,
+  private val version = ERVersion(1,
     LocalDate.of(2022, 4, 6),
     "Compiled")
   private val erVersions = Seq(version)

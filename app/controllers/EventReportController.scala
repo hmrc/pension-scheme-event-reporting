@@ -97,13 +97,13 @@ class EventReportController @Inject()(
   def getOverview: Action[AnyContent] = Action.async {
     implicit request =>
       withAuthAndOverviewParameters { (pstr, reportType, startDate, endDate) =>
-        overviewCacheConnector.get(pstr, reportType, startDate, endDate).flatMap{
+        overviewCacheConnector.get(pstr, reportType, startDate, endDate).flatMap {
           case Some(data) => Future.successful(Ok(data))
           case _ => eventReportConnector.getOverview(pstr, reportType, startDate, endDate).flatMap {
-             data=>
-               overviewCacheConnector.save(pstr,reportType, startDate, endDate, Json.toJson(data)).map{_ =>
-                 Ok(Json.toJson(data))
-               }
+            data =>
+              overviewCacheConnector.save(pstr, reportType, startDate, endDate, Json.toJson(data)).map { _ =>
+                Ok(Json.toJson(data))
+              }
           }
         }
       }
@@ -196,7 +196,7 @@ class EventReportController @Inject()(
     }
   }
 
-  private def prettyMissingParamError(param: Option[String], error: String) = if(param.isEmpty) s"$error " else ""
+  private def prettyMissingParamError(param: Option[String], error: String) = if (param.isEmpty) s"$error " else ""
 }
 
 case class EventReportValidationFailureException(exMessage: String) extends BadRequestException(exMessage)
