@@ -17,10 +17,11 @@
 package controllers
 
 import connectors.EventReportConnector
-import models.EventTypes
+import models.enumeration.EventTypes
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
+import repositories.EventReportCacheRepository
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, Enrolment}
 import uk.gov.hmrc.http.{UnauthorizedException, Request => _, _}
@@ -36,6 +37,7 @@ class EventReportController @Inject()(
                                        cc: ControllerComponents,
                                        eventReportConnector: EventReportConnector,
                                        val authConnector: AuthConnector,
+                                       eventReportCacheRepository: EventReportCacheRepository,
                                        jsonPayloadSchemaValidator: JSONPayloadSchemaValidator
                                      )(implicit ec: ExecutionContext)
   extends BackendController(cc)
@@ -52,6 +54,13 @@ class EventReportController @Inject()(
     implicit request =>
       postWithEventType { (pstr, eventType, userAnswersJson) =>
         logger.debug(message = s"[Save Event: Incoming-Payload]$userAnswersJson")
+        EventTypes.getEventTypes(eventType) match {
+          case Some(event) => {
+            eventReportCacheRepository.upsert(pstr, EventTypes.getApiTypesByEventType(event).get, userAnswersJson)
+              .map(_ => Created)
+          }
+          case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($eventType)"))
+        }
 
       }
   }
@@ -151,7 +160,7 @@ class EventReportController @Inject()(
   }
 
   private def postWithEventType(block: (String, String, JsValue) => Future[Result])
-                  (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+                               (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
 
@@ -162,11 +171,7 @@ class EventReportController @Inject()(
           request.headers.get("eventType"),
           request.body.asJson
         ) match {
-          case (Some(pstr), Some(et), Some(js)) =>
-            EventTypes.nameWithValue(et) match {
-              case Some(_) => block(pstr, et, js)
-              case _ =>  Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
-            }
+          case (Some(pstr), Some(et), Some(js)) => block(pstr, et, js)
           case (pstr, et, jsValue) =>
             Future.failed(new BadRequestException(
               s"Bad Request without pstr ($pstr) or eventType ($et) or request body ($jsValue)"))
@@ -224,7 +229,7 @@ class EventReportController @Inject()(
     }
   }
 
-  private def prettyMissingParamError(param: Option[String], error: String) = if(param.isEmpty) s"$error " else ""
+  private def prettyMissingParamError(param: Option[String], error: String) = if (param.isEmpty) s"$error " else ""
 }
 
 case class EventReportValidationFailureException(exMessage: String) extends BadRequestException(exMessage)
