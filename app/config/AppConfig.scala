@@ -16,21 +16,21 @@
 
 package config
 
-  import play.api.Configuration
-  import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import play.api.Configuration
+import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-  import javax.inject.{Inject, Singleton}
+import javax.inject.{Inject, Singleton}
 
-  @Singleton
-  class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig, runModeConfiguration: Configuration) {
+@Singleton
+class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig, runModeConfiguration: Configuration) {
 
-    lazy val appName: String = config.get[String](path = "appName")
-    val authBaseUrl: String = servicesConfig.baseUrl(serviceName = "auth")
+  lazy val appName: String = config.get[String](path = "appName")
+  val authBaseUrl: String = servicesConfig.baseUrl(serviceName = "auth")
 
-    val auditingEnabled: Boolean = config.get[Boolean](path = "auditing.enabled")
-    val graphiteHost: String = config.get[String](path = "microservice.metrics.graphite.host")
+  val auditingEnabled: Boolean = config.get[Boolean](path = "auditing.enabled")
+  val graphiteHost: String = config.get[String](path = "microservice.metrics.graphite.host")
 
-    private val ifURL: String = servicesConfig.baseUrl(serviceName = "if-hod")
+  private val ifURL: String = servicesConfig.baseUrl(serviceName = "if-hod")
 
   lazy val authorization: String = "Bearer " + runModeConfiguration.getOptional[String]("microservice.services.des-hod.authorizationToken").getOrElse("local")
 
