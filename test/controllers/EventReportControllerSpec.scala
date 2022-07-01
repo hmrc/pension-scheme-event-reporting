@@ -443,12 +443,12 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       when(mockEventReportConnector.getVersions(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(reportTypeER),
-        ArgumentMatchers.eq(startDt))(any(), any()))
+        ArgumentMatchers.eq(startDate))(any(), any()))
         .thenReturn(Future.successful(erVersions))
 
       val controller = application.injector.instanceOf[EventReportController]
       val result = controller.getVersions(fakeRequest.withHeaders(
-        newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDt))
+        newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDate))
 
       status(result) mustBe OK
       contentAsJson(result) mustBe erVersionResponseJson

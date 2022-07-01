@@ -29,5 +29,4 @@ extends OverviewCacheRepository(
   collectionName = configuration.get[String](path= "mongodb.overview-cache.name"),
   expireInSeconds = configuration.get[Int]("mongodb.overview-cache.timeToLiveInSeconds"),
   mongoComponent = mongoComponent
-
 )

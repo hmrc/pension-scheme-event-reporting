@@ -36,7 +36,6 @@ class EventReportConnector @Inject()(
     with HttpResponseHelper
     with Logging {
 
-
   def compileEventReportSummary(pstr: String, data: JsValue)
                                (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
     val createCompileEventReportSummaryUrl = config.createCompileEventReportSummaryUrl.format(pstr)
@@ -138,8 +137,8 @@ class EventReportConnector @Inject()(
   }
 
   private def integrationFrameworkHeader: Seq[(String, String)] = {
-    Seq("Environment" -> config.integrationframeworkEnvironment,
-      "Authorization" -> config.integrationframeworkAuthorization,
+    Seq("Environment" -> config.integrationFrameworkEnvironment,
+      "Authorization" -> config.integrationFrameworkAuthorization,
       "Content-Type" -> "application/json", "CorrelationId" -> headerUtils.getCorrelationId)
   }
 
