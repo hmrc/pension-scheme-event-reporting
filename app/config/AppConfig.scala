@@ -31,7 +31,9 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig,
   val graphiteHost: String = config.get[String](path = "microservice.metrics.graphite.host")
 
   private val ifURL: String = servicesConfig.baseUrl(serviceName = "if-hod")
+  private val desURL: String = servicesConfig.baseUrl(serviceName = "des-hod")
 
+  lazy val desEnvironment: String = runModeConfiguration.getOptional[String]("microservice.services.des-hod.env").getOrElse("local")
   lazy val authorization: String = "Bearer " + runModeConfiguration.getOptional[String]("microservice.services.des-hod.authorizationToken").getOrElse("local")
 
   lazy val integrationframeworkEnvironment: String = runModeConfiguration.getOptional[String](
@@ -41,8 +43,11 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig,
 
   val createCompileEventReportSummaryUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.create-compile-event-report-summary")}"
 
-  def overviewUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.overview")}"
 
   val compileEvent1ReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.compile-event1-report")}"
+
+  def overviewUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.overview")}"
+  def versionUrl: String  = s"$desURL${config.get[String](path = "serviceUrls.version")}"
+  val submitEventDeclarationReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event-declaration-report")}"
 
 }

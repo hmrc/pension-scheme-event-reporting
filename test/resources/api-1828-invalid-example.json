@@ -1,0 +1,17 @@
+{
+  "declarationDetails": {
+    "erDetails": {
+      "pSTR": "27176941JF",
+      "reportStartDate": "2020-04-06",
+      "reportEndDate": "THIS BREAKS THE VALIDATION"
+    },
+    "erDeclarationDetails": {
+      "submittedBy": "PSA",
+      "submittedID": "A2345678"
+    },
+    "psaDeclaration": {
+      "psaDeclaration1": "Selected",
+      "psaDeclaration2": "THIS BREAKS THE VALIDATION TOO"
+    }
+  }
+}

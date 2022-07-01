@@ -18,7 +18,7 @@ package controllers
 
 import connectors.EventReportConnector
 import connectors.cache.OverviewCacheConnector
-import models.{EROverview, EROverviewVersion}
+import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfter
@@ -46,7 +46,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   private val mockEventReportConnector = mock[EventReportConnector]
   private val mockJSONPayloadSchemaValidator = mock[JSONPayloadSchemaValidator]
   private val authConnector: AuthConnector = mock[AuthConnector]
-//  private val mockOverviewCache = mock[OverviewCacheRepository]
   private val mockOverviewCacheConnector= mock[OverviewCacheConnector]
   val modules: Seq[GuiceableModule] =
     Seq(
@@ -78,7 +77,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       status(result) mustBe OK
     }
 
-    "return OK when validation errors response" in {
+    "return 400 when validation errors response" in {
       val controller = application.injector.instanceOf[EventReportController]
 
       when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
@@ -90,7 +89,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       )
 
       when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Left(listErrors)
-
 
       recoverToExceptionIf[EventReportValidationFailureException] {
         controller.compileEventReportSummary(fakeRequest.withJsonBody(compileEventReportSummaryResponseJson).withHeaders(
@@ -153,30 +151,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   }
 
   "getOverview" must {
-    "throw a Bad Request Exception when toDate parameter is missing in header" in {
-      val controller = application.injector.instanceOf[EventReportController]
 
-      recoverToExceptionIf[BadRequestException] {
-        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "fromDate" -> "2022-04-06"))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-        response.message must include("Bad Request with missing parameters: pstr report type missing start date missing end date missing ")
-      }
-    }
-    "throw a Unauthorised Exception if auth fails" in {
-      when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
-      val controller = application.injector.instanceOf[EventReportController]
-
-      recoverToExceptionIf[UnauthorizedException] {
-        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "fromDate" -> "2021-04-06", "toDate" -> "2022-04-05"))
-      } map { response =>
-        response.responseCode mustBe UNAUTHORIZED
-        response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
-      }
-    }
-  }
-
-  "getOverview" must {
     "return OK with the Seq of overview details and save the data in cache if no data was found in the cache to begin with" in {
       when(mockEventReportConnector.getOverview(
         ArgumentMatchers.eq(pstr),
@@ -196,6 +171,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       status(result) mustBe OK
       contentAsJson(result) mustBe erOverviewResponseJson
     }
+
     "return OK with the Seq of overview details and save the data in cache if the data already exists in the cache" in {
       when(mockEventReportConnector.getOverview(
         ArgumentMatchers.eq(pstr),
@@ -216,6 +192,78 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       contentAsJson(result) mustBe erOverviewResponseJson
     }
 
+
+    "throw a Bad Request Exception when endDate parameter is missing in header" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "startDate" -> "2022-04-06", "reportType" -> "er"))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+
+        response.message must include("Bad Request with missing parameters: end date missing")
+      }
+    }
+
+    "throw a Bad Request Exception when startDate parameter is missing in header" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "endDate" -> "2022-04-06", "reportType" -> "er"))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+
+        response.message must include("Bad Request with missing parameters: start date missing")
+      }
+    }
+
+    "throw a Bad Request Exception when pstr parameter is missing in header" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "startDate" -> "2022-04-06", "endDate" -> "2022-04-06", "reportType" -> "er"))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+
+        response.message must include("Bad Request with missing parameters: PSTR missing")
+      }
+    }
+
+    "throw a Bad Request Exception when reportType parameter is missing in header" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "startDate" -> "2022-04-06", "endDate" -> "2022-04-06"))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+
+        response.message must include("Bad Request with missing parameters: report type missing")
+      }
+    }
+
+    "throw a Bad Request Exception when all required parameters are missing in header" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.getOverview()(fakeRequest)
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+
+        response.message must include("Bad Request with missing parameters: PSTR missing report type missing start date missing end date missing")
+      }
+    }
+
+    "throw a Unauthorised Exception if auth fails" in {
+      when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[UnauthorizedException] {
+        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "fromDate" -> "2021-04-06", "toDate" -> "2022-04-05"))
+      } map { response =>
+        response.responseCode mustBe UNAUTHORIZED
+        response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
+      }
+    }
   }
 
   "compileEventReportOne" must {
@@ -302,14 +350,141 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
       }
     }
+  }
 
+  "submitEventDeclarationReport" must {
+    "return OK when valid response" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      when(mockEventReportConnector.submitEventDeclarationReport(any(), any())(any(), any()))
+        .thenReturn(Future.successful(HttpResponse(OK, submitEventDeclarationReportSuccessResponse.toString)))
+
+      val result = controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse).withHeaders(
+        newHeaders = "pstr" -> pstr))
+
+      status(result) mustBe OK
+    }
+
+    "return OK when validation errors response" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      when(mockEventReportConnector.submitEventDeclarationReport(any(), any())(any(), any()))
+        .thenReturn(Future.successful(HttpResponse(OK, submitEventDeclarationReportSuccessResponse.toString)))
+
+      val listErrors: List[ErrorReport] = List(
+        ErrorReport("instance1", "errors1"),
+        ErrorReport("instance2", "errors2")
+      )
+
+      when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Left(listErrors)
+
+
+      recoverToExceptionIf[EventReportValidationFailureException] {
+        controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse).withHeaders(
+          newHeaders = "pstr" -> pstr))
+      } map {
+        failure =>
+          failure.exMessage mustBe "Schema validation errors:-\n(instance1: errors1),\n(instance2: errors2)"
+      }
+    }
+
+    "throw Upstream5XXResponse on Internal Server Error" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      when(mockEventReportConnector.submitEventDeclarationReport(any(), any())(any(), any()))
+        .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
+      recoverToExceptionIf[UpstreamErrorResponse] {
+        controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse).
+          withHeaders(newHeaders = "pstr" -> pstr))
+      } map {
+        _.statusCode mustBe INTERNAL_SERVER_ERROR
+      }
+    }
+
+    "throw BadRequestException when request body not provided" in {
+
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.submitEventDeclarationReport()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+        response.message must include(s"Bad Request without pstr (Some($pstr)) or request body (None)")
+      }
+    }
+
+    "throw BadRequestException when PSTR missing in header" in {
+
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+        response.message must include(s"Bad Request without pstr (None) or request body (Some($submitEventDeclarationReportSuccessResponse))")
+      }
+    }
+
+    "throw Unauthorized exception if auth fails" in {
+      when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[UnauthorizedException] {
+        controller.submitEventDeclarationReport()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
+      } map { response =>
+        response.responseCode mustBe UNAUTHORIZED
+        response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
+      }
+    }
+  }
+
+  "getVersions" must {
+    "return OK with the Seq of Version" in {
+      when(mockEventReportConnector.getVersions(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(reportTypeER),
+        ArgumentMatchers.eq(startDt))(any(), any()))
+        .thenReturn(Future.successful(erVersions))
+
+      val controller = application.injector.instanceOf[EventReportController]
+      val result = controller.getVersions(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDt))
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe erVersionResponseJson
+    }
+
+    "throw a Bad Request Exception when startDt parameter is missing in header" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.getVersions()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "reportType" -> "ER"))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+        response.message must include("Bad Request for version with missing parameters:   start date missing ")
+      }
+    }
+    "throw a Unauthorised Exception if auth fails" in {
+      when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[UnauthorizedException] {
+        controller.getVersions()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> "2021-04-06"))
+      } map { response =>
+        response.responseCode mustBe UNAUTHORIZED
+        response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
+      }
+    }
   }
 }
 
 object EventReportControllerSpec {
   val pstr = "pstr"
+
   val compileEventReportSummaryResponseJson: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678912")
+  val compileEventOneReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+    "formBundleNumber" -> "12345678988")
 
   private val startDate = "2022-04-06"
   private val endDate = "2023-04-05"
@@ -356,8 +531,20 @@ object EventReportControllerSpec {
 
   private val erOverview = Seq(overview1, overview2)
 
+  val submitEventDeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+    "formBundleNumber" -> "12345678933")
 
-  val compileEventOneReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
-    "formBundleNumber" -> "12345678988")
+  private val erVersionResponseJson: JsArray = Json.arr(
+    Json.obj(
+      "reportVersion" -> 1,
+      "reportStatus" -> "Compiled",
+      "date" -> startDate
+      )
+  )
+
+  private val version = ERVersion( 1,
+    LocalDate.of(2022, 4, 6),
+    "Compiled")
+  private val erVersions = Seq(version)
 }
 

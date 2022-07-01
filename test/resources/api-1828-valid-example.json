@@ -1,0 +1,18 @@
+{
+  "declarationDetails": {
+    "erDetails": {
+      "pSTR": "27176941JF",
+      "reportStartDate": "2020-04-06",
+      "reportEndDate": "2021-04-05"
+    },
+    "erDeclarationDetails": {
+      "submittedBy": "PSP",
+      "submittedID": "20345678"
+    },
+    "pspDeclaration": {
+      "authorisedPSAID": "A2345678",
+      "pspDeclaration1": "Selected",
+      "pspDeclaration2": "Selected"
+    }
+  }
+}

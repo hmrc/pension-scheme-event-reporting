@@ -17,7 +17,7 @@
 package connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import models.{EROverview, EROverviewVersion}
+import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
@@ -34,9 +34,11 @@ import java.time.LocalDate
 
 class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMockHelper with HttpClientSupport with JsonFileReader with MockitoSugar {
 
+  import EventReportConnectorSpec._
+
   private implicit lazy val hc: HeaderCarrier = HeaderCarrier()
 
-  override protected def portConfigKeys: String = "microservice.services.if-hod.port"
+  override protected def portConfigKeys: String = "microservice.services.if-hod.port,microservice.services.des-hod.port"
 
   private val mockHeaderUtils = mock[HeaderUtils]
   private lazy val connector: EventReportConnector = injector.instanceOf[EventReportConnector]
@@ -46,35 +48,6 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       bind[HttpClient].toInstance(httpClient),
       bind[HeaderUtils].toInstance(mockHeaderUtils)
     )
-
-  private val pstr = "test-pstr"
-  private val reportTypeER = "ER"
-  private val fromDt = "2022-04-06"
-  private val toDt = "2022-04-05"
-  private val eventReportSummaryUrl = s"/pension-online/event-reports/pods/$pstr"
-  private val compileEventOneReportUrl = s"/pension-online/event1-report/pods/$pstr"
-  private val testCorrelationId = "testCorrelationId"
-  private val getErOverviewUrl = s"/pension-online/reports/overview/pods/$pstr/ER?fromDate=$fromDt&toDate=$toDt"
-
-  private val overview1 = EROverview(
-    LocalDate.of(2022, 4, 6),
-    LocalDate.of(2023, 4, 5),
-    tpssReportPresent = false,
-    Some(EROverviewVersion(
-      3,
-      submittedVersionAvailable = false,
-      compiledVersionAvailable = true)))
-
-  private val overview2 = EROverview(
-    LocalDate.of(2022, 4, 6),
-    LocalDate.of(2023, 4, 5),
-    tpssReportPresent = false,
-    Some(EROverviewVersion(
-      2,
-      submittedVersionAvailable = true,
-      compiledVersionAvailable = true)))
-
-  private val erOverview = Seq(overview1, overview2)
 
   override def beforeEach(): Unit = {
     when(mockHeaderUtils.getCorrelationId).thenReturn(testCorrelationId)
@@ -213,6 +186,115 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
     }
   }
 
+  "compileEventOneReport" must {
+
+    "return successfully when ETMP has returned OK" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileEventOneReportUrl))
+          .withHeader("Content-Type", equalTo("application/json"))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            ok
+          )
+      )
+      connector.compileEventOneReport(pstr, data) map {
+        _.status mustBe OK
+      }
+    }
+
+    "return BAD REQUEST when ETMP has returned BadRequestException" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileEventOneReportUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            badRequest().withBody("INVALID_PAYLOAD")
+          )
+      )
+      recoverToExceptionIf[BadRequestException] {
+        connector.compileEventOneReport(pstr, data)
+      } map {
+        _.responseCode mustEqual BAD_REQUEST
+      }
+    }
+
+    "return BAD REQUEST when ETMP has returned BadRequestException without Invalid " in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileEventOneReportUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            badRequest()
+          )
+      )
+      recoverToExceptionIf[BadRequestException] {
+        connector.compileEventOneReport(pstr, data)
+      } map {
+        _.responseCode mustEqual BAD_REQUEST
+      }
+    }
+
+    "return NOT FOUND when ETMP has returned NotFoundException" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileEventOneReportUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            notFound()
+          )
+      )
+
+      recoverToExceptionIf[NotFoundException] {
+        connector.compileEventOneReport(pstr, data)
+      } map {
+        _.responseCode mustEqual NOT_FOUND
+      }
+    }
+
+    "return Upstream5xxResponse when ETMP has returned Internal Server Error" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileEventOneReportUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            serverError()
+          )
+      )
+      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventOneReport(pstr, data)) map {
+        _.statusCode mustBe INTERNAL_SERVER_ERROR
+      }
+    }
+
+    "return 4xx when ETMP has returned Upstream error response" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileEventOneReportUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            forbidden()
+          )
+      )
+      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventOneReport(pstr, data)) map {
+        _.statusCode mustBe FORBIDDEN
+      }
+    }
+
+    "return 204 when ETMP has returned Unrecognized http response" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileEventOneReportUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            noContent()
+          )
+      )
+      recoverToExceptionIf[UnrecognisedHttpResponseException](connector.compileEventOneReport(pstr, data)) map { response =>
+        response.getMessage must include("204")
+      }
+    }
+  }
+
   "getOverview" must {
     "return the seq of overviewDetails returned from the ETMP" in {
       val erOverviewResponseJson: JsArray = Json.arr(
@@ -254,7 +336,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           )
       )
 
-      connector.getOverview(pstr, reportTypeER, fromDt, toDt) map { response =>
+      connector.getOverview(pstr, reportTypeER, fromDt, toDt).map { response =>
         response mustEqual Seq.empty
       }
     }
@@ -268,7 +350,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           )
       )
 
-      connector.getOverview(pstr, reportTypeER, fromDt, toDt) map { response =>
+      connector.getOverview(pstr, reportTypeER, fromDt, toDt).map { response =>
         response mustEqual Seq.empty
       }
     }
@@ -341,97 +423,96 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
     }
   }
 
-  "compileEventOneReport" must {
-
-    "return successfully when ETMP has returned OK" in {
+  "submitEventDeclarationReport" must {
+    "return 200 when ETMP has returned OK" in {
       val data = Json.obj(fields = "Id" -> "value")
       server.stubFor(
-        post(urlEqualTo(compileEventOneReportUrl))
+        post(urlEqualTo(submitEventDeclarationReportUrl))
           .withHeader("Content-Type", equalTo("application/json"))
           .withRequestBody(equalTo(Json.stringify(data)))
           .willReturn(
             ok
           )
       )
-      connector.compileEventOneReport(pstr, data) map {
+      connector.submitEventDeclarationReport(pstr, data) map {
         _.status mustBe OK
       }
     }
 
-    "return BAD REQUEST when ETMP has returned BadRequestException" in {
+    "return Upstream5xxResponse when ETMP has returned Internal Server Error" in {
       val data = Json.obj(fields = "Id" -> "value")
       server.stubFor(
-        post(urlEqualTo(compileEventOneReportUrl))
+        post(urlEqualTo(submitEventDeclarationReportUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            serverError()
+          )
+      )
+      recoverToExceptionIf[UpstreamErrorResponse](connector.submitEventDeclarationReport(pstr, data)) map {
+        _.statusCode mustBe INTERNAL_SERVER_ERROR
+      }
+    }
+
+    "return 400 when ETMP has returned BadRequestException" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(submitEventDeclarationReportUrl))
           .withRequestBody(equalTo(Json.stringify(data)))
           .willReturn(
             badRequest().withBody("INVALID_PAYLOAD")
           )
       )
       recoverToExceptionIf[BadRequestException] {
-        connector.compileEventOneReport(pstr, data)
+        connector.submitEventDeclarationReport(pstr, data)
       } map {
         _.responseCode mustEqual BAD_REQUEST
-      }
-    }
-
-    "return BAD REQUEST when ETMP has returned BadRequestException without Invalid " in {
-      val data = Json.obj(fields = "Id" -> "value")
-      server.stubFor(
-        post(urlEqualTo(compileEventOneReportUrl))
-          .withRequestBody(equalTo(Json.stringify(data)))
-          .willReturn(
-            badRequest()
-          )
-      )
-      recoverToExceptionIf[BadRequestException] {
-        connector.compileEventOneReport(pstr, data)
-      } map {
-        _.responseCode mustEqual BAD_REQUEST
-      }
-    }
-
-    "return NOT FOUND when ETMP has returned NotFoundException" in {
-      val data = Json.obj(fields = "Id" -> "value")
-      server.stubFor(
-        post(urlEqualTo(compileEventOneReportUrl))
-          .withRequestBody(equalTo(Json.stringify(data)))
-          .willReturn(
-            notFound()
-          )
-      )
-
-      recoverToExceptionIf[NotFoundException] {
-        connector.compileEventOneReport(pstr, data)
-      } map {
-        _.responseCode mustEqual NOT_FOUND
       }
     }
   }
 
-  "return Upstream5xxResponse when ETMP has returned Internal Server Error" in {
+  "return BAD REQUEST when ETMP has returned BadRequestException without Invalid " in {
     val data = Json.obj(fields = "Id" -> "value")
     server.stubFor(
-      post(urlEqualTo(compileEventOneReportUrl))
+      post(urlEqualTo(submitEventDeclarationReportUrl))
         .withRequestBody(equalTo(Json.stringify(data)))
         .willReturn(
-          serverError()
+          badRequest()
         )
     )
-    recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventOneReport(pstr, data)) map {
-      _.statusCode mustBe INTERNAL_SERVER_ERROR
+    recoverToExceptionIf[BadRequestException] {
+      connector.submitEventDeclarationReport(pstr, data)
+    } map {
+      _.responseCode mustEqual BAD_REQUEST
+    }
+  }
+
+  "return NOT FOUND when ETMP has returned NotFoundException" in {
+    val data = Json.obj(fields = "Id" -> "value")
+    server.stubFor(
+      post(urlEqualTo(submitEventDeclarationReportUrl))
+        .withRequestBody(equalTo(Json.stringify(data)))
+        .willReturn(
+          notFound()
+        )
+    )
+
+    recoverToExceptionIf[NotFoundException] {
+      connector.submitEventDeclarationReport(pstr, data)
+    } map {
+      _.responseCode mustEqual NOT_FOUND
     }
   }
 
   "return 4xx when ETMP has returned Upstream error response" in {
     val data = Json.obj(fields = "Id" -> "value")
     server.stubFor(
-      post(urlEqualTo(compileEventOneReportUrl))
+      post(urlEqualTo(submitEventDeclarationReportUrl))
         .withRequestBody(equalTo(Json.stringify(data)))
         .willReturn(
           forbidden()
         )
     )
-    recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventOneReport(pstr, data)) map {
+    recoverToExceptionIf[UpstreamErrorResponse](connector.submitEventDeclarationReport(pstr, data)) map {
       _.statusCode mustBe FORBIDDEN
     }
   }
@@ -439,15 +520,109 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
   "return 204 when ETMP has returned Unrecognized http response" in {
     val data = Json.obj(fields = "Id" -> "value")
     server.stubFor(
-      post(urlEqualTo(compileEventOneReportUrl))
+      post(urlEqualTo(submitEventDeclarationReportUrl))
         .withRequestBody(equalTo(Json.stringify(data)))
         .willReturn(
           noContent()
         )
     )
-    recoverToExceptionIf[UnrecognisedHttpResponseException](connector.compileEventOneReport(pstr, data)) map { response =>
+    recoverToExceptionIf[UnrecognisedHttpResponseException](connector.submitEventDeclarationReport(pstr, data)) map { response =>
       response.getMessage must include("204")
     }
   }
+
+  "getVersions" must {
+    "return successfully when DES has returned OK" in {
+
+      server.stubFor(
+        get(urlEqualTo(getErVersionUrl(reportTypeER)))
+          .willReturn(
+            ok
+              .withHeader("Content-Type", "application/json")
+              .withBody(erVersionResponseJson.toString())
+          )
+      )
+      connector.getVersions(pstr, reportTypeER, startDate = startDt).map { response =>
+        response mustBe erVersions
+      }
+    }
+
+    "throw NotFoundException" in {
+
+      server.stubFor(
+        get(urlEqualTo(getErVersionUrl(reportTypeER)))
+          .willReturn(
+            badRequest()
+          )
+      )
+      recoverToExceptionIf[NotFoundException](connector.getVersions(pstr, reportTypeER, "")) map {
+        ex =>
+          ex.responseCode mustBe NOT_FOUND
+      }
+    }
+
+  }
+}
+
+object EventReportConnectorSpec {
+  private val pstr = "test-pstr"
+  private val reportTypeER = "ER"
+  private val fromDt = "2022-04-06"
+  private val toDt = "2022-04-05"
+  private val testCorrelationId = "testCorrelationId"
+  private val eventReportSummaryUrl = s"/pension-online/event-reports/pods/$pstr"
+  private val compileEventOneReportUrl = s"/pension-online/event1-report/pods/$pstr"
+
+  private val getErOverviewUrl = s"/pension-online/reports/overview/pods/$pstr/ER?fromDate=$fromDt&toDate=$toDt"
+
+  private val submitEventDeclarationReportUrl = s"/pension-online/event-declaration-reports/$pstr"
+
+
+  private val overview1 = EROverview(
+    LocalDate.of(2022, 4, 6),
+    LocalDate.of(2023, 4, 5),
+    tpssReportPresent = false,
+    Some(EROverviewVersion(
+      3,
+      submittedVersionAvailable = false,
+      compiledVersionAvailable = true)))
+
+  private val overview2 = EROverview(
+    LocalDate.of(2022, 4, 6),
+    LocalDate.of(2023, 4, 5),
+    tpssReportPresent = false,
+    Some(EROverviewVersion(
+      2,
+      submittedVersionAvailable = true,
+      compiledVersionAvailable = true)))
+
+  private val erOverview = Seq(overview1, overview2)
+
+  private val startDt = "2022-04-01"
+  private def getErVersionUrl(reportType: String) = s"/pension-online/reports/$pstr/$reportType/versions?startDate=$startDt"
+  private val erVersionResponseJson: JsArray = Json.arr(
+    Json.obj(
+      "reportFormBundleNumber" -> "123456789012",
+      "reportVersion" -> 1,
+      "reportStatus" -> "Compiled",
+      "compilationOrSubmissionDate" -> s"${startDt}T09:30:47Z",
+      "reportSubmitterDetails" -> Json.obj(
+        "reportSubmittedBy" -> "PSP",
+        "orgOrPartnershipDetails" -> Json.obj(
+          "orgOrPartnershipName" -> "ABC Limited"
+        )
+      ),
+      "psaDetails" -> Json.obj(
+        "psaOrgOrPartnershipDetails" -> Json.obj(
+          "orgOrPartnershipName" -> "XYZ Limited"
+        )
+      )
+    )
+  )
+
+  private val version = ERVersion( 1,
+    LocalDate.of(2022, 4, 1),
+    "Compiled")
+  private val erVersions = Seq(version)
 }
 

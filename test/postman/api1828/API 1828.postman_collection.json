@@ -1,0 +1,224 @@
+{
+	"info": {
+		"_postman_id": "d312bfac-21a7-40d6-8e2c-11bb92d3ed6b",
+		"name": "API 1828",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "200 OK",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"200 OK\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    pm.expect(pm.response.text()).to.include(`formBundleNumber\":\"12345678933\"`);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer BXQ3/Treo4kQCZvVcCqKPu3Dk96aFFp0idR4hEpbT+YZ+tV8GgUyFScVHskyv6S5i7Y+BnaFmj9JXDsN/RTUdKQJpOE+ipXXWwWJJepxh/ryyFj9AaKmWs7eAQ9k4YVXEnEG7QdDpWlJpCGOjKMI2SktrdGfXuAkiXgNpRNlmwb9KwIkeIPK/mMlBESjue4V",
+						"type": "default"
+					},
+					{
+						"key": "pstr",
+						"value": "pstr",
+						"type": "default"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"declarationDetails\": {\n    \"erDetails\": {\n      \"pSTR\": \"27176941JF\",\n      \"reportStartDate\": \"2020-04-06\",\n      \"reportEndDate\": \"2021-04-05\"\n    },\n    \"erDeclarationDetails\": {\n      \"submittedBy\": \"PSP\",\n      \"submittedID\": \"20345678\"\n    },\n    \"pspDeclaration\": {\n      \"authorisedPSAID\": \"A2345678\",\n      \"pspDeclaration1\": \"Selected\",\n      \"pspDeclaration2\": \"Selected\"\n    }\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8215/pension-scheme-event-reporting/submit-event-declaration-report",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8215",
+					"path": [
+						"pension-scheme-event-reporting",
+						"submit-event-declaration-report"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "401 UNAUTHORIZED",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"401 UNAUTHORIZED\", function () {",
+							"    pm.response.to.have.status(401);",
+							"    pm.response.to.have.jsonBody({",
+							"    \"statusCode\": 401,",
+							"    \"message\": \"Bearer token not supplied\"",
+							"    });",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "pstr",
+						"value": "pstr",
+						"type": "default"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"declarationDetails\": {\n    \"erDetails\": {\n      \"pSTR\": \"27176941JF\",\n      \"reportStartDate\": \"2020-04-06\",\n      \"reportEndDate\": \"2021-04-05\"\n    },\n    \"erDeclarationDetails\": {\n      \"submittedBy\": \"PSP\",\n      \"submittedID\": \"20345678\"\n    },\n    \"pspDeclaration\": {\n      \"authorisedPSAID\": \"A2345678\",\n      \"pspDeclaration1\": true,\n      \"pspDeclaration2\": true\n    }\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8215/pension-scheme-event-reporting/submit-event-declaration-report",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8215",
+					"path": [
+						"pension-scheme-event-reporting",
+						"submit-event-declaration-report"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "400 BAD REQUEST - NO PSTR IN HEADER",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"400 BAD REQUEST NO PSTR\", function () {",
+							"    pm.response.to.have.status(400);",
+							"    pm.response.to.have.jsonBody({",
+							"    \"statusCode\": 400,",
+							"    \"message\": \"Bad Request without pstr (None) or request body (Some({\\\"declarationDetails\\\":{\\\"erDetails\\\":{\\\"pSTR\\\":\\\"27176941JF\\\",\\\"reportStartDate\\\":\\\"2020-04-06\\\",\\\"reportEndDate\\\":\\\"2021-04-05\\\"},\\\"erDeclarationDetails\\\":{\\\"submittedBy\\\":\\\"PSP\\\",\\\"submittedID\\\":\\\"20345678\\\"},\\\"pspDeclaration\\\":{\\\"authorisedPSAID\\\":\\\"A2345678\\\",\\\"pspDeclaration1\\\":true,\\\"pspDeclaration2\\\":true}}}))\"",
+							"    });",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer BXQ3/Treo4kQCZvVcCqKPu3Dk96aFFp0idR4hEpbT+YZ+tV8GgUyFScVHskyv6S5i7Y+BnaFmj9JXDsN/RTUdKQJpOE+ipXXWwWJJepxh/ryyFj9AaKmWs7eAQ9k4YVXEnEG7QdDpWlJpCGOjKMI2SktrdGfXuAkiXgNpRNlmwb9KwIkeIPK/mMlBESjue4V",
+						"type": "default"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"declarationDetails\": {\n    \"erDetails\": {\n      \"pSTR\": \"27176941JF\",\n      \"reportStartDate\": \"2020-04-06\",\n      \"reportEndDate\": \"2021-04-05\"\n    },\n    \"erDeclarationDetails\": {\n      \"submittedBy\": \"PSP\",\n      \"submittedID\": \"20345678\"\n    },\n    \"pspDeclaration\": {\n      \"authorisedPSAID\": \"A2345678\",\n      \"pspDeclaration1\": true,\n      \"pspDeclaration2\": true\n    }\n  }\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8215/pension-scheme-event-reporting/submit-event-declaration-report",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8215",
+					"path": [
+						"pension-scheme-event-reporting",
+						"submit-event-declaration-report"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "400 BAD REQUEST - NO BODY",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"400 BAD REQUEST NO BODY\", function () {",
+							"    pm.response.to.have.status(400);",
+							"    pm.response.to.have.jsonBody({",
+							"    \"statusCode\": 400,",
+							"    \"message\": \"Bad Request without pstr (Some(pstr)) or request body (None)\"",
+							"    });",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer BXQ3/Treo4kQCZvVcCqKPu3Dk96aFFp0idR4hEpbT+YZ+tV8GgUyFScVHskyv6S5i7Y+BnaFmj9JXDsN/RTUdKQJpOE+ipXXWwWJJepxh/ryyFj9AaKmWs7eAQ9k4YVXEnEG7QdDpWlJpCGOjKMI2SktrdGfXuAkiXgNpRNlmwb9KwIkeIPK/mMlBESjue4V",
+						"type": "default"
+					},
+					{
+						"key": "pstr",
+						"value": "pstr",
+						"type": "default"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "pm.test(\"401 UNAUTHORIZED\", function () {\n    pm.response.to.have.status(400);\n    pm.response.to.have.jsonBody({\n    \"statusCode\": 400,\n    \"message\": \"Bad Request without pstr (None) or request body (Some({\\\"declarationDetails\\\":{\\\"erDetails\\\":{\\\"pSTR\\\":\\\"27176941JF\\\",\\\"reportStartDate\\\":\\\"2020-04-06\\\",\\\"reportEndDate\\\":\\\"2021-04-05\\\"},\\\"erDeclarationDetails\\\":{\\\"submittedBy\\\":\\\"PSP\\\",\\\"submittedID\\\":\\\"20345678\\\"},\\\"pspDeclaration\\\":{\\\"authorisedPSAID\\\":\\\"A2345678\\\",\\\"pspDeclaration1\\\":true,\\\"pspDeclaration2\\\":true}}}))\"\n    });\n});",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8215/pension-scheme-event-reporting/submit-event-declaration-report",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8215",
+					"path": [
+						"pension-scheme-event-reporting",
+						"submit-event-declaration-report"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
