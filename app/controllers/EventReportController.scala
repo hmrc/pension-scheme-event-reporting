@@ -17,7 +17,7 @@
 package controllers
 
 import connectors.EventReportConnector
-import models.enumeration.EventTypes
+import models.enumeration.{ApiTypes, EventTypes}
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
@@ -61,6 +61,14 @@ class EventReportController @Inject()(
           }
           case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($eventType)"))
         }
+      }
+  }
+
+  def compileEvent: Action[AnyContent] = Action.async {
+    implicit request =>
+      post { (pstr, userAnswersJson) =>
+        logger.debug(message = s"[Compile Event: Incoming-Payload]$userAnswersJson")
+        // TODO: Hard coded value in Map
 
       }
   }
