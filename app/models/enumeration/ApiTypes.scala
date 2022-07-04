@@ -21,7 +21,6 @@ sealed trait ApiTypes
 
 object ApiTypes extends Enumerable.Implicits {
 
-
   case object Api1826 extends WithName("1826") with ApiTypes
 
   case object Api1827 extends WithName("1827") with ApiTypes
@@ -29,12 +28,6 @@ object ApiTypes extends Enumerable.Implicits {
   case object Api1829 extends WithName("1829") with ApiTypes
 
   case object Api1832 extends WithName("1832") with ApiTypes
-
-  val values: Seq[ApiTypes] = Seq(
-    Api1826, Api1827, Api1829, Api1832
-  )
-
-  def getApiTypes(s: String): Option[ApiTypes] = values.find(_.toString == s)
 
 }
 
