@@ -17,11 +17,12 @@
 package controllers
 
 import connectors.EventReportConnector
-import models.enumeration.{ApiTypes, EventTypes}
+import models.enumeration.EventTypes
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
 import repositories.EventReportCacheRepository
+import services.EventReportService
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, Enrolment}
 import uk.gov.hmrc.http.{UnauthorizedException, Request => _, _}
@@ -38,7 +39,8 @@ class EventReportController @Inject()(
                                        eventReportConnector: EventReportConnector,
                                        val authConnector: AuthConnector,
                                        eventReportCacheRepository: EventReportCacheRepository,
-                                       jsonPayloadSchemaValidator: JSONPayloadSchemaValidator
+                                       jsonPayloadSchemaValidator: JSONPayloadSchemaValidator,
+                                       eventReportService: EventReportService
                                      )(implicit ec: ExecutionContext)
   extends BackendController(cc)
     with HttpErrorFunctions
@@ -55,10 +57,12 @@ class EventReportController @Inject()(
       postWithEventType { (pstr, eventType, userAnswersJson) =>
         logger.debug(message = s"[Save Event: Incoming-Payload]$userAnswersJson")
         EventTypes.getEventTypes(eventType) match {
-          case Some(event) => {
-            eventReportCacheRepository.upsert(pstr, EventTypes.getApiTypesByEventType(event).get, userAnswersJson)
-              .map(_ => Created)
-          }
+          case Some(event) =>
+            EventTypes.getApiTypesByEventType(event) match {
+              case Some(apiTypes) => eventReportCacheRepository.upsert(pstr, apiTypes, userAnswersJson)
+                .map(_ => Created)
+              case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
+            }
           case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($eventType)"))
         }
       }
@@ -68,8 +72,7 @@ class EventReportController @Inject()(
     implicit request =>
       post { (pstr, userAnswersJson) =>
         logger.debug(message = s"[Compile Event: Incoming-Payload]$userAnswersJson")
-        // TODO: Hard coded value in Map
-
+        eventReportService.compileEventReport(pstr, userAnswersJson)
       }
   }
 
