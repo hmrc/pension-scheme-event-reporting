@@ -17,6 +17,7 @@
 package controllers
 
 import connectors.EventReportConnector
+import connectors.cache.OverviewCacheConnector
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
@@ -33,6 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton()
 class EventReportController @Inject()(
                                        cc: ControllerComponents,
+                                       overviewCacheConnector: OverviewCacheConnector,
                                        eventReportConnector: EventReportConnector,
                                        val authConnector: AuthConnector,
                                        jsonPayloadSchemaValidator: JSONPayloadSchemaValidator
@@ -95,9 +97,14 @@ class EventReportController @Inject()(
   def getOverview: Action[AnyContent] = Action.async {
     implicit request =>
       withAuthAndOverviewParameters { (pstr, reportType, startDate, endDate) =>
-        eventReportConnector.getOverview(pstr, reportType, startDate, endDate).map {
-          data =>
-            Ok(Json.toJson(data))
+        overviewCacheConnector.get(pstr, reportType, startDate, endDate).flatMap {
+          case Some(data) => Future.successful(Ok(data))
+          case _ => eventReportConnector.getOverview(pstr, reportType, startDate, endDate).flatMap {
+            data =>
+              overviewCacheConnector.save(pstr, reportType, startDate, endDate, Json.toJson(data)).map { _ =>
+                Ok(Json.toJson(data))
+              }
+          }
         }
       }
   }
@@ -189,7 +196,7 @@ class EventReportController @Inject()(
     }
   }
 
-  private def prettyMissingParamError(param: Option[String], error: String) = if(param.isEmpty) s"$error " else ""
+  private def prettyMissingParamError(param: Option[String], error: String) = if (param.isEmpty) s"$error " else ""
 }
 
 case class EventReportValidationFailureException(exMessage: String) extends BadRequestException(exMessage)
