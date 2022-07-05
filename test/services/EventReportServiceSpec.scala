@@ -101,6 +101,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
       when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
         .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
+      when(mockEventReportConnector.compileEventOneReport(any(), any())(any(), any()))
+        .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
       recoverToExceptionIf[UpstreamErrorResponse] {
         eventReportService.compileEventReport("pstr", Json.obj())
       } map {
