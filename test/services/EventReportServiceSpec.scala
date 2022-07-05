@@ -48,7 +48,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   }
 
   "compileEventReport" must {
-    "return 204 No Content when no data return form repository" in {
+    "return 204 No Content when no data return from repository" in {
       when(mockEventReportCacheRepository.getByKeys(any())(any()))
         .thenReturn(Future.successful(None))
       eventReportService.compileEventReport("pstr", Json.obj())(implicitly, implicitly).map {
@@ -56,7 +56,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       }
     }
 
-    "return 204 No Content when valid data return form repository" in {
+    "return 204 No Content when valid data return from repository" in {
 
       when(mockEventReportCacheRepository.getByKeys(any())(any()))
         .thenReturn(Future.successful(Some(responseJson)))

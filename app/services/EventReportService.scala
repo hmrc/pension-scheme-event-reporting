@@ -20,6 +20,8 @@ package services
 import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
 import models.enumeration.ApiTypes.{Api1826, Api1827}
+import play.api.Logging
+import play.api.http.Status.OK
 import play.api.libs.json.JsValue
 import play.api.mvc.Result
 import play.api.mvc.Results._
@@ -33,27 +35,40 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton()
 class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    eventReportCacheRepository: EventReportCacheRepository,
-                                   jsonPayloadSchemaValidator: JSONPayloadSchemaValidator) {
+                                   jsonPayloadSchemaValidator: JSONPayloadSchemaValidator) extends Logging {
 
   private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
 
   def compileEventReport(pstr: String, userAnswersJson: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
 
-    eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1826.toString)).map {
+    val maybeApi1826 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiType" -> Api1826.toString)).map {
       case Some(data) => compileEventReportSummary(pstr, data).map(_ => NoContent)
       case _ => Future.successful(NoContent)
     }.flatten
 
-    eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1827.toString)).map {
+    val maybeApi1827 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiType" -> Api1827.toString)).map {
       case Some(data) => compileEventOneReport(pstr, data).map(_ => NoContent)
       case _ => Future.successful(NoContent)
     }.flatten
 
+    val seqOfMaybeApiCalls = Future.sequence(Seq(maybeApi1826, maybeApi1827))
+
+    val statusOfApiCalls = seqOfMaybeApiCalls.map { apiCall =>
+      apiCall.foreach { isSuccessful => logger.warn(message = s"$isSuccessful") }
+      apiCall.forall { apiStatus =>
+        apiStatus.header.status == OK
+      }
+    }
+
+    statusOfApiCalls.map {
+      case true => NoContent
+      // TODO: NoContent doesn't match 500
+      case false => InternalServerError
+    }
   }
 
-
-  private def compileEventReportSummary(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
+  private def compileEventReportSummary(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Unit] = {
     jsonPayloadSchemaValidator.validateJsonPayload(createCompiledEventSummaryReportSchemaPath, data) match {
       case Right(true) =>
         eventReportConnector.compileEventReportSummary(pstr, data).map { response =>
@@ -66,7 +81,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  private def compileEventOneReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
+  private def compileEventOneReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Unit] = {
     jsonPayloadSchemaValidator.validateJsonPayload(compileEventOneReportSchemaPath, data) match {
       case Right(true) =>
         eventReportConnector.compileEventOneReport(pstr, data).map { response =>
@@ -81,3 +96,4 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 }
 
 case class EventReportValidationFailureException(exMessage: String) extends BadRequestException(exMessage)
+

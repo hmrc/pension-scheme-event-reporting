@@ -17,7 +17,7 @@
 package controllers
 
 import connectors.EventReportConnector
-import models.enumeration.EventTypes
+import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
@@ -56,10 +56,11 @@ class EventReportController @Inject()(
     implicit request =>
       postWithEventType { (pstr, eventType, userAnswersJson) =>
         logger.debug(message = s"[Save Event: Incoming-Payload]$userAnswersJson")
-        EventTypes.getEventTypes(eventType) match {
+        EventType.getEventType(eventType) match {
           case Some(event) =>
-            EventTypes.getApiTypesByEventType(event) match {
-              case Some(apiTypes) => eventReportCacheRepository.upsert(pstr, apiTypes, userAnswersJson)
+            EventType.getApiTypeByEventType(event) match {
+              // TODO: Have discussion on potential for overwriting in Mongo.
+              case Some(apiType) => eventReportCacheRepository.upsert(pstr, apiType, userAnswersJson)
                 .map(_ => Created)
               case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
             }
