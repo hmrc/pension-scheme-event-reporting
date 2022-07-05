@@ -44,31 +44,20 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
     val maybeApi1826 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiType" -> Api1826.toString)).map {
       case Some(data) => compileEventReportSummary(pstr, data).map(_ => NoContent)
-      case _ => Future.successful(NoContent)
+      case _ => Future.successful(Ok)
     }.flatten
 
     val maybeApi1827 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiType" -> Api1827.toString)).map {
       case Some(data) => compileEventOneReport(pstr, data).map(_ => NoContent)
-      case _ => Future.successful(NoContent)
+      case _ => Future.successful(Ok)
     }.flatten
 
     val seqOfMaybeApiCalls = Future.sequence(Seq(maybeApi1826, maybeApi1827))
 
-    val statusOfApiCalls = seqOfMaybeApiCalls.map { apiCall =>
-      apiCall.foreach { isSuccessful => logger.warn(message = s"$isSuccessful") }
-      apiCall.forall { apiStatus =>
-        apiStatus.header.status == OK
-      }
-    }
-
-    statusOfApiCalls.map {
-      case true => NoContent
-      // TODO: NoContent doesn't match 500
-      case false => InternalServerError
-    }
+    seqOfMaybeApiCalls.map{ _ => NoContent }
   }
 
-  private def compileEventReportSummary(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Unit] = {
+  private def compileEventReportSummary(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
     jsonPayloadSchemaValidator.validateJsonPayload(createCompiledEventSummaryReportSchemaPath, data) match {
       case Right(true) =>
         eventReportConnector.compileEventReportSummary(pstr, data).map { response =>
@@ -81,7 +70,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  private def compileEventOneReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Unit] = {
+  private def compileEventOneReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
     jsonPayloadSchemaValidator.validateJsonPayload(compileEventOneReportSchemaPath, data) match {
       case Right(true) =>
         eventReportConnector.compileEventOneReport(pstr, data).map { response =>
