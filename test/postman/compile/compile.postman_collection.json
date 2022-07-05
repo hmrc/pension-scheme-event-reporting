@@ -1,0 +1,238 @@
+{
+	"info": {
+		"_postman_id": "3c9f8b93-ea10-428e-b787-bb7de3e383fd",
+		"name": "compile",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "204 - No Content",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"204 No Content\", function () {",
+							"    pm.response.to.have.status(204);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer BXQ3/Treo4kQCZvVcCqKPqqG6n+fRahX2Lv1WyH/H7tLJ/nL5duf1hhmqb6SGEoQCsL7kU5aN005oKHS3JoF3OOTcvXxrhuKb9lmhsHZ671LacuY42w2t02BZW4+QBkK5QMBYNrcGFBEv5ZkSwT9br54GetZzC6OMdeQkZ0AOsr9KwIkeIPK/mMlBESjue4V",
+						"type": "default"
+					},
+					{
+						"key": "pstr",
+						"value": "pstr",
+						"type": "default"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"Testing\": \"123\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8215/pension-scheme-event-reporting/compile",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8215",
+					"path": [
+						"pension-scheme-event-reporting",
+						"compile"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "401 - Unauthorised, no Bearer token",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"401 Unauthorised\", function () {",
+							"    pm.response.to.have.status(401);",
+							"    pm.response.to.have.jsonBody({",
+							"    \"statusCode\": 401,",
+							"    \"message\": \"Bearer token not supplied\"",
+							"    });",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "pstr",
+						"value": "pstr",
+						"type": "default"
+					},
+					{
+						"key": "eventType",
+						"value": "666",
+						"type": "default"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"Testing\": \"123\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8215/pension-scheme-event-reporting/save-event",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8215",
+					"path": [
+						"pension-scheme-event-reporting",
+						"save-event"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "400 - Bad Request, invalid eventType",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"400 Bad Request\", function () {",
+							"    pm.response.to.have.status(400);",
+							"    pm.response.to.have.jsonBody({",
+							"    \"statusCode\": 400,",
+							"    \"message\": \"Bad Request: invalid eventType (666)\"",
+							"    });",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer BXQ3/Treo4kQCZvVcCqKPqqG6n+fRahX2Lv1WyH/H7tLJ/nL5duf1hhmqb6SGEoQCsL7kU5aN005oKHS3JoF3OOTcvXxrhuKb9lmhsHZ671LacuY42w2t02BZW4+QBkK5QMBYNrcGFBEv5ZkSwT9br54GetZzC6OMdeQkZ0AOsr9KwIkeIPK/mMlBESjue4V",
+						"type": "default"
+					},
+					{
+						"key": "pstr",
+						"value": "pstr",
+						"type": "default"
+					},
+					{
+						"key": "eventType",
+						"value": "666",
+						"type": "default"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"Testing\": \"123\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8215/pension-scheme-event-reporting/save-event",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8215",
+					"path": [
+						"pension-scheme-event-reporting",
+						"save-event"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "400 - Bad Request, no PSTR",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"400 Bad Request\", function () {",
+							"    pm.response.to.have.status(400);",
+							"    pm.response.to.have.jsonBody({",
+							"    \"statusCode\": 400,",
+							"    \"message\": \"Bad Request without pstr (None) or eventType (Some(20A)) or request body (Some({\\\"Testing\\\":\\\"123\\\"}))\"",
+							"    });",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "eventType",
+						"value": "20A",
+						"type": "default"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer BXQ3/Treo4kQCZvVcCqKPqqG6n+fRahX2Lv1WyH/H7tLJ/nL5duf1hhmqb6SGEoQCsL7kU5aN005oKHS3JoF3OOTcvXxrhuKb9lmhsHZ671LacuY42w2t02BZW4+QBkK5QMBYNrcGFBEv5ZkSwT9br54GetZzC6OMdeQkZ0AOsr9KwIkeIPK/mMlBESjue4V",
+						"type": "default"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"Testing\": \"123\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8215/pension-scheme-event-reporting/save-event",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8215",
+					"path": [
+						"pension-scheme-event-reporting",
+						"save-event"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

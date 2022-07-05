@@ -21,7 +21,6 @@ import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
 import models.enumeration.ApiTypes.{Api1826, Api1827}
 import play.api.Logging
-import play.api.http.Status.OK
 import play.api.libs.json.JsValue
 import play.api.mvc.Result
 import play.api.mvc.Results._
@@ -54,7 +53,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
     val seqOfMaybeApiCalls = Future.sequence(Seq(maybeApi1826, maybeApi1827))
 
-    seqOfMaybeApiCalls.map{ _ => NoContent }
+    seqOfMaybeApiCalls.map { _ => NoContent }
   }
 
   private def compileEventReportSummary(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {

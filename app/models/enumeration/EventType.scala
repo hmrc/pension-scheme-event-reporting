@@ -64,14 +64,13 @@ object EventType extends Enumerable.Implicits {
 
   case object Event24 extends WithName("24") with EventType
 
-  // TODO:
-  val values = List(WindUp, Event1, Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A,
+  val values: List[EventType] = List(WindUp, Event1, Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A,
     Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, Event20A, Event22, Event23, Event24)
 
-  val api1826Events = List(Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, WindUp)
-  val api1827Events = List(Event1)
-  val api1829Events = List(Event20A)
-  val api1832Events = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
+  val api1826Events: List[EventType] = List(Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, WindUp)
+  val api1827Events: List[EventType] = List(Event1)
+  val api1829Events: List[EventType] = List(Event20A)
+  val api1832Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
 
 
   def getEventType(s: String): Option[EventType] = values.find(_.toString == s)
