@@ -19,13 +19,12 @@ package services
 
 import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
-import controllers.EventReportValidationFailureException
 import models.enumeration.ApiTypes.{Api1826, Api1827}
 import play.api.libs.json.JsValue
 import play.api.mvc.Result
 import play.api.mvc.Results._
 import repositories.EventReportCacheRepository
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
 import utils.JSONPayloadSchemaValidator
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -80,3 +79,5 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 }
+
+case class EventReportValidationFailureException(exMessage: String) extends BadRequestException(exMessage)
