@@ -40,10 +40,10 @@ class EventTypeSpec extends AsyncWordSpec with Matchers {
       result mustBe Some(ApiTypes.Api1829)
     }
 
-    "Return Some(Api1832) when parameter is Event22" in {
+    "Return Some(Api1830) when parameter is Event22" in {
 
       val result = EventType.getApiTypeByEventType(eventType = EventType.Event22)
-      result mustBe Some(ApiTypes.Api1832)
+      result mustBe Some(ApiTypes.Api1830)
     }
   }
 }
