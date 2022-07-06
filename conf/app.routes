@@ -3,8 +3,6 @@
 GET        /overview                                controllers.EventReportController.getOverview
 GET        /versions                                controllers.EventReportController.getVersions
 
-POST       /compile-event-reporting-summary         controllers.EventReportController.compileEventReportSummary
-POST       /compile-event1-report                   controllers.EventReportController.compileEventOneReport
 POST       /submit-event-declaration-report         controllers.EventReportController.submitEventDeclarationReport
 
 POST       /save-event                              controllers.EventReportController.saveEvent
