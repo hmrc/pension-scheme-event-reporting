@@ -36,9 +36,9 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig,
   lazy val desEnvironment: String = runModeConfiguration.getOptional[String]("microservice.services.des-hod.env").getOrElse("local")
   lazy val authorization: String = "Bearer " + runModeConfiguration.getOptional[String]("microservice.services.des-hod.authorizationToken").getOrElse("local")
 
-  lazy val integrationframeworkEnvironment: String = runModeConfiguration.getOptional[String](
+  lazy val integrationFrameworkEnvironment: String = runModeConfiguration.getOptional[String](
     path = "microservice.services.if-hod.env").getOrElse("local")
-  lazy val integrationframeworkAuthorization: String = "Bearer " + runModeConfiguration.getOptional[String](
+  lazy val integrationFrameworkAuthorization: String = "Bearer " + runModeConfiguration.getOptional[String](
     path = "microservice.services.if-hod.authorizationToken").getOrElse("local")
 
   val createCompileEventReportSummaryUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.create-compile-event-report-summary")}"

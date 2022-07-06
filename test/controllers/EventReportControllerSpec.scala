@@ -17,10 +17,12 @@
 package controllers
 
 import connectors.EventReportConnector
+import connectors.cache.OverviewCacheConnector
 import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfter
+import org.scalatest.concurrent.ScalaFutures.whenReady
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 import play.api.Application
@@ -50,13 +52,17 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   private val authConnector: AuthConnector = mock[AuthConnector]
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
   private val mockEventReportService = mock[EventReportService]
+  private val mockAuthConnector: AuthConnector = mock[AuthConnector]
+  private val mockOverviewCacheConnector = mock[OverviewCacheConnector]
+
   val modules: Seq[GuiceableModule] =
     Seq(
-      bind[AuthConnector].toInstance(authConnector),
+      bind[AuthConnector].toInstance(mockAuthConnector),
       bind[EventReportConnector].toInstance(mockEventReportConnector),
       bind[JSONPayloadSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
       bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
-      bind[EventReportService].toInstance(mockEventReportService)
+      bind[EventReportService].toInstance(mockEventReportService),
+      bind[OverviewCacheConnector].toInstance(mockOverviewCacheConnector)
     )
 
   val application: Application = new GuiceApplicationBuilder()
@@ -64,27 +70,49 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     overrides(modules: _*).build()
 
   before {
-    reset(mockEventReportConnector, authConnector)
-    when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"))
+    reset(mockEventReportConnector, mockAuthConnector, mockOverviewCacheConnector, mockJSONPayloadSchemaValidator)
+    when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"))
     when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Right(true)
   }
 
   "getOverview" must {
 
-    "return OK with the Seq of overview details" in {
+    "return OK with the Seq of overview details and save the data in cache if no data was found in the cache to begin with" in {
       when(mockEventReportConnector.getOverview(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(reportTypeER),
-        ArgumentMatchers.eq(startDt),
-        ArgumentMatchers.eq(endDt))(any(), any()))
+        ArgumentMatchers.eq(startDate),
+        ArgumentMatchers.eq(endDate))(any(), any()))
         .thenReturn(Future.successful(erOverview))
-
+      when(mockOverviewCacheConnector.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
+      when(mockOverviewCacheConnector.save(any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(true))
       val controller = application.injector.instanceOf[EventReportController]
       val result = controller.getOverview(fakeRequest.withHeaders(
-        newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDt, "endDate" -> endDt))
+        newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDate, "endDate" -> endDate))
 
-      status(result) mustBe OK
-      contentAsJson(result) mustBe erOverviewResponseJson
+      whenReady(result) { _ =>
+        verify(mockOverviewCacheConnector, times(1)).get(any(), any(), any(), any())(any())
+        verify(mockOverviewCacheConnector, times(1)).save(any(), any(), any(), any(), any())(any())
+        verify(mockEventReportConnector, times(1)).getOverview(any(), any(), any(), any())(any(), any())
+
+        status(result) mustBe OK
+        contentAsJson(result) mustBe erOverviewResponseJson
+      }
+    }
+
+    "return OK with the Seq of overview details and don't try to save the data in cache if the data already exists in the cache" in {
+      when(mockOverviewCacheConnector.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(Some(Json.toJson(erOverview))))
+      val controller = application.injector.instanceOf[EventReportController]
+      val result = controller.getOverview(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDate, "endDate" -> endDate))
+
+      whenReady(result) { _ =>
+        verify(mockOverviewCacheConnector, times(1)).get(any(), any(), any(), any())(any())
+        verify(mockOverviewCacheConnector, never).save(any(), any(), any(), any(), any())(any())
+        verify(mockEventReportConnector, never).getOverview(any(), any(), any(), any())(any(), any())
+        status(result) mustBe OK
+        contentAsJson(result) mustBe erOverviewResponseJson
+      }
     }
 
     "throw a Bad Request Exception when endDate parameter is missing in header" in {
@@ -148,7 +176,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw a Unauthorised Exception if auth fails" in {
-      when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+      when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
       val controller = application.injector.instanceOf[EventReportController]
 
       recoverToExceptionIf[UnauthorizedException] {
@@ -234,7 +262,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw Unauthorized exception if auth fails" in {
-      when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+      when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
       val controller = application.injector.instanceOf[EventReportController]
 
       recoverToExceptionIf[UnauthorizedException] {
@@ -251,12 +279,12 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       when(mockEventReportConnector.getVersions(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(reportTypeER),
-        ArgumentMatchers.eq(startDt))(any(), any()))
+        ArgumentMatchers.eq(startDate))(any(), any()))
         .thenReturn(Future.successful(erVersions))
 
       val controller = application.injector.instanceOf[EventReportController]
       val result = controller.getVersions(fakeRequest.withHeaders(
-        newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDt))
+        newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDate))
 
       status(result) mustBe OK
       contentAsJson(result) mustBe erVersionResponseJson
@@ -273,7 +301,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       }
     }
     "throw a Unauthorised Exception if auth fails" in {
-      when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+      when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
       val controller = application.injector.instanceOf[EventReportController]
 
       recoverToExceptionIf[UnauthorizedException] {
@@ -360,8 +388,8 @@ object EventReportControllerSpec {
   val compileEventOneReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678988")
 
-  private val startDt = "2022-04-06"
-  private val endDt = "2023-04-05"
+  private val startDate = "2022-04-06"
+  private val endDate = "2023-04-05"
   private val reportTypeER = "ER"
 
   val erOverviewResponseJson: JsArray = Json.arr(
@@ -412,11 +440,11 @@ object EventReportControllerSpec {
     Json.obj(
       "reportVersion" -> 1,
       "reportStatus" -> "Compiled",
-      "date" -> startDt
-      )
+      "date" -> startDate
+    )
   )
 
-  private val version = ERVersion( 1,
+  private val version = ERVersion(1,
     LocalDate.of(2022, 4, 6),
     "Compiled")
   private val erVersions = Seq(version)
