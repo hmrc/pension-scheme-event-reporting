@@ -49,7 +49,7 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:8215/pension-scheme-event-reporting/save-event",
+					"raw": "http://localhost:8215/pension-scheme-event-reporting/save",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -57,7 +57,7 @@
 					"port": "8215",
 					"path": [
 						"pension-scheme-event-reporting",
-						"save-event"
+						"save"
 					]
 				}
 			},
@@ -111,7 +111,7 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:8215/pension-scheme-event-reporting/save-event",
+					"raw": "http://localhost:8215/pension-scheme-event-reporting/save",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -119,7 +119,7 @@
 					"port": "8215",
 					"path": [
 						"pension-scheme-event-reporting",
-						"save-event"
+						"save"
 					]
 				}
 			},
@@ -168,7 +168,7 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:8215/pension-scheme-event-reporting/save-event",
+					"raw": "http://localhost:8215/pension-scheme-event-reporting/save",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -176,7 +176,7 @@
 					"port": "8215",
 					"path": [
 						"pension-scheme-event-reporting",
-						"save-event"
+						"save"
 					]
 				}
 			},
@@ -225,7 +225,7 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:8215/pension-scheme-event-reporting/save-event",
+					"raw": "http://localhost:8215/pension-scheme-event-reporting/save",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -233,7 +233,7 @@
 					"port": "8215",
 					"path": [
 						"pension-scheme-event-reporting",
-						"save-event"
+						"save"
 					]
 				}
 			},
@@ -282,7 +282,7 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:8215/pension-scheme-event-reporting/save-event",
+					"raw": "http://localhost:8215/pension-scheme-event-reporting/save",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -290,7 +290,7 @@
 					"port": "8215",
 					"path": [
 						"pension-scheme-event-reporting",
-						"save-event"
+						"save"
 					]
 				}
 			},

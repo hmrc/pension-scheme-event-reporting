@@ -85,7 +85,6 @@ object EventReportCacheEntry {
     implicit val format: Format[EventReportCacheEntry] = Json.format[EventReportCacheEntry]
 
     val pstrKey = "pstr"
-    val inviteePsaIdKey = "inviteePsaId"
     val expireAtKey = "expireAt"
     val lastUpdatedKey = "lastUpdated"
     val apiTypesKey = "apiTypes"
