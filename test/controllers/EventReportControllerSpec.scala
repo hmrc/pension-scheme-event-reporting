@@ -49,7 +49,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   private val fakeRequest = FakeRequest("GET", "/")
   private val mockEventReportConnector = mock[EventReportConnector]
   private val mockJSONPayloadSchemaValidator = mock[JSONPayloadSchemaValidator]
-  private val authConnector: AuthConnector = mock[AuthConnector]
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
   private val mockEventReportService = mock[EventReportService]
   private val mockAuthConnector: AuthConnector = mock[AuthConnector]
@@ -349,7 +348,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw a 401 Unauthorised Exception if auth fails" in {
-      when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+      when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
       val controller = application.injector.instanceOf[EventReportController]
 
       recoverToExceptionIf[UnauthorizedException] {
@@ -372,6 +371,18 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         newHeaders = "pstr" -> pstr))
 
       status(result) mustBe NO_CONTENT
+    }
+
+    "throw a 401 Unauthorised Exception if auth fails" in {
+      when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[UnauthorizedException] {
+        controller.compileEvent()(fakeRequest.withJsonBody(compileEventSuccessResponse).withHeaders(newHeaders = "pstr" -> pstr))
+      } map { response =>
+        response.responseCode mustBe UNAUTHORIZED
+        response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
+      }
     }
   }
 }

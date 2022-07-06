@@ -153,7 +153,8 @@ class EventReportController @Inject()(
           request.headers.get("eventType"),
           request.body.asJson
         ) match {
-          case (Some(pstr), Some(et), Some(js)) => block(pstr, et, js)
+          case (Some(pstr), Some(et), Some(js)) =>
+            block(pstr, et, js)
           case (pstr, et, jsValue) =>
             Future.failed(new BadRequestException(
               s"Bad Request without pstr ($pstr) or eventType ($et) or request body ($jsValue)"))
