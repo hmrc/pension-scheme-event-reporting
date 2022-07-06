@@ -17,10 +17,13 @@
 package controllers
 
 import connectors.EventReportConnector
+import models.enumeration.EventType
 import connectors.cache.OverviewCacheConnector
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
+import repositories.EventReportCacheRepository
+import services.EventReportService
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, Enrolment}
 import uk.gov.hmrc.http.{UnauthorizedException, Request => _, _}
@@ -37,7 +40,9 @@ class EventReportController @Inject()(
                                        overviewCacheConnector: OverviewCacheConnector,
                                        eventReportConnector: EventReportConnector,
                                        val authConnector: AuthConnector,
-                                       jsonPayloadSchemaValidator: JSONPayloadSchemaValidator
+                                       eventReportCacheRepository: EventReportCacheRepository,
+                                       jsonPayloadSchemaValidator: JSONPayloadSchemaValidator,
+                                       eventReportService: EventReportService
                                      )(implicit ec: ExecutionContext)
   extends BackendController(cc)
     with HttpErrorFunctions
@@ -45,27 +50,32 @@ class EventReportController @Inject()(
     with AuthorisedFunctions
     with Logging {
 
-  private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
-  private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
   private val submitEventDeclarationReportSchemaPath = "/resources.schemas/api-1828-submit-event-declaration-report-request-schema-v1.0.0.json"
 
-  def compileEventReportSummary: Action[AnyContent] = Action.async {
+  def saveEvent: Action[AnyContent] = Action.async {
     implicit request =>
-      post { (pstr, userAnswersJson) =>
-        logger.debug(message = s"[Compile Event Summary Report: Incoming-Payload]$userAnswersJson")
-        jsonPayloadSchemaValidator.validateJsonPayload(createCompiledEventSummaryReportSchemaPath, userAnswersJson) match {
-          case Right(true) =>
-            eventReportConnector.compileEventReportSummary(pstr, userAnswersJson).map { response =>
-              Ok(response.body)
+      postWithEventType { (pstr, eventType, userAnswersJson) =>
+        logger.debug(message = s"[Save Event: Incoming-Payload]$userAnswersJson")
+        EventType.getEventType(eventType) match {
+          case Some(event) =>
+            EventType.getApiTypeByEventType(event) match {
+              // TODO: Have discussion on potential for overwriting in Mongo.
+              case Some(apiType) => eventReportCacheRepository.upsert(pstr, apiType, userAnswersJson)
+                .map(_ => Created)
+              case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
             }
-          case Left(errors) =>
-            val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
-            throw EventReportValidationFailureException(allErrorsAsString)
-          case _ => throw EventReportValidationFailureException("Schema validation failed (returned false)")
+          case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($eventType)"))
         }
       }
   }
 
+  def compileEvent: Action[AnyContent] = Action.async {
+    implicit request =>
+      post { (pstr, userAnswersJson) =>
+        logger.debug(message = s"[Compile Event: Incoming-Payload]$userAnswersJson")
+        eventReportService.compileEventReport(pstr, userAnswersJson)
+      }
+  }
 
   def getVersions: Action[AnyContent] = Action.async {
     implicit request =>
@@ -73,23 +83,6 @@ class EventReportController @Inject()(
         eventReportConnector.getVersions(pstr, reportType, startDate).map {
           data =>
             Ok(Json.toJson(data))
-        }
-      }
-  }
-
-  def compileEventOneReport: Action[AnyContent] = Action.async {
-    implicit request =>
-      post { (pstr, userAnswersJson) =>
-        logger.debug(message = s"[Compile Event 1 Report: Incoming-Payload]$userAnswersJson")
-        jsonPayloadSchemaValidator.validateJsonPayload(compileEventOneReportSchemaPath, userAnswersJson) match {
-          case Right(true) =>
-            eventReportConnector.compileEventOneReport(pstr, userAnswersJson).map { response =>
-              Ok(response.body)
-            }
-          case Left(errors) =>
-            val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
-            throw EventReportValidationFailureException(allErrorsAsString)
-          case _ => throw EventReportValidationFailureException("Schema validation failed (returned false)")
         }
       }
   }
@@ -142,6 +135,29 @@ class EventReportController @Inject()(
           case (pstr, jsValue) =>
             Future.failed(new BadRequestException(
               s"Bad Request without pstr ($pstr) or request body ($jsValue)"))
+        }
+      case _ =>
+        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
+    }
+  }
+
+  private def postWithEventType(block: (String, String, JsValue) => Future[Result])
+                               (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+
+    logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
+
+    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
+      case Some(_) =>
+        (
+          request.headers.get("pstr"),
+          request.headers.get("eventType"),
+          request.body.asJson
+        ) match {
+          case (Some(pstr), Some(et), Some(js)) =>
+            block(pstr, et, js)
+          case (pstr, et, jsValue) =>
+            Future.failed(new BadRequestException(
+              s"Bad Request without pstr ($pstr) or eventType ($et) or request body ($jsValue)"))
         }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))

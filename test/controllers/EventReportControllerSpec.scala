@@ -29,8 +29,11 @@ import play.api.Application
 import play.api.inject.bind
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json._
+import play.api.mvc.Results.NoContent
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import repositories.EventReportCacheRepository
+import services.EventReportService
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http._
 import utils.{ErrorReport, JSONPayloadSchemaValidator}
@@ -46,6 +49,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   private val fakeRequest = FakeRequest("GET", "/")
   private val mockEventReportConnector = mock[EventReportConnector]
   private val mockJSONPayloadSchemaValidator = mock[JSONPayloadSchemaValidator]
+  private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
+  private val mockEventReportService = mock[EventReportService]
   private val mockAuthConnector: AuthConnector = mock[AuthConnector]
   private val mockOverviewCacheConnector = mock[OverviewCacheConnector]
 
@@ -54,6 +59,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       bind[AuthConnector].toInstance(mockAuthConnector),
       bind[EventReportConnector].toInstance(mockEventReportConnector),
       bind[JSONPayloadSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
+      bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
+      bind[EventReportService].toInstance(mockEventReportService),
       bind[OverviewCacheConnector].toInstance(mockOverviewCacheConnector)
     )
 
@@ -65,91 +72,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     reset(mockEventReportConnector, mockAuthConnector, mockOverviewCacheConnector, mockJSONPayloadSchemaValidator)
     when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"))
     when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Right(true)
-  }
-
-  "compileEventReportSummary" must {
-    "return OK when valid response" in {
-      val controller = application.injector.instanceOf[EventReportController]
-
-      when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, compileEventReportSummaryResponseJson.toString)))
-
-      val result = controller.compileEventReportSummary(fakeRequest.withJsonBody(compileEventReportSummaryResponseJson).withHeaders(
-        newHeaders = "pstr" -> pstr))
-      status(result) mustBe OK
-    }
-
-    "return 400 when validation errors response" in {
-      val controller = application.injector.instanceOf[EventReportController]
-
-      when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, compileEventReportSummaryResponseJson.toString)))
-
-      val listErrors: List[ErrorReport] = List(
-        ErrorReport("instance1", "errors1"),
-        ErrorReport("instance2", "errors2")
-      )
-
-      when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Left(listErrors)
-
-      recoverToExceptionIf[EventReportValidationFailureException] {
-        controller.compileEventReportSummary(fakeRequest.withJsonBody(compileEventReportSummaryResponseJson).withHeaders(
-          newHeaders = "pstr" -> pstr))
-      } map {
-        failure =>
-          failure.exMessage mustBe "Schema validation errors:-\n(instance1: errors1),\n(instance2: errors2)"
-      }
-    }
-
-    "throw Upstream5XXResponse on Internal Server Error" in {
-      val controller = application.injector.instanceOf[EventReportController]
-
-      when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
-        .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
-      recoverToExceptionIf[UpstreamErrorResponse] {
-        controller.compileEventReportSummary(fakeRequest.withJsonBody(compileEventReportSummaryResponseJson).
-          withHeaders(newHeaders = "pstr" -> pstr))
-      } map {
-        _.statusCode mustBe INTERNAL_SERVER_ERROR
-      }
-    }
-
-    "throw BadRequestException when request body not provided" in {
-
-      val controller = application.injector.instanceOf[EventReportController]
-
-      recoverToExceptionIf[BadRequestException] {
-        controller.compileEventReportSummary()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-        response.message must include(s"Bad Request without pstr (Some($pstr)) or request body (None)")
-      }
-    }
-
-    "throw BadRequestException when PSTR missing in header" in {
-
-      val controller = application.injector.instanceOf[EventReportController]
-
-      recoverToExceptionIf[BadRequestException] {
-        controller.compileEventReportSummary(fakeRequest.withJsonBody(compileEventReportSummaryResponseJson))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-        response.message must include(s"Bad Request without pstr (None) or request body (Some($compileEventReportSummaryResponseJson))")
-      }
-    }
-
-    "throw Unauthorized exception if auth fails" in {
-      when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
-      val controller = application.injector.instanceOf[EventReportController]
-
-      recoverToExceptionIf[UnauthorizedException] {
-        controller.compileEventReportSummary()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
-      } map { response =>
-        response.responseCode mustBe UNAUTHORIZED
-        response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
-      }
-    }
-
   }
 
   "getOverview" must {
@@ -258,92 +180,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
       recoverToExceptionIf[UnauthorizedException] {
         controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "fromDate" -> "2021-04-06", "toDate" -> "2022-04-05"))
-      } map { response =>
-        response.responseCode mustBe UNAUTHORIZED
-        response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
-      }
-    }
-  }
-
-  "compileEventReportOne" must {
-    "return OK when valid response" in {
-      val controller = application.injector.instanceOf[EventReportController]
-
-      when(mockEventReportConnector.compileEventOneReport(any(), any())(any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, compileEventOneReportSuccessResponse.toString)))
-
-      val result = controller.compileEventOneReport(fakeRequest.withJsonBody(compileEventOneReportSuccessResponse).withHeaders(
-        newHeaders = "pstr" -> pstr))
-
-      status(result) mustBe OK
-    }
-
-    "return OK when validation errors response" in {
-      val controller = application.injector.instanceOf[EventReportController]
-
-      when(mockEventReportConnector.compileEventOneReport(any(), any())(any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, compileEventOneReportSuccessResponse.toString)))
-
-      val listErrors: List[ErrorReport] = List(
-        ErrorReport("instance1", "errors1"),
-        ErrorReport("instance2", "errors2")
-      )
-
-      when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Left(listErrors)
-
-
-      recoverToExceptionIf[EventReportValidationFailureException] {
-        controller.compileEventOneReport(fakeRequest.withJsonBody(compileEventOneReportSuccessResponse).withHeaders(
-          newHeaders = "pstr" -> pstr))
-      } map {
-        failure =>
-          failure.exMessage mustBe "Schema validation errors:-\n(instance1: errors1),\n(instance2: errors2)"
-      }
-    }
-
-    "throw Upstream5XXResponse on Internal Server Error" in {
-      val controller = application.injector.instanceOf[EventReportController]
-
-      when(mockEventReportConnector.compileEventOneReport(any(), any())(any(), any()))
-        .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
-      recoverToExceptionIf[UpstreamErrorResponse] {
-        controller.compileEventOneReport(fakeRequest.withJsonBody(compileEventOneReportSuccessResponse).
-          withHeaders(newHeaders = "pstr" -> pstr))
-      } map {
-        _.statusCode mustBe INTERNAL_SERVER_ERROR
-      }
-    }
-
-    "throw BadRequestException when request body not provided" in {
-
-      val controller = application.injector.instanceOf[EventReportController]
-
-      recoverToExceptionIf[BadRequestException] {
-        controller.compileEventReportSummary()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-        response.message must include(s"Bad Request without pstr (Some($pstr)) or request body (None)")
-      }
-    }
-
-    "throw BadRequestException when PSTR missing in header" in {
-
-      val controller = application.injector.instanceOf[EventReportController]
-
-      recoverToExceptionIf[BadRequestException] {
-        controller.compileEventReportSummary(fakeRequest.withJsonBody(compileEventOneReportSuccessResponse))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-        response.message must include(s"Bad Request without pstr (None) or request body (Some($compileEventOneReportSuccessResponse))")
-      }
-    }
-
-    "throw Unauthorized exception if auth fails" in {
-      when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
-      val controller = application.injector.instanceOf[EventReportController]
-
-      recoverToExceptionIf[UnauthorizedException] {
-        controller.compileEventOneReport()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
       } map { response =>
         response.responseCode mustBe UNAUTHORIZED
         response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
@@ -475,10 +311,88 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       }
     }
   }
+
+  "saveEvent" must {
+    "return 201 Created when valid response" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      when(mockEventReportCacheRepository.upsert(any(), any(), any())(any()))
+        .thenReturn(Future.successful(HttpResponse(OK, saveEventSuccessResponse.toString)))
+
+      val result = controller.saveEvent(fakeRequest.withJsonBody(saveEventSuccessResponse).withHeaders(
+        newHeaders = "pstr" -> pstr, "eventType" -> eventType))
+
+      status(result) mustBe CREATED
+    }
+
+    "throw a 400 Bad Request Exception when eventType parameter not in enum" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.saveEvent()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "eventType" -> badRequestEventType).withJsonBody(saveEventSuccessResponse))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+        response.message must include(s"Bad Request: invalid eventType ($badRequestEventType)")
+      }
+    }
+
+    "throw a 400 Bad Request Exception when eventType missing" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.saveEvent()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr).withJsonBody(saveEventSuccessResponse))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+        response.message must include(s"Bad Request without pstr (Some($pstr)) or eventType (None) or request body (Some($saveEventSuccessResponse))")
+      }
+    }
+
+    "throw a 401 Unauthorised Exception if auth fails" in {
+      when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[UnauthorizedException] {
+        controller.saveEvent()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "eventType" -> eventType).withJsonBody(saveEventSuccessResponse))
+      } map { response =>
+        response.responseCode mustBe UNAUTHORIZED
+        response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
+      }
+    }
+  }
+
+  "compileEvent" must {
+    "return 204 No Content when valid response" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      when(mockEventReportService.compileEventReport(any(), any())(any(), any()))
+        .thenReturn(Future.successful(NoContent))
+
+      val result = controller.compileEvent(fakeRequest.withJsonBody(compileEventSuccessResponse).withHeaders(
+        newHeaders = "pstr" -> pstr))
+
+      status(result) mustBe NO_CONTENT
+    }
+
+    "throw a 401 Unauthorised Exception if auth fails" in {
+      when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[UnauthorizedException] {
+        controller.compileEvent()(fakeRequest.withJsonBody(compileEventSuccessResponse).withHeaders(newHeaders = "pstr" -> pstr))
+      } map { response =>
+        response.responseCode mustBe UNAUTHORIZED
+        response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
+      }
+    }
+  }
 }
 
 object EventReportControllerSpec {
   val pstr = "pstr"
+
+  val eventType = "1"
+  val badRequestEventType = "666"
+  val badRequestBody: JsObject = Json.obj("Testing" -> 123456789)
 
   val compileEventReportSummaryResponseJson: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678912")
@@ -545,5 +459,11 @@ object EventReportControllerSpec {
     LocalDate.of(2022, 4, 6),
     "Compiled")
   private val erVersions = Seq(version)
+
+  val saveEventSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+    "formBundleNumber" -> "12345678955")
+
+  val compileEventSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+    "formBundleNumber" -> "12345678977")
 }
 
