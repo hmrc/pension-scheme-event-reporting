@@ -18,6 +18,8 @@ package connectors
 
 import com.google.inject.Inject
 import config.AppConfig
+import models.enumeration.ApiTypes
+import models.enumeration.ApiTypes.Api1832
 import models.{EROverview, ERVersion}
 import play.api.Logging
 import play.api.http.Status._
@@ -103,6 +105,27 @@ class EventReportConnector @Inject()(
     }
   }
 
+  //scalastyle:off cyclomatic.complexity
+  def getEvent(pstr: String, startDate: String, endDate: String, apiType: ApiTypes)
+              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
+    val url: String =
+      apiType match {
+        case Api1832 => config.api1832Url.format(pstr, startDate, endDate)
+        case a => throw new RuntimeException(s"Unimplemented GET API: $a")
+      }
+
+    logger.debug(s"Get $apiType (IF) called - URL:" + url)
+
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+
+    http.GET[HttpResponse](url)(implicitly, hc, implicitly).map { response =>
+      response.status match {
+        case OK => response.json
+        case _ => handleErrorResponse("GET", url)(response)
+      }
+    }
+  }
+
   def submitEventDeclarationReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
     val submitEventDeclarationReportUrl = config.submitEventDeclarationReportUrl.format(pstr)
     logger.debug("Submit Event Declaration Report called URL:" + submitEventDeclarationReportUrl)
@@ -117,9 +140,9 @@ class EventReportConnector @Inject()(
   }
 
   def getVersions(pstr: String, reportType: String, startDate: String)
-                    (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[ERVersion]] = {
+                 (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[ERVersion]] = {
 
-    val versionUrl: String = config.versionUrl.format(pstr,reportType, startDate)
+    val versionUrl: String = config.versionUrl.format(pstr, reportType, startDate)
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = desHeader: _*)
 
     http.GET[HttpResponse](versionUrl)(implicitly, hc, implicitly).map {
