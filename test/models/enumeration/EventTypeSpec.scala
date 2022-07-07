@@ -21,30 +21,39 @@ import org.scalatest.wordspec.AsyncWordSpec
 
 class EventTypeSpec extends AsyncWordSpec with Matchers {
 
-  "getApiTypesByEventType" must {
+  "apiTypeByEventTypePOST" must {
 
     "Return Some(Api1826) when parameter is Event10" in {
-      val result = EventType.apiTypeByEventType(eventType = EventType.Event10)
+      val result = EventType.apiTypeByEventTypePOST(eventType = EventType.Event10)
       result mustBe Some(ApiType.Api1826)
     }
 
     "Return Some(Api1826) when parameter is Event1" in {
 
-      val result = EventType.apiTypeByEventType(eventType = EventType.Event1)
+      val result = EventType.apiTypeByEventTypePOST(eventType = EventType.Event1)
       result mustBe Some(ApiType.Api1827)
     }
 
     "Return Some(Api1829) when parameter is Event20A" in {
 
-      val result = EventType.apiTypeByEventType(eventType = EventType.Event20A)
+      val result = EventType.apiTypeByEventTypePOST(eventType = EventType.Event20A)
       result mustBe Some(ApiType.Api1829)
     }
 
     "Return Some(Api1830) when parameter is Event22" in {
 
-      val result = EventType.apiTypeByEventType(eventType = EventType.Event22)
+      val result = EventType.apiTypeByEventTypePOST(eventType = EventType.Event22)
       result mustBe Some(ApiType.Api1830)
     }
+  }
+
+  "apiTypeByEventTypeGET" must {
+
+    "Return Some(Api1826) when parameter is Event3" in {
+      val result = EventType.apiTypeByEventTypeGET(eventType = EventType.Event3)
+      result mustBe Some(ApiType.Api1832)
+    }
+
   }
 }
 

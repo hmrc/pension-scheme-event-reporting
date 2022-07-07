@@ -18,8 +18,8 @@ package connectors
 
 import com.google.inject.Inject
 import config.AppConfig
-import models.enumeration.ApiType
 import models.enumeration.ApiType.Api1832
+import models.enumeration.EventType
 import models.{EROverview, ERVersion}
 import play.api.Logging
 import play.api.http.Status._
@@ -105,19 +105,23 @@ class EventReportConnector @Inject()(
     }
   }
 
-  //scalastyle:off cyclomatic.complexity
-  def getEvent(pstr: String, startDate: String, endDate: String, apiType: ApiType)
+  def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    val url: String =
-      apiType match {
-        case Api1832 => config.api1832Url.format(pstr, startDate, endDate)
-        case a => throw new RuntimeException(s"Unimplemented GET API: $a")
-      }
+    val (url, apiType) = EventType.apiTypeByEventTypeGET(eventType) match {
+      case Some(Api1832) => Tuple2(config.api1832Url.format(pstr), Api1832)
+      case _ => throw new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)")
+    }
 
-    logger.debug(s"Get $apiType (IF) called - URL:" + url)
+    val fullHeaders = integrationFrameworkHeader ++
+      Seq(
+        "eventType" -> eventType.toString,
+        "reportStartDate" -> startDate,
+        "reportVersionNumber" -> version,
+      )
 
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+    logger.debug(s"Get $apiType (IF) called - URL: $url with headers: $fullHeaders")
 
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
     http.GET[HttpResponse](url)(implicitly, hc, implicitly).map { response =>
       response.status match {
         case OK => response.json

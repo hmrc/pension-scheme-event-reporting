@@ -59,7 +59,7 @@ class EventReportController @Inject()(
         logger.debug(message = s"[Save Event: Incoming-Payload]$userAnswersJson")
         EventType.getEventType(eventType) match {
           case Some(event) =>
-            EventType.apiTypeByEventType(event) match {
+            EventType.apiTypeByEventTypePOST(event) match {
               // TODO: Have discussion on potential for overwriting in Mongo.
               case Some(apiType) => eventReportCacheRepository.upsert(pstr, apiType, userAnswersJson)
                 .map(_ => Created)
@@ -78,14 +78,12 @@ class EventReportController @Inject()(
       }
   }
 
-
   def getEvent: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuthAndGetEventParameters { (pstr, startDate, endDate, eventType) =>
+      withAuthAndGetEventParameters { (pstr, startDate, version, eventType) =>
         EventType.getEventType(eventType) match {
-          case Some(event) =>
-            EventType.apiTypeByEventType(event) match {
-              case Some(Api1832) => eventReportConnector.getEvent(pstr, startDate, endDate, Api1832).map(_ => Ok)
+          case Some(et) => EventType.apiTypeByEventTypeGET(et) match {
+              case Some(Api1832) => eventReportConnector.getEvent(pstr, startDate, version, et).map(_ => Ok)
               case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
             }
           case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($eventType)"))
@@ -183,6 +181,16 @@ class EventReportController @Inject()(
   }
 
 
+  /*
+          - $ref: '#/components/parameters/environment'
+        - $ref: '#/components/parameters/correlationId'
+        - $ref: '#/components/parameters/eventType'
+        - $ref: '#/components/parameters/reportFormBundleNumber'
+        - $ref: '#/components/parameters/reportStartDate'
+        - $ref: '#/components/parameters/reportVersionNumber'
+        - $ref: '#/components/parameters/pstrParam'
+   */
+
   private def withAuthAndGetEventParameters(block: (String, String, String, String) => Future[Result])
                                            (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
@@ -191,17 +199,18 @@ class EventReportController @Inject()(
         (
           request.headers.get("pstr"),
           request.headers.get("startDate"),
-          request.headers.get("endDate"),
+          request.headers.get("version"),
           request.headers.get("eventType")
         ) match {
-          case (Some(pstr), Some(startDate), Some(endDate), Some(eventType)) =>
-            block(pstr, startDate, endDate, eventType)
-          case (optPstr, optStartDate, optEndDate, optEventType) =>
+          case (Some(pstr), Some(startDate), Some(version), Some(eventType)) =>
+            block(pstr, startDate, version, eventType)
+          case (optPstr, optStartDate, optVersion, optEventType) =>
             val pstrMissing = prettyMissingParamError(optPstr, "PSTR missing")
             val startDateMissing = prettyMissingParamError(optStartDate, "start date missing")
-            val endDateMissing = prettyMissingParamError(optEndDate, "end date missing")
+            val versionMissing = prettyMissingParamError(optVersion, "version missing")
             val eventTypeMissing = prettyMissingParamError(optEventType, "event type missing")
-            Future.failed(new BadRequestException(s"Bad Request with missing parameters: $pstrMissing$eventTypeMissing$startDateMissing$endDateMissing"))
+            Future.failed(new BadRequestException(
+              s"Bad Request with missing parameters: $pstrMissing $eventTypeMissing $startDateMissing $versionMissing"))
         }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
