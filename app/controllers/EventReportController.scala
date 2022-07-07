@@ -16,10 +16,6 @@
 
 package controllers
 
-import connectors.EventReportConnector
-import connectors.cache.OverviewCacheConnector
-import models.enumeration.ApiType.Api1832
-import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
@@ -38,10 +34,10 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton()
 class EventReportController @Inject()(
                                        cc: ControllerComponents,
-                                       overviewCacheConnector: OverviewCacheConnector,
-                                       eventReportConnector: EventReportConnector,
+//                                       overviewCacheConnector: OverviewCacheConnector,
+//                                       eventReportConnector: EventReportConnector,
                                        val authConnector: AuthConnector,
-                                       eventReportCacheRepository: EventReportCacheRepository,
+//                                       eventReportCacheRepository: EventReportCacheRepository,
                                        jsonPayloadSchemaValidator: JSONPayloadSchemaValidator,
                                        eventReportService: EventReportService
                                      )(implicit ec: ExecutionContext)
@@ -55,24 +51,17 @@ class EventReportController @Inject()(
 
   def saveEvent: Action[AnyContent] = Action.async {
     implicit request =>
-      postWithEventType { (pstr, eventType, userAnswersJson) =>
+      withPstrEventTypeAndBody { (pstr, eventType, userAnswersJson) =>
         logger.debug(message = s"[Save Event: Incoming-Payload]$userAnswersJson")
-        EventType.getEventType(eventType) match {
-          case Some(event) =>
-            EventType.apiTypeByEventTypePOST(event) match {
-              // TODO: Have discussion on potential for overwriting in Mongo.
-              case Some(apiType) => eventReportCacheRepository.upsert(pstr, apiType, userAnswersJson)
-                .map(_ => Created)
-              case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
-            }
-          case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($eventType)"))
+        eventReportService.saveEvent(pstr, eventType, userAnswersJson).map{ _ =>
+          Created
         }
       }
   }
 
   def compileEvent: Action[AnyContent] = Action.async {
     implicit request =>
-      post { (pstr, userAnswersJson) =>
+      withPstrAndBody { (pstr, userAnswersJson) =>
         logger.debug(message = s"[Compile Event: Incoming-Payload]$userAnswersJson")
         eventReportService.compileEventReport(pstr, userAnswersJson)
       }
@@ -81,22 +70,15 @@ class EventReportController @Inject()(
   def getEvent: Action[AnyContent] = Action.async {
     implicit request =>
       withAuthAndGetEventParameters { (pstr, startDate, version, eventType) =>
-        EventType.getEventType(eventType) match {
-          case Some(et) => EventType.apiTypeByEventTypeGET(et) match {
-            case Some(Api1832) => eventReportConnector.getEvent(pstr, startDate, version, et).map(Ok(_))
-            case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
-          }
-          case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($eventType)"))
-        }
+        eventReportService.getEvent(pstr, startDate, version, eventType).map(Ok(_))
       }
   }
 
   def getVersions: Action[AnyContent] = Action.async {
     implicit request =>
       withAuthAndVersionParameters { (pstr, reportType, startDate) =>
-        eventReportConnector.getVersions(pstr, reportType, startDate).map {
-          data =>
-            Ok(Json.toJson(data))
+        eventReportService.getVersions(pstr, reportType, startDate).map {
+          data => Ok(Json.toJson(data))
         }
       }
   }
@@ -104,27 +86,20 @@ class EventReportController @Inject()(
   def getOverview: Action[AnyContent] = Action.async {
     implicit request =>
       withAuthAndOverviewParameters { (pstr, reportType, startDate, endDate) =>
-        overviewCacheConnector.get(pstr, reportType, startDate, endDate).flatMap {
-          case Some(data) => Future.successful(Ok(data))
-          case _ => eventReportConnector.getOverview(pstr, reportType, startDate, endDate).flatMap {
-            data =>
-              overviewCacheConnector.save(pstr, reportType, startDate, endDate, Json.toJson(data)).map { _ =>
-                Ok(Json.toJson(data))
-              }
-          }
+        eventReportService.getOverview(pstr, reportType, startDate, endDate).map{
+          data => Ok(data)
         }
       }
   }
 
-
   def submitEventDeclarationReport: Action[AnyContent] = Action.async {
     implicit request =>
-      post { (pstr, userAnswersJson) =>
+      withPstrAndBody { (pstr, userAnswersJson) =>
         logger.debug(message = s"[Submit Event Declaration Report - Incoming payload]$userAnswersJson")
         jsonPayloadSchemaValidator.validateJsonPayload(submitEventDeclarationReportSchemaPath, userAnswersJson) match {
           case Right(true) =>
-            eventReportConnector.submitEventDeclarationReport(pstr, userAnswersJson).map { response =>
-              Ok(response.body)
+            eventReportService.submitEventDeclarationReport(pstr, userAnswersJson).map { response =>
+              Ok(response)
             }
           case Left(errors) =>
             val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
@@ -134,7 +109,7 @@ class EventReportController @Inject()(
       }
   }
 
-  private def post(block: (String, JsValue) => Future[Result])
+  private def withPstrAndBody(block: (String, JsValue) => Future[Result])
                   (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
@@ -156,7 +131,7 @@ class EventReportController @Inject()(
     }
   }
 
-  private def postWithEventType(block: (String, String, JsValue) => Future[Result])
+  private def withPstrEventTypeAndBody(block: (String, String, JsValue) => Future[Result])
                                (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")

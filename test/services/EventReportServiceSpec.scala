@@ -17,6 +17,7 @@
 package services
 
 import connectors.EventReportConnector
+import connectors.cache.OverviewCacheConnector
 import org.mockito.ArgumentMatchers.any
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
@@ -39,11 +40,13 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val mockEventReportConnector = mock[EventReportConnector]
   private val mockJSONPayloadSchemaValidator = mock[JSONPayloadSchemaValidator]
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
-  val eventReportService = new EventReportService(mockEventReportConnector, mockEventReportCacheRepository, mockJSONPayloadSchemaValidator)
+  private val mockOverviewCacheConnector = mock[OverviewCacheConnector]
+  val eventReportService = new EventReportService(mockEventReportConnector, mockEventReportCacheRepository, mockJSONPayloadSchemaValidator, mockOverviewCacheConnector)
 
   before {
-    reset(mockEventReportConnector)
+    reset(mockEventReportConnector, mockOverviewCacheConnector)
     when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Right(true)
+    when(mockOverviewCacheConnector.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
 
   }
 
