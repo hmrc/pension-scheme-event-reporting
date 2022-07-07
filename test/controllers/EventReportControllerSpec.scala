@@ -289,8 +289,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(Event1.toString),
         any()
-      )(any(), any()))
-        .thenReturn(Future.successful(dummyJsValue))
+      )(any()))
+        .thenReturn(Future.successful(()))
 
       val result = controller.saveEvent(fakeRequest.withJsonBody(saveEventSuccessResponse).withHeaders(
         newHeaders = "pstr" -> pstr, "eventType" -> eventType))

@@ -28,7 +28,7 @@ import org.scalatest.concurrent.ScalaFutures.whenReady
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 import play.api.http.Status.NO_CONTENT
-import play.api.libs.json.{JsArray, JsObject, Json}
+import play.api.libs.json.{JsObject, Json}
 import play.api.test.Helpers._
 import repositories.EventReportCacheRepository
 import uk.gov.hmrc.http._
@@ -152,14 +152,14 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         any()
       )(any()))
         .thenReturn(Future.successful(HttpResponse(OK, saveEventSuccessResponse.toString)))
-      whenReady(eventReportService.saveEvent(pstr, EventType.Event3.toString, payload)(implicitly, implicitly)) { result =>
+      whenReady(eventReportService.saveEvent(pstr, EventType.Event3.toString, payload)(implicitly)) { result =>
         assert(true)
       }
     }
 
     "return not found exception when invalid event type" in {
       recoverToExceptionIf[NotFoundException] {
-        eventReportService.saveEvent(pstr, "test", payload)(implicitly, implicitly)
+        eventReportService.saveEvent(pstr, "test", payload)(implicitly)
       } map {
         failure =>
           failure.message mustBe "Bad Request: eventType (test) not found"
@@ -236,7 +236,6 @@ object EventReportServiceSpec {
     "formBundleNumber" -> "12345678977")
 
 
-  private val startDate = "2022-04-06"
   private val endDate = "2023-04-05"
   private val reportTypeER = "ER"
 
@@ -245,15 +244,6 @@ object EventReportServiceSpec {
     LocalDate.of(2022, 4, 6),
     "Compiled")
   private val erVersions = Seq(version)
-
-  private val erVersionResponseJson: JsArray = Json.arr(
-    Json.obj(
-      "reportVersion" -> 1,
-      "reportStatus" -> "Compiled",
-      "date" -> startDate
-    )
-  )
-
 
   private val overview1 = EROverview(
     LocalDate.of(2022, 4, 6),

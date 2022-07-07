@@ -20,13 +20,12 @@ package services
 import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
 import connectors.cache.OverviewCacheConnector
-import controllers.EventReportValidationFailureException
 import models.ERVersion
 import models.enumeration.ApiType.{Api1826, Api1827, Api1832}
 import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.{Action, AnyContent, Result}
+import play.api.mvc.Result
 import play.api.mvc.Results._
 import repositories.EventReportCacheRepository
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, NotFoundException}
@@ -72,7 +71,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def saveEvent(pstr: String, eventType: String, userAnswersJson: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Unit] = {
+  def saveEvent(pstr: String, eventType: String, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     EventType.getEventType(eventType) match {
       case Some(event) =>
         EventType.apiTypeByEventTypePOST(event) match {
