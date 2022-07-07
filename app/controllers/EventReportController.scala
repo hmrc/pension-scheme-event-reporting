@@ -83,9 +83,9 @@ class EventReportController @Inject()(
       withAuthAndGetEventParameters { (pstr, startDate, version, eventType) =>
         EventType.getEventType(eventType) match {
           case Some(et) => EventType.apiTypeByEventTypeGET(et) match {
-              case Some(Api1832) => eventReportConnector.getEvent(pstr, startDate, version, et).map(Ok(_))
-              case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
-            }
+            case Some(Api1832) => eventReportConnector.getEvent(pstr, startDate, version, et).map(Ok(_))
+            case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
+          }
           case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($eventType)"))
         }
       }
@@ -115,7 +115,6 @@ class EventReportController @Inject()(
         }
       }
   }
-
 
 
   def submitEventDeclarationReport: Action[AnyContent] = Action.async {
