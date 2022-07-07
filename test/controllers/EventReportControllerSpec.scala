@@ -328,7 +328,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       val result = controller.getEvent(fakeRequest.withHeaders(
         newHeaders = "pstr" -> pstr,
         "startDate" -> startDate,
-        "version" -> versionString,
+        "version" -> "1",
         "eventType" -> "Event2"
       ))
 

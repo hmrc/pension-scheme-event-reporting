@@ -17,6 +17,7 @@
 package connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock._
+import models.enumeration.EventType.{Event1, Event3}
 import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.must.Matchers
@@ -24,7 +25,7 @@ import org.scalatest.wordspec.AsyncWordSpec
 import play.api.http.Status._
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
-import play.api.libs.json.{JsArray, Json}
+import play.api.libs.json.{JsArray, JsString, Json}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.test.HttpClientSupport
 import utils.{JsonFileReader, UnrecognisedHttpResponseException, WireMockHelper}
@@ -423,6 +424,87 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
     }
   }
 
+
+
+
+  "getEvent" must {
+    "return the json returned from ETMP for valid event in API 1832" in {
+      val response: JsString = JsString("test")
+
+      server.stubFor(
+        get(urlEqualTo(getEventUrl))
+          .willReturn(
+            ok
+              .withHeader("Content-Type", "application/json")
+              .withBody(response.toString())
+          )
+      )
+
+      connector.getEvent(pstr, fromDt, "001", Event3).map { response =>
+        response mustBe response
+      }
+    }
+
+    "return not found response for invalid event in API 1832" in {
+      val response: JsString = JsString("test")
+
+      server.stubFor(
+        get(urlEqualTo(getEventUrl))
+          .willReturn(
+            ok
+              .withHeader("Content-Type", "application/json")
+              .withBody(response.toString())
+          )
+      )
+
+      recoverToExceptionIf[NotFoundException] {
+        connector.getEvent(pstr, fromDt, "001", Event1)
+      } map { response =>
+        response.responseCode mustEqual NOT_FOUND
+        response.message must include("Not Found: ApiType not found for eventType")
+      }
+
+
+    }
+
+    "return a NotFoundException for NOT FOUND - 404" in {
+      server.stubFor(
+        get(urlEqualTo(getEventUrl))
+          .willReturn(
+            notFound
+              .withBody(errorResponse("NOT_FOUND"))
+          )
+      )
+
+      recoverToExceptionIf[NotFoundException] {
+        connector.getEvent(pstr, fromDt, "001", Event3)
+      } map { response =>
+        response.responseCode mustEqual NOT_FOUND
+        response.message must include("NOT_FOUND")
+      }
+    }
+
+
+
+    "throw Upstream5XX for INTERNAL SERVER ERROR - 500" in {
+
+      server.stubFor(
+        get(urlEqualTo(getEventUrl))
+          .willReturn(
+            serverError
+              .withBody(errorResponse("SERVER_ERROR"))
+          )
+      )
+
+      recoverToExceptionIf[UpstreamErrorResponse] {
+        connector.getEvent(pstr, fromDt, "001", Event3)
+      } map {
+        _.statusCode mustBe INTERNAL_SERVER_ERROR
+      }
+    }
+  }
+
+
   "submitEventDeclarationReport" must {
     "return 200 when ETMP has returned OK" in {
       val data = Json.obj(fields = "Id" -> "value")
@@ -574,6 +656,7 @@ object EventReportConnectorSpec {
   private val compileEventOneReportUrl = s"/pension-online/event1-report/pods/$pstr"
 
   private val getErOverviewUrl = s"/pension-online/reports/overview/pods/$pstr/ER?fromDate=$fromDt&toDate=$toDt"
+  private val getEventUrl = s"/pension-online/member-event-status-reports/$pstr"
 
   private val submitEventDeclarationReportUrl = s"/pension-online/event-declaration-reports/$pstr"
 

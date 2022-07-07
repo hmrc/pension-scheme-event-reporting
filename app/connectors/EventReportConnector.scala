@@ -107,25 +107,27 @@ class EventReportConnector @Inject()(
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    val (url, apiType) = EventType.apiTypeByEventTypeGET(eventType) match {
-      case Some(Api1832) => Tuple2(config.api1832Url.format(pstr), Api1832)
-      case _ => throw new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)")
+    val futureParameters = EventType.apiTypeByEventTypeGET(eventType) match {
+      case Some(Api1832) => Future.successful(Tuple2(config.api1832Url.format(pstr), Api1832))
+      case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
     }
 
-    val fullHeaders = integrationFrameworkHeader ++
-      Seq(
-        "eventType" -> eventType.toString,
-        "reportStartDate" -> startDate,
-        "reportVersionNumber" -> version,
-      )
+    futureParameters.flatMap { case (url, apiType) =>
+      val fullHeaders = integrationFrameworkHeader ++
+        Seq(
+          "eventType" -> eventType.toString,
+          "reportStartDate" -> startDate,
+          "reportVersionNumber" -> version,
+        )
 
-    logger.debug(s"Get $apiType (IF) called - URL: $url with headers: $fullHeaders")
+      logger.debug(s"Get $apiType (IF) called - URL: $url with headers: $fullHeaders")
 
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
-    http.GET[HttpResponse](url)(implicitly, hc, implicitly).map { response =>
-      response.status match {
-        case OK => response.json
-        case _ => handleErrorResponse("GET", url)(response)
+      implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
+      http.GET[HttpResponse](url)(implicitly, hc, implicitly).map { response =>
+        response.status match {
+          case OK => response.json
+          case _ => handleErrorResponse("GET", url)(response)
+        }
       }
     }
   }
