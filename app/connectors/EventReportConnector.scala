@@ -64,6 +64,20 @@ class EventReportConnector @Inject()(
     }
   }
 
+  def compileMemberEventReport(pstr: String, data: JsValue)
+                           (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
+    val compileMemberEventReportUrl = config.compileMemberEventReportUrl.format(pstr)
+    logger.debug("Compile Member Event Report- URL:" + compileMemberEventReportUrl)
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+    http.POST[JsValue, HttpResponse](compileMemberEventReportUrl, data)(implicitly, implicitly, hc, implicitly) map {
+      response =>
+        response.status match {
+          case OK => response
+          case _ => handleErrorResponse("POST", compileMemberEventReportUrl)(response)
+        }
+    }
+  }
+
   //scalastyle:off cyclomatic.complexity
   def getOverview(pstr: String, reportType: String, startDate: String, endDate: String)
                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]] = {
