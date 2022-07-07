@@ -16,20 +16,20 @@
 
 package models.enumeration
 
-sealed trait ApiTypes
+sealed trait ApiType
 
 
-object ApiTypes extends Enumerable.Implicits {
+object ApiType extends Enumerable.Implicits {
 
-  case object Api1826 extends WithName("1826") with ApiTypes
+  case object Api1826 extends WithName("1826") with ApiType
 
-  case object Api1827 extends WithName("1827") with ApiTypes
+  case object Api1827 extends WithName("1827") with ApiType
 
-  case object Api1829 extends WithName("1829") with ApiTypes
+  case object Api1829 extends WithName("1829") with ApiType
 
-  case object Api1830 extends WithName("1830") with ApiTypes
+  case object Api1830 extends WithName("1830") with ApiType
 
-  case object Api1832 extends WithName("1832") with ApiTypes
+  case object Api1832 extends WithName("1832") with ApiType
 
 }
 

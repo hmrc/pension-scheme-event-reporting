@@ -77,19 +77,19 @@ object EventType extends Enumerable.Implicits {
 
   def getEventType(s: String): Option[EventType] = values.find(_.toString == s)
 
-  def getPOSTApiTypeByEventType(eventType: EventType): Option[ApiTypes] = {
+  def getPOSTApiTypeByEventType(eventType: EventType): Option[ApiType] = {
     eventType match {
-      case evType1826 if api1826Events.contains(evType1826) => Some(ApiTypes.Api1826)
-      case evType1827 if api1827Events.contains(evType1827) => Some(ApiTypes.Api1827)
-      case evType1829 if api1829Events.contains(evType1829) => Some(ApiTypes.Api1829)
-      case evType1830 if api1830Events.contains(evType1830) => Some(ApiTypes.Api1830)
+      case evType1826 if api1826Events.contains(evType1826) => Some(ApiType.Api1826)
+      case evType1827 if api1827Events.contains(evType1827) => Some(ApiType.Api1827)
+      case evType1829 if api1829Events.contains(evType1829) => Some(ApiType.Api1829)
+      case evType1830 if api1830Events.contains(evType1830) => Some(ApiType.Api1830)
       case _ => None
     }
   }
 
-  def getGETApiTypeByEventType(eventType: EventType): Option[ApiTypes] = {
+  def getGETApiTypeByEventType(eventType: EventType): Option[ApiType] = {
     if (api1832Events.contains(eventType)) {
-      Some(ApiTypes.Api1832)
+      Some(ApiType.Api1832)
     } else {
       None
     }

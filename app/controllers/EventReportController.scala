@@ -18,7 +18,7 @@ package controllers
 
 import connectors.EventReportConnector
 import connectors.cache.OverviewCacheConnector
-import models.enumeration.ApiTypes.Api1832
+import models.enumeration.ApiType.Api1832
 import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json._

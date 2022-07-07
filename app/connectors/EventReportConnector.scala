@@ -18,8 +18,8 @@ package connectors
 
 import com.google.inject.Inject
 import config.AppConfig
-import models.enumeration.ApiTypes
-import models.enumeration.ApiTypes.Api1832
+import models.enumeration.ApiType
+import models.enumeration.ApiType.Api1832
 import models.{EROverview, ERVersion}
 import play.api.Logging
 import play.api.http.Status._
@@ -106,7 +106,7 @@ class EventReportConnector @Inject()(
   }
 
   //scalastyle:off cyclomatic.complexity
-  def getEvent(pstr: String, startDate: String, endDate: String, apiType: ApiTypes)
+  def getEvent(pstr: String, startDate: String, endDate: String, apiType: ApiType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
     val url: String =
       apiType match {
