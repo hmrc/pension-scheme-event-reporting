@@ -16,10 +16,8 @@
 
 package controllers
 
-import connectors.EventReportConnector
-import connectors.cache.OverviewCacheConnector
-import models.enumeration.EventType.Event2
-import models.{EROverview, EROverviewVersion, ERVersion}
+import models.ERVersion
+import models.enumeration.EventType.{Event1, Event2}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfter
@@ -33,7 +31,6 @@ import play.api.libs.json._
 import play.api.mvc.Results.NoContent
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import repositories.EventReportCacheRepository
 import services.EventReportService
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http._
@@ -48,21 +45,15 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
   private val fakeRequest = FakeRequest("GET", "/")
-  private val mockEventReportConnector = mock[EventReportConnector]
   private val mockJSONPayloadSchemaValidator = mock[JSONPayloadSchemaValidator]
-  private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
   private val mockEventReportService = mock[EventReportService]
   private val mockAuthConnector: AuthConnector = mock[AuthConnector]
-  private val mockOverviewCacheConnector = mock[OverviewCacheConnector]
 
   val modules: Seq[GuiceableModule] =
     Seq(
       bind[AuthConnector].toInstance(mockAuthConnector),
-      bind[EventReportConnector].toInstance(mockEventReportConnector),
       bind[JSONPayloadSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
-      bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
-      bind[EventReportService].toInstance(mockEventReportService),
-      bind[OverviewCacheConnector].toInstance(mockOverviewCacheConnector)
+      bind[EventReportService].toInstance(mockEventReportService)
     )
 
   val application: Application = new GuiceApplicationBuilder()
@@ -70,50 +61,29 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     overrides(modules: _*).build()
 
   before {
-    reset(mockEventReportConnector, mockAuthConnector, mockOverviewCacheConnector, mockJSONPayloadSchemaValidator)
+    reset(mockAuthConnector, mockJSONPayloadSchemaValidator)
     when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"))
     when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Right(true)
   }
 
   "getOverview" must {
-
-    "return OK with the Seq of overview details and save the data in cache if no data was found in the cache to begin with" in {
-      when(mockEventReportConnector.getOverview(
+    "return OK with the overview payload returned from service" in {
+      when(mockEventReportService.getOverview(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(reportTypeER),
         ArgumentMatchers.eq(startDate),
         ArgumentMatchers.eq(endDate))(any(), any()))
-        .thenReturn(Future.successful(erOverview))
-      when(mockOverviewCacheConnector.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
-      when(mockOverviewCacheConnector.save(any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(true))
+        .thenReturn(Future.successful(erOverviewResponseJson))
       val controller = application.injector.instanceOf[EventReportController]
       val result = controller.getOverview(fakeRequest.withHeaders(
         newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDate, "endDate" -> endDate))
 
       whenReady(result) { _ =>
-        verify(mockOverviewCacheConnector, times(1)).get(any(), any(), any(), any())(any())
-        verify(mockOverviewCacheConnector, times(1)).save(any(), any(), any(), any(), any())(any())
-        verify(mockEventReportConnector, times(1)).getOverview(any(), any(), any(), any())(any(), any())
-
         status(result) mustBe OK
         contentAsJson(result) mustBe erOverviewResponseJson
       }
     }
 
-    "return OK with the Seq of overview details and don't try to save the data in cache if the data already exists in the cache" in {
-      when(mockOverviewCacheConnector.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(Some(Json.toJson(erOverview))))
-      val controller = application.injector.instanceOf[EventReportController]
-      val result = controller.getOverview(fakeRequest.withHeaders(
-        newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDate, "endDate" -> endDate))
-
-      whenReady(result) { _ =>
-        verify(mockOverviewCacheConnector, times(1)).get(any(), any(), any(), any())(any())
-        verify(mockOverviewCacheConnector, never).save(any(), any(), any(), any(), any())(any())
-        verify(mockEventReportConnector, never).getOverview(any(), any(), any(), any())(any(), any())
-        status(result) mustBe OK
-        contentAsJson(result) mustBe erOverviewResponseJson
-      }
-    }
 
     "throw a Bad Request Exception when endDate parameter is missing in header" in {
       val controller = application.injector.instanceOf[EventReportController]
@@ -192,8 +162,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     "return OK when valid response" in {
       val controller = application.injector.instanceOf[EventReportController]
 
-      when(mockEventReportConnector.submitEventDeclarationReport(any(), any())(any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, submitEventDeclarationReportSuccessResponse.toString)))
+      when(mockEventReportService.submitEventDeclarationReport(any(), any())(any(), any()))
+        .thenReturn(Future.successful(submitEventDeclarationReportSuccessResponse))
 
       val result = controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse).withHeaders(
         newHeaders = "pstr" -> pstr))
@@ -201,19 +171,14 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       status(result) mustBe OK
     }
 
-    "return OK when validation errors response" in {
+    "throw validation exception when validation errors response" in {
       val controller = application.injector.instanceOf[EventReportController]
-
-      when(mockEventReportConnector.submitEventDeclarationReport(any(), any())(any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, submitEventDeclarationReportSuccessResponse.toString)))
-
       val listErrors: List[ErrorReport] = List(
         ErrorReport("instance1", "errors1"),
         ErrorReport("instance2", "errors2")
       )
 
       when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Left(listErrors)
-
 
       recoverToExceptionIf[EventReportValidationFailureException] {
         controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse).withHeaders(
@@ -223,60 +188,11 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
           failure.exMessage mustBe "Schema validation errors:-\n(instance1: errors1),\n(instance2: errors2)"
       }
     }
-
-    "throw Upstream5XXResponse on Internal Server Error" in {
-      val controller = application.injector.instanceOf[EventReportController]
-
-      when(mockEventReportConnector.submitEventDeclarationReport(any(), any())(any(), any()))
-        .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
-      recoverToExceptionIf[UpstreamErrorResponse] {
-        controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse).
-          withHeaders(newHeaders = "pstr" -> pstr))
-      } map {
-        _.statusCode mustBe INTERNAL_SERVER_ERROR
-      }
-    }
-
-    "throw BadRequestException when request body not provided" in {
-
-      val controller = application.injector.instanceOf[EventReportController]
-
-      recoverToExceptionIf[BadRequestException] {
-        controller.submitEventDeclarationReport()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-        response.message must include(s"Bad Request without pstr (Some($pstr)) or request body (None)")
-      }
-    }
-
-    "throw BadRequestException when PSTR missing in header" in {
-
-      val controller = application.injector.instanceOf[EventReportController]
-
-      recoverToExceptionIf[BadRequestException] {
-        controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-        response.message must include(s"Bad Request without pstr (None) or request body (Some($submitEventDeclarationReportSuccessResponse))")
-      }
-    }
-
-    "throw Unauthorized exception if auth fails" in {
-      when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
-      val controller = application.injector.instanceOf[EventReportController]
-
-      recoverToExceptionIf[UnauthorizedException] {
-        controller.submitEventDeclarationReport()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
-      } map { response =>
-        response.responseCode mustBe UNAUTHORIZED
-        response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
-      }
-    }
   }
-
+//
   "getVersions" must {
     "return OK with the Seq of Version" in {
-      when(mockEventReportConnector.getVersions(
+      when(mockEventReportService.getVersions(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(reportTypeER),
         ArgumentMatchers.eq(startDate))(any(), any()))
@@ -314,14 +230,14 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   }
 
 
+
   "getEvent" must {
     "return OK with the json response" in {
-      reset(mockEventReportConnector)
-      when(mockEventReportConnector.getEvent(
+      when(mockEventReportService.getEvent(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(startDate),
         ArgumentMatchers.eq(versionString),
-        ArgumentMatchers.eq(Event2)
+        ArgumentMatchers.eq(Event2.toString)
       )(any(), any()))
         .thenReturn(Future.successful(dummyJsValue))
       val controller = application.injector.instanceOf[EventReportController]
@@ -329,7 +245,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         newHeaders = "pstr" -> pstr,
         "startDate" -> startDate,
         "version" -> "1",
-        "eventType" -> "Event2"
+        "eventType" -> Event2.toString
       ))
 
       status(result) mustBe OK
@@ -369,24 +285,17 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     "return 201 Created when valid response" in {
       val controller = application.injector.instanceOf[EventReportController]
 
-      when(mockEventReportCacheRepository.upsert(any(), any(), any())(any()))
-        .thenReturn(Future.successful(HttpResponse(OK, saveEventSuccessResponse.toString)))
+      when(mockEventReportService.saveEvent(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(Event1.toString),
+        any()
+      )(any(), any()))
+        .thenReturn(Future.successful(dummyJsValue))
 
       val result = controller.saveEvent(fakeRequest.withJsonBody(saveEventSuccessResponse).withHeaders(
         newHeaders = "pstr" -> pstr, "eventType" -> eventType))
 
       status(result) mustBe CREATED
-    }
-
-    "throw a 400 Bad Request Exception when eventType parameter not in enum" in {
-      val controller = application.injector.instanceOf[EventReportController]
-
-      recoverToExceptionIf[BadRequestException] {
-        controller.saveEvent()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "eventType" -> badRequestEventType).withJsonBody(saveEventSuccessResponse))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-        response.message must include(s"Bad Request: invalid eventType ($badRequestEventType)")
-      }
     }
 
     "throw a 400 Bad Request Exception when eventType missing" in {
@@ -446,13 +355,6 @@ object EventReportControllerSpec {
 
   private val versionString = "001"
   private val eventType = "Event1"
-  private val badRequestEventType = "666"
-  private val badRequestBody: JsObject = Json.obj("Testing" -> 123456789)
-
-  private val compileEventReportSummaryResponseJson: JsObject = Json.obj("processingDate" -> LocalDate.now(),
-    "formBundleNumber" -> "12345678912")
-  private val compileEventOneReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
-    "formBundleNumber" -> "12345678988")
 
   private val startDate = "2022-04-06"
   private val endDate = "2023-04-05"
@@ -478,26 +380,6 @@ object EventReportControllerSpec {
         "compiledVersionAvailable" -> true
       )),
   )
-
-  private val overview1 = EROverview(
-    LocalDate.of(2022, 4, 6),
-    LocalDate.of(2023, 4, 5),
-    tpssReportPresent = false,
-    Some(EROverviewVersion(
-      3,
-      submittedVersionAvailable = false,
-      compiledVersionAvailable = true)))
-
-  private val overview2 = EROverview(
-    LocalDate.of(2022, 4, 6),
-    LocalDate.of(2023, 4, 5),
-    tpssReportPresent = false,
-    Some(EROverviewVersion(
-      2,
-      submittedVersionAvailable = true,
-      compiledVersionAvailable = true)))
-
-  private val erOverview = Seq(overview1, overview2)
 
   private val submitEventDeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678933")
