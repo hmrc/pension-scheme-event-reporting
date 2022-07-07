@@ -81,7 +81,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
           case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
         }
-      case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($eventType)"))
+      case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
     }
   }
 

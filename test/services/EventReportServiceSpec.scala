@@ -18,18 +18,23 @@ package services
 
 import connectors.EventReportConnector
 import connectors.cache.OverviewCacheConnector
+import models.enumeration.ApiType.Api1830
+import models.enumeration.EventType
+import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.ArgumentMatchers.any
-import org.mockito.MockitoSugar
+import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfter
+import org.scalatest.concurrent.ScalaFutures.whenReady
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 import play.api.http.Status.NO_CONTENT
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsArray, JsObject, Json}
 import play.api.test.Helpers._
 import repositories.EventReportCacheRepository
 import uk.gov.hmrc.http._
 import utils.{ErrorReport, JSONPayloadSchemaValidator}
 
+import java.time.LocalDate
 import scala.concurrent.Future
 
 class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSugar with BeforeAndAfter {
@@ -41,6 +46,12 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val mockJSONPayloadSchemaValidator = mock[JSONPayloadSchemaValidator]
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
   private val mockOverviewCacheConnector = mock[OverviewCacheConnector]
+
+  private val pstr = "pstr"
+  private val startDate = "startDate"
+  private val version = "version"
+  private val payload = Json.obj("test" -> "test")
+
   val eventReportService = new EventReportService(mockEventReportConnector, mockEventReportCacheRepository, mockJSONPayloadSchemaValidator, mockOverviewCacheConnector)
 
   before {
@@ -113,10 +124,160 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       }
     }
   }
+
+  "getEvent" must {
+    "return the payload from the connector when valid event type" in {
+      when(mockEventReportConnector.getEvent(any(), any(), any(), any())(any(), any()))
+        .thenReturn(Future.successful(responseJson))
+      whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event3.toString)(implicitly, implicitly)) { result =>
+        result mustBe responseJson
+      }
+    }
+
+    "return not found exception when invalid event type" in {
+      recoverToExceptionIf[NotFoundException] {
+        eventReportService.getEvent(pstr, startDate, version, EventType.Event1.toString)(implicitly, implicitly)
+      } map {
+        failure =>
+          failure.message mustBe "Not Found: ApiType not found for eventType (Event1)"
+      }
+    }
+  }
+
+  "saveEvent" must {
+    "return the payload from the connector when valid event type" in {
+      when(mockEventReportCacheRepository.upsert(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(Api1830),
+        any()
+      )(any()))
+        .thenReturn(Future.successful(HttpResponse(OK, saveEventSuccessResponse.toString)))
+      whenReady(eventReportService.saveEvent(pstr, EventType.Event3.toString, payload)(implicitly, implicitly)) { result =>
+        assert(true)
+      }
+    }
+
+    "return not found exception when invalid event type" in {
+      recoverToExceptionIf[NotFoundException] {
+        eventReportService.saveEvent(pstr, "test", payload)(implicitly, implicitly)
+      } map {
+        failure =>
+          failure.message mustBe "Bad Request: eventType (test) not found"
+      }
+    }
+  }
+
+  "getVersions" must {
+    "return the payload from the connector when valid event type" in {
+      when(mockEventReportConnector.getVersions(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(reportTypeER),
+        ArgumentMatchers.eq(startDate))(any(), any()))
+        .thenReturn(Future.successful(erVersions))
+      whenReady(eventReportService.getVersions(pstr, "ER", startDate)(implicitly, implicitly)) { result =>
+        result mustBe erVersions
+      }
+    }
+  }
+
+  "getOverview" must {
+    "return OK with the Seq of overview details and save the data in cache if no data was found in the cache to begin with" in {
+      when(mockEventReportConnector.getOverview(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(reportTypeER),
+        ArgumentMatchers.eq(startDate),
+        ArgumentMatchers.eq(endDate))(any(), any()))
+        .thenReturn(Future.successful(erOverview))
+      when(mockOverviewCacheConnector.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
+      when(mockOverviewCacheConnector.save(any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(true))
+
+      eventReportService.getOverview(pstr, reportTypeER, startDate, endDate)(implicitly, implicitly).map { resultJsValue =>
+        verify(mockOverviewCacheConnector, times(1)).get(any(), any(), any(), any())(any())
+        verify(mockOverviewCacheConnector, times(1)).save(any(), any(), any(), any(), any())(any())
+        verify(mockEventReportConnector, times(1)).getOverview(any(), any(), any(), any())(any(), any())
+        resultJsValue mustBe Json.toJson(erOverview)
+      }
+    }
+
+    "return OK with the Seq of overview details and don't try to save the data in cache if the data already exists in the cache" in {
+      when(mockOverviewCacheConnector.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(Some(Json.toJson(erOverview))))
+      eventReportService.getOverview(pstr, reportTypeER, startDate, endDate)(implicitly, implicitly).map { resultJsValue =>
+        verify(mockOverviewCacheConnector, times(1)).get(any(), any(), any(), any())(any())
+        verify(mockOverviewCacheConnector, never).save(any(), any(), any(), any(), any())(any())
+        verify(mockEventReportConnector, never).getOverview(any(), any(), any(), any())(any(), any())
+        resultJsValue mustBe Json.toJson(erOverview)
+      }
+    }
+  }
+
+  "submitEventDeclarationReport" must {
+    "return valid response" in {
+      when(mockEventReportConnector.submitEventDeclarationReport(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponse))(any(), any()))
+        .thenReturn(Future.successful(HttpResponse.apply(
+          status = OK,
+          json = submitEventDeclarationReportSuccessResponse,
+          headers = Map.empty)))
+      eventReportService.submitEventDeclarationReport(pstr, submitEventDeclarationReportSuccessResponse)(implicitly, implicitly).map { resultJsValue =>
+        resultJsValue mustBe submitEventDeclarationReportSuccessResponse
+      }
+    }
+  }
 }
 
 object EventReportServiceSpec {
   val responseJson: JsObject = Json.obj("event" -> "10")
+
+  val saveEventSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+    "formBundleNumber" -> "12345678955")
+
+  val compileEventSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+    "formBundleNumber" -> "12345678977")
+
+
+  private val startDate = "2022-04-06"
+  private val endDate = "2023-04-05"
+  private val reportTypeER = "ER"
+
+
+  private val version = ERVersion(1,
+    LocalDate.of(2022, 4, 6),
+    "Compiled")
+  private val erVersions = Seq(version)
+
+  private val erVersionResponseJson: JsArray = Json.arr(
+    Json.obj(
+      "reportVersion" -> 1,
+      "reportStatus" -> "Compiled",
+      "date" -> startDate
+    )
+  )
+
+
+  private val overview1 = EROverview(
+    LocalDate.of(2022, 4, 6),
+    LocalDate.of(2023, 4, 5),
+    tpssReportPresent = false,
+    Some(EROverviewVersion(
+      3,
+      submittedVersionAvailable = false,
+      compiledVersionAvailable = true)))
+
+  private val overview2 = EROverview(
+    LocalDate.of(2022, 4, 6),
+    LocalDate.of(2023, 4, 5),
+    tpssReportPresent = false,
+    Some(EROverviewVersion(
+      2,
+      submittedVersionAvailable = true,
+      compiledVersionAvailable = true)))
+
+  private val erOverview = Seq(overview1, overview2)
+
+  val submitEventDeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+    "formBundleNumber" -> "12345678933")
+
 }
 
 
