@@ -18,6 +18,7 @@ package controllers
 
 import connectors.EventReportConnector
 import connectors.cache.OverviewCacheConnector
+import models.enumeration.EventType.Event2
 import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.{ArgumentMatchers, MockitoSugar}
@@ -312,6 +313,58 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
   }
 
+
+  "getEvent" must {
+    "return OK with the json response" in {
+      reset(mockEventReportConnector)
+      when(mockEventReportConnector.getEvent(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(startDate),
+        ArgumentMatchers.eq(versionString),
+        ArgumentMatchers.eq(Event2)
+      )(any(), any()))
+        .thenReturn(Future.successful(dummyJsValue))
+      val controller = application.injector.instanceOf[EventReportController]
+      val result = controller.getEvent(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr,
+        "startDate" -> startDate,
+        "version" -> versionString,
+        "eventType" -> "Event2"
+      ))
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe dummyJsValue
+    }
+
+    "throw a Bad Request Exception when all parameters missing in header" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[BadRequestException] {
+        controller.getEvent(fakeRequest.withHeaders(
+        ))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+        response.message must include("Bad Request with missing parameters: PSTR missing  event type missing  start date missing  version missing ")
+      }
+    }
+    "throw a Unauthorised Exception if auth fails" in {
+      when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+      val controller = application.injector.instanceOf[EventReportController]
+
+      recoverToExceptionIf[UnauthorizedException] {
+        controller.getEvent(fakeRequest.withHeaders(
+          newHeaders = "pstr" -> pstr,
+          "startDate" -> startDate,
+          "version" -> versionString,
+          "eventType" -> "Event2"
+        ))
+      } map { response =>
+        response.responseCode mustBe UNAUTHORIZED
+        response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
+      }
+    }
+  }
+
   "saveEvent" must {
     "return 201 Created when valid response" in {
       val controller = application.injector.instanceOf[EventReportController]
@@ -388,22 +441,24 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 }
 
 object EventReportControllerSpec {
-  val pstr = "pstr"
+  private val dummyJsValue = JsString("test")
+  private val pstr = "pstr"
 
-  val eventType = "1"
-  val badRequestEventType = "666"
-  val badRequestBody: JsObject = Json.obj("Testing" -> 123456789)
+  private val versionString = "001"
+  private val eventType = "Event1"
+  private val badRequestEventType = "666"
+  private val badRequestBody: JsObject = Json.obj("Testing" -> 123456789)
 
-  val compileEventReportSummaryResponseJson: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+  private val compileEventReportSummaryResponseJson: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678912")
-  val compileEventOneReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+  private val compileEventOneReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678988")
 
   private val startDate = "2022-04-06"
   private val endDate = "2023-04-05"
   private val reportTypeER = "ER"
 
-  val erOverviewResponseJson: JsArray = Json.arr(
+  private val erOverviewResponseJson: JsArray = Json.arr(
     Json.obj(
       "periodStartDate" -> "2022-04-06",
       "periodEndDate" -> "2023-04-05",
@@ -444,7 +499,7 @@ object EventReportControllerSpec {
 
   private val erOverview = Seq(overview1, overview2)
 
-  val submitEventDeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+  private val submitEventDeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678933")
 
   private val erVersionResponseJson: JsArray = Json.arr(
@@ -460,10 +515,10 @@ object EventReportControllerSpec {
     "Compiled")
   private val erVersions = Seq(version)
 
-  val saveEventSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+  private val saveEventSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678955")
 
-  val compileEventSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+  private val compileEventSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678977")
 }
 

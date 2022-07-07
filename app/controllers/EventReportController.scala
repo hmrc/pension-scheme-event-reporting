@@ -83,7 +83,7 @@ class EventReportController @Inject()(
       withAuthAndGetEventParameters { (pstr, startDate, version, eventType) =>
         EventType.getEventType(eventType) match {
           case Some(et) => EventType.apiTypeByEventTypeGET(et) match {
-              case Some(Api1832) => eventReportConnector.getEvent(pstr, startDate, version, et).map(_ => Ok)
+              case Some(Api1832) => eventReportConnector.getEvent(pstr, startDate, version, et).map(Ok(_))
               case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
             }
           case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($eventType)"))
@@ -179,17 +179,6 @@ class EventReportController @Inject()(
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
     }
   }
-
-
-  /*
-          - $ref: '#/components/parameters/environment'
-        - $ref: '#/components/parameters/correlationId'
-        - $ref: '#/components/parameters/eventType'
-        - $ref: '#/components/parameters/reportFormBundleNumber'
-        - $ref: '#/components/parameters/reportStartDate'
-        - $ref: '#/components/parameters/reportVersionNumber'
-        - $ref: '#/components/parameters/pstrParam'
-   */
 
   private def withAuthAndGetEventParameters(block: (String, String, String, String) => Future[Result])
                                            (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
