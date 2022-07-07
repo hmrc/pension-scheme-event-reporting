@@ -19,7 +19,6 @@ package controllers
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
-import repositories.EventReportCacheRepository
 import services.EventReportService
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, Enrolment}
@@ -34,10 +33,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton()
 class EventReportController @Inject()(
                                        cc: ControllerComponents,
-//                                       overviewCacheConnector: OverviewCacheConnector,
-//                                       eventReportConnector: EventReportConnector,
                                        val authConnector: AuthConnector,
-//                                       eventReportCacheRepository: EventReportCacheRepository,
                                        jsonPayloadSchemaValidator: JSONPayloadSchemaValidator,
                                        eventReportService: EventReportService
                                      )(implicit ec: ExecutionContext)
