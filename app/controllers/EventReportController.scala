@@ -59,7 +59,7 @@ class EventReportController @Inject()(
         logger.debug(message = s"[Save Event: Incoming-Payload]$userAnswersJson")
         EventType.getEventType(eventType) match {
           case Some(event) =>
-            EventType.getPOSTApiTypeByEventType(event) match {
+            EventType.apiTypeByEventType(event) match {
               // TODO: Have discussion on potential for overwriting in Mongo.
               case Some(apiType) => eventReportCacheRepository.upsert(pstr, apiType, userAnswersJson)
                 .map(_ => Created)
@@ -84,7 +84,7 @@ class EventReportController @Inject()(
       withAuthAndGetEventParameters { (pstr, startDate, endDate, eventType) =>
         EventType.getEventType(eventType) match {
           case Some(event) =>
-            EventType.getGETApiTypeByEventType(event) match {
+            EventType.apiTypeByEventType(event) match {
               case Some(Api1832) => eventReportConnector.getEvent(pstr, startDate, endDate, Api1832).map(_ => Ok)
               case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
             }
