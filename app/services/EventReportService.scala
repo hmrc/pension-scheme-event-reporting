@@ -41,12 +41,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def compileEventReport(pstr: String, userAnswersJson: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
 
-    val maybeApi1826 = eventReportCacheRepository.getByKey(Map("pstr" -> pstr, "apiType" -> Api1826.toString)).map {
+    val maybeApi1826 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiType" -> Api1826.toString)).map {
       case Some(data) => compileEventReportSummary(pstr, data).map(_ => NoContent)
       case _ => Future.successful(Ok)
     }.flatten
 
-    val maybeApi1827 = eventReportCacheRepository.getByKey(Map("pstr" -> pstr, "apiType" -> Api1827.toString)).map {
+    val maybeApi1827 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiType" -> Api1827.toString)).map {
       case Some(data) => compileEventOneReport(pstr, data).map(_ => NoContent)
       case _ => Future.successful(Ok)
     }.flatten
