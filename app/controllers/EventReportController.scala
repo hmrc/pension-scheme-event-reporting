@@ -50,8 +50,10 @@ class EventReportController @Inject()(
     implicit request =>
       withPstrEventTypeAndBody { (pstr, eventType, userAnswersJson) =>
         logger.debug(message = s"[Save Event: Incoming-Payload]$userAnswersJson")
-        eventReportService.saveEvent(pstr, eventType, userAnswersJson).map{ _ =>
-          Created
+        EventType.getEventType(eventType) match {
+          case Some(et) =>
+            eventReportService.saveEvent(pstr, et, userAnswersJson).map(_ => Created)
+          case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
         }
       }
   }

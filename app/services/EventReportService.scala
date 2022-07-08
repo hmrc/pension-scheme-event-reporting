@@ -68,16 +68,11 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def saveEvent(pstr: String, eventType: String, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
-    EventType.getEventType(eventType) match {
-      case Some(event) =>
-        EventType.apiTypeByEventTypePOST(event) match {
-          // TODO: Have discussion on potential for overwriting in Mongo.
-          case Some(apiType) => eventReportCacheRepository.upsert(pstr, apiType, userAnswersJson)
-
-          case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
-        }
-      case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
+  def saveEvent(pstr: String, eventType: EventType, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
+    EventType.apiTypeByEventTypePOST(eventType) match {
+      // TODO: Have discussion on potential for overwriting in Mongo.
+      case Some(apiType) => eventReportCacheRepository.upsert(pstr, apiType, userAnswersJson)
+      case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
     }
   }
 

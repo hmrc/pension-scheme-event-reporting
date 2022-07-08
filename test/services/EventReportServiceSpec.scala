@@ -152,17 +152,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         any()
       )(any()))
         .thenReturn(Future.successful(HttpResponse(OK, saveEventSuccessResponse.toString)))
-      whenReady(eventReportService.saveEvent(pstr, EventType.Event3.toString, payload)(implicitly)) { result =>
+      whenReady(eventReportService.saveEvent(pstr, EventType.Event3, payload)(implicitly)) { result =>
         assert(true)
-      }
-    }
-
-    "return not found exception when invalid event type" in {
-      recoverToExceptionIf[NotFoundException] {
-        eventReportService.saveEvent(pstr, "test", payload)(implicitly)
-      } map {
-        failure =>
-          failure.message mustBe "Bad Request: eventType (test) not found"
       }
     }
   }

@@ -189,7 +189,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       }
     }
   }
-//
+  //
   "getVersions" must {
     "return OK with the Seq of Version" in {
       when(mockEventReportService.getVersions(
@@ -228,7 +228,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       }
     }
   }
-
 
 
   "getEvent" must {
@@ -287,7 +286,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
       when(mockEventReportService.saveEvent(
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(Event1.toString),
+        ArgumentMatchers.eq(Event1),
         any()
       )(any()))
         .thenReturn(Future.successful(()))
@@ -296,6 +295,25 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         newHeaders = "pstr" -> pstr, "eventType" -> eventType))
 
       status(result) mustBe CREATED
+    }
+
+    "return not found exception when invalid event type" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      when(mockEventReportService.saveEvent(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(Event1),
+        any()
+      )(any()))
+        .thenReturn(Future.successful(()))
+
+      recoverToExceptionIf[NotFoundException] {
+        controller.saveEvent(fakeRequest.withJsonBody(saveEventSuccessResponse).withHeaders(
+          newHeaders = "pstr" -> pstr, "eventType" -> "test"))
+      } map { response =>
+        response.responseCode mustBe NOT_FOUND
+        response.message must include("Bad Request: eventType (test) not found")
+      }
     }
 
     "throw a 400 Bad Request Exception when eventType missing" in {
