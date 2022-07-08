@@ -18,6 +18,8 @@ package connectors
 
 import com.google.inject.Inject
 import config.AppConfig
+import models.enumeration.ApiType.Api1832
+import models.enumeration.EventType
 import models.{EROverview, ERVersion}
 import play.api.Logging
 import play.api.http.Status._
@@ -103,6 +105,33 @@ class EventReportConnector @Inject()(
     }
   }
 
+  def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
+              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
+    val futureParameters = EventType.apiTypeByEventTypeGET(eventType) match {
+      case Some(Api1832) => Future.successful(Tuple2(config.api1832Url.format(pstr), Api1832))
+      case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
+    }
+
+    futureParameters.flatMap { case (url, apiType) =>
+      val fullHeaders = integrationFrameworkHeader ++
+        Seq(
+          "eventType" -> s"Event${eventType.toString}",
+          "reportStartDate" -> startDate,
+          "reportVersionNumber" -> version
+        )
+
+      logger.debug(s"Get $apiType (IF) called - URL: $url with headers: $fullHeaders")
+
+      implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
+      http.GET[HttpResponse](url)(implicitly, hc, implicitly).map { response =>
+        response.status match {
+          case OK => response.json
+          case _ => handleErrorResponse("GET", url)(response)
+        }
+      }
+    }
+  }
+
   def submitEventDeclarationReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
     val submitEventDeclarationReportUrl = config.submitEventDeclarationReportUrl.format(pstr)
     logger.debug("Submit Event Declaration Report called URL:" + submitEventDeclarationReportUrl)
@@ -117,9 +146,9 @@ class EventReportConnector @Inject()(
   }
 
   def getVersions(pstr: String, reportType: String, startDate: String)
-                    (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[ERVersion]] = {
+                 (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[ERVersion]] = {
 
-    val versionUrl: String = config.versionUrl.format(pstr,reportType, startDate)
+    val versionUrl: String = config.versionUrl.format(pstr, reportType, startDate)
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = desHeader: _*)
 
     http.GET[HttpResponse](versionUrl)(implicitly, hc, implicitly).map {

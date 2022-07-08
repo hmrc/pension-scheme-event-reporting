@@ -16,13 +16,10 @@
 
 package controllers
 
-import connectors.EventReportConnector
 import models.enumeration.EventType
-import connectors.cache.OverviewCacheConnector
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
-import repositories.EventReportCacheRepository
 import services.EventReportService
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, Enrolment}
@@ -37,10 +34,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton()
 class EventReportController @Inject()(
                                        cc: ControllerComponents,
-                                       overviewCacheConnector: OverviewCacheConnector,
-                                       eventReportConnector: EventReportConnector,
                                        val authConnector: AuthConnector,
-                                       eventReportCacheRepository: EventReportCacheRepository,
                                        jsonPayloadSchemaValidator: JSONPayloadSchemaValidator,
                                        eventReportService: EventReportService
                                      )(implicit ec: ExecutionContext)
@@ -54,35 +48,39 @@ class EventReportController @Inject()(
 
   def saveEvent: Action[AnyContent] = Action.async {
     implicit request =>
-      postWithEventType { (pstr, eventType, userAnswersJson) =>
+      withPstrEventTypeAndBody { (pstr, eventType, userAnswersJson) =>
         logger.debug(message = s"[Save Event: Incoming-Payload]$userAnswersJson")
         EventType.getEventType(eventType) match {
-          case Some(event) =>
-            EventType.getApiTypeByEventType(event) match {
-              // TODO: Have discussion on potential for overwriting in Mongo.
-              case Some(apiType) => eventReportCacheRepository.upsert(pstr, apiType, userAnswersJson)
-                .map(_ => Created)
-              case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
-            }
-          case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($eventType)"))
+          case Some(et) =>
+            eventReportService.saveEvent(pstr, et, userAnswersJson).map(_ => Created)
+          case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
         }
       }
   }
 
   def compileEvent: Action[AnyContent] = Action.async {
     implicit request =>
-      post { (pstr, userAnswersJson) =>
+      withPstrAndBody { (pstr, userAnswersJson) =>
         logger.debug(message = s"[Compile Event: Incoming-Payload]$userAnswersJson")
         eventReportService.compileEventReport(pstr, userAnswersJson)
+      }
+  }
+
+  def getEvent: Action[AnyContent] = Action.async {
+    implicit request =>
+      withAuthAndGetEventParameters { (pstr, startDate, version, eventType) =>
+        EventType.getEventType(eventType) match {
+          case Some(et) => eventReportService.getEvent(pstr, startDate, version, et).map(Ok(_))
+          case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($eventType)"))
+        }
       }
   }
 
   def getVersions: Action[AnyContent] = Action.async {
     implicit request =>
       withAuthAndVersionParameters { (pstr, reportType, startDate) =>
-        eventReportConnector.getVersions(pstr, reportType, startDate).map {
-          data =>
-            Ok(Json.toJson(data))
+        eventReportService.getVersions(pstr, reportType, startDate).map {
+          data => Ok(Json.toJson(data))
         }
       }
   }
@@ -90,26 +88,20 @@ class EventReportController @Inject()(
   def getOverview: Action[AnyContent] = Action.async {
     implicit request =>
       withAuthAndOverviewParameters { (pstr, reportType, startDate, endDate) =>
-        overviewCacheConnector.get(pstr, reportType, startDate, endDate).flatMap {
-          case Some(data) => Future.successful(Ok(data))
-          case _ => eventReportConnector.getOverview(pstr, reportType, startDate, endDate).flatMap {
-            data =>
-              overviewCacheConnector.save(pstr, reportType, startDate, endDate, Json.toJson(data)).map { _ =>
-                Ok(Json.toJson(data))
-              }
-          }
+        eventReportService.getOverview(pstr, reportType, startDate, endDate).map{
+          data => Ok(data)
         }
       }
   }
 
   def submitEventDeclarationReport: Action[AnyContent] = Action.async {
     implicit request =>
-      post { (pstr, userAnswersJson) =>
+      withPstrAndBody { (pstr, userAnswersJson) =>
         logger.debug(message = s"[Submit Event Declaration Report - Incoming payload]$userAnswersJson")
         jsonPayloadSchemaValidator.validateJsonPayload(submitEventDeclarationReportSchemaPath, userAnswersJson) match {
           case Right(true) =>
-            eventReportConnector.submitEventDeclarationReport(pstr, userAnswersJson).map { response =>
-              Ok(response.body)
+            eventReportService.submitEventDeclarationReport(pstr, userAnswersJson).map { response =>
+              Ok(response)
             }
           case Left(errors) =>
             val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
@@ -119,7 +111,7 @@ class EventReportController @Inject()(
       }
   }
 
-  private def post(block: (String, JsValue) => Future[Result])
+  private def withPstrAndBody(block: (String, JsValue) => Future[Result])
                   (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
@@ -141,7 +133,7 @@ class EventReportController @Inject()(
     }
   }
 
-  private def postWithEventType(block: (String, String, JsValue) => Future[Result])
+  private def withPstrEventTypeAndBody(block: (String, String, JsValue) => Future[Result])
                                (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
@@ -158,6 +150,33 @@ class EventReportController @Inject()(
           case (pstr, et, jsValue) =>
             Future.failed(new BadRequestException(
               s"Bad Request without pstr ($pstr) or eventType ($et) or request body ($jsValue)"))
+        }
+      case _ =>
+        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
+    }
+  }
+
+  private def withAuthAndGetEventParameters(block: (String, String, String, String) => Future[Result])
+                                           (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+
+    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
+      case Some(_) =>
+        (
+          request.headers.get("pstr"),
+          request.headers.get("startDate"),
+          request.headers.get("version"),
+          request.headers.get("eventType")
+        ) match {
+          case (Some(pstr), Some(startDate), Some(version), Some(eventType)) =>
+            val versionFormatted = ("00" + version).takeRight(3)
+            block(pstr, startDate, versionFormatted, eventType)
+          case (optPstr, optStartDate, optVersion, optEventType) =>
+            val pstrMissing = prettyMissingParamError(optPstr, "PSTR missing")
+            val startDateMissing = prettyMissingParamError(optStartDate, "start date missing")
+            val versionMissing = prettyMissingParamError(optVersion, "version missing")
+            val eventTypeMissing = prettyMissingParamError(optEventType, "event type missing")
+            Future.failed(new BadRequestException(
+              s"Bad Request with missing parameters: $pstrMissing $eventTypeMissing $startDateMissing $versionMissing"))
         }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))

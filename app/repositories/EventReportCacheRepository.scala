@@ -18,7 +18,7 @@ package repositories
 
 import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
-import models.enumeration.ApiTypes
+import models.enumeration.ApiType
 import org.joda.time.{DateTime, DateTimeZone}
 import org.mongodb.scala.bson.BsonBinary
 import org.mongodb.scala.bson.conversions.Bson
@@ -50,7 +50,7 @@ object EventReportCacheEntry {
 
   object DataEntry {
     def apply(pstr: String,
-              apiTypes: ApiTypes,
+              apiTypes: ApiType,
               data: Array[Byte],
               lastUpdated: DateTime = DateTime.now(DateTimeZone.UTC),
               expireAt: DateTime): DataEntry = {
@@ -68,7 +68,7 @@ object EventReportCacheEntry {
 
   object JsonDataEntry {
     def applyJsonDataEntry(pstr: String,
-                           apiTypes: ApiTypes,
+                           apiTypes: ApiType,
                            data: JsValue,
                            lastUpdated: DateTime = DateTime.now(DateTimeZone.UTC),
                            expireAt: DateTime): JsonDataEntry = {
@@ -131,7 +131,7 @@ class EventReportCacheRepository @Inject()(
 
   private def evaluatedExpireAt: DateTime = DateTime.now(DateTimeZone.UTC).toLocalDate.plusDays(expireInDays + 1).toDateTimeAtStartOfDay()
 
-  def upsert(pstr: String, apiType: ApiTypes, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
+  def upsert(pstr: String, apiType: ApiType, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     if (encrypted) {
       val encryptedPstr = jsonCrypto.encrypt(PlainText(pstr)).value
       val unencrypted = PlainText(Json.stringify(Json.toJson(data)))
