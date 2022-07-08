@@ -121,7 +121,7 @@ class EventReportConnector @Inject()(
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    val futureParameters = EventType.apiTypeByEventTypeGET(eventType) match {
+    val futureParameters = EventType.GETApiTypeByEventType(eventType) match {
       case Some(Api1832) => Future.successful(Tuple2(config.api1832Url.format(pstr), Api1832))
       case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
     }
