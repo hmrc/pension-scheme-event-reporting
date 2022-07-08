@@ -354,7 +354,7 @@ object EventReportControllerSpec {
   private val pstr = "pstr"
 
   private val versionString = "001"
-  private val eventType = "Event1"
+  private val eventType = "1"
 
   private val startDate = "2022-04-06"
   private val endDate = "2023-04-05"

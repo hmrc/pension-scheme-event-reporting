@@ -115,7 +115,7 @@ class EventReportConnector @Inject()(
     futureParameters.flatMap { case (url, apiType) =>
       val fullHeaders = integrationFrameworkHeader ++
         Seq(
-          "eventType" -> eventType.toString,
+          "eventType" -> s"Event${eventType.toString}",
           "reportStartDate" -> startDate,
           "reportVersionNumber" -> version,
         )

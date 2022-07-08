@@ -139,7 +139,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         eventReportService.getEvent(pstr, startDate, version, EventType.Event1.toString)(implicitly, implicitly)
       } map {
         failure =>
-          failure.message mustBe "Not Found: ApiType not found for eventType (Event1)"
+          failure.message mustBe "Not Found: ApiType not found for eventType (1)"
       }
     }
   }
