@@ -61,13 +61,10 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     seqOfMaybeApiCalls.map { _ => NoContent }
   }
 
-  def getEvent(pstr: String, startDate: String, version: String, eventType: String)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    EventType.getEventType(eventType) match {
-      case Some(et) => EventType.apiTypeByEventTypeGET(et) match {
-        case Some(Api1832) => eventReportConnector.getEvent(pstr, startDate, version, et)
-        case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
-      }
-      case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($eventType)"))
+  def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
+    EventType.apiTypeByEventTypeGET(eventType) match {
+      case Some(Api1832) => eventReportConnector.getEvent(pstr, startDate, version, eventType)
+      case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
     }
   }
 
@@ -94,13 +91,13 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case _ => eventReportConnector.getOverview(pstr, reportType, startDate, endDate).flatMap {
         data =>
           overviewCacheConnector.save(pstr, reportType, startDate, endDate, Json.toJson(data))
-            .map{ _ => Json.toJson(data)}
+            .map { _ => Json.toJson(data) }
       }
     }
   }
 
-  def submitEventDeclarationReport(pstr: String, userAnswersJson:JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    eventReportConnector.submitEventDeclarationReport(pstr, userAnswersJson).map( _.json)
+  def submitEventDeclarationReport(pstr: String, userAnswersJson: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
+    eventReportConnector.submitEventDeclarationReport(pstr, userAnswersJson).map(_.json)
   }
 
   private def compileEventReportSummary(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {

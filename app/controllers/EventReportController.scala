@@ -16,6 +16,7 @@
 
 package controllers
 
+import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
@@ -66,7 +67,10 @@ class EventReportController @Inject()(
   def getEvent: Action[AnyContent] = Action.async {
     implicit request =>
       withAuthAndGetEventParameters { (pstr, startDate, version, eventType) =>
-        eventReportService.getEvent(pstr, startDate, version, eventType).map(Ok(_))
+        EventType.getEventType(eventType) match {
+          case Some(et) => eventReportService.getEvent(pstr, startDate, version, et).map(Ok(_))
+          case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($eventType)"))
+        }
       }
   }
 

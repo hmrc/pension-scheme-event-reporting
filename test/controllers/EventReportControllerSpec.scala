@@ -237,7 +237,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(startDate),
         ArgumentMatchers.eq(versionString),
-        ArgumentMatchers.eq(Event2.toString)
+        ArgumentMatchers.eq(Event2)
       )(any(), any()))
         .thenReturn(Future.successful(dummyJsValue))
       val controller = application.injector.instanceOf[EventReportController]
