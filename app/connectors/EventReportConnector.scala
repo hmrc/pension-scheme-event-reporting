@@ -117,7 +117,7 @@ class EventReportConnector @Inject()(
         Seq(
           "eventType" -> s"Event${eventType.toString}",
           "reportStartDate" -> startDate,
-          "reportVersionNumber" -> version,
+          "reportVersionNumber" -> version
         )
 
       logger.debug(s"Get $apiType (IF) called - URL: $url with headers: $fullHeaders")
