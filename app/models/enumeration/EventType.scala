@@ -64,24 +64,36 @@ object EventType extends Enumerable.Implicits {
 
   case object Event24 extends WithName("24") with EventType
 
-  val values: List[EventType] = List(WindUp, Event1, Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A,
+  private val values: List[EventType] = List(WindUp, Event1, Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A,
     Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, Event20A, Event22, Event23, Event24)
 
-  val api1826Events: List[EventType] = List(Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, WindUp)
-  val api1827Events: List[EventType] = List(Event1)
-  val api1829Events: List[EventType] = List(Event20A)
-  val api1830Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
-
+  private val api1826Events: List[EventType] = List(Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, WindUp)
+  private val api1827Events: List[EventType] = List(Event1)
+  private val api1829Events: List[EventType] = List(Event20A)
+  private val api1830Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
+  private val api1832Events: List[EventType] = List(Event3, Event4, Event5, Event22, Event23, Event24, Event2, Event6, Event7, Event8, Event8A)
 
   def getEventType(s: String): Option[EventType] = values.find(_.toString == s)
 
-  def getApiTypeByEventType(eventType: EventType): Option[ApiTypes] = {
-    eventType match {
-      case evType1826 if api1826Events.contains(evType1826) => Some(ApiTypes.Api1826)
-      case evType1827 if api1827Events.contains(evType1827) => Some(ApiTypes.Api1827)
-      case evType1829 if api1829Events.contains(evType1829) => Some(ApiTypes.Api1829)
-      case evType1830 if api1830Events.contains(evType1830) => Some(ApiTypes.Api1830)
-      case _ => None
+  def apiTypeByEventTypePOST(eventType: EventType): Option[ApiType] = {
+    if (api1826Events.contains(eventType)) {
+      Some(ApiType.Api1826)
+    } else if (api1827Events.contains(eventType)) {
+      Some(ApiType.Api1827)
+    } else if (api1829Events.contains(eventType)) {
+      Some(ApiType.Api1829)
+    } else if (api1830Events.contains(eventType)) {
+      Some(ApiType.Api1830)
+    } else {
+      None
+    }
+  }
+
+  def apiTypeByEventTypeGET(eventType: EventType): Option[ApiType] = {
+    if (api1832Events.contains(eventType)) {
+      Some(ApiType.Api1832)
+    } else {
+      None
     }
   }
 }

@@ -1,0 +1,112 @@
+{
+	"info": {
+		"_postman_id": "d156ea07-8ce1-48cc-a587-945f71bb8726",
+		"name": "API 1832",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "19305906"
+	},
+	"item": [
+		{
+			"name": "http://localhost:8215/pension-scheme-event-reporting/event",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer BXQ3/Treo4kQCZvVcCqKPnmrXQhuOn2bK5Dyu1s3od0+WWpDOPxcCBz+PRBdEUBTgcKhuInvRI+CPRd/toZhl2b4YySs4+C7ZoTiXN/5D8bY19oK46iis5tG7Bj2uUmHF5pkZGNpPOPe+FXQg+EPWGcaFsPQ2nUNRSmoA4vxu3H9KwIkeIPK/mMlBESjue4V",
+						"description": "Bearer token",
+						"type": "text"
+					},
+					{
+						"key": "pstr",
+						"value": "24000015IN",
+						"type": "text",
+						"disabled": true
+					},
+					{
+						"key": "startDate",
+						"value": "2020-04-01",
+						"type": "text",
+						"disabled": true
+					},
+					{
+						"key": "aftVersion",
+						"value": "1",
+						"type": "text",
+						"disabled": true
+					},
+					{
+						"key": "fbNumber",
+						"value": "123456789123",
+						"type": "text",
+						"disabled": true
+					},
+					{
+						"key": "pstr",
+						"value": "24000016IN",
+						"type": "text"
+					},
+					{
+						"key": "reportType",
+						"value": "ER20A",
+						"type": "text",
+						"disabled": true
+					},
+					{
+						"key": "startDate",
+						"value": "2021-04-06",
+						"type": "text"
+					},
+					{
+						"key": "endDate",
+						"value": "2022-04-05",
+						"type": "text",
+						"disabled": true
+					},
+					{
+						"key": "pspid",
+						"value": "21000005",
+						"type": "text",
+						"disabled": true
+					},
+					{
+						"key": "schemeReferenceNumber",
+						"value": "S2400000001",
+						"type": "text",
+						"disabled": true
+					},
+					{
+						"key": "eventType",
+						"value": "4",
+						"type": "text"
+					},
+					{
+						"key": "version",
+						"value": "2",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"events\":[{\"event\":\"Sent\",\"detected\":\"2022-02-04T13:04:04.685Z\"}]}"
+				},
+				"url": {
+					"raw": "http://localhost:8215/pension-scheme-event-reporting/event",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8215",
+					"path": [
+						"pension-scheme-event-reporting",
+						"event"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

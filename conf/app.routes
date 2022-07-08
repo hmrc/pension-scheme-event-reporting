@@ -7,3 +7,5 @@ POST       /save                                    controllers.EventReportContr
 POST       /compile                                 controllers.EventReportController.compileEvent
 
 POST       /submit-event-declaration-report         controllers.EventReportController.submitEventDeclarationReport
+
+GET        /event                                   controllers.EventReportController.getEvent
