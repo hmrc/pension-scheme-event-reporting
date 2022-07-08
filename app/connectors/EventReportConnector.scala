@@ -66,6 +66,20 @@ class EventReportConnector @Inject()(
     }
   }
 
+  def compileMemberEventReport(pstr: String, data: JsValue)
+                           (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
+    val compileMemberEventReportUrl = config.compileMemberEventReportUrl.format(pstr)
+    logger.debug("Compile Member Event Report- URL:" + compileMemberEventReportUrl)
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+    http.POST[JsValue, HttpResponse](compileMemberEventReportUrl, data)(implicitly, implicitly, hc, implicitly) map {
+      response =>
+        response.status match {
+          case OK => response
+          case _ => handleErrorResponse("POST", compileMemberEventReportUrl)(response)
+        }
+    }
+  }
+
   //scalastyle:off cyclomatic.complexity
   def getOverview(pstr: String, reportType: String, startDate: String, endDate: String)
                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]] = {
@@ -107,7 +121,7 @@ class EventReportConnector @Inject()(
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    val futureParameters = EventType.apiTypeByEventTypeGET(eventType) match {
+    val futureParameters = EventType.GETApiTypeByEventType(eventType) match {
       case Some(Api1832) => Future.successful(Tuple2(config.api1832Url.format(pstr), Api1832))
       case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
     }

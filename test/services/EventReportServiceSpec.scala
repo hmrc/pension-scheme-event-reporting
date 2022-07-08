@@ -18,7 +18,7 @@ package services
 
 import connectors.EventReportConnector
 import connectors.cache.OverviewCacheConnector
-import models.enumeration.ApiType.Api1830
+import models.enumeration.ApiType.{Api1826, Api1827, Api1830}
 import models.enumeration.EventType
 import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.ArgumentMatchers.any
@@ -80,6 +80,10 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
       when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
+
+      when(mockEventReportConnector.compileMemberEventReport(any(), any())(any(), any()))
+        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
+
       eventReportService.compileEventReport("pstr", Json.obj()).map {
         result => result.header.status mustBe NO_CONTENT
       }
@@ -107,6 +111,80 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
           failure.exMessage mustBe "Schema validation errors:-\n(instance1: errors1),\n(instance2: errors2)"
       }
     }
+
+    "return 400 when validation errors response for event report summary" in {
+      when(mockEventReportCacheRepository.getByKeys(any())(any()))
+        .thenReturn(Future.successful(Some(responseJson)))
+
+      when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
+        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
+
+      when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Right(false)
+
+      recoverToExceptionIf[EventReportValidationFailureException] {
+        eventReportService.compileEventReport("pstr", Json.obj())
+      } map {
+        failure =>
+          failure.exMessage mustBe "compileEventReportSummary schema validation failed (returned false)"
+      }
+    }
+
+    "return 400 when validation errors response for event one report" in {
+      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiType" -> Api1826.toString))(implicitly))
+        .thenReturn(Future.successful(Some(responseJson)))
+      when(mockJSONPayloadSchemaValidator.validateJsonPayload(createCompiledEventSummaryReportSchemaPath, responseJson)) thenReturn Right(true)
+      when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
+        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
+
+      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiType" -> Api1827.toString))(implicitly))
+        .thenReturn(Future.successful(Some(responseJson)))
+      when(mockJSONPayloadSchemaValidator.validateJsonPayload(compileEventOneReportSchemaPath, responseJson)) thenReturn Right(false)
+      when(mockEventReportConnector.compileEventOneReport(any(), any())(any(), any()))
+        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
+
+      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiType" -> Api1830.toString))(implicitly))
+        .thenReturn(Future.successful(Some(responseJson)))
+      when(mockJSONPayloadSchemaValidator.validateJsonPayload(compileMemberEventReportSchemaPath, responseJson)) thenReturn Right(true)
+      when(mockEventReportConnector.compileMemberEventReport(any(), any())(any(), any()))
+        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
+
+
+      recoverToExceptionIf[EventReportValidationFailureException] {
+        eventReportService.compileEventReport("pstr", Json.obj())
+      } map {
+        failure =>
+          failure.exMessage mustBe "compileEventOneReport schema validation failed (returned false)"
+      }
+    }
+
+    "return 400 when validation errors response for member event report" in {
+      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiType" -> Api1826.toString))(implicitly))
+        .thenReturn(Future.successful(Some(responseJson)))
+      when(mockJSONPayloadSchemaValidator.validateJsonPayload(createCompiledEventSummaryReportSchemaPath, responseJson)) thenReturn Right(true)
+      when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
+        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
+
+      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiType" -> Api1827.toString))(implicitly))
+        .thenReturn(Future.successful(Some(responseJson)))
+      when(mockJSONPayloadSchemaValidator.validateJsonPayload(compileEventOneReportSchemaPath, responseJson)) thenReturn Right(true)
+      when(mockEventReportConnector.compileEventOneReport(any(), any())(any(), any()))
+        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
+
+      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiType" -> Api1830.toString))(implicitly))
+        .thenReturn(Future.successful(Some(responseJson)))
+      when(mockJSONPayloadSchemaValidator.validateJsonPayload(compileMemberEventReportSchemaPath, responseJson)) thenReturn Right(false)
+      when(mockEventReportConnector.compileMemberEventReport(any(), any())(any(), any()))
+        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
+
+
+      recoverToExceptionIf[EventReportValidationFailureException] {
+        eventReportService.compileEventReport("pstr", Json.obj())
+      } map {
+        failure =>
+          failure.exMessage mustBe "compileMemberEventReport schema validation failed (returned false)"
+      }
+    }
+
 
     "throw Upstream5XXResponse on Internal Server Error" in {
 
@@ -219,6 +297,10 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
 object EventReportServiceSpec {
   val responseJson: JsObject = Json.obj("event" -> "10")
+  val pstr: String = "pstr"
+  val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
+  val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
+  val compileMemberEventReportSchemaPath = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
 
   val saveEventSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678955")

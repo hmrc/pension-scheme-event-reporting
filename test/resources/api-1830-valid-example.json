@@ -1,0 +1,58 @@
+{
+  "memberEventsDetails": {
+    "eventReportDetails": {
+      "pSTR": "87219363YN",
+      "reportStartDate": "2021-04-06",
+      "reportEndDate": "2023-04-05",
+      "eventType": "Event2"
+    },
+    "eventDetails": [
+      {
+        "memberDetail": {
+          "memberStatus": "New",
+          "event": {
+            "eventType": "Event2",
+            "individualDetails": {
+              "title": "Mr",
+              "firstName": "John",
+              "middleName": "A",
+              "lastName": "Smith",
+              "nino": "AA345678B"
+            },
+            "personReceivedThePayment": {
+              "title": "Mr",
+              "firstName": "James",
+              "middleName": "Torner",
+              "lastName": "Mike",
+              "nino": "AA345678A"
+            },
+            "paymentDetails": {
+              "amountPaid": 123.01,
+              "eventDate": "2021-05-30"
+            }
+          }
+        }
+      },
+      {
+        "memberDetail": {
+          "memberStatus": "New",
+          "event": {
+            "eventType": "Event7",
+            "individualDetails": {
+              "title": "Mr",
+              "firstName": "John",
+              "middleName": "A",
+              "lastName": "Smith",
+              "nino": "AA345678B"
+            },
+            "paymentDetails": {
+              "amountLumpSum": 123.01,
+              "amountCrystalised": 63.25,
+              "eventDate": "2021-05-30"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

@@ -45,6 +45,7 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig,
 
 
   val compileEvent1ReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.compile-event1-report")}"
+  val compileMemberEventReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.compile-member-event-report")}"
 
   def overviewUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.overview")}"
   def api1832Url: String = s"$ifURL${config.get[String](path = "serviceUrls.api1832")}"

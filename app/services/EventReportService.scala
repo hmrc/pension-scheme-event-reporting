@@ -21,7 +21,7 @@ import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
 import connectors.cache.OverviewCacheConnector
 import models.ERVersion
-import models.enumeration.ApiType.{Api1826, Api1827, Api1832}
+import models.enumeration.ApiType.{Api1826, Api1827, Api1832, Api1830}
 import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
@@ -43,33 +43,39 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
+  private val compileMemberEventReportSchemaPath = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
 
   def compileEventReport(pstr: String, userAnswersJson: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
 
-    val maybeApi1826 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiType" -> Api1826.toString)).map {
+    val maybeApi1826 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1826.toString)).map {
       case Some(data) => compileEventReportSummary(pstr, data).map(_ => NoContent)
       case _ => Future.successful(Ok)
     }.flatten
 
-    val maybeApi1827 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiType" -> Api1827.toString)).map {
+    val maybeApi1827 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1827.toString)).map {
       case Some(data) => compileEventOneReport(pstr, data).map(_ => NoContent)
       case _ => Future.successful(Ok)
     }.flatten
 
-    val seqOfMaybeApiCalls = Future.sequence(Seq(maybeApi1826, maybeApi1827))
+    val maybeApi1830 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1830.toString)).map {
+      case Some(data) => compileMemberEventReport(pstr, data).map(_ => NoContent)
+      case _ => Future.successful(Ok)
+    }.flatten
+
+    val seqOfMaybeApiCalls = Future.sequence(Seq(maybeApi1826, maybeApi1827,maybeApi1830))
 
     seqOfMaybeApiCalls.map { _ => NoContent }
   }
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    EventType.apiTypeByEventTypeGET(eventType) match {
+    EventType.GETApiTypeByEventType(eventType) match {
       case Some(Api1832) => eventReportConnector.getEvent(pstr, startDate, version, eventType)
       case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
     }
   }
 
   def saveEvent(pstr: String, eventType: EventType, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
-    EventType.apiTypeByEventTypePOST(eventType) match {
+    EventType.POSTApiTypeByEventType(eventType) match {
       // TODO: Have discussion on potential for overwriting in Mongo.
       case Some(apiType) => eventReportCacheRepository.upsert(pstr, apiType, userAnswersJson)
       case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
@@ -104,7 +110,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case Left(errors) =>
         val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
         throw EventReportValidationFailureException(allErrorsAsString)
-      case _ => throw EventReportValidationFailureException("Schema validation failed (returned false)")
+      case _ => throw EventReportValidationFailureException("compileEventReportSummary schema validation failed (returned false)")
     }
   }
 
@@ -117,7 +123,21 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case Left(errors) =>
         val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
         throw EventReportValidationFailureException(allErrorsAsString)
-      case _ => throw EventReportValidationFailureException("Schema validation failed (returned false)")
+      case _ => throw EventReportValidationFailureException("compileEventOneReport schema validation failed (returned false)")
+    }
+  }
+
+
+  private def compileMemberEventReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
+    jsonPayloadSchemaValidator.validateJsonPayload(compileMemberEventReportSchemaPath, data) match {
+      case Right(true) =>
+        eventReportConnector.compileMemberEventReport(pstr, data).map { response =>
+          Ok(response.body)
+        }
+      case Left(errors) =>
+        val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
+        throw EventReportValidationFailureException(allErrorsAsString)
+      case _ => throw EventReportValidationFailureException("compileMemberEventReport schema validation failed (returned false)")
     }
   }
 }
