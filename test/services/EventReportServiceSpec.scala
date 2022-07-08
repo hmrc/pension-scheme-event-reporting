@@ -49,7 +49,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
   "compileEventReport" must {
     "return 204 No Content when no data return from repository" in {
-      when(mockEventReportCacheRepository.getByKeys(any())(any()))
+      when(mockEventReportCacheRepository.getByKey(any())(any()))
         .thenReturn(Future.successful(None))
       eventReportService.compileEventReport("pstr", Json.obj())(implicitly, implicitly).map {
         result => result.header.status mustBe NO_CONTENT
@@ -58,7 +58,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
     "return 204 No Content when valid data return from repository" in {
 
-      when(mockEventReportCacheRepository.getByKeys(any())(any()))
+      when(mockEventReportCacheRepository.getByKey(any())(any()))
         .thenReturn(Future.successful(Some(responseJson)))
 
       when(mockEventReportConnector.compileEventOneReport(any(), any())(any(), any()))
@@ -73,7 +73,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
 
     "return 400 when validation errors response" in {
-      when(mockEventReportCacheRepository.getByKeys(any())(any()))
+      when(mockEventReportCacheRepository.getByKey(any())(any()))
         .thenReturn(Future.successful(Some(responseJson)))
 
       when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
@@ -96,7 +96,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
     "throw Upstream5XXResponse on Internal Server Error" in {
 
-      when(mockEventReportCacheRepository.getByKeys(any())(any()))
+      when(mockEventReportCacheRepository.getByKey(any())(any()))
         .thenReturn(Future.successful(Some(responseJson)))
 
       when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))

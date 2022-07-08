@@ -85,11 +85,10 @@ object EventReportCacheEntry {
     implicit val format: Format[EventReportCacheEntry] = Json.format[EventReportCacheEntry]
 
     val pstrKey = "pstr"
+    val apiTypesKey = "apiTypes"
     val expireAtKey = "expireAt"
     val lastUpdatedKey = "lastUpdated"
-    val apiTypesKey = "apiTypes"
     val dataKey = "data"
-
   }
 }
 
@@ -99,7 +98,7 @@ class EventReportCacheRepository @Inject()(
                                             config: Configuration
                                           )(implicit val ec: ExecutionContext)
   extends PlayMongoRepository[EventReportCacheEntry](
-    collectionName = config.underlying.getString("mongodb.pension-scheme-event-reporting-cache.event-reporting-data.name"),
+    collectionName = config.underlying.getString("mongodb.event-reporting-cache.event-reporting-data.name"),
     mongoComponent = mongoComponent,
     domainFormat = EventReportCacheEntryFormats.format,
     extraCodecs = Seq(
@@ -112,12 +111,8 @@ class EventReportCacheRepository @Inject()(
         IndexOptions().name("dataExpiry").expireAfter(0, TimeUnit.SECONDS).background(true)
       ),
       IndexModel(
-        Indexes.ascending(pstrKey),
-        IndexOptions().name(pstrKey).background(true)
-      ),
-      IndexModel(
-        Indexes.ascending(apiTypesKey),
-        IndexOptions().name(apiTypesKey).background(true)
+        Indexes.ascending(pstrKey, apiTypesKey),
+        IndexOptions().name(pstrKey + apiTypesKey).background(true)
       )
     )
   ) with Logging {
@@ -127,7 +122,7 @@ class EventReportCacheRepository @Inject()(
   private val encryptionKey: String = "event.json.encryption"
   private val encrypted: Boolean = config.getOptional[Boolean]("encrypted").getOrElse(true)
   private val jsonCrypto: CryptoWithKeysFromConfig = new CryptoWithKeysFromConfig(baseConfigKey = encryptionKey, config.underlying)
-  private val expireInDays = config.get[Int](path = "mongodb.pension-scheme-event-reporting-cache.event-reporting-data.timeToLiveInDays")
+  private val expireInDays = config.get[Int](path = "mongodb.event-reporting-cache.event-reporting-data.timeToLiveInDays")
 
   private def evaluatedExpireAt: DateTime = DateTime.now(DateTimeZone.UTC).toLocalDate.plusDays(expireInDays + 1).toDateTimeAtStartOfDay()
 
