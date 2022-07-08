@@ -98,7 +98,7 @@ class EventReportCacheRepository @Inject()(
                                             config: Configuration
                                           )(implicit val ec: ExecutionContext)
   extends PlayMongoRepository[EventReportCacheEntry](
-    collectionName = config.underlying.getString("mongodb.event-reporting-cache.event-reporting-data.name"),
+    collectionName = config.underlying.getString("mongodb.event-reporting-data.name"),
     mongoComponent = mongoComponent,
     domainFormat = EventReportCacheEntryFormats.format,
     extraCodecs = Seq(
@@ -122,7 +122,7 @@ class EventReportCacheRepository @Inject()(
   private val encryptionKey: String = "event.json.encryption"
   private val encrypted: Boolean = config.getOptional[Boolean]("encrypted").getOrElse(true)
   private val jsonCrypto: CryptoWithKeysFromConfig = new CryptoWithKeysFromConfig(baseConfigKey = encryptionKey, config.underlying)
-  private val expireInDays = config.get[Int](path = "mongodb.event-reporting-cache.event-reporting-data.timeToLiveInDays")
+  private val expireInDays = config.get[Int](path = "mongodb.event-reporting-data.timeToLiveInDays")
 
   private def evaluatedExpireAt: DateTime = DateTime.now(DateTimeZone.UTC).toLocalDate.plusDays(expireInDays + 1).toDateTimeAtStartOfDay()
 
