@@ -19,15 +19,14 @@ package services
 
 import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
-import connectors.cache.OverviewCacheConnector
 import models.ERVersion
-import models.enumeration.ApiType.{Api1826, Api1827, Api1832, Api1830}
+import models.enumeration.ApiType.{Api1826, Api1827, Api1830, Api1832}
 import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.Result
 import play.api.mvc.Results._
-import repositories.EventReportCacheRepository
+import repositories.{EventReportCacheRepository, OverviewCacheRepository}
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, NotFoundException}
 import utils.JSONPayloadSchemaValidator
 
@@ -38,7 +37,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    eventReportCacheRepository: EventReportCacheRepository,
                                    jsonPayloadSchemaValidator: JSONPayloadSchemaValidator,
-                                   overviewCacheConnector: OverviewCacheConnector
+                                   overviewCacheRepository: OverviewCacheRepository
                                   ) extends Logging {
 
   private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
@@ -62,7 +61,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case _ => Future.successful(Ok)
     }.flatten
 
-    val seqOfMaybeApiCalls = Future.sequence(Seq(maybeApi1826, maybeApi1827,maybeApi1830))
+    val seqOfMaybeApiCalls = Future.sequence(Seq(maybeApi1826, maybeApi1827, maybeApi1830))
 
     seqOfMaybeApiCalls.map { _ => NoContent }
   }
@@ -87,11 +86,11 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   }
 
   def getOverview(pstr: String, reportType: String, startDate: String, endDate: String)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    overviewCacheConnector.get(pstr, reportType, startDate, endDate).flatMap {
+    overviewCacheRepository.get(pstr, reportType, startDate, endDate).flatMap {
       case Some(data) => Future.successful(data)
       case _ => eventReportConnector.getOverview(pstr, reportType, startDate, endDate).flatMap {
         data =>
-          overviewCacheConnector.save(pstr, reportType, startDate, endDate, Json.toJson(data))
+          overviewCacheRepository.save(pstr, reportType, startDate, endDate, Json.toJson(data))
             .map { _ => Json.toJson(data) }
       }
     }
