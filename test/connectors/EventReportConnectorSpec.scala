@@ -17,7 +17,7 @@
 package connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import models.enumeration.EventType.{Event1, Event3}
+import models.enumeration.EventType.Event3
 import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.must.Matchers
@@ -443,28 +443,6 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       connector.getEvent(pstr, fromDt, "001", Event3).map { response =>
         response mustBe response
       }
-    }
-
-    "return not found response for invalid event in API 1832" in {
-      val response: JsString = JsString("test")
-
-      server.stubFor(
-        get(urlEqualTo(getEventUrl))
-          .willReturn(
-            ok
-              .withHeader("Content-Type", "application/json")
-              .withBody(response.toString())
-          )
-      )
-
-      recoverToExceptionIf[NotFoundException] {
-        connector.getEvent(pstr, fromDt, "001", Event1)
-      } map { response =>
-        response.responseCode mustEqual NOT_FOUND
-        response.message must include("Not Found: ApiType not found for eventType")
-      }
-
-
     }
 
     "return a NotFoundException for NOT FOUND - 404" in {
