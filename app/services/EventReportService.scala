@@ -20,7 +20,7 @@ package services
 import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
 import models.ERVersion
-import models.enumeration.ApiType.{Api1826, Api1827, Api1830, Api1832}
+import models.enumeration.ApiType.{Api1826, Api1827, Api1829, Api1830, Api1832}
 import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
@@ -43,6 +43,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
   private val compileMemberEventReportSchemaPath = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
+  private val submitEvent20ADeclarationReportSchemaPath = "/resources.schemas/api-1829-submit-event20a-declaration-report-request-schema-v1.0.0.json"
 
   def compileEventReport(pstr: String, userAnswersJson: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
 
@@ -56,12 +57,17 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case _ => Future.successful(Ok)
     }.flatten
 
+    val maybeApi1829 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1829.toString)).map {
+      case Some(data) => submitEvent20ADeclarationReport(pstr, data).map(_ => NoContent)
+      case _ => Future.successful(Ok)
+    }.flatten
+
     val maybeApi1830 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1830.toString)).map {
       case Some(data) => compileMemberEventReport(pstr, data).map(_ => NoContent)
       case _ => Future.successful(Ok)
     }.flatten
 
-    val seqOfMaybeApiCalls = Future.sequence(Seq(maybeApi1826, maybeApi1827, maybeApi1830))
+    val seqOfMaybeApiCalls = Future.sequence(Seq(maybeApi1826, maybeApi1827, maybeApi1829, maybeApi1830))
 
     seqOfMaybeApiCalls.map { _ => NoContent }
   }
@@ -138,6 +144,19 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
         throw EventReportValidationFailureException(allErrorsAsString)
       case _ => throw EventReportValidationFailureException("compileMemberEventReport schema validation failed (returned false)")
+    }
+  }
+
+  private def submitEvent20ADeclarationReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
+    jsonPayloadSchemaValidator.validateJsonPayload(submitEvent20ADeclarationReportSchemaPath, data) match {
+      case Right(true) =>
+        eventReportConnector.submitEvent20ADeclarationReport(pstr, data).map { response =>
+          Ok(response.body)
+        }
+      case Left(errors) =>
+        val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
+        throw EventReportValidationFailureException(allErrorsAsString)
+      case _ => throw EventReportValidationFailureException("submitEvent20ADeclarationReport schema validation failed (returned false)")
     }
   }
 }

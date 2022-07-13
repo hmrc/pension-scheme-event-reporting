@@ -17,15 +17,16 @@
 package utils
 
 import org.mockito.MockitoSugar
-import org.scalatest.BeforeAndAfter
+import org.scalatest.{BeforeAndAfter, EitherValues}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.inject.guice.GuiceApplicationBuilder
 
-class JSONPayloadSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with JsonFileReader {
+class JSONPayloadSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with JsonFileReader with EitherValues{
   val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
   val submitEventDeclarationReportSchemaPath = "/resources.schemas/api-1828-submit-event-declaration-report-request-schema-v1.0.0.json"
+  val submitEvent20ADeclarationReportSchemaPath = "/resources.schemas/api-1829-submit-event20a-declaration-report-request-schema-v1.0.0.json"
   val compileMemberEventReportSchemaPath = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
 
   private val app = new GuiceApplicationBuilder()
@@ -68,6 +69,18 @@ class JSONPayloadSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with 
     "Behaviour for invalid payload with 2 invalid inputs for API 1828" in {
       val json = readJsonFromFile("/api-1828-invalid-example.json")
       val result = jsonPayloadSchemaValidator.validateJsonPayload(submitEventDeclarationReportSchemaPath, json)
+      result.left.get.size mustBe 2
+    }
+
+    "Behaviour for valid payload for API 1829" in {
+      val json = readJsonFromFile("/api-1829-valid-example.json")
+      val result = jsonPayloadSchemaValidator.validateJsonPayload(submitEvent20ADeclarationReportSchemaPath, json)
+      result.right.value mustBe true
+    }
+
+    "Behaviour for invalid payload with 2 invalid inputs for API 1829" in {
+      val json = readJsonFromFile("/api-1829-invalid-example.json")
+      val result = jsonPayloadSchemaValidator.validateJsonPayload(submitEvent20ADeclarationReportSchemaPath, json)
       result.left.get.size mustBe 2
     }
 

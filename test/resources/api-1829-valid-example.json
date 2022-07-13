@@ -1,0 +1,20 @@
+{
+  "eventReportDetails": {
+    "er20aDetails": {
+      "pSTR": "27660890RK",
+      "reportStartDate": "2020-04-06",
+      "reportEndDate": "2021-04-05"
+    },
+    "schemeMasterTrustDetails": {
+      "ceaseDate": "2021-03-31"
+    },
+    "erDeclarationDetails": {
+      "submittedBy": "PSA",
+      "submittedID": "A0123456",
+      "psaDeclaration": {
+        "psaDeclaration1": "Selected",
+        "psaDeclaration2": "Selected"
+      }
+    }
+  }
+}
