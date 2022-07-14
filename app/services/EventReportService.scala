@@ -108,34 +108,34 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   }
 
   private def compileEventReportSummary(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
-    onValidJason(pstr, data, createCompiledEventSummaryReportSchemaPath, "compileEventReportSummary")(
+    onValidJson(pstr, data, createCompiledEventSummaryReportSchemaPath, "compileEventReportSummary")(
       eventReportConnector.compileEventReportSummary(pstr, data).map { response =>
         Ok(response.body)
       })
   }
 
   private def compileEventOneReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
-    onValidJason(pstr, data, compileEventOneReportSchemaPath, "compileEventOneReport")(
+    onValidJson(pstr, data, compileEventOneReportSchemaPath, "compileEventOneReport")(
       eventReportConnector.compileEventOneReport(pstr, data).map { response =>
         Ok(response.body)
       })
   }
 
   private def compileMemberEventReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
-    onValidJason(pstr, data, compileMemberEventReportSchemaPath, "compileMemberEventReport")(
+    onValidJson(pstr, data, compileMemberEventReportSchemaPath, "compileMemberEventReport")(
       eventReportConnector.compileMemberEventReport(pstr, data).map { response =>
         Ok(response.body)
       })
   }
 
   private def submitEvent20ADeclarationReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
-    onValidJason(pstr, data, submitEvent20ADeclarationReportSchemaPath, "submitEvent20ADeclarationReport")(
+    onValidJson(pstr, data, submitEvent20ADeclarationReportSchemaPath, "submitEvent20ADeclarationReport")(
       eventReportConnector.submitEvent20ADeclarationReport(pstr, data).map { response =>
         Ok(response.body)
       })
   }
 
-  private def onValidJason[A](pstr: String, data: JsValue, apiSchemaPath: String, eventName: String)(f: => A): A = {
+  private def onValidJson[A](pstr: String, data: JsValue, apiSchemaPath: String, eventName: String)(f: => A): A = {
     jsonPayloadSchemaValidator.validateJsonPayload(apiSchemaPath, data) match {
       case Right(true) =>
         f
