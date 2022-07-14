@@ -108,55 +108,41 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   }
 
   private def compileEventReportSummary(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
-    jsonPayloadSchemaValidator.validateJsonPayload(createCompiledEventSummaryReportSchemaPath, data) match {
-      case Right(true) =>
-        eventReportConnector.compileEventReportSummary(pstr, data).map { response =>
-          Ok(response.body)
-        }
-      case Left(errors) =>
-        val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
-        throw EventReportValidationFailureException(allErrorsAsString)
-      case _ => throw EventReportValidationFailureException("compileEventReportSummary schema validation failed (returned false)")
-    }
+    onValidJason(pstr, data, createCompiledEventSummaryReportSchemaPath, "compileEventReportSummary")(
+      eventReportConnector.compileEventReportSummary(pstr, data).map { response =>
+        Ok(response.body)
+      })
   }
 
   private def compileEventOneReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
-    jsonPayloadSchemaValidator.validateJsonPayload(compileEventOneReportSchemaPath, data) match {
-      case Right(true) =>
-        eventReportConnector.compileEventOneReport(pstr, data).map { response =>
-          Ok(response.body)
-        }
-      case Left(errors) =>
-        val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
-        throw EventReportValidationFailureException(allErrorsAsString)
-      case _ => throw EventReportValidationFailureException("compileEventOneReport schema validation failed (returned false)")
-    }
+    onValidJason(pstr, data, compileEventOneReportSchemaPath, "compileEventOneReport")(
+      eventReportConnector.compileEventOneReport(pstr, data).map { response =>
+        Ok(response.body)
+      })
   }
 
-
   private def compileMemberEventReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
-    jsonPayloadSchemaValidator.validateJsonPayload(compileMemberEventReportSchemaPath, data) match {
-      case Right(true) =>
-        eventReportConnector.compileMemberEventReport(pstr, data).map { response =>
-          Ok(response.body)
-        }
-      case Left(errors) =>
-        val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
-        throw EventReportValidationFailureException(allErrorsAsString)
-      case _ => throw EventReportValidationFailureException("compileMemberEventReport schema validation failed (returned false)")
-    }
+    onValidJason(pstr, data, compileMemberEventReportSchemaPath, "compileMemberEventReport")(
+      eventReportConnector.compileMemberEventReport(pstr, data).map { response =>
+        Ok(response.body)
+      })
   }
 
   private def submitEvent20ADeclarationReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
-    jsonPayloadSchemaValidator.validateJsonPayload(submitEvent20ADeclarationReportSchemaPath, data) match {
+    onValidJason(pstr, data, submitEvent20ADeclarationReportSchemaPath, "submitEvent20ADeclarationReport")(
+      eventReportConnector.submitEvent20ADeclarationReport(pstr, data).map { response =>
+        Ok(response.body)
+      })
+  }
+
+  private def onValidJason[A](pstr: String, data: JsValue, apiSchemaPath: String, eventName: String)(f: => A): A = {
+    jsonPayloadSchemaValidator.validateJsonPayload(apiSchemaPath, data) match {
       case Right(true) =>
-        eventReportConnector.submitEvent20ADeclarationReport(pstr, data).map { response =>
-          Ok(response.body)
-        }
+        f
       case Left(errors) =>
-        val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
+        val allErrorsAsString = s"Schema validation errors for $eventName:-\n" + errors.mkString(",\n")
         throw EventReportValidationFailureException(allErrorsAsString)
-      case _ => throw EventReportValidationFailureException("submitEvent20ADeclarationReport schema validation failed (returned false)")
+      case _ => throw EventReportValidationFailureException(s"$eventName schema validation failed (returned false)")
     }
   }
 }
