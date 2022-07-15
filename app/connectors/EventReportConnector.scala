@@ -18,8 +18,9 @@ package connectors
 
 import com.google.inject.Inject
 import config.AppConfig
-import models.enumeration.ApiType.Api1832
+import models.enumeration.ApiType._
 import models.enumeration.EventType
+import models.enumeration.EventType.getApiTypeByEventType
 import models.{EROverview, ERVersion}
 import play.api.Logging
 import play.api.http.Status._
@@ -136,7 +137,13 @@ class EventReportConnector @Inject()(
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
 
-    val url = config.api1832Url.format(pstr)
+    val apiToCall = getApiTypeByEventType(eventType) match {
+      case Some(apiType) => apiType.toString
+      case None => ""
+    }
+
+    val apiUrl: String = s"${config.genericURL(apiToCall).format(pstr)}"
+
     val fullHeaders = integrationFrameworkHeader ++
       Seq(
         "eventType" -> s"Event${eventType.toString}",
@@ -144,13 +151,13 @@ class EventReportConnector @Inject()(
         "reportVersionNumber" -> version
       )
 
-    logger.debug(s"Get $Api1832 (IF) called - URL: $url with headers: $fullHeaders")
+    logger.debug(s"Get $apiToCall (IF) called - URL: $apiUrl with headers: $fullHeaders")
 
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
-    http.GET[HttpResponse](url)(implicitly, hc, implicitly).map { response =>
+    http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
       response.status match {
         case OK => response.json
-        case _ => handleErrorResponse("GET", url)(response)
+        case _ => handleErrorResponse("GET", apiUrl)(response)
       }
     }
   }

@@ -17,7 +17,7 @@
 package connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import models.enumeration.EventType.Event3
+import models.enumeration.EventType._
 import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.must.Matchers
@@ -424,15 +424,29 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
     }
   }
 
-
-
-
   "getEvent" must {
+    "return the json returned from ETMP for valid event in API 1833" in {
+      val response: JsString = JsString("test")
+
+      server.stubFor(
+        get(urlEqualTo(getApi1833Url))
+          .willReturn(
+            ok
+              .withHeader("Content-Type", "application/json")
+              .withBody(response.toString())
+          )
+      )
+
+      connector.getEvent(pstr, fromDt, "001", Event1).map { response =>
+        response mustBe response
+      }
+    }
+
     "return the json returned from ETMP for valid event in API 1832" in {
       val response: JsString = JsString("test")
 
       server.stubFor(
-        get(urlEqualTo(getEventUrl))
+        get(urlEqualTo(getApi1832Url))
           .willReturn(
             ok
               .withHeader("Content-Type", "application/json")
@@ -447,7 +461,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
 
     "return a NotFoundException for NOT FOUND - 404" in {
       server.stubFor(
-        get(urlEqualTo(getEventUrl))
+        get(urlEqualTo(getApi1832Url))
           .willReturn(
             notFound
               .withBody(errorResponse("NOT_FOUND"))
@@ -462,12 +476,10 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       }
     }
 
-
-
     "throw Upstream5XX for INTERNAL SERVER ERROR - 500" in {
 
       server.stubFor(
-        get(urlEqualTo(getEventUrl))
+        get(urlEqualTo(getApi1832Url))
           .willReturn(
             serverError
               .withBody(errorResponse("SERVER_ERROR"))
@@ -481,7 +493,6 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       }
     }
   }
-
 
   "submitEventDeclarationReport" must {
     "return 200 when ETMP has returned OK" in {
@@ -855,10 +866,10 @@ object EventReportConnectorSpec {
   private val submitEvent20ADeclarationReportUrl = s"/pension-online/event-20a-declaration-report/$pstr"
 
   private val getErOverviewUrl = s"/pension-online/reports/overview/pods/$pstr/ER?fromDate=$fromDt&toDate=$toDt"
-  private val getEventUrl = s"/pension-online/member-event-status-reports/$pstr"
+  private val getApi1832Url = s"/pension-online/member-event-status-reports/$pstr"
+  private val getApi1833Url = s"/pension-online/event1-status-reports/$pstr"
 
   private val submitEventDeclarationReportUrl = s"/pension-online/event-declaration-reports/$pstr"
-
 
   private val overview1 = EROverview(
     LocalDate.of(2022, 4, 6),

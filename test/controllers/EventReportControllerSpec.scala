@@ -17,7 +17,7 @@
 package controllers
 
 import models.ERVersion
-import models.enumeration.EventType.{Event1, Event2}
+import models.enumeration.EventType._
 import org.mockito.ArgumentMatchers.any
 import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfter
@@ -50,15 +50,16 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   private val mockAuthConnector: AuthConnector = mock[AuthConnector]
 
   val modules: Seq[GuiceableModule] =
-    Seq(
-      bind[AuthConnector].toInstance(mockAuthConnector),
-      bind[JSONPayloadSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
-      bind[EventReportService].toInstance(mockEventReportService)
-    )
+  Seq(
+  bind[AuthConnector].toInstance(mockAuthConnector),
+  bind[JSONPayloadSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
+  bind[EventReportService].toInstance(mockEventReportService)
+  )
 
   val application: Application = new GuiceApplicationBuilder()
     .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false).
-    overrides(modules: _*).build()
+  overrides(modules: _*).build()
+  private val controller = application.injector.instanceOf[EventReportController]
 
   before {
     reset(mockAuthConnector, mockJSONPayloadSchemaValidator)
@@ -189,7 +190,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       }
     }
   }
-  //
+
   "getVersions" must {
     "return OK with the Seq of Version" in {
       when(mockEventReportService.getVersions(
@@ -229,9 +230,29 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
   }
 
-
+  //TODO: Refactor the rest of the tests to use global variable for the controller
   "getEvent" must {
-    "return OK with the json response" in {
+    "return OK for Event 1 with dummy json response" in {
+      when(mockEventReportService.getEvent(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(startDate),
+        ArgumentMatchers.eq(versionString),
+        ArgumentMatchers.eq(Event1)
+      )(any(), any()))
+        .thenReturn(Future.successful(dummyJsValue))
+
+      val result = controller.getEvent(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr,
+        "startDate" -> startDate,
+        "version" -> "1",
+        "eventType" -> Event1.toString
+      ))
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe dummyJsValue
+    }
+
+    "return OK for Event 2 with dummy json response" in {
       when(mockEventReportService.getEvent(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(startDate),
@@ -262,6 +283,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         response.message must include("Bad Request with missing parameters: PSTR missing  event type missing  start date missing  version missing ")
       }
     }
+
     "throw a Unauthorised Exception if auth fails" in {
       when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
       val controller = application.injector.instanceOf[EventReportController]
