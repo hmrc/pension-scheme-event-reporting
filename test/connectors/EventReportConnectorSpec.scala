@@ -841,6 +841,78 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
     }
   }
 
+  "getEventTwentyA" must {
+    "return the json returned from ETMP for valid event in API 1831" in {
+      val response: JsString = JsString("test")
+
+      server.stubFor(
+        get(urlEqualTo(getEvent20AUrl))
+          .willReturn(
+            ok
+              .withHeader("Content-Type", "application/json")
+              .withBody(response.toString())
+          )
+      )
+
+      connector.getEventTwentyA(pstr, fromDt, "001").map { response =>
+        response mustBe response
+      }
+    }
+
+    "throw Upstream5XX for INTERNAL SERVER ERROR - 500" in {
+
+      server.stubFor(
+        get(urlEqualTo(getEvent20AUrl))
+          .willReturn(
+            serverError
+              .withBody(errorResponse("SERVER_ERROR"))
+          )
+      )
+
+      recoverToExceptionIf[UpstreamErrorResponse] {
+        connector.getEventTwentyA(pstr, fromDt, "001")
+      } map {
+        _.statusCode mustBe INTERNAL_SERVER_ERROR
+      }
+    }
+  }
+
+  "getEventTwentyA with formBundleNumber" must {
+    "return the json returned from ETMP for valid event in API 1831" in {
+      val response: JsString = JsString("test")
+
+      server.stubFor(
+        get(urlEqualTo(getEvent20AUrl))
+          .willReturn(
+            ok
+              .withHeader("Content-Type", "application/json")
+              .withBody(response.toString())
+          )
+      )
+
+      connector.getEventTwentyA(pstr, "12345678").map { response =>
+        response mustBe response
+      }
+    }
+
+    "throw Upstream5XX for INTERNAL SERVER ERROR - 500 " in {
+
+      server.stubFor(
+        get(urlEqualTo(getEvent20AUrl))
+          .willReturn(
+            serverError
+              .withBody(errorResponse("SERVER_ERROR"))
+          )
+      )
+
+      recoverToExceptionIf[UpstreamErrorResponse] {
+        connector.getEventTwentyA(pstr, "12345678")
+      } map {
+        _.statusCode mustBe INTERNAL_SERVER_ERROR
+      }
+    }
+  }
+
 }
 
 object EventReportConnectorSpec {
@@ -856,6 +928,7 @@ object EventReportConnectorSpec {
 
   private val getErOverviewUrl = s"/pension-online/reports/overview/pods/$pstr/ER?fromDate=$fromDt&toDate=$toDt"
   private val getEventUrl = s"/pension-online/member-event-status-reports/$pstr"
+  private val getEvent20AUrl = s"/pension-online/event20a-status-reports/$pstr"
 
   private val submitEventDeclarationReportUrl = s"/pension-online/event-declaration-reports/$pstr"
 
