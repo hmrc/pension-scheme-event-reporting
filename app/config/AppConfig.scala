@@ -52,5 +52,6 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig,
   def getEvent20aUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.getEvent20a")}"
   def versionUrl: String  = s"$desURL${config.get[String](path = "serviceUrls.version")}"
   val submitEventDeclarationReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event-declaration-report")}"
+  val submitEvent20ADeclarationReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event-20A-declaration-report")}"
 
 }

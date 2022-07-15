@@ -80,6 +80,20 @@ class EventReportConnector @Inject()(
     }
   }
 
+  def submitEvent20ADeclarationReport(pstr: String, data: JsValue)
+                              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
+    val submitEvent20ADeclarationReportUrl = config.submitEvent20ADeclarationReportUrl.format(pstr)
+    logger.debug("Submit Event 20A Report - URL:" + submitEvent20ADeclarationReportUrl)
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+    http.POST[JsValue, HttpResponse](submitEvent20ADeclarationReportUrl, data)(implicitly, implicitly, hc, implicitly) map {
+      response =>
+        response.status match {
+          case OK => response
+          case _ => handleErrorResponse("POST", submitEvent20ADeclarationReportUrl)(response)
+        }
+    }
+  }
+
   //scalastyle:off cyclomatic.complexity
   def getOverview(pstr: String, reportType: String, startDate: String, endDate: String)
                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]] = {
