@@ -74,14 +74,14 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    EventType.GETApiTypeByEventType(eventType) match {
+    EventType.getApiTypeByEventType(eventType) match {
       case Some(Api1832) => eventReportConnector.getEvent(pstr, startDate, version, eventType)
       case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
     }
   }
 
   def saveEvent(pstr: String, eventType: EventType, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
-    EventType.POSTApiTypeByEventType(eventType) match {
+    EventType.postApiTypeByEventType(eventType) match {
       // TODO: Have discussion on potential for overwriting in Mongo.
       case Some(apiType) => eventReportCacheRepository.upsert(pstr, apiType, userAnswersJson)
       case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))

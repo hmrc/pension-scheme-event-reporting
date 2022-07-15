@@ -71,11 +71,12 @@ object EventType extends Enumerable.Implicits {
   private val api1827Events: List[EventType] = List(Event1)
   private val api1829Events: List[EventType] = List(Event20A)
   private val api1830Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
-  private val api1832Events: List[EventType] = List(Event3, Event4, Event5, Event22, Event23, Event24, Event2, Event6, Event7, Event8, Event8A)
+  private val api1832Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
+  private val api1833Events: List[EventType] = List(Event1)
 
   def getEventType(s: String): Option[EventType] = values.find(_.toString == s)
 
-  def POSTApiTypeByEventType(eventType: EventType): Option[ApiType] = {
+  def postApiTypeByEventType(eventType: EventType): Option[ApiType] = {
     eventType match {
       case evType1826 if api1826Events.contains(evType1826) => Some(ApiType.Api1826)
       case evType1827 if api1827Events.contains(evType1827) => Some(ApiType.Api1827)
@@ -85,9 +86,10 @@ object EventType extends Enumerable.Implicits {
     }
   }
 
-  def GETApiTypeByEventType(eventType: EventType): Option[ApiType] = {
+  def getApiTypeByEventType(eventType: EventType): Option[ApiType] = {
     eventType match {
       case evType1832 if api1832Events.contains(evType1832) => Some(ApiType.Api1832)
+      case evType1833 if api1833Events.contains(evType1833) => Some(ApiType.Api1833)
       case _ => None
     }
   }
