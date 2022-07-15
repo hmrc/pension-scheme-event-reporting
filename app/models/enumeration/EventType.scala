@@ -88,6 +88,7 @@ object EventType extends Enumerable.Implicits {
   def GETApiTypeByEventType(eventType: EventType): Option[ApiType] = {
     eventType match {
       case evType1832 if api1832Events.contains(evType1832) => Some(ApiType.Api1832)
+      case Event20A => Some(ApiType.Api1831)
       case _ => None
     }
   }

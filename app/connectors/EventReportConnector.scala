@@ -141,6 +141,42 @@ class EventReportConnector @Inject()(
     }
   }
 
+  def getEventTwentyA(pstr: String, startDate: String, version: String)
+              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
+
+    val fullHeaders = integrationFrameworkHeader ++
+      Seq(
+        "pstrParam" -> pstr,
+        "reportStartDate" -> startDate,
+        "reportVersionNumber" -> version
+      )
+    invokeEventTwentyA(fullHeaders,pstr)
+  }
+
+  def getEventTwentyA(pstr: String, formBundleNumber: String)
+                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
+    val fullHeaders = integrationFrameworkHeader ++
+      Seq(
+        "pstrParam" -> pstr,
+        "reportFormBundleNumber" -> formBundleNumber
+      )
+    invokeEventTwentyA(fullHeaders,pstr)
+  }
+
+  private def invokeEventTwentyA(fullHeaders: Seq[(String, String)],pstr: String)
+                                (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
+    val url = config.getEvent20aUrl.format(pstr)
+    logger.debug(s"API#1831 Get Event 20A Report (IF) called - URL: $url with headers: $fullHeaders")
+
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
+    http.GET[HttpResponse](url)(implicitly, hc, implicitly).map { response =>
+      response.status match {
+        case OK => response.json
+        case _ => handleErrorResponse("GET", url)(response)
+      }
+    }
+  }
+
   def submitEventDeclarationReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
     val submitEventDeclarationReportUrl = config.submitEventDeclarationReportUrl.format(pstr)
     logger.debug("Submit Event Declaration Report called URL:" + submitEventDeclarationReportUrl)

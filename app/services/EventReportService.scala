@@ -20,7 +20,7 @@ package services
 import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
 import models.ERVersion
-import models.enumeration.ApiType.{Api1826, Api1827, Api1830, Api1832}
+import models.enumeration.ApiType.{Api1826, Api1827, Api1830, Api1831, Api1832}
 import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json.{JsValue, Json}
@@ -70,6 +70,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
     EventType.GETApiTypeByEventType(eventType) match {
       case Some(Api1832) => eventReportConnector.getEvent(pstr, startDate, version, eventType)
+      case Some(Api1831) => eventReportConnector.getEventTwentyA(pstr, startDate, version)
       case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
     }
   }

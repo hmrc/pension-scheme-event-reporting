@@ -31,5 +31,7 @@ object ApiType extends Enumerable.Implicits {
 
   case object Api1832 extends WithName("1832") with ApiType
 
+  case object Api1831 extends WithName("1831") with ApiType
+
 }
 
