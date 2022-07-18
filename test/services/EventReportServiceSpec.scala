@@ -274,7 +274,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
   }
 
-  "saveEvent" must {
+  "saveEventToMongo" must {
     "return the payload from the connector when valid event type" in {
       when(mockEventReportCacheRepository.upsert(
         ArgumentMatchers.eq(pstr),
@@ -282,7 +282,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         any()
       )(any()))
         .thenReturn(Future.successful(HttpResponse(OK, saveEventSuccessResponse.toString)))
-      whenReady(eventReportService.saveEvent(pstr, EventType.Event3, payload)(implicitly)) { result =>
+      whenReady(eventReportService.saveEventToMongo(pstr, EventType.Event3, payload)(implicitly)) { result =>
         assert(true)
       }
     }
