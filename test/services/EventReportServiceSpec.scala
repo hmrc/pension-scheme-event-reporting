@@ -265,7 +265,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
 
     "return the payload from the connector when event type 20A" in {
-      when(mockEventReportConnector.getEventTwentyA(any(), any(), any())(any(), any()))
+      when(mockEventReportConnector.getEvent(any(), any(), any(), any())(any(), any()))
         .thenReturn(Future.successful(responseJson))
       whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event20A)(implicitly, implicitly)) { result =>
         result mustBe responseJson

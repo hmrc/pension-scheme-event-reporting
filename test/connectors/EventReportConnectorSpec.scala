@@ -17,7 +17,7 @@
 package connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock._
-import models.enumeration.EventType.Event3
+import models.enumeration.EventType.{Event20A, Event3}
 import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.MockitoSugar
 import org.scalatest.matchers.must.Matchers
@@ -445,6 +445,23 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       }
     }
 
+    "return the json returned from ETMP for valid event in API 1831" in {
+      val response: JsString = JsString("test")
+
+      server.stubFor(
+        get(urlEqualTo(getEvent20AUrl))
+          .willReturn(
+            ok
+              .withHeader("Content-Type", "application/json")
+              .withBody(response.toString())
+          )
+      )
+
+      connector.getEvent(pstr, fromDt, "001", Event20A).map { response =>
+        response mustBe response
+      }
+    }
+
     "return a NotFoundException for NOT FOUND - 404" in {
       server.stubFor(
         get(urlEqualTo(getEventUrl))
@@ -841,77 +858,6 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
     }
   }
 
-  "getEventTwentyA" must {
-    "return the json returned from ETMP for valid event in API 1831" in {
-      val response: JsString = JsString("test")
-
-      server.stubFor(
-        get(urlEqualTo(getEvent20AUrl))
-          .willReturn(
-            ok
-              .withHeader("Content-Type", "application/json")
-              .withBody(response.toString())
-          )
-      )
-
-      connector.getEventTwentyA(pstr, fromDt, "001").map { response =>
-        response mustBe response
-      }
-    }
-
-    "throw Upstream5XX for INTERNAL SERVER ERROR - 500" in {
-
-      server.stubFor(
-        get(urlEqualTo(getEvent20AUrl))
-          .willReturn(
-            serverError
-              .withBody(errorResponse("SERVER_ERROR"))
-          )
-      )
-
-      recoverToExceptionIf[UpstreamErrorResponse] {
-        connector.getEventTwentyA(pstr, fromDt, "001")
-      } map {
-        _.statusCode mustBe INTERNAL_SERVER_ERROR
-      }
-    }
-  }
-
-  "getEventTwentyA with formBundleNumber" must {
-    "return the json returned from ETMP for valid event in API 1831" in {
-      val response: JsString = JsString("test")
-
-      server.stubFor(
-        get(urlEqualTo(getEvent20AUrl))
-          .willReturn(
-            ok
-              .withHeader("Content-Type", "application/json")
-              .withBody(response.toString())
-          )
-      )
-
-      connector.getEventTwentyA(pstr, "12345678").map { response =>
-        response mustBe response
-      }
-    }
-
-    "throw Upstream5XX for INTERNAL SERVER ERROR - 500 " in {
-
-      server.stubFor(
-        get(urlEqualTo(getEvent20AUrl))
-          .willReturn(
-            serverError
-              .withBody(errorResponse("SERVER_ERROR"))
-          )
-      )
-
-      recoverToExceptionIf[UpstreamErrorResponse] {
-        connector.getEventTwentyA(pstr, "12345678")
-      } map {
-        _.statusCode mustBe INTERNAL_SERVER_ERROR
-      }
-    }
-  }
 
 }
 

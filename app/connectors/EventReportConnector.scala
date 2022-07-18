@@ -18,7 +18,7 @@ package connectors
 
 import com.google.inject.Inject
 import config.AppConfig
-import models.enumeration.ApiType.Api1832
+import models.enumeration.ApiType.{Api1831, Api1832}
 import models.enumeration.EventType
 import models.{EROverview, ERVersion}
 import play.api.Logging
@@ -135,52 +135,20 @@ class EventReportConnector @Inject()(
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-
-    val url = config.api1832Url.format(pstr)
-    val fullHeaders = integrationFrameworkHeader ++
-      Seq(
-        "eventType" -> s"Event${eventType.toString}",
-        "reportStartDate" -> startDate,
-        "reportVersionNumber" -> version
-      )
-
-    logger.debug(s"Get $Api1832 (IF) called - URL: $url with headers: $fullHeaders")
-
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
-    http.GET[HttpResponse](url)(implicitly, hc, implicitly).map { response =>
-      response.status match {
-        case OK => response.json
-        case _ => handleErrorResponse("GET", url)(response)
-      }
+    val url = EventType.GETApiTypeByEventType(eventType) match {
+      case Some(Api1831) => config.getEvent20aUrl.format(pstr)
+      case Some(Api1832) => config.api1832Url.format(pstr)
+      case _ => throw new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)")
     }
-  }
-
-  def getEventTwentyA(pstr: String, startDate: String, version: String)
-              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-
+    val eventTypeParam = if (eventType != EventType.Event20A) Seq("eventType" -> s"Event${eventType.toString}") else Seq.empty
     val fullHeaders = integrationFrameworkHeader ++
+      eventTypeParam ++
       Seq(
-        "pstrParam" -> pstr,
         "reportStartDate" -> startDate,
         "reportVersionNumber" -> version
       )
-    invokeEventTwentyA(fullHeaders,pstr)
-  }
 
-  def getEventTwentyA(pstr: String, formBundleNumber: String)
-                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    val fullHeaders = integrationFrameworkHeader ++
-      Seq(
-        "pstrParam" -> pstr,
-        "reportFormBundleNumber" -> formBundleNumber
-      )
-    invokeEventTwentyA(fullHeaders,pstr)
-  }
-
-  private def invokeEventTwentyA(fullHeaders: Seq[(String, String)],pstr: String)
-                                (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    val url = config.getEvent20aUrl.format(pstr)
-    logger.debug(s"API#1831 Get Event 20A Report (IF) called - URL: $url with headers: $fullHeaders")
+    logger.debug(s"GetEvent Event Type $eventType (IF) called - URL: $url with headers: $fullHeaders")
 
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
     http.GET[HttpResponse](url)(implicitly, hc, implicitly).map { response =>
