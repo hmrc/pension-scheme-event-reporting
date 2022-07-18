@@ -256,7 +256,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   }
 
   "getEvent" must {
-    "return the payload from the connector when valid event type" in {
+    "return the payload from the connector when a valid event type is supplied for Api1832" in {
       when(mockEventReportConnector.getEvent(any(), any(), any(), any())(any(), any()))
         .thenReturn(Future.successful(responseJson))
       whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event3)(implicitly, implicitly)) { result =>
@@ -264,12 +264,21 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       }
     }
 
-    "return not found exception when invalid event type" in {
+    "return the payload from the connector when a valid event type is supplied for API1833" in {
+      when(mockEventReportConnector.getEvent(any(), any(), any(), any())(any(), any()))
+        .thenReturn(Future.successful(responseJson))
+      whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event1)(implicitly, implicitly)) { result =>
+        result mustBe responseJson
+      }
+    }
+
+    //TODO: This test will be redundant once all the getEvent cases are implemented
+    "return not found exception when an invalid event type is supplied" in {
       recoverToExceptionIf[NotFoundException] {
-        eventReportService.getEvent(pstr, startDate, version, EventType.Event1)(implicitly, implicitly)
+        eventReportService.getEvent(pstr, startDate, version, EventType.Event20A)(implicitly, implicitly)
       } map {
         failure =>
-          failure.message mustBe "Not Found: ApiType not found for eventType (1)"
+          failure.message mustBe "Not Found: ApiType not found for eventType (20A)"
       }
     }
   }
@@ -348,7 +357,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 }
 
 object EventReportServiceSpec {
-  val responseJson: JsObject = Json.obj("event" -> "10")
+  val responseJson: JsObject = Json.obj("event" -> "mockEvent - test passed")
   val pstr: String = "pstr"
   val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"

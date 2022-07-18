@@ -142,7 +142,7 @@ class EventReportConnector @Inject()(
       case None => ""
     }
 
-    val apiUrl: String = s"${config.genericURL(apiToCall).format(pstr)}"
+    val apiUrl: String = s"${config.getApiUrlByApiNum(apiToCall).format(pstr)}"
 
     val fullHeaders = integrationFrameworkHeader ++
       Seq(

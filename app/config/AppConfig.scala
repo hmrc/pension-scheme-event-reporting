@@ -47,9 +47,7 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig,
   val compileMemberEventReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.compile-member-event-report")}"
 
   def overviewUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.overview")}"
-  def genericURL(apiNumAsString: String): String = s"$ifURL${config.get[String](path = s"serviceUrls.api$apiNumAsString")}"
-  def api1832Url: String = s"$ifURL${config.get[String](path = "serviceUrls.api1832")}"
-  def api1833Url: String = s"$ifURL${config.get[String](path = "serviceUrls.api1833")}"
+  def getApiUrlByApiNum(apiNumAsString: String): String = s"$ifURL${config.get[String](path = s"serviceUrls.api$apiNumAsString")}"
   def versionUrl: String  = s"$desURL${config.get[String](path = "serviceUrls.version")}"
   val submitEventDeclarationReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event-declaration-report")}"
   val submitEvent20ADeclarationReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event-20A-declaration-report")}"
