@@ -66,9 +66,7 @@ class EventReportController @Inject()(
             eventReportService.getEventFromMongo(pstr, et)
               .map{
                 case None => NotFound
-                case Some(jsobj) =>
-                println( "\n>>>" + jsobj)
-                  Ok(jsobj)
+                case Some(jsobj) => Ok(jsobj)
               }
           case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
         }
