@@ -52,7 +52,7 @@ class EventReportController @Inject()(
         logger.debug(message = s"[Save Event: Incoming-Payload]$userAnswersJson")
         EventType.getEventType(eventType) match {
           case Some(et) =>
-            eventReportService.saveEventToMongo(pstr, et, userAnswersJson).map(_ => Created)
+            eventReportService.saveEventToMongo(pstr, et, userAnswersJson).map(_ => Ok)
           case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
         }
       }
