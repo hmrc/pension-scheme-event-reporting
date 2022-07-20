@@ -50,15 +50,15 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   private val mockAuthConnector: AuthConnector = mock[AuthConnector]
 
   val modules: Seq[GuiceableModule] =
-  Seq(
-  bind[AuthConnector].toInstance(mockAuthConnector),
-  bind[JSONPayloadSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
-  bind[EventReportService].toInstance(mockEventReportService)
-  )
+    Seq(
+      bind[AuthConnector].toInstance(mockAuthConnector),
+      bind[JSONPayloadSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
+      bind[EventReportService].toInstance(mockEventReportService)
+    )
 
   val application: Application = new GuiceApplicationBuilder()
     .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false).
-  overrides(modules: _*).build()
+    overrides(modules: _*).build()
   private val controller = application.injector.instanceOf[EventReportController]
 
   before {
