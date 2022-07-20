@@ -135,29 +135,28 @@ class EventReportConnector @Inject()(
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
+    getApiTypeByEventType(eventType) match {
+      case Some(apiType) =>
+        val apiToCall = apiType.toString
+        val apiUrl: String = s"${config.getApiUrlByApiNum(apiToCall).format(pstr)}"
 
-    val apiToCall = getApiTypeByEventType(eventType) match {
-      case Some(apiType) => apiType.toString
+        val fullHeaders = integrationFrameworkHeader ++
+          Seq(
+            "eventType" -> s"Event${eventType.toString}",
+            "reportStartDate" -> startDate,
+            "reportVersionNumber" -> version
+          )
+
+        logger.debug(s"Get $apiToCall (IF) called - URL: $apiUrl with headers: $fullHeaders")
+
+        implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
+        http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
+          response.status match {
+            case OK => response.json
+            case _ => handleErrorResponse("GET", apiUrl)(response)
+          }
+        }
       case None => throw new BadRequestException(s"No API is configured to handle getting this eventType: $eventType")
-    }
-
-    val apiUrl: String = s"${config.getApiUrlByApiNum(apiToCall).format(pstr)}"
-
-    val fullHeaders = integrationFrameworkHeader ++
-      Seq(
-        "eventType" -> s"Event${eventType.toString}",
-        "reportStartDate" -> startDate,
-        "reportVersionNumber" -> version
-      )
-
-    logger.debug(s"Get $apiToCall (IF) called - URL: $apiUrl with headers: $fullHeaders")
-
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
-    http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
-      response.status match {
-        case OK => response.json
-        case _ => handleErrorResponse("GET", apiUrl)(response)
-      }
     }
   }
 
