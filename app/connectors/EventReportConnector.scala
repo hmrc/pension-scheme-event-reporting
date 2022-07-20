@@ -209,5 +209,4 @@ class EventReportConnector @Inject()(
       "CorrelationId" -> headerUtils.getCorrelationId
     )
   }
-
 }
