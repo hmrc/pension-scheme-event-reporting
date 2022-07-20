@@ -46,13 +46,28 @@ class EventReportController @Inject()(
 
   private val submitEventDeclarationReportSchemaPath = "/resources.schemas/api-1828-submit-event-declaration-report-request-schema-v1.0.0.json"
 
-  def saveEvent: Action[AnyContent] = Action.async {
+  def saveUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
       withPstrEventTypeAndBody { (pstr, eventType, userAnswersJson) =>
         logger.debug(message = s"[Save Event: Incoming-Payload]$userAnswersJson")
         EventType.getEventType(eventType) match {
           case Some(et) =>
-            eventReportService.saveEvent(pstr, et, userAnswersJson).map(_ => Created)
+            eventReportService.saveUserAnswers(pstr, et, userAnswersJson).map(_ => Ok)
+          case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
+        }
+      }
+  }
+
+  def getUserAnswers: Action[AnyContent] = Action.async {
+    implicit request =>
+      withPstrAndEventType { (pstr, eventType) =>
+        EventType.getEventType(eventType) match {
+          case Some(et) =>
+            eventReportService.getUserAnswers(pstr, et)
+              .map{
+                case None => NotFound
+                case Some(jsobj) => Ok(jsobj)
+              }
           case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
         }
       }
@@ -150,6 +165,28 @@ class EventReportController @Inject()(
           case (pstr, et, jsValue) =>
             Future.failed(new BadRequestException(
               s"Bad Request without pstr ($pstr) or eventType ($et) or request body ($jsValue)"))
+        }
+      case _ =>
+        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
+    }
+  }
+
+  private def withPstrAndEventType(block: (String, String) => Future[Result])
+                                      (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+
+    logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
+
+    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
+      case Some(_) =>
+        (
+          request.headers.get("pstr"),
+          request.headers.get("eventType")
+        ) match {
+          case (Some(pstr), Some(et)) =>
+            block(pstr, et)
+          case (pstr, et) =>
+            Future.failed(new BadRequestException(
+              s"Bad Request without pstr ($pstr) or eventType ($et)"))
         }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
