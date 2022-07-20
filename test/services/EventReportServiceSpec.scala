@@ -18,7 +18,7 @@ package services
 
 import connectors.EventReportConnector
 import models.enumeration.ApiType.{Api1826, Api1827, Api1829, Api1830}
-import models.enumeration.EventType
+import models.enumeration.{ApiType, EventType}
 import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.{ArgumentMatchers, MockitoSugar}
@@ -283,7 +283,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
   }
 
-  "saveEvent" must {
+  "saveEventToMongo" must {
     "return the payload from the connector when valid event type" in {
       when(mockEventReportCacheRepository.upsert(
         ArgumentMatchers.eq(pstr),
@@ -291,8 +291,26 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         any()
       )(any()))
         .thenReturn(Future.successful(HttpResponse(OK, saveEventSuccessResponse.toString)))
-      whenReady(eventReportService.saveEvent(pstr, EventType.Event3, payload)(implicitly)) { result =>
+      whenReady(eventReportService.saveUserAnswers(pstr, EventType.Event3, payload)(implicitly)) { result =>
         assert(true)
+      }
+    }
+  }
+
+  "getEventFromMongo" must {
+    "return the payload from the connector when valid event type" in {
+      val json = Json.obj("test" -> "test")
+
+      val mapOfKeys = Map(
+        "pstr" -> pstr,
+        "apiTypes" -> ApiType.Api1830.toString
+      )
+      when(mockEventReportCacheRepository.getByKeys(
+        ArgumentMatchers.eq(mapOfKeys)
+      )(any())).thenReturn(Future.successful(Some(json)))
+
+      eventReportService.getUserAnswers(pstr, EventType.Event3)(implicitly).map{ result =>
+        result mustBe Some(json)
       }
     }
   }

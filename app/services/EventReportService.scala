@@ -23,7 +23,7 @@ import models.ERVersion
 import models.enumeration.ApiType._
 import models.enumeration.EventType
 import play.api.Logging
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Result
 import play.api.mvc.Results._
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
@@ -82,17 +82,24 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def saveEvent(pstr: String, eventType: EventType, userAnswersJson: JsValue)
-               (implicit ec: ExecutionContext): Future[Unit] = {
-    EventType.postApiTypeByEventType(eventType) match {
+  def saveUserAnswers(pstr: String, eventType: EventType, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
+    EventType.POSTApiTypeByEventType(eventType) match {
       // TODO: Have discussion on potential for overwriting in Mongo.
       case Some(apiType) => eventReportCacheRepository.upsert(pstr, apiType, userAnswersJson)
       case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
     }
   }
 
-  def getVersions(pstr: String, reportType: String, startDate: String)
-                 (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[ERVersion]] = {
+  def getUserAnswers(pstr: String, eventType: EventType)(implicit ec: ExecutionContext): Future[Option[JsObject]] = {
+    EventType.POSTApiTypeByEventType(eventType) match {
+      case Some(apiType) =>
+        eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString))
+          .map(_.map( _.as[JsObject]))
+      case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
+    }
+  }
+
+  def getVersions(pstr: String, reportType: String, startDate: String)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[ERVersion]] = {
     eventReportConnector.getVersions(pstr, reportType, startDate)
   }
 
