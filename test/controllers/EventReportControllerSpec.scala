@@ -320,7 +320,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         .thenReturn(Future.successful(None))
 
       val result = controller.getUserAnswers(fakeRequest.withHeaders(
-          newHeaders = "pstr" -> pstr, "eventType" -> eventType))
+        newHeaders = "pstr" -> pstr, "eventType" -> eventType))
 
       status(result) mustBe NOT_FOUND
 
@@ -372,17 +372,11 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     "return not found exception when invalid event type" in {
       val controller = application.injector.instanceOf[EventReportController]
 
-      when(mockEventReportService.saveUserAnswers(
-        ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(Event1),
-        any()
-      )(any()))
-        .thenReturn(Future.successful(()))
-
       recoverToExceptionIf[NotFoundException] {
         controller.saveUserAnswers(fakeRequest.withJsonBody(saveUserAnswersToCacheSuccessResponse).withHeaders(
           newHeaders = "pstr" -> pstr, "eventType" -> "test"))
       } map { response =>
+        verify(mockEventReportService, never).saveUserAnswers(any(), any(), any())(any())
         response.responseCode mustBe NOT_FOUND
         response.message must include("Bad Request: eventType (test) not found")
       }
