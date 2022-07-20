@@ -61,7 +61,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     overrides(modules: _*).build()
 
   before {
-    reset(mockAuthConnector, mockJSONPayloadSchemaValidator)
+    reset(mockAuthConnector, mockJSONPayloadSchemaValidator, mockEventReportService)
     when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"))
     when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Right(true)
   }
@@ -280,17 +280,17 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
   }
 
-  "getUserAnswersToCache" must {
+  "getUserAnswers" must {
     "return 200 OK when valid response" in {
       val controller = application.injector.instanceOf[EventReportController]
 
-      when(mockEventReportService.getEventFromMongo(
+      when(mockEventReportService.getUserAnswers(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(Event1)
       )(any()))
         .thenReturn(Future.successful(Some(json)))
 
-      val result = controller.getUserAnswersFromCache(fakeRequest.withHeaders(
+      val result = controller.getUserAnswers(fakeRequest.withHeaders(
         newHeaders = "pstr" -> pstr, "eventType" -> eventType))
 
       status(result) mustBe OK
@@ -299,26 +299,38 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     "return not found exception when invalid event type" in {
       val controller = application.injector.instanceOf[EventReportController]
 
-      when(mockEventReportService.getEventFromMongo(
+      recoverToExceptionIf[NotFoundException] {
+        controller.getUserAnswers(fakeRequest.withHeaders(
+          newHeaders = "pstr" -> pstr, "eventType" -> "test"))
+      } map { response =>
+        verify(mockEventReportService, never).getUserAnswers(any(), any())(any())
+        response.responseCode mustBe NOT_FOUND
+        response.message must include("Bad Request: eventType (test) not found")
+
+      }
+    }
+
+    "return none when not found" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      when(mockEventReportService.getUserAnswers(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(Event1)
       )(any()))
-        .thenReturn(Future.successful(Some(json)))
+        .thenReturn(Future.successful(None))
 
-      recoverToExceptionIf[NotFoundException] {
-        controller.getUserAnswersFromCache(fakeRequest.withHeaders(
-          newHeaders = "pstr" -> pstr, "eventType" -> "test"))
-      } map { response =>
-        response.responseCode mustBe NOT_FOUND
-        response.message must include("Bad Request: eventType (test) not found")
-      }
+      val result = controller.getUserAnswers(fakeRequest.withHeaders(
+          newHeaders = "pstr" -> pstr, "eventType" -> eventType))
+
+      status(result) mustBe NOT_FOUND
+
     }
 
     "throw a 400 Bad Request Exception when eventType missing" in {
       val controller = application.injector.instanceOf[EventReportController]
 
       recoverToExceptionIf[BadRequestException] {
-        controller.getUserAnswersFromCache(fakeRequest.withHeaders(
+        controller.getUserAnswers(fakeRequest.withHeaders(
           newHeaders = "pstr" -> pstr))
       } map { response =>
         response.responseCode mustBe BAD_REQUEST
@@ -331,7 +343,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       val controller = application.injector.instanceOf[EventReportController]
 
       recoverToExceptionIf[UnauthorizedException] {
-        controller.getUserAnswersFromCache(fakeRequest.withHeaders(
+        controller.getUserAnswers(fakeRequest.withHeaders(
           newHeaders = "pstr" -> pstr, "eventType" -> eventType))
       } map { response =>
         response.responseCode mustBe UNAUTHORIZED
@@ -344,14 +356,14 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     "return 200 OK when valid response" in {
       val controller = application.injector.instanceOf[EventReportController]
 
-      when(mockEventReportService.saveEventToMongo(
+      when(mockEventReportService.saveUserAnswers(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(Event1),
         any()
       )(any()))
         .thenReturn(Future.successful(()))
 
-      val result = controller.saveUserAnswersToCache(fakeRequest.withJsonBody(saveUserAnswersToCacheSuccessResponse).withHeaders(
+      val result = controller.saveUserAnswers(fakeRequest.withJsonBody(saveUserAnswersToCacheSuccessResponse).withHeaders(
         newHeaders = "pstr" -> pstr, "eventType" -> eventType))
 
       status(result) mustBe OK
@@ -360,7 +372,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     "return not found exception when invalid event type" in {
       val controller = application.injector.instanceOf[EventReportController]
 
-      when(mockEventReportService.saveEventToMongo(
+      when(mockEventReportService.saveUserAnswers(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(Event1),
         any()
@@ -368,7 +380,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         .thenReturn(Future.successful(()))
 
       recoverToExceptionIf[NotFoundException] {
-        controller.saveUserAnswersToCache(fakeRequest.withJsonBody(saveUserAnswersToCacheSuccessResponse).withHeaders(
+        controller.saveUserAnswers(fakeRequest.withJsonBody(saveUserAnswersToCacheSuccessResponse).withHeaders(
           newHeaders = "pstr" -> pstr, "eventType" -> "test"))
       } map { response =>
         response.responseCode mustBe NOT_FOUND
@@ -380,7 +392,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       val controller = application.injector.instanceOf[EventReportController]
 
       recoverToExceptionIf[BadRequestException] {
-        controller.saveUserAnswersToCache()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr).withJsonBody(saveUserAnswersToCacheSuccessResponse))
+        controller.saveUserAnswers()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr).withJsonBody(saveUserAnswersToCacheSuccessResponse))
       } map { response =>
         response.responseCode mustBe BAD_REQUEST
         response.message must include(s"Bad Request without pstr (Some($pstr)) or eventType (None) or request body (Some($saveUserAnswersToCacheSuccessResponse))")
@@ -392,7 +404,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       val controller = application.injector.instanceOf[EventReportController]
 
       recoverToExceptionIf[UnauthorizedException] {
-        controller.saveUserAnswersToCache()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "eventType" -> eventType).withJsonBody(saveUserAnswersToCacheSuccessResponse))
+        controller.saveUserAnswers()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "eventType" -> eventType).withJsonBody(saveUserAnswersToCacheSuccessResponse))
       } map { response =>
         response.responseCode mustBe UNAUTHORIZED
         response.message must include("Not Authorised - Unable to retrieve credentials - externalId")

@@ -8,5 +8,5 @@ POST       /compile                                 controllers.EventReportContr
 
 POST       /submit-event-declaration-report         controllers.EventReportController.submitEventDeclarationReport
 
-GET        /cache/user-answers                      controllers.EventReportController.getUserAnswersFromCache
-POST       /cache/user-answers                      controllers.EventReportController.saveUserAnswersToCache
+GET        /user-answers                            controllers.EventReportController.getUserAnswers
+POST       /user-answers                            controllers.EventReportController.saveUserAnswers

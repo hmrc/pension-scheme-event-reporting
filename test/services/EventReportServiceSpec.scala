@@ -282,7 +282,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         any()
       )(any()))
         .thenReturn(Future.successful(HttpResponse(OK, saveEventSuccessResponse.toString)))
-      whenReady(eventReportService.saveEventToMongo(pstr, EventType.Event3, payload)(implicitly)) { result =>
+      whenReady(eventReportService.saveUserAnswers(pstr, EventType.Event3, payload)(implicitly)) { result =>
         assert(true)
       }
     }
@@ -300,7 +300,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         ArgumentMatchers.eq(mapOfKeys)
       )(any())).thenReturn(Future.successful(Some(json)))
 
-      eventReportService.getEventFromMongo(pstr, EventType.Event3)(implicitly).map{ result =>
+      eventReportService.getUserAnswers(pstr, EventType.Event3)(implicitly).map{ result =>
         result mustBe Some(json)
       }
     }
