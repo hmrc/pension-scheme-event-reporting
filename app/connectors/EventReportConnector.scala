@@ -18,7 +18,6 @@ package connectors
 
 import com.google.inject.Inject
 import config.AppConfig
-import models.enumeration.ApiType._
 import models.enumeration.EventType
 import models.enumeration.EventType.getApiTypeByEventType
 import models.{EROverview, ERVersion}
@@ -139,7 +138,7 @@ class EventReportConnector @Inject()(
 
     val apiToCall = getApiTypeByEventType(eventType) match {
       case Some(apiType) => apiType.toString
-      case None => ""
+      case None => throw new BadRequestException(s"No API is configured to handle getting this eventType: $eventType")
     }
 
     val apiUrl: String = s"${config.getApiUrlByApiNum(apiToCall).format(pstr)}"
