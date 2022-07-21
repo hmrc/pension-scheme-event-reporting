@@ -20,10 +20,10 @@ package services
 import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
 import models.ERVersion
-import models.enumeration.ApiType.{Api1826, Api1827, Api1829, Api1830, Api1831, Api1832}
+import models.enumeration.ApiType.{Api1826, Api1827, Api1829, Api1830, Api1831, Api1832, _}
 import models.enumeration.EventType
 import play.api.Logging
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Result
 import play.api.mvc.Results._
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
@@ -45,7 +45,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   private val compileMemberEventReportSchemaPath = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
   private val submitEvent20ADeclarationReportSchemaPath = "/resources.schemas/api-1829-submit-event20a-declaration-report-request-schema-v1.0.0.json"
 
-  def compileEventReport(pstr: String, userAnswersJson: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
+  def compileEventReport(pstr: String, userAnswersJson: JsValue)
+                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
 
     val maybeApi1826 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1826.toString)).map {
       case Some(data) => compileEventReportSummary(pstr, data).map(_ => NoContent)
@@ -74,16 +75,25 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    EventType.GETApiTypeByEventType(eventType) match {
-      case Some(Api1832) | Some(Api1831) => eventReportConnector.getEvent(pstr, startDate, version, eventType)
+    EventType.getApiTypeByEventType(eventType) match {
+      case Some(Api1831) | Some(Api1832) | Some(Api1833) => eventReportConnector.getEvent(pstr, startDate, version, eventType)
       case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
     }
   }
 
-  def saveEvent(pstr: String, eventType: EventType, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
-    EventType.POSTApiTypeByEventType(eventType) match {
+  def saveUserAnswers(pstr: String, eventType: EventType, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
+    EventType.postApiTypeByEventType(eventType) match {
       // TODO: Have discussion on potential for overwriting in Mongo.
       case Some(apiType) => eventReportCacheRepository.upsert(pstr, apiType, userAnswersJson)
+      case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
+    }
+  }
+
+  def getUserAnswers(pstr: String, eventType: EventType)(implicit ec: ExecutionContext): Future[Option[JsObject]] = {
+    EventType.postApiTypeByEventType(eventType) match {
+      case Some(apiType) =>
+        eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString))
+          .map(_.map(_.as[JsObject]))
       case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
     }
   }
@@ -98,38 +108,43 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case Some(data) => Future.successful(data)
       case _ => eventReportConnector.getOverview(pstr, reportType, startDate, endDate).flatMap {
         data =>
-          overviewCacheRepository.save(pstr, reportType, startDate, endDate, Json.toJson(data))
+          overviewCacheRepository.upsert(pstr, reportType, startDate, endDate, Json.toJson(data))
             .map { _ => Json.toJson(data) }
       }
     }
   }
 
-  def submitEventDeclarationReport(pstr: String, userAnswersJson: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
+  def submitEventDeclarationReport(pstr: String, userAnswersJson: JsValue)
+                                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
     eventReportConnector.submitEventDeclarationReport(pstr, userAnswersJson).map(_.json)
   }
 
-  private def compileEventReportSummary(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
+  private def compileEventReportSummary(pstr: String, data: JsValue)
+                                       (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
     validatePayload(pstr, data, createCompiledEventSummaryReportSchemaPath, "compileEventReportSummary")(
       eventReportConnector.compileEventReportSummary(pstr, data).map { response =>
         Ok(response.body)
       })
   }
 
-  private def compileEventOneReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
+  private def compileEventOneReport(pstr: String, data: JsValue)
+                                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
     validatePayload(pstr, data, compileEventOneReportSchemaPath, "compileEventOneReport")(
       eventReportConnector.compileEventOneReport(pstr, data).map { response =>
         Ok(response.body)
       })
   }
 
-  private def compileMemberEventReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
+  private def compileMemberEventReport(pstr: String, data: JsValue)
+                                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
     validatePayload(pstr, data, compileMemberEventReportSchemaPath, "compileMemberEventReport")(
       eventReportConnector.compileMemberEventReport(pstr, data).map { response =>
         Ok(response.body)
       })
   }
 
-  private def submitEvent20ADeclarationReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
+  private def submitEvent20ADeclarationReport(pstr: String, data: JsValue)
+                                             (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
     validatePayload(pstr, data, submitEvent20ADeclarationReportSchemaPath, "submitEvent20ADeclarationReport")(
       eventReportConnector.submitEvent20ADeclarationReport(pstr, data).map { response =>
         Ok(response.body)

@@ -83,8 +83,8 @@ class OverviewCacheRepository @Inject()(
 
   private val expireInSeconds = config.underlying.getInt("mongodb.overview-cache.timeToLiveInSeconds")
 
-  def save(pstr: String, eventType: String, startDate: String, endDate: String, data: JsValue)
-          (implicit ec: ExecutionContext): Future[Unit] = {
+  def upsert(pstr: String, eventType: String, startDate: String, endDate: String, data: JsValue)
+            (implicit ec: ExecutionContext): Future[Unit] = {
 
     logger.info(s"Changes implemented in $collectionName cache")
 

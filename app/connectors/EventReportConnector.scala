@@ -18,8 +18,9 @@ package connectors
 
 import com.google.inject.Inject
 import config.AppConfig
-import models.enumeration.ApiType.{Api1831, Api1832}
+import models.enumeration.ApiType.Api1831
 import models.enumeration.EventType
+import models.enumeration.EventType.getApiTypeByEventType
 import models.{EROverview, ERVersion}
 import play.api.Logging
 import play.api.http.Status._
@@ -135,27 +136,29 @@ class EventReportConnector @Inject()(
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    val url = EventType.GETApiTypeByEventType(eventType) match {
-      case Some(Api1831) => config.getEvent20aUrl.format(pstr)
-      case Some(Api1832) => config.api1832Url.format(pstr)
-      case _ => throw new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)")
-    }
-    val eventTypeParam = if (eventType != EventType.Event20A) Seq("eventType" -> s"Event${eventType.toString}") else Seq.empty
-    val fullHeaders = integrationFrameworkHeader ++
-      eventTypeParam ++
-      Seq(
-        "reportStartDate" -> startDate,
-        "reportVersionNumber" -> version
-      )
+    getApiTypeByEventType(eventType) match {
+      case Some(apiType) =>
+        val apiToCall = apiType.toString
+        val apiUrl: String = s"${config.getApiUrlByApiNum(apiToCall).format(pstr)}"
 
-    logger.debug(s"GetEvent Event Type $eventType (IF) called - URL: $url with headers: $fullHeaders")
+        val eventTypeParam = if (apiType != Api1831 ) Seq("eventType" -> s"Event${eventType.toString}") else Seq.empty
+        val fullHeaders = integrationFrameworkHeader ++
+          eventTypeParam ++
+          Seq(
+            "reportStartDate" -> startDate,
+            "reportVersionNumber" -> version
+          )
 
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
-    http.GET[HttpResponse](url)(implicitly, hc, implicitly).map { response =>
-      response.status match {
-        case OK => response.json
-        case _ => handleErrorResponse("GET", url)(response)
-      }
+        logger.debug(s"Get $apiToCall (IF) called - URL: $apiUrl with headers: $fullHeaders")
+
+        implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
+        http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
+          response.status match {
+            case OK => response.json
+            case _ => handleErrorResponse("GET", apiUrl)(response)
+          }
+        }
+      case None => throw new BadRequestException(s"No API is configured to handle getting this eventType: $eventType")
     }
   }
 
@@ -206,5 +209,4 @@ class EventReportConnector @Inject()(
       "CorrelationId" -> headerUtils.getCorrelationId
     )
   }
-
 }
