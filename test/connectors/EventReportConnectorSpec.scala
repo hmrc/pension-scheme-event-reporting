@@ -426,7 +426,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
 
   "getEvent" must {
     "API 1832" must {
-      "return the json returned from ETMP for valid event for API 1832" in {
+      "return the json returned from ETMP for valid event" in {
         server.stubFor(
           get(urlEqualTo(getApi1832Url))
             .willReturn(
@@ -441,7 +441,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         }
       }
 
-      "return a NotFoundException for NOT FOUND - 404 for API 1832" in {
+      "return a NotFoundException for NOT FOUND - 404" in {
         server.stubFor(
           get(urlEqualTo(getApi1832Url))
             .willReturn(
@@ -458,7 +458,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         }
       }
 
-      "throw Upstream5XX for INTERNAL SERVER ERROR - 500 for API 1832" in {
+      "throw Upstream5XX for INTERNAL SERVER ERROR - 500" in {
 
         server.stubFor(
           get(urlEqualTo(getApi1832Url))
@@ -477,7 +477,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
     }
 
     "API 1833" must {
-      "return the json returned from ETMP for valid event in API 1833" in {
+      "return the json returned from ETMP for valid event" in {
         server.stubFor(
           get(urlEqualTo(getApi1833Url))
             .willReturn(
@@ -493,7 +493,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         }
       }
 
-      "return a NotFoundException for NOT FOUND - 404 for API 1833" in {
+      "return a NotFoundException for NOT FOUND - 404" in {
         server.stubFor(
           get(urlEqualTo(getApi1833Url))
             .willReturn(
@@ -510,7 +510,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         }
       }
 
-      "throw Upstream5XX for INTERNAL SERVER ERROR - 500 for API 1833" in {
+      "throw Upstream5XX for INTERNAL SERVER ERROR - 500" in {
 
         server.stubFor(
           get(urlEqualTo(getApi1833Url))
