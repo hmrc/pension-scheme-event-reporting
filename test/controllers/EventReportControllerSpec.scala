@@ -253,6 +253,20 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       contentAsJson(result) mustBe dummyJsValue
     }
 
+    "throw a Bad Request Exception for an invalid event type" in {
+      recoverToExceptionIf[BadRequestException] {
+        controller.getEvent(fakeRequest.withHeaders(
+          newHeaders = "pstr" -> pstr,
+          "startDate" -> startDate,
+          "version" -> versionString,
+          "eventType" -> invalidEventType
+        ))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+        response.message must include(s"Bad Request: invalid eventType ($invalidEventType)")
+      }
+    }
+
     "throw a Bad Request Exception when all parameters missing in header" in {
       recoverToExceptionIf[BadRequestException] {
         controller.getEvent(fakeRequest.withHeaders(
@@ -431,6 +445,7 @@ object EventReportControllerSpec {
   private val startDate = "2022-04-06"
   private val endDate = "2023-04-05"
   private val reportTypeER = "ER"
+  private val invalidEventType = "invalidEventType"
 
   private val erOverviewResponseJson: JsArray = Json.arr(
     Json.obj(

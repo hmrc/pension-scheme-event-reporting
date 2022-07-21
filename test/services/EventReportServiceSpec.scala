@@ -272,7 +272,6 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       }
     }
 
-    //TODO: This test will be redundant once all the getEvent cases are implemented
     "return not found exception when an invalid event type is supplied" in {
       recoverToExceptionIf[NotFoundException] {
         eventReportService.getEvent(pstr, startDate, version, EventType.Event20A)(implicitly, implicitly)
