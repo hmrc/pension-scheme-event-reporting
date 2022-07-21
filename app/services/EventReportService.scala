@@ -20,7 +20,7 @@ package services
 import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
 import models.ERVersion
-import models.enumeration.ApiType.{Api1826, Api1827, Api1829, Api1830, Api1831, Api1832, _}
+import models.enumeration.ApiType._
 import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json.{JsObject, JsValue, Json}
