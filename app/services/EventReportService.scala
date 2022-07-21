@@ -106,7 +106,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case Some(data) => Future.successful(data)
       case _ => eventReportConnector.getOverview(pstr, reportType, startDate, endDate).flatMap {
         data =>
-          overviewCacheRepository.save(pstr, reportType, startDate, endDate, Json.toJson(data))
+          overviewCacheRepository.upsert(pstr, reportType, startDate, endDate, Json.toJson(data))
             .map { _ => Json.toJson(data) }
       }
     }

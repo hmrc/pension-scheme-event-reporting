@@ -328,11 +328,11 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         ArgumentMatchers.eq(endDate))(any(), any()))
         .thenReturn(Future.successful(erOverview))
       when(mockOverviewCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
-      when(mockOverviewCacheRepository.save(any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(()))
+      when(mockOverviewCacheRepository.upsert(any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(()))
 
       eventReportService.getOverview(pstr, reportTypeER, startDate, endDate)(implicitly, implicitly).map { resultJsValue =>
         verify(mockOverviewCacheRepository, times(1)).get(any(), any(), any(), any())(any())
-        verify(mockOverviewCacheRepository, times(1)).save(any(), any(), any(), any(), any())(any())
+        verify(mockOverviewCacheRepository, times(1)).upsert(any(), any(), any(), any(), any())(any())
         verify(mockEventReportConnector, times(1)).getOverview(any(), any(), any(), any())(any(), any())
         resultJsValue mustBe Json.toJson(erOverview)
       }
@@ -342,7 +342,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockOverviewCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(Some(Json.toJson(erOverview))))
       eventReportService.getOverview(pstr, reportTypeER, startDate, endDate)(implicitly, implicitly).map { resultJsValue =>
         verify(mockOverviewCacheRepository, times(1)).get(any(), any(), any(), any())(any())
-        verify(mockOverviewCacheRepository, never).save(any(), any(), any(), any(), any())(any())
+        verify(mockOverviewCacheRepository, never).upsert(any(), any(), any(), any(), any())(any())
         verify(mockEventReportConnector, never).getOverview(any(), any(), any(), any())(any(), any())
         resultJsValue mustBe Json.toJson(erOverview)
       }
