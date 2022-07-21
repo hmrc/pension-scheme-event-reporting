@@ -18,6 +18,7 @@ package connectors
 
 import com.google.inject.Inject
 import config.AppConfig
+import models.enumeration.ApiType.Api1832
 import models.enumeration.EventType
 import models.enumeration.EventType.getApiTypeByEventType
 import models.{EROverview, ERVersion}
@@ -67,7 +68,7 @@ class EventReportConnector @Inject()(
   }
 
   def compileMemberEventReport(pstr: String, data: JsValue)
-                           (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
+                              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
     val compileMemberEventReportUrl = config.compileMemberEventReportUrl.format(pstr)
     logger.debug("Compile Member Event Report- URL:" + compileMemberEventReportUrl)
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
@@ -81,7 +82,7 @@ class EventReportConnector @Inject()(
   }
 
   def submitEvent20ADeclarationReport(pstr: String, data: JsValue)
-                              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
+                                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
     val submitEvent20ADeclarationReportUrl = config.submitEvent20ADeclarationReportUrl.format(pstr)
     logger.debug("Submit Event 20A Report - URL:" + submitEvent20ADeclarationReportUrl)
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
@@ -140,9 +141,10 @@ class EventReportConnector @Inject()(
         val apiToCall = apiType.toString
         val apiUrl: String = s"${config.getApiUrlByApiNum(apiToCall).format(pstr)}"
 
+        val eventTypeParam = if (apiType == Api1832) Seq("eventType" -> s"Event${eventType.toString}") else Seq.empty
         val fullHeaders = integrationFrameworkHeader ++
+          eventTypeParam ++
           Seq(
-            "eventType" -> s"Event${eventType.toString}",
             "reportStartDate" -> startDate,
             "reportVersionNumber" -> version
           )

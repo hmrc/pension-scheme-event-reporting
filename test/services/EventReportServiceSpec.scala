@@ -271,13 +271,20 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         result mustBe responseJson
       }
     }
+    "return the payload from the connector when event type 20A" in {
+      when(mockEventReportConnector.getEvent(any(), any(), any(), any())(any(), any()))
+        .thenReturn(Future.successful(responseJson))
+      whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event20A)(implicitly, implicitly)) { result =>
+        result mustBe responseJson
+      }
+    }
 
     "return not found exception when an invalid event type is supplied" in {
       recoverToExceptionIf[NotFoundException] {
-        eventReportService.getEvent(pstr, startDate, version, EventType.Event20A)(implicitly, implicitly)
+        eventReportService.getEvent(pstr, startDate, version, EventType.WindUp)(implicitly, implicitly)
       } map {
         failure =>
-          failure.message mustBe "Not Found: ApiType not found for eventType (20A)"
+          failure.message mustBe "Not Found: ApiType not found for eventType (0)"
       }
     }
   }

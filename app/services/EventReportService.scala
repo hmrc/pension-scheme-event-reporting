@@ -76,7 +76,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
     EventType.getApiTypeByEventType(eventType) match {
-      case Some(Api1832) | Some(Api1833) => eventReportConnector.getEvent(pstr, startDate, version, eventType)
+      case Some(Api1831) | Some(Api1832) | Some(Api1833) => eventReportConnector.getEvent(pstr, startDate, version, eventType)
       case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
     }
   }
@@ -93,7 +93,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     EventType.postApiTypeByEventType(eventType) match {
       case Some(apiType) =>
         eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString))
-          .map(_.map( _.as[JsObject]))
+          .map(_.map(_.as[JsObject]))
       case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
     }
   }
