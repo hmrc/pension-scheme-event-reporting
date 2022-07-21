@@ -18,7 +18,6 @@ package models.enumeration
 
 sealed trait ApiType
 
-
 object ApiType extends Enumerable.Implicits {
 
   case object Api1826 extends WithName("1826") with ApiType
@@ -30,6 +29,8 @@ object ApiType extends Enumerable.Implicits {
   case object Api1830 extends WithName("1830") with ApiType
 
   case object Api1832 extends WithName("1832") with ApiType
+
+  case object Api1833 extends WithName("1833") with ApiType
 
 }
 
