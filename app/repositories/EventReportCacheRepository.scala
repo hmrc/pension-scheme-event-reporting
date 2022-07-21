@@ -20,76 +20,40 @@ import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.enumeration.ApiType
 import org.joda.time.{DateTime, DateTimeZone}
-import org.mongodb.scala.bson.BsonBinary
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
-import repositories.EventReportCacheEntry.EventReportCacheEntryFormats.{apiTypesKey, expireAtKey, pstrKey}
-import repositories.EventReportCacheEntry.{DataEntry, EventReportCacheEntry, EventReportCacheEntryFormats, JsonDataEntry}
-import uk.gov.hmrc.crypto.{Crypted, CryptoWithKeysFromConfig, PlainText}
+import repositories.EventReportCacheEntry.{apiTypesKey, expireAtKey, pstrKey}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.formats.MongoBinaryFormats.{byteArrayReads, byteArrayWrites}
 import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
-import java.nio.charset.StandardCharsets
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
 
+case class EventReportCacheEntry(pstr: String, apiTypes: String, data: JsValue, lastUpdated: DateTime, expireAt: DateTime)
+
 object EventReportCacheEntry {
 
-  sealed trait EventReportCacheEntry
+  def applyEventReportCacheEntry(pstr: String,
+                                 apiTypes: ApiType,
+                                 data: JsValue,
+                                 lastUpdated: DateTime = DateTime.now(DateTimeZone.UTC),
+                                 expireAt: DateTime): EventReportCacheEntry = {
 
-  case class DataEntry(pstr: String, apiTypes: String, data: BsonBinary, lastUpdated: DateTime, expireAt: DateTime)
-    extends EventReportCacheEntry
-
-  case class JsonDataEntry(pstr: String, apiTypes: String, data: JsValue, lastUpdated: DateTime, expireAt: DateTime)
-    extends EventReportCacheEntry
-
-  object DataEntry {
-    def apply(pstr: String,
-              apiTypes: ApiType,
-              data: Array[Byte],
-              lastUpdated: DateTime = DateTime.now(DateTimeZone.UTC),
-              expireAt: DateTime): DataEntry = {
-
-      DataEntry(pstr, apiTypes.toString, BsonBinary(data), lastUpdated, expireAt)
-    }
-
-    final val bsonBinaryReads: Reads[BsonBinary] = byteArrayReads.map(BsonBinary(_))
-    final val bsonBinaryWrites: Writes[BsonBinary] = byteArrayWrites.contramap(_.getData)
-    implicit val bsonBinaryFormat: Format[BsonBinary] = Format(bsonBinaryReads, bsonBinaryWrites)
-
-    implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
-    implicit val format: Format[DataEntry] = Json.format[DataEntry]
+    EventReportCacheEntry(pstr, apiTypes.toString, data, lastUpdated, expireAt)
   }
 
-  object JsonDataEntry {
-    def applyJsonDataEntry(pstr: String,
-                           apiTypes: ApiType,
-                           data: JsValue,
-                           lastUpdated: DateTime = DateTime.now(DateTimeZone.UTC),
-                           expireAt: DateTime): JsonDataEntry = {
+  implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
+  implicit val format: Format[EventReportCacheEntry] = Json.format[EventReportCacheEntry]
 
-      JsonDataEntry(pstr, apiTypes.toString, data, lastUpdated, expireAt)
-    }
-
-    implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
-    implicit val format: Format[JsonDataEntry] = Json.format[JsonDataEntry]
-  }
-
-  object EventReportCacheEntryFormats {
-    implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
-    implicit val format: Format[EventReportCacheEntry] = Json.format[EventReportCacheEntry]
-
-    val pstrKey = "pstr"
-    val apiTypesKey = "apiTypes"
-    val expireAtKey = "expireAt"
-    val lastUpdatedKey = "lastUpdated"
-    val dataKey = "data"
-  }
+  val pstrKey = "pstr"
+  val apiTypesKey = "apiTypes"
+  val expireAtKey = "expireAt"
+  val lastUpdatedKey = "lastUpdated"
+  val dataKey = "data"
 }
 
 @Singleton
@@ -100,11 +64,7 @@ class EventReportCacheRepository @Inject()(
   extends PlayMongoRepository[EventReportCacheEntry](
     collectionName = config.underlying.getString("mongodb.event-reporting-data.name"),
     mongoComponent = mongoComponent,
-    domainFormat = EventReportCacheEntryFormats.format,
-    extraCodecs = Seq(
-      Codecs.playFormatCodec(JsonDataEntry.format),
-      Codecs.playFormatCodec(DataEntry.format)
-    ),
+    domainFormat = EventReportCacheEntry.format,
     indexes = Seq(
       IndexModel(
         Indexes.ascending(expireAtKey),
@@ -117,97 +77,49 @@ class EventReportCacheRepository @Inject()(
     )
   ) with Logging {
 
-  import EventReportCacheEntryFormats._
+  import EventReportCacheEntry._
 
-  private val encryptionKey: String = "event.json.encryption"
-  private val encrypted: Boolean = config.getOptional[Boolean]("encrypted").getOrElse(true)
-  private val jsonCrypto: CryptoWithKeysFromConfig = new CryptoWithKeysFromConfig(baseConfigKey = encryptionKey, config.underlying)
   private val expireInDays = config.get[Int](path = "mongodb.event-reporting-data.timeToLiveInDays")
 
   private def evaluatedExpireAt: DateTime = DateTime.now(DateTimeZone.UTC).toLocalDate.plusDays(expireInDays + 1).toDateTimeAtStartOfDay()
 
   def upsert(pstr: String, apiType: ApiType, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
-    if (encrypted) {
-      val encryptedPstr = jsonCrypto.encrypt(PlainText(pstr)).value
-      val unencrypted = PlainText(Json.stringify(Json.toJson(data)))
-      val encryptedData = jsonCrypto.encrypt(unencrypted).value
-      val dataAsByteArray: Array[Byte] = encryptedData.getBytes("UTF-8")
+    val record = EventReportCacheEntry.applyEventReportCacheEntry(
+      pstr, apiType, Json.toJson(data),
+      expireAt = evaluatedExpireAt)
 
-      val dataEntry = DataEntry(encryptedPstr, apiType, dataAsByteArray, expireAt = evaluatedExpireAt)
+    val modifier = Updates.combine(
+      Updates.set(pstrKey, record.pstr),
+      Updates.set(apiTypesKey, record.apiTypes),
+      Updates.set(dataKey, Codecs.toBson(record.data)),
+      Updates.set(lastUpdatedKey, Codecs.toBson(record.lastUpdated)),
+      Updates.set(expireAtKey, Codecs.toBson(record.expireAt))
+    )
+    val selector = Filters.and(Filters.equal(pstrKey, record.pstr), Filters.equal(apiTypesKey, record.apiTypes))
 
-      val modifier = Updates.combine(
-        Updates.set(pstrKey, dataEntry.pstr),
-        Updates.set(apiTypesKey, dataEntry.apiTypes),
-        Updates.set(dataKey,dataEntry.data),
-        Updates.set(lastUpdatedKey, Codecs.toBson(dataEntry.lastUpdated)),
-        Updates.set(expireAtKey, Codecs.toBson(dataEntry.expireAt))
-      )
-      val selector = Filters.and(Filters.equal(pstrKey, encryptedPstr), Filters.equal(apiTypesKey, dataEntry.apiTypes))
-      collection.withDocumentClass[DataEntry]().findOneAndUpdate(
-        filter = selector,
-        update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
-    } else {
-      val record = JsonDataEntry.applyJsonDataEntry(
-        pstr, apiType, Json.toJson(data),
-        expireAt = evaluatedExpireAt)
-
-      val modifier = Updates.combine(
-        Updates.set(pstrKey, record.pstr),
-        Updates.set(apiTypesKey, record.apiTypes),
-        Updates.set(dataKey, Codecs.toBson(record.data)),
-        Updates.set(lastUpdatedKey, Codecs.toBson(record.lastUpdated)),
-        Updates.set(expireAtKey, Codecs.toBson(record.expireAt))
-      )
-      val selector = Filters.and(Filters.equal(pstrKey, record.pstr), Filters.equal(apiTypesKey, record.apiTypes))
-
-      collection.withDocumentClass[JsonDataEntry]().findOneAndUpdate(
-        filter = selector,
-        update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
-    }
-  }
-
-  private def filterEncryptKeys(mapOfKeys: Map[String, String]): Bson = {
-    val filters = mapOfKeys.map {
-      case key if key._1 == pstrKey || key._1 == apiTypesKey =>
-        val encryptedValue = jsonCrypto.encrypt(PlainText(key._2)).value
-        Filters.equal(key._1, encryptedValue)
-      case key => Filters.equal(key._1, key._2)
-    }.toList
-    Filters.and(filters: _*)
+    collection.findOneAndUpdate(
+      filter = selector,
+      update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
   }
 
   def getByKeys(mapOfKeys: Map[String, String])(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
-    if (encrypted) {
-      collection.find[DataEntry](filterEncryptKeys(mapOfKeys)).headOption().map {
-        _.map {
-          dataEntry =>
-            val dataAsString = new String(dataEntry.data.getData, StandardCharsets.UTF_8)
-            val decrypted: PlainText = jsonCrypto.decrypt(Crypted(dataAsString))
-            Json.parse(decrypted.value)
-        }
-      }
-    }
-    else {
-      val filters = mapOfKeys.map(t => Filters.equal(t._1, t._2)).toList
-      collection.find[JsonDataEntry](Filters.and(filters: _*)).headOption().map {
-        _.map {
-          dataEntry =>
-            dataEntry.data
-        }
+    collection.find[EventReportCacheEntry](filterByKeys(mapOfKeys)).headOption().map {
+      _.map {
+        dataEntry =>
+          dataEntry.data
       }
     }
   }
 
   def remove(mapOfKeys: Map[String, String])(implicit ec: ExecutionContext): Future[Boolean] = {
-    val selector = if (encrypted) {
-      filterEncryptKeys(mapOfKeys)
-    } else {
-      val filters = mapOfKeys.map(t => Filters.equal(t._1, t._2)).toList
-      Filters.and(filters: _*)
-    }
-    collection.deleteOne(selector).toFuture().map { result =>
+    collection.deleteOne(filterByKeys(mapOfKeys)).toFuture().map { result =>
       logger.info(s"Removing row from collection $collectionName")
       result.wasAcknowledged
     }
+  }
+
+  private def filterByKeys(mapOfKeys: Map[String, String]): Bson = {
+    val filters = mapOfKeys.map(t => Filters.equal(t._1, t._2)).toList
+    Filters.and(filters: _*)
   }
 }

@@ -45,7 +45,7 @@ class OverviewCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Mat
   }
 
   withEmbedMongoFixture(port = 24680) { _ =>
-    "save" must {
+    "upsert" must {
       "save a new overview cache in Mongo collection when collection is empty" in {
         mongoCollectionDrop()
 
@@ -54,7 +54,7 @@ class OverviewCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Mat
           Filters.eq("startDate", record._3), Filters.eq("endDate", record._4))
 
         val documentsInDB = for {
-          _ <- overviewCacheRepository.save(record._1, record._2, record._3, record._4, record._5)
+          _ <- overviewCacheRepository.upsert(record._1, record._2, record._3, record._4, record._5)
           documentsInDB <- overviewCacheRepository.collection.find[OverviewCacheEntry](filters).toFuture()
         } yield documentsInDB
 
@@ -73,8 +73,8 @@ class OverviewCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Mat
           Filters.eq("startDate", record1._3), Filters.eq("endDate", record1._4))
 
         val documentsInDB = for {
-          _ <- overviewCacheRepository.save(record1._1, record1._2, record1._3, record1._4, record1._5)
-          _ <- overviewCacheRepository.save(record2._1, record2._2, record2._3, record2._4, record2._5)
+          _ <- overviewCacheRepository.upsert(record1._1, record1._2, record1._3, record1._4, record1._5)
+          _ <- overviewCacheRepository.upsert(record2._1, record2._2, record2._3, record2._4, record2._5)
           documentsInDB <- overviewCacheRepository.collection.find[OverviewCacheEntry](filters).toFuture()
         } yield documentsInDB
 
@@ -92,8 +92,8 @@ class OverviewCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Mat
         val record2 = ("pstr-2", "eventType-1", "2022-07-09", "2023-07-09", Json.parse("""{"data":"2"}"""))
 
         val documentsInDB = for {
-          _ <- overviewCacheRepository.save(record1._1, record1._2, record1._3, record1._4, record1._5)
-          _ <- overviewCacheRepository.save(record2._1, record2._2, record2._3, record2._4, record2._5)
+          _ <- overviewCacheRepository.upsert(record1._1, record1._2, record1._3, record1._4, record1._5)
+          _ <- overviewCacheRepository.upsert(record2._1, record2._2, record2._3, record2._4, record2._5)
           documentsInDB <- overviewCacheRepository.collection.find[OverviewCacheEntry].toFuture()
         } yield documentsInDB
 
@@ -111,7 +111,7 @@ class OverviewCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Mat
         val record = ("pstr-1", "eventType-1", "2022-07-09", "2023-07-09", Json.parse("""{"data":"1"}"""))
 
         val documentsInDB = for {
-          _ <- overviewCacheRepository.save(record._1, record._2, record._3, record._4, record._5)
+          _ <- overviewCacheRepository.upsert(record._1, record._2, record._3, record._4, record._5)
           documentsInDB <- overviewCacheRepository.get(record._1, record._2, record._3, record._4)
         } yield documentsInDB
 
