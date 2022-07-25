@@ -32,12 +32,14 @@ import play.api.mvc.Results.NoContent
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import services.EventReportService
+import models.EventReportValidationFailureException
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http._
-import utils.{ErrorReport, JSONPayloadSchemaValidator}
+import utils.JSONSchemaValidator
 
 import java.time.LocalDate
 import scala.concurrent.Future
+import scala.util.{Failure, Success}
 
 class EventReportControllerSpec extends AsyncWordSpec with Matchers with MockitoSugar with BeforeAndAfter {
 
@@ -45,14 +47,14 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
   private val fakeRequest = FakeRequest("GET", "/")
-  private val mockJSONPayloadSchemaValidator = mock[JSONPayloadSchemaValidator]
+  private val mockJSONPayloadSchemaValidator = mock[JSONSchemaValidator]
   private val mockEventReportService = mock[EventReportService]
   private val mockAuthConnector: AuthConnector = mock[AuthConnector]
 
   val modules: Seq[GuiceableModule] =
     Seq(
       bind[AuthConnector].toInstance(mockAuthConnector),
-      bind[JSONPayloadSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
+      bind[JSONSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
       bind[EventReportService].toInstance(mockEventReportService)
     )
 
@@ -64,7 +66,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   before {
     reset(mockAuthConnector, mockJSONPayloadSchemaValidator, mockEventReportService)
     when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"))
-    when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Right(true)
+    when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any())).thenReturn(Failure(EventReportValidationFailureException("Test")))
   }
 
   "getOverview" must {
@@ -152,6 +154,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     "return OK when valid response" in {
       when(mockEventReportService.submitEventDeclarationReport(any(), any())(any(), any()))
         .thenReturn(Future.successful(submitEventDeclarationReportSuccessResponse))
+      when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
+        .thenReturn(Success(()))
 
       val result = controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse).withHeaders(
         newHeaders = "pstr" -> pstr))
@@ -160,22 +164,54 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw validation exception when validation errors response" in {
-      val listErrors: List[ErrorReport] = List(
-        ErrorReport("instance1", "errors1"),
-        ErrorReport("instance2", "errors2")
-      )
+      val controller = application.injector.instanceOf[EventReportController]
 
-      when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Left(listErrors)
+      when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
+        .thenReturn(Failure(EventReportValidationFailureException("Test")))
 
       recoverToExceptionIf[EventReportValidationFailureException] {
         controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse).withHeaders(
           newHeaders = "pstr" -> pstr))
       } map {
         failure =>
-          failure.exMessage mustBe "Schema validation errors:-\n(instance1: errors1),\n(instance2: errors2)"
+          failure.getMessage mustBe "Test"
       }
     }
   }
+
+  "submitEvent20ADeclarationReport" must {
+    "return OK when valid response" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      when(mockEventReportService.submitEvent20ADeclarationReport(any(), any())(any(), any()))
+        .thenReturn(Future.successful(submitEvent20ADeclarationReportSuccessResponse))
+      when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
+      .thenReturn(Success(()))
+
+      val result = controller.submitEvent20ADeclarationReport(fakeRequest.withJsonBody(submitEvent20ADeclarationReportSuccessResponse).withHeaders(
+        newHeaders = "pstr" -> pstr))
+
+      status(result) mustBe OK
+    }
+
+    "throw validation exception when validation errors response" in {
+      val controller = application.injector.instanceOf[EventReportController]
+
+      when(mockEventReportService.submitEvent20ADeclarationReport(any(), any())(any(), any()))
+        .thenReturn(Future.successful(submitEvent20ADeclarationReportSuccessResponse))
+      when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
+      .thenReturn(Failure(EventReportValidationFailureException("Test")))
+
+      recoverToExceptionIf[EventReportValidationFailureException] {
+        controller.submitEvent20ADeclarationReport(fakeRequest.withJsonBody(submitEvent20ADeclarationReportSuccessResponse).withHeaders(
+          newHeaders = "pstr" -> pstr))
+      } map {
+        failure =>
+          failure.getMessage mustBe "Test"
+      }
+    }
+  }
+
 
   "getVersions" must {
     "return OK with the Seq of Version" in {
@@ -470,6 +506,9 @@ object EventReportControllerSpec {
 
   private val submitEventDeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678933")
+
+  private val submitEvent20ADeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+    "formBundleNumber" -> "12345670811")
 
   private val erVersionResponseJson: JsArray = Json.arr(
     Json.obj(

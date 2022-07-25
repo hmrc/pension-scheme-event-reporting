@@ -27,8 +27,8 @@ import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Result
 import play.api.mvc.Results._
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, NotFoundException}
-import utils.JSONPayloadSchemaValidator
+import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException}
+import utils.JSONSchemaValidator
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -36,14 +36,14 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton()
 class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    eventReportCacheRepository: EventReportCacheRepository,
-                                   jsonPayloadSchemaValidator: JSONPayloadSchemaValidator,
+                                   jsonPayloadSchemaValidator: JSONSchemaValidator,
                                    overviewCacheRepository: OverviewCacheRepository
                                   ) extends Logging {
 
   private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
   private val compileMemberEventReportSchemaPath = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
-  private val submitEvent20ADeclarationReportSchemaPath = "/resources.schemas/api-1829-submit-event20a-declaration-report-request-schema-v1.0.0.json"
+
 
   def compileEventReport(pstr: String, userAnswersJson: JsValue)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
@@ -58,17 +58,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case _ => Future.successful(Ok)
     }.flatten
 
-    val maybeApi1829 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1829.toString)).map {
-      case Some(data) => submitEvent20ADeclarationReport(pstr, data).map(_ => NoContent)
-      case _ => Future.successful(Ok)
-    }.flatten
-
     val maybeApi1830 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1830.toString)).map {
       case Some(data) => compileMemberEventReport(pstr, data).map(_ => NoContent)
       case _ => Future.successful(Ok)
     }.flatten
 
-    val seqOfMaybeApiCalls = Future.sequence(Seq(maybeApi1826, maybeApi1827, maybeApi1829, maybeApi1830))
+    val seqOfMaybeApiCalls = Future.sequence(Seq(maybeApi1826, maybeApi1827, maybeApi1830))
 
     seqOfMaybeApiCalls.map { _ => NoContent }
   }
@@ -119,49 +114,26 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     eventReportConnector.submitEventDeclarationReport(pstr, userAnswersJson).map(_.json)
   }
 
-  private def compileEventReportSummary(pstr: String, data: JsValue)
-                                       (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
-    validatePayload(pstr, data, createCompiledEventSummaryReportSchemaPath, "compileEventReportSummary")(
-      eventReportConnector.compileEventReportSummary(pstr, data).map { response =>
-        Ok(response.body)
-      })
+  def submitEvent20ADeclarationReport(pstr: String, data: JsValue)
+                                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
+    eventReportConnector.submitEvent20ADeclarationReport(pstr, data).map(_.json)
   }
 
-  private def compileEventOneReport(pstr: String, data: JsValue)
-                                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
-    validatePayload(pstr, data, compileEventOneReportSchemaPath, "compileEventOneReport")(
-      eventReportConnector.compileEventOneReport(pstr, data).map { response =>
-        Ok(response.body)
-      })
-  }
+  private def compileEventReportSummary(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] =
+    for {
+      _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(data, createCompiledEventSummaryReportSchemaPath, "compileEventReportSummary"))
+      response <- eventReportConnector.compileEventReportSummary(pstr, data)
+    } yield Ok(response.body)
 
-  private def compileMemberEventReport(pstr: String, data: JsValue)
-                                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
-    validatePayload(pstr, data, compileMemberEventReportSchemaPath, "compileMemberEventReport")(
-      eventReportConnector.compileMemberEventReport(pstr, data).map { response =>
-        Ok(response.body)
-      })
-  }
+  private def compileEventOneReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] =
+    for {
+      _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(data, compileEventOneReportSchemaPath, "compileEventOneReport"))
+      response <- eventReportConnector.compileEventOneReport(pstr, data)
+    } yield Ok(response.body)
 
-  private def submitEvent20ADeclarationReport(pstr: String, data: JsValue)
-                                             (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
-    validatePayload(pstr, data, submitEvent20ADeclarationReportSchemaPath, "submitEvent20ADeclarationReport")(
-      eventReportConnector.submitEvent20ADeclarationReport(pstr, data).map { response =>
-        Ok(response.body)
-      })
-  }
-
-  private def validatePayload[A](pstr: String, data: JsValue, apiSchemaPath: String, eventName: String)(f: => A): A = {
-    jsonPayloadSchemaValidator.validateJsonPayload(apiSchemaPath, data) match {
-      case Right(true) =>
-        f
-      case Left(errors) =>
-        val allErrorsAsString = s"Schema validation errors for $eventName:-\n" + errors.mkString(",\n")
-        throw EventReportValidationFailureException(allErrorsAsString)
-      case _ => throw EventReportValidationFailureException(s"$eventName schema validation failed (returned false)")
-    }
-  }
+  private def compileMemberEventReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] =
+    for {
+      _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(data, compileMemberEventReportSchemaPath, "compileMemberEventReport"))
+      response <- eventReportConnector.compileMemberEventReport(pstr, data)
+    } yield Ok(response.body)
 }
-
-case class EventReportValidationFailureException(exMessage: String) extends BadRequestException(exMessage)
-

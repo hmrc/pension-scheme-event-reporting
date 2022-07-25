@@ -949,7 +949,7 @@ object EventReportConnectorSpec {
   private val eventReportSummaryUrl = s"/pension-online/event-reports/pods/$pstr"
   private val compileEventOneReportUrl = s"/pension-online/event1-report/pods/$pstr"
   private val compileMemberEventReportUrl = s"/pension-online/member-event-reports/$pstr"
-  private val submitEvent20ADeclarationReportUrl = s"/pension-online/event-20a-declaration-report/$pstr"
+  private val submitEvent20ADeclarationReportUrl = s"/pension-online/event20a-declaration-reports/$pstr"
 
   private val getErOverviewUrl = s"/pension-online/reports/overview/pods/$pstr/ER?fromDate=$fromDt&toDate=$toDt"
   private val getApi1832Url = s"/pension-online/member-event-status-reports/$pstr"

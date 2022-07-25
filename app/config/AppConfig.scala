@@ -50,6 +50,6 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig,
   def getApiUrlByApiNum(apiNumAsString: String): String = s"$ifURL${config.get[String](path = s"serviceUrls.api$apiNumAsString")}"
   def versionUrl: String  = s"$desURL${config.get[String](path = "serviceUrls.version")}"
   val submitEventDeclarationReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event-declaration-report")}"
-  val submitEvent20ADeclarationReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event-20A-declaration-report")}"
+  val submitEvent20ADeclarationReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event20a-declaration-report")}"
 
 }

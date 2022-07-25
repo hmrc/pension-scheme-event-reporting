@@ -17,10 +17,10 @@
 package services
 
 import connectors.EventReportConnector
-import models.enumeration.ApiType.{Api1826, Api1827, Api1829, Api1830}
+import models.enumeration.ApiType._
 import models.enumeration.{ApiType, EventType}
 import models.{EROverview, EROverviewVersion, ERVersion}
-import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures.whenReady
@@ -31,10 +31,11 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.test.Helpers._
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
 import uk.gov.hmrc.http._
-import utils.{ErrorReport, JSONPayloadSchemaValidator}
+import utils.JSONSchemaValidator
 
 import java.time.LocalDate
 import scala.concurrent.Future
+import scala.util.{Failure, Success}
 
 class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSugar with BeforeAndAfterEach {
 
@@ -42,7 +43,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
   private val mockEventReportConnector = mock[EventReportConnector]
-  private val mockJSONPayloadSchemaValidator = mock[JSONPayloadSchemaValidator]
+  private val mockJSONPayloadSchemaValidator = mock[JSONSchemaValidator]
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
   private val mockOverviewCacheRepository = mock[OverviewCacheRepository]
 
@@ -56,7 +57,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
   override def beforeEach(): Unit = {
     reset(mockEventReportConnector, mockOverviewCacheRepository, mockEventReportCacheRepository, mockJSONPayloadSchemaValidator)
-    when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Right(true)
+    when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any())).thenReturn(Success(()))
     when(mockOverviewCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
   }
 
@@ -83,33 +84,26 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportConnector.compileMemberEventReport(any(), any())(any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
-      when(mockEventReportConnector.submitEvent20ADeclarationReport(any(), any())(any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
-
       eventReportService.compileEventReport("pstr", Json.obj()).map {
         result => result.header.status mustBe NO_CONTENT
       }
     }
 
-    "return 400 when validation errors response" in {
+    "return an exception when validation errors response" in {
       when(mockEventReportCacheRepository.getByKeys(any())(any()))
         .thenReturn(Future.successful(Some(responseJson)))
 
       when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
-      val listErrors: List[ErrorReport] = List(
-        ErrorReport("instance1", "errors1"),
-        ErrorReport("instance2", "errors2")
-      )
+      when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
+        .thenReturn(Failure(new Exception("Message")))
 
-      when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Left(listErrors)
-
-      recoverToExceptionIf[EventReportValidationFailureException] {
+      recoverToExceptionIf[Exception] {
         eventReportService.compileEventReport("pstr", Json.obj())
       } map {
         failure =>
-          failure.exMessage mustBe "Schema validation errors for compileEventReportSummary:-\n(instance1: errors1),\n(instance2: errors2)"
+          failure.getMessage mustBe "Message"
       }
     }
 
@@ -120,123 +114,78 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
-      when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(), any())) thenReturn Right(false)
+      when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
+        .thenReturn(Failure(new Exception("Message")))
 
-      recoverToExceptionIf[EventReportValidationFailureException] {
+      recoverToExceptionIf[Exception] {
         eventReportService.compileEventReport("pstr", Json.obj())
       } map {
         failure =>
-          failure.exMessage mustBe "compileEventReportSummary schema validation failed (returned false)"
+          failure.getMessage mustBe "Message"
       }
     }
 
     "return 400 when validation errors response for event one report" in {
       when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1826.toString))(implicitly))
         .thenReturn(Future.successful(Some(responseJson)))
-      when(mockJSONPayloadSchemaValidator.validateJsonPayload(createCompiledEventSummaryReportSchemaPath, responseJson)) thenReturn Right(true)
+      when(mockJSONPayloadSchemaValidator.validatePayload(eqTo(responseJson), eqTo(createCompiledEventSummaryReportSchemaPath), any()))
+        .thenReturn(Success(()))
       when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
       when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1827.toString))(implicitly))
         .thenReturn(Future.successful(Some(responseJson)))
-      when(mockJSONPayloadSchemaValidator.validateJsonPayload(compileEventOneReportSchemaPath, responseJson)) thenReturn Right(false)
+      when(mockJSONPayloadSchemaValidator.validatePayload(eqTo(responseJson), eqTo(compileEventOneReportSchemaPath), any()))
+        .thenReturn(Failure(new Exception("Message")))
       when(mockEventReportConnector.compileEventOneReport(any(), any())(any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
-
-      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1829.toString))(implicitly))
-        .thenReturn(Future.successful(Some(responseJson)))
-      when(mockJSONPayloadSchemaValidator.validateJsonPayload(submitEvent20ADeclarationReportSchemaPath, responseJson)) thenReturn Right(true)
-      when(mockEventReportConnector.compileMemberEventReport(any(), any())(any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
       when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1830.toString))(implicitly))
         .thenReturn(Future.successful(Some(responseJson)))
-      when(mockJSONPayloadSchemaValidator.validateJsonPayload(compileMemberEventReportSchemaPath, responseJson)) thenReturn Right(true)
+      when(mockJSONPayloadSchemaValidator.validatePayload(eqTo(responseJson), eqTo(compileMemberEventReportSchemaPath), any()))
+        .thenReturn(Success(()))
       when(mockEventReportConnector.compileMemberEventReport(any(), any())(any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
 
-      recoverToExceptionIf[EventReportValidationFailureException] {
+      recoverToExceptionIf[Exception] {
         eventReportService.compileEventReport("pstr", Json.obj())
       } map {
         failure =>
-          failure.exMessage mustBe "compileEventOneReport schema validation failed (returned false)"
+          failure.getMessage mustBe "Message"
       }
     }
 
     "return 400 when validation errors response for member event report" in {
       when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1826.toString))(implicitly))
         .thenReturn(Future.successful(Some(responseJson)))
-      when(mockJSONPayloadSchemaValidator.validateJsonPayload(createCompiledEventSummaryReportSchemaPath, responseJson)) thenReturn Right(true)
+      when(mockJSONPayloadSchemaValidator.validatePayload(eqTo(responseJson), eqTo(createCompiledEventSummaryReportSchemaPath), any()))
+        .thenReturn(Success(()))
       when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
       when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1827.toString))(implicitly))
         .thenReturn(Future.successful(Some(responseJson)))
-      when(mockJSONPayloadSchemaValidator.validateJsonPayload(compileEventOneReportSchemaPath, responseJson)) thenReturn Right(true)
+      when(mockJSONPayloadSchemaValidator.validatePayload(eqTo(responseJson), eqTo(compileEventOneReportSchemaPath), any()))
+        .thenReturn(Success(()))
       when(mockEventReportConnector.compileEventOneReport(any(), any())(any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
-
-      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1829.toString))(implicitly))
-        .thenReturn(Future.successful(Some(responseJson)))
-      when(mockJSONPayloadSchemaValidator.validateJsonPayload(submitEvent20ADeclarationReportSchemaPath, responseJson)) thenReturn Right(true)
-      when(mockEventReportConnector.submitEvent20ADeclarationReport(any(), any())(any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
       when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1830.toString))(implicitly))
         .thenReturn(Future.successful(Some(responseJson)))
-      when(mockJSONPayloadSchemaValidator.validateJsonPayload(compileMemberEventReportSchemaPath, responseJson)) thenReturn Right(false)
+      when(mockJSONPayloadSchemaValidator.validatePayload(eqTo(responseJson), eqTo(compileMemberEventReportSchemaPath), any()))
+        .thenReturn(Failure(new Exception("Message")))
       when(mockEventReportConnector.compileMemberEventReport(any(), any())(any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
 
-      recoverToExceptionIf[EventReportValidationFailureException] {
+      recoverToExceptionIf[Exception] {
         eventReportService.compileEventReport("pstr", Json.obj())
       } map {
         failure =>
-          failure.exMessage mustBe "compileMemberEventReport schema validation failed (returned false)"
+          failure.getMessage mustBe "Message"
       }
     }
-
-    "return 400 when validation errors response for event 20a declaration report" in {
-
-      val listErrors: List[ErrorReport] = List(
-        ErrorReport("instance1", "errors1"),
-        ErrorReport("instance2", "errors2")
-      )
-
-      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1826.toString))(implicitly))
-        .thenReturn(Future.successful(Some(responseJson)))
-      when(mockJSONPayloadSchemaValidator.validateJsonPayload(createCompiledEventSummaryReportSchemaPath, responseJson)) thenReturn Right(true)
-      when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
-
-      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1827.toString))(implicitly))
-        .thenReturn(Future.successful(Some(responseJson)))
-      when(mockJSONPayloadSchemaValidator.validateJsonPayload(compileEventOneReportSchemaPath, responseJson)) thenReturn Right(true)
-      when(mockEventReportConnector.compileEventOneReport(any(), any())(any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
-
-      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1829.toString))(implicitly))
-        .thenReturn(Future.successful(Some(responseJson)))
-      when(mockJSONPayloadSchemaValidator.validateJsonPayload(submitEvent20ADeclarationReportSchemaPath, responseJson)) thenReturn Left(listErrors)
-      when(mockEventReportConnector.compileMemberEventReport(any(), any())(any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
-
-      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1830.toString))(implicitly))
-        .thenReturn(Future.successful(Some(responseJson)))
-      when(mockJSONPayloadSchemaValidator.validateJsonPayload(compileMemberEventReportSchemaPath, responseJson)) thenReturn Right(true)
-      when(mockEventReportConnector.compileMemberEventReport(any(), any())(any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
-
-      recoverToExceptionIf[EventReportValidationFailureException] {
-        eventReportService.compileEventReport("pstr", Json.obj())
-      } map {
-        failure =>
-          failure.exMessage mustBe "Schema validation errors for submitEvent20ADeclarationReport:-\n(instance1: errors1),\n(instance2: errors2)"
-      }
-    }
-
 
     "throw Upstream5XXResponse on Internal Server Error" in {
 
@@ -247,6 +196,9 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
       when(mockEventReportConnector.compileEventOneReport(any(), any())(any(), any()))
         .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
+      when(mockEventReportConnector.compileMemberEventReport(any(), any())(any(), any()))
+        .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
+
       recoverToExceptionIf[UpstreamErrorResponse] {
         eventReportService.compileEventReport("pstr", Json.obj())
       } map {
@@ -378,6 +330,21 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       }
     }
   }
+
+  "submitEvent20ADeclarationReport" must {
+    "return valid response" in {
+      when(mockEventReportConnector.submitEvent20ADeclarationReport(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponse))(any(), any()))
+        .thenReturn(Future.successful(HttpResponse.apply(
+          status = OK,
+          json = submitEvent20ADeclarationReportSuccessResponse,
+          headers = Map.empty)))
+      eventReportService.submitEvent20ADeclarationReport(pstr, submitEvent20ADeclarationReportSuccessResponse)(implicitly, implicitly).map { resultJsValue =>
+        resultJsValue mustBe submitEvent20ADeclarationReportSuccessResponse
+      }
+    }
+  }
 }
 
 object EventReportServiceSpec {
@@ -424,6 +391,9 @@ object EventReportServiceSpec {
 
   val submitEventDeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678933")
+
+  val submitEvent20ADeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+    "formBundleNumber" -> "12345670811")
 
 }
 

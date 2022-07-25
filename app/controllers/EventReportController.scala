@@ -25,7 +25,7 @@ import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, Enrolment}
 import uk.gov.hmrc.http.{UnauthorizedException, Request => _, _}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import utils.JSONPayloadSchemaValidator
+import utils.JSONSchemaValidator
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -35,7 +35,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class EventReportController @Inject()(
                                        cc: ControllerComponents,
                                        val authConnector: AuthConnector,
-                                       jsonPayloadSchemaValidator: JSONPayloadSchemaValidator,
+                                       jsonSchemaValidator: JSONSchemaValidator,
                                        eventReportService: EventReportService
                                      )(implicit ec: ExecutionContext)
   extends BackendController(cc)
@@ -45,6 +45,7 @@ class EventReportController @Inject()(
     with Logging {
 
   private val submitEventDeclarationReportSchemaPath = "/resources.schemas/api-1828-submit-event-declaration-report-request-schema-v1.0.0.json"
+  private val submitEvent20ADeclarationReportSchemaPath = "/resources.schemas/api-1829-submit-event20a-declaration-report-request-schema-v1.0.0.json"
 
   def saveUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
@@ -103,7 +104,7 @@ class EventReportController @Inject()(
   def getOverview: Action[AnyContent] = Action.async {
     implicit request =>
       withAuthAndOverviewParameters { (pstr, reportType, startDate, endDate) =>
-        eventReportService.getOverview(pstr, reportType, startDate, endDate).map{
+        eventReportService.getOverview(pstr, reportType, startDate, endDate).map {
           data => Ok(data)
         }
       }
@@ -113,21 +114,26 @@ class EventReportController @Inject()(
     implicit request =>
       withPstrAndBody { (pstr, userAnswersJson) =>
         logger.debug(message = s"[Submit Event Declaration Report - Incoming payload]$userAnswersJson")
-        jsonPayloadSchemaValidator.validateJsonPayload(submitEventDeclarationReportSchemaPath, userAnswersJson) match {
-          case Right(true) =>
-            eventReportService.submitEventDeclarationReport(pstr, userAnswersJson).map { response =>
-              Ok(response)
-            }
-          case Left(errors) =>
-            val allErrorsAsString = "Schema validation errors:-\n" + errors.mkString(",\n")
-            throw EventReportValidationFailureException(allErrorsAsString)
-          case _ => throw EventReportValidationFailureException("Schema validation failed (returned false)")
-        }
+        Future.fromTry(jsonSchemaValidator.validatePayload(userAnswersJson, submitEventDeclarationReportSchemaPath, "submitEvent20ADeclarationReport"))
+          .flatMap { _ =>
+            eventReportService.submitEventDeclarationReport(pstr, userAnswersJson).map(Ok(_))
+          }
+      }
+  }
+
+  def submitEvent20ADeclarationReport: Action[AnyContent] = Action.async {
+    implicit request =>
+      withPstrAndBody { (pstr, userAnswersJson) =>
+        logger.debug(message = s"[Submit Event 20A Declaration Report - Incoming payload]$userAnswersJson")
+        Future.fromTry(jsonSchemaValidator.validatePayload(userAnswersJson, submitEvent20ADeclarationReportSchemaPath, "submitEvent20ADeclarationReport"))
+          .flatMap { _ =>
+            eventReportService.submitEvent20ADeclarationReport(pstr, userAnswersJson).map(Ok(_))
+          }
       }
   }
 
   private def withPstrAndBody(block: (String, JsValue) => Future[Result])
-                  (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+                             (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
 
@@ -149,7 +155,7 @@ class EventReportController @Inject()(
   }
 
   private def withPstrEventTypeAndBody(block: (String, String, JsValue) => Future[Result])
-                               (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+                                      (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
 
@@ -271,4 +277,3 @@ class EventReportController @Inject()(
   private def prettyMissingParamError(param: Option[String], error: String) = if (param.isEmpty) s"$error " else ""
 }
 
-case class EventReportValidationFailureException(exMessage: String) extends BadRequestException(exMessage)

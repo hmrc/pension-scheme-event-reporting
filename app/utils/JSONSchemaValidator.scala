@@ -19,17 +19,20 @@ package utils
 import com.github.fge.jackson.JsonLoader
 import com.github.fge.jsonschema.core.report.ListProcessingReport
 import com.github.fge.jsonschema.main.JsonSchemaFactory
+import models.EventReportValidationFailureException
 import play.api.libs.json._
+
+import scala.util.{Failure, Success, Try}
 
 case class ErrorReport(instance: String, errors: String) {
   override def toString: String = s"($instance: $errors)"
 }
 
-class JSONPayloadSchemaValidator {
-  type ValidationReport = Either[List[ErrorReport], Boolean]
+class JSONSchemaValidator {
+  type ValidationReport = Either[List[ErrorReport], Unit]
   private val basePath = System.getProperty("user.dir")
 
-  def validateJsonPayload(jsonSchemaPath: String, data: JsValue): ValidationReport = {
+  private def validateJsonPayload(jsonSchemaPath: String, data: JsValue): ValidationReport = {
     val deepValidationCheck = true
     val factory = JsonSchemaFactory.byDefault()
     val schemaPath = JsonLoader.fromPath(s"$basePath/conf/$jsonSchemaPath")
@@ -49,7 +52,16 @@ class JSONPayloadSchemaValidator {
       Left(jsArrayErrors.toList)
     }
     else {
-      Right(true)
+      Right(())
+    }
+  }
+
+  def validatePayload(data: JsValue, apiSchemaPath: String, eventName: String): Try[Unit] = {
+    validateJsonPayload(apiSchemaPath, data) match {
+      case Right(()) => Success(())
+      case Left(errors) =>
+        val allErrorsAsString = s"Schema validation errors for $eventName :-\n" + errors.mkString(",\n")
+        Failure(EventReportValidationFailureException(allErrorsAsString))
     }
   }
 }
