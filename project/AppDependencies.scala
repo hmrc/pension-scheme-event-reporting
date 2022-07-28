@@ -3,9 +3,14 @@ import sbt._
 object AppDependencies {
 
   val compile = Seq(
-    "uk.gov.hmrc"             %% "bootstrap-backend-play-28"  % "5.24.0",
+    ("uk.gov.hmrc"             %% "bootstrap-backend-play-28"  % "5.24.0").exclude("", ""),
     "uk.gov.hmrc.mongo"       %% "hmrc-mongo-play-28"         % "0.64.0",
-    "com.github.java-json-tools" %% "json-schema-validator" % "2.2.14"
+    "com.github.java-json-tools" %% "json-schema-validator" % "2.2.14",
+    "org.apache.spark" %% "spark-core" % "3.2.1",
+    "org.apache.spark" %% "spark-sql" % "3.2.1",
+    "com.crealytics" %% "spark-excel" % "0.14.0",
+    "org.apache.logging.log4j" % "log4j-api" % "2.4.1",
+    "org.apache.logging.log4j" % "log4j-core" % "2.4.1"
   )
 
   val test = Seq(

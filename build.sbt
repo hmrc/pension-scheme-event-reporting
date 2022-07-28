@@ -13,10 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import sbt.Keys.resolvers
 import scoverage.ScoverageKeys
 import uk.gov.hmrc.DefaultBuildSettings
 import uk.gov.hmrc.DefaultBuildSettings.integrationTestSettings
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
+
+import scala.collection.Seq
 
 val appName: String = "pension-scheme-event-reporting"
 
@@ -46,13 +49,14 @@ lazy val root = (project in file("."))
     libraryDependencies ++= AppDependencies(),
     retrieveManaged := true,
     resolvers ++= Seq(
-      Resolver.jcenterRepo
+      Resolver.jcenterRepo,
+      "bintray-spark-packages" at "https://dl.bintray.com/spark-packages/maven",
+      "Typesafe Simple Repository" at "https://repo.typesafe.com/typesafe/simple/maven-releases"
     )
   )
   .settings(publishingSettings: _*)
   .configs(IntegrationTest)
   .settings(integrationTestSettings(): _*)
-  .settings(resolvers += Resolver.jcenterRepo)
 
 
 lazy val testSettings: Seq[Def.Setting[_]] = Seq(
