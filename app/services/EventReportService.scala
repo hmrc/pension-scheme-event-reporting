@@ -70,10 +70,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    EventType.getApiTypeByEventType(eventType) match {
-      case Some(Api1831) | Some(Api1832) | Some(Api1833) | Some(Api1834) => eventReportConnector.getEvent(pstr, startDate, version, eventType)
-      case _ => Future.failed(new NotFoundException(s"Not Found: ApiType not found for eventType ($eventType)"))
-    }
+    eventReportConnector.getEvent(pstr, startDate, version, eventType)
   }
 
   def saveUserAnswers(pstr: String, eventType: EventType, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {

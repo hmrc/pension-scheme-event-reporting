@@ -240,15 +240,6 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         result mustBe responseJson
       }
     }
-//TODO fix npe complaints
-    "return not found exception when an invalid event type is supplied" in {
-      recoverToExceptionIf[NotFoundException] {
-        eventReportService.getEvent(pstr, startDate, version, any[EventType]())
-      } map {
-        failure =>
-          failure.message mustBe "Not Found: ApiType not found for eventType (null)"
-      }
-    }
   }
 
   "saveEventToMongo" must {
