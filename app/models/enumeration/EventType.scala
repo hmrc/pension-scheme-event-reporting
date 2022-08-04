@@ -74,6 +74,7 @@ object EventType extends Enumerable.Implicits {
   private val api1832Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
   private val api1833Events: List[EventType] = List(Event1)
   private val api1831Events: List[EventType] = List(Event20A)
+  private val api1834Events: List[EventType] = List(WindUp, Event10, Event18, Event13, Event20, Event11, Event12, Event14, Event19)
 
   def getEventType(s: String): Option[EventType] = values.find(_.toString == s)
 
@@ -92,6 +93,7 @@ object EventType extends Enumerable.Implicits {
       case evType1832 if api1832Events.contains(evType1832) => Some(ApiType.Api1832)
       case evType1833 if api1833Events.contains(evType1833) => Some(ApiType.Api1833)
       case evType1831 if api1831Events.contains(evType1831) => Some(ApiType.Api1831)
+      case evType1834 if api1834Events.contains(evType1834) => Some(ApiType.Api1834)
       case _ => None
     }
   }
