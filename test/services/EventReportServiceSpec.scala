@@ -16,7 +16,6 @@
 
 package services
 
-import com.sun.xml.internal.bind.v2.TODO
 import connectors.EventReportConnector
 import models.enumeration.ApiType._
 import models.enumeration.{ApiType, EventType}
@@ -229,7 +228,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     "return the payload from the connector when a valid event type is supplied for API1834" in {
       when(mockEventReportConnector.getEvent(any(), any(), any(), any())(any(), any()))
         .thenReturn(Future.successful(responseJson))
-      whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event10)(implicitly, implicitly)) { result =>
+      whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event10)) { result =>
         result mustBe responseJson
       }
     }
