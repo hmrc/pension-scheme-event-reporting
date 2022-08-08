@@ -136,29 +136,27 @@ class EventReportConnector @Inject()(
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    getApiTypeByEventType(eventType) match {
-      case Some(apiType) =>
-        val apiToCall = apiType.toString
-        val apiUrl: String = s"${config.getApiUrlByApiNum(apiToCall).format(pstr)}"
 
-        val eventTypeParam = if (apiType == Api1832) Seq("eventType" -> s"Event${eventType.toString}") else Seq.empty
-        val fullHeaders = integrationFrameworkHeader ++
-          eventTypeParam ++
-          Seq(
-            "reportStartDate" -> startDate,
-            "reportVersionNumber" -> version
-          )
+    val apiType = getApiTypeByEventType(eventType)
+    val apiToCall = apiType.toString
+    val apiUrl: String = s"${config.getApiUrlByApiNum(apiToCall).format(pstr)}"
 
-        logger.debug(s"Get $apiToCall (IF) called - URL: $apiUrl with headers: $fullHeaders")
+    val eventTypeParam = if (apiType == Api1832) Seq("eventType" -> s"Event${eventType.toString}") else Seq.empty
+    val fullHeaders = integrationFrameworkHeader ++
+      eventTypeParam ++
+      Seq(
+        "reportStartDate" -> startDate,
+        "reportVersionNumber" -> version
+      )
 
-        implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
-        http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
-          response.status match {
-            case OK => response.json
-            case _ => handleErrorResponse("GET", apiUrl)(response)
-          }
-        }
-      case None => throw new BadRequestException(s"No API is configured to handle getting this eventType: $eventType")
+    logger.debug(s"Get $apiToCall (IF) called - URL: $apiUrl with headers: $fullHeaders")
+
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
+    http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
+      response.status match {
+        case OK => response.json
+        case _ => handleErrorResponse("GET", apiUrl)(response)
+      }
     }
   }
 

@@ -221,22 +221,23 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Future.successful(responseJson))
       whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event1)(implicitly, implicitly)) { result =>
         result mustBe responseJson
+
       }
     }
+
+    "return the payload from the connector when a valid event type is supplied for API1834" in {
+      when(mockEventReportConnector.getEvent(any(), any(), any(), any())(any(), any()))
+        .thenReturn(Future.successful(responseJson))
+      whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event10)) { result =>
+        result mustBe responseJson
+      }
+    }
+
     "return the payload from the connector when event type 20A" in {
       when(mockEventReportConnector.getEvent(any(), any(), any(), any())(any(), any()))
         .thenReturn(Future.successful(responseJson))
       whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event20A)(implicitly, implicitly)) { result =>
         result mustBe responseJson
-      }
-    }
-
-    "return not found exception when an invalid event type is supplied" in {
-      recoverToExceptionIf[NotFoundException] {
-        eventReportService.getEvent(pstr, startDate, version, EventType.WindUp)(implicitly, implicitly)
-      } map {
-        failure =>
-          failure.message mustBe "Not Found: ApiType not found for eventType (0)"
       }
     }
   }
@@ -348,6 +349,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 }
 
 object EventReportServiceSpec {
+
   val responseJson: JsObject = Json.obj("event" -> "mockEvent - test passed")
   val pstr: String = "pstr"
   val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"

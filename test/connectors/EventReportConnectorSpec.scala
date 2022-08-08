@@ -528,6 +528,59 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       }
     }
 
+    "API 1834" must {
+      "return the json returned from ETMP for valid event" in {
+        server.stubFor(
+          get(urlEqualTo(getApi1834Url))
+            .willReturn(
+              ok
+                .withHeader("Content-Type", "application/json")
+                .withBody(expectedGetEventResponse.toString())
+            )
+        )
+
+        connector.getEvent(pstr, fromDt, "001", Event10).map { actualResponse =>
+
+          actualResponse mustBe expectedGetEventResponse
+        }
+      }
+
+      "return a NotFoundException for NOT FOUND - 404" in {
+        server.stubFor(
+          get(urlEqualTo(getApi1834Url))
+            .willReturn(
+              notFound
+                .withBody(errorResponse("NOT_FOUND"))
+            )
+        )
+
+        recoverToExceptionIf[NotFoundException] {
+          connector.getEvent(pstr, fromDt, "001", Event10)
+        } map { response =>
+          response.responseCode mustEqual NOT_FOUND
+          response.message must include("NOT_FOUND")
+        }
+      }
+
+      "throw Upstream5XX for INTERNAL SERVER ERROR - 500" in {
+
+        server.stubFor(
+          get(urlEqualTo(getApi1834Url))
+            .willReturn(
+              serverError
+                .withBody(errorResponse("SERVER_ERROR"))
+            )
+        )
+
+        recoverToExceptionIf[UpstreamErrorResponse] {
+          connector.getEvent(pstr, fromDt, "001", Event10)
+        } map {
+          _.statusCode mustBe INTERNAL_SERVER_ERROR
+        }
+      }
+    }
+
+
     "API 1831" must {
       "return the json returned from ETMP for valid event" in {
         server.stubFor(
@@ -954,6 +1007,7 @@ object EventReportConnectorSpec {
   private val getErOverviewUrl = s"/pension-online/reports/overview/pods/$pstr/ER?fromDate=$fromDt&toDate=$toDt"
   private val getApi1832Url = s"/pension-online/member-event-status-reports/$pstr"
   private val getApi1833Url = s"/pension-online/event1-status-reports/$pstr"
+  private val getApi1834Url = s"/pension-online/event-status-reports/$pstr"
   private val getApi1831Url = s"/pension-online/event20a-status-reports/$pstr"
 
   private val submitEventDeclarationReportUrl = s"/pension-online/event-declaration-reports/$pstr"
