@@ -21,7 +21,7 @@ import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
 import models.ERVersion
 import models.enumeration.ApiType._
-import models.enumeration.{ApiType, EventType}
+import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.Result
@@ -74,18 +74,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   }
 
   def saveUserAnswers(pstr: String, eventType: EventType, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
-    (EventType.postApiTypeByEventType(eventType): Option[ApiType] @unchecked) match {
-      // TODO: Have discussion on potential for overwriting in Mongo.
-      case Some(apiType) => eventReportCacheRepository.upsert(pstr, apiType, userAnswersJson)
-    }
+    eventReportCacheRepository.upsert(pstr, EventType.postApiTypeByEventType(eventType), userAnswersJson)
   }
 
   def getUserAnswers(pstr: String, eventType: EventType)(implicit ec: ExecutionContext): Future[Option[JsObject]] = {
-    (EventType.postApiTypeByEventType(eventType): Option[ApiType] @unchecked) match {
-      case Some(apiType) =>
-        eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString))
-          .map(_.map(_.as[JsObject]))
-    }
+    eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> EventType.postApiTypeByEventType(eventType).toString))
+      .map(_.map(_.as[JsObject]))
   }
 
   def getVersions(pstr: String, reportType: String, startDate: String)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[ERVersion]] = {
