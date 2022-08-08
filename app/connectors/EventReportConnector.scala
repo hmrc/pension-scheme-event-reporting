@@ -19,7 +19,7 @@ package connectors
 import com.google.inject.Inject
 import config.AppConfig
 import models.enumeration.ApiType.Api1832
-import models.enumeration.EventType
+import models.enumeration.{ApiType, EventType}
 import models.enumeration.EventType.getApiTypeByEventType
 import models.{EROverview, ERVersion}
 import play.api.Logging
@@ -136,7 +136,7 @@ class EventReportConnector @Inject()(
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    getApiTypeByEventType(eventType) match {
+    (getApiTypeByEventType(eventType): Option[ApiType] @unchecked) match {
       case Some(apiType) =>
         val apiToCall = apiType.toString
         val apiUrl: String = s"${config.getApiUrlByApiNum(apiToCall).format(pstr)}"
@@ -158,7 +158,6 @@ class EventReportConnector @Inject()(
             case _ => handleErrorResponse("GET", apiUrl)(response)
           }
         }
-      case None => throw new BadRequestException(s"No API is configured to handle getting this eventType: $eventType")
     }
   }
 
