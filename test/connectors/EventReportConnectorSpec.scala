@@ -802,7 +802,6 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           ex.responseCode mustBe BAD_REQUEST
       }
     }
-
   }
 
   "compileMemberEventReport" must {

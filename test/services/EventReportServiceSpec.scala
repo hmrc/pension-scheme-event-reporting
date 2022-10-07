@@ -242,6 +242,16 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
   }
 
+  "getEventSummary" must {
+    "return the payload from the connector for Api1834" in {
+      when(mockEventReportConnector.getEventSummary(any(), any(), any())(any(), any()))
+        .thenReturn(Future.successful(responseJson))
+      whenReady(eventReportService.getEventSummary(pstr,version, startDate)(implicitly, implicitly)) { result =>
+        result mustBe responseJson
+      }
+    }
+  }
+
   "saveEventToMongo" must {
     "return the payload from the connector when valid event type" in {
       when(mockEventReportCacheRepository.upsert(
