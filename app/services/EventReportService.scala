@@ -73,6 +73,11 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     eventReportConnector.getEvent(pstr, startDate, version, eventType)
   }
 
+  def getEventSummary(pstr: String, version: String, startDate: String)
+              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
+    eventReportConnector.getEventSummary(pstr, startDate, version)
+  }
+
   def saveUserAnswers(pstr: String, eventType: EventType, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     eventReportCacheRepository.upsert(pstr, EventType.postApiTypeByEventType(eventType), userAnswersJson)
   }

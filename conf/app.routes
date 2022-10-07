@@ -4,6 +4,7 @@ GET        /overview                                controllers.EventReportContr
 GET        /versions                                controllers.EventReportController.getVersions
 
 GET        /event                                   controllers.EventReportController.getEvent
+GET        /event-summary                           controllers.EventReportController.getEventSummary
 POST       /compile                                 controllers.EventReportController.compileEvent
 
 POST       /submit-event-declaration-report         controllers.EventReportController.submitEventDeclarationReport
