@@ -773,6 +773,38 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
 
   }
 
+  "getEventSummary" must {
+    "return successfully when IF has returned OK" in {
+
+      server.stubFor(
+        get(urlEqualTo(getErSummaryUrl(pstr)))
+          .willReturn(
+            ok
+              .withHeader("Content-Type", "application/json")
+              .withBody(erVersionResponseJson.toString())
+          )
+      )
+      connector.getEventSummary(pstr, startDate = startDt, version = versn).map { response =>
+        response mustBe erVersionResponseJson
+      }
+    }
+
+//    "throw NotFoundException" in {
+//
+//      server.stubFor(
+//        get(urlEqualTo(getErVersionUrl(reportTypeER)))
+//          .willReturn(
+//            badRequest()
+//          )
+//      )
+//      recoverToExceptionIf[NotFoundException](connector.getVersions(pstr, reportTypeER, "")) map {
+//        ex =>
+//          ex.responseCode mustBe NOT_FOUND
+//      }
+//    }
+
+  }
+
   "compileMemberEventReport" must {
 
     "return successfully when ETMP has returned OK" in {
@@ -1036,6 +1068,7 @@ object EventReportConnectorSpec {
 
   private val startDt = "2022-04-01"
   private def getErVersionUrl(reportType: String) = s"/pension-online/reports/$pstr/$reportType/versions?startDate=$startDt"
+  private def getErSummaryUrl(pstr: String) = s"/pension-online/event-status-reports/$pstr"
   private val erVersionResponseJson: JsArray = Json.arr(
     Json.obj(
       "reportFormBundleNumber" -> "123456789012",
@@ -1055,6 +1088,8 @@ object EventReportConnectorSpec {
       )
     )
   )
+
+  private val versn = "001"
 
   private val version = ERVersion( 1,
     LocalDate.of(2022, 4, 1),
