@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package transformations.ETMPToFrontEnd
-
-import models.enumeration.EventType
-import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json.{JsPath, JsString, JsSuccess, Reads, __}
-
-object EventSummary {
+//TODO: Unsure regarding API docs - will be completed in PODS-7683
+//package transformations.ETMPToFrontEnd
+//
+//import models.enumeration.EventType
+//import play.api.libs.functional.syntax.toFunctionalBuilderOps
+//import play.api.libs.json.{JsPath, JsString, JsSuccess, Reads, __}
+//
+//object EventSummary {
 
 //  implicit val rds: Reads[Seq[EventType]] = (
 //    (JsPath \ "periodStartDate").read[String] and
@@ -34,14 +35,14 @@ object EventSummary {
 //     Nil
 //  )
 
-  private val readsRecordVersionNo: Reads[String] = (
-    (JsPath \ "recordVersion").read[String]
-  )
+//  private val readsRecordVersionNo: Reads[String] = (
+//    (JsPath \ "recordVersion").read[String]
+//  )
 
 //  ((__ \ 'chargeADetails \ 'amendedVersion).json.copyFrom((__ \ 'amendedVersion).json.pick) and
 
-  implicit val rds: Reads[Seq[EventType]] = (
-    (JsPath \ "eventDetails" \ "event10").read[String](readsRecordVersionNo)
-  )
-}
+//  implicit val rds: Reads[Seq[EventType]] = (
+//    (JsPath \ "eventDetails" \ "event10").read[Seq[EventType]](readsRecordVersionNo)
+//  )
+//}
 

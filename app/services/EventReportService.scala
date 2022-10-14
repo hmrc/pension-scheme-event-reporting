@@ -75,7 +75,10 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def getEventSummary(pstr: String, version: String, startDate: String)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    eventReportConnector.getEventSummary(pstr, startDate, version)
+    //TODO: PODS-7683 implement and use EventSummary.scala object to transform the object here. (For now, just hardcoding event seq)
+    eventReportConnector.getEventSummary(pstr, startDate, version).map{
+      _ => Json.arr("1","2", "3")
+    }
   }
 
   def saveUserAnswers(pstr: String, eventType: EventType, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
