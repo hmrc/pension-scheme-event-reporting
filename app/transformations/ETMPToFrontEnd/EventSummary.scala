@@ -22,12 +22,14 @@ import play.api.libs.json._
 
 object EventSummary {
 
+  private val FieldNameRecordVersion = "recordVersion"
+
   private val readsIsEventTypePresentFromSeq: Reads[Boolean] = {
     Reads {
       case JsArray(eventDetails) =>
         JsSuccess(
           eventDetails.exists {
-            item => item \ "recordVersion" match {
+            item => item \ FieldNameRecordVersion match {
                 case JsDefined(JsString("001")) => true
                 case _ => false
               }
