@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-//TODO: Unsure regarding API docs - will be completed in PODS-7683
-//package transformations.ETMPToFrontEnd
-//
-//import models.enumeration.EventType
-//import play.api.libs.functional.syntax.toFunctionalBuilderOps
-//import play.api.libs.json.{JsPath, JsString, JsSuccess, Reads, __}
-//
-//object EventSummary {
+package transformations.ETMPToFrontEnd
+
+import models.enumeration.EventType
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
+import play.api.libs.json.{JsArray, JsError, JsPath, JsSuccess, JsValue, Reads}
+
+object EventSummary {
 
 //  implicit val rds: Reads[Seq[EventType]] = (
 //    (JsPath \ "periodStartDate").read[String] and
@@ -35,14 +34,32 @@
 //     Nil
 //  )
 
-//  private val readsRecordVersionNo: Reads[String] = (
-//    (JsPath \ "recordVersion").read[String]
-//  )
+  implicit val rds: Reads[Seq[EventType]] = {
+    (JsPath \ "eventDetails" \ "event10").read[Boolean](readsRecordVersionNo)
+//      ev.withName(str).map {
+//        s => JsSuccess(s)
+//      }.getOrElse(JsError("error.invalid"))
+//    case _ =>
+//      JsSuccess(Seq[EventType]())
+  }
 
-//  ((__ \ 'chargeADetails \ 'amendedVersion).json.copyFrom((__ \ 'amendedVersion).json.pick) and
-
-//  implicit val rds: Reads[Seq[EventType]] = (
-//    (JsPath \ "eventDetails" \ "event10").read[Seq[EventType]](readsRecordVersionNo)
+//  private val readsRecordVersionNo: Reads[Seq[String]] = (
+//    (JsPath \ "recordVersion").read[Seq[String]]
 //  )
-//}
+private val readsRecordVersionNo: Reads[Boolean] = {
+  Reads {
+    case JsArray(eventDetails) =>
+      eventDetails.exists{
+        item =>
+          val test: Option[JsValue] = (item \ "recordVersion").asOpt
+          test.exists(_.as[String] =="001")
+      }
+//      ev.withName(str).map {
+//        s => JsSuccess(s)
+//      }.getOrElse(JsError("error.invalid"))
+    case _ =>
+      JsError("error.invalid")
+  }
+}
+}
 

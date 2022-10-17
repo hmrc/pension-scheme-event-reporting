@@ -16,6 +16,7 @@
 
 package transformations.ETMPToFrontEnd
 
+import models.enumeration.EventType._
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.must.Matchers
@@ -35,29 +36,29 @@ class EventSummarySpec extends AsyncWordSpec with Matchers with MockitoSugar wit
 
 //TODO: PODS-7683 below test will fail until transformation code is written
 
-//  "Reads" must {
-//    "transform a valid payload correctly" in {
-//      val json = readJsonFromFile("/api-1834-valid-example.json")
-//      val result = json.validate(EventSummary.rds).asOpt
-//
-//      val resultAsSet = result.toSet
-//
-//      resultAsSet mustBe Some(
-//        Set(
-//          Event10,
-//          Event11,
-//          Event12,
-//          Event13,
-//          Event14,
-//          Event18,
-//          Event19,
-//          Event20,
-//          WindUp,
-//          Event2,
-//          Event4,
-//          Event24
-//        )
-//      )
-//    }
-//  }
+  "Reads" must {
+    "transform a valid payload correctly" in {
+      val json = readJsonFromFile("/api-1834-valid-example.json")
+      val result = json.validate(EventSummary.rds).asOpt
+
+      val resultAsSet = result.toSet
+
+      resultAsSet mustBe Some(
+        Set(
+          Event10,
+          Event11,
+          Event12,
+          Event13,
+          Event14,
+          Event18,
+          Event19,
+          Event20,
+          WindUp,
+          Event2,
+          Event4,
+          Event24
+        )
+      )
+    }
+  }
 }
