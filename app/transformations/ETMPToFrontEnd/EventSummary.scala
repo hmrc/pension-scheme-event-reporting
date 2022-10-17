@@ -17,6 +17,7 @@
 package transformations.ETMPToFrontEnd
 
 import models.enumeration.EventType
+import models.enumeration.EventType.{Event10, Event13}
 //import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 
@@ -34,14 +35,13 @@ object EventSummary {
   //     Nil
   //  )
 
-  private val readsRecordVersionNo: Reads[Boolean] = {
+  private val readsIsEventTypePresentFromSeq: Reads[Boolean] = {
     Reads {
       case JsArray(eventDetails) =>
         JsSuccess(
           eventDetails.exists {
-            item =>
-              (item \ "recordVersion") match {
-                case JsDefined(ddd) => ddd.toString == "001"
+            item => item \ "recordVersion" match {
+                case JsDefined(JsString("001")) => true
                 case _ => false
               }
           }
@@ -52,21 +52,19 @@ object EventSummary {
   }
 
   implicit val rds: Reads[Seq[EventType]] = {
-    val tt = (JsPath \ "eventDetails" \ "event10").read[Boolean](readsRecordVersionNo)
-    val readsOptionEventTypeEvent10: Reads[Seq[EventType]] = tt.flatMap { uu =>
-      if (uu) {
-        Some(EventType.Event10)
-      } else {
-        None
-      }
-      ///
-      readsOptionEventTypeEvent10
-    }
-    readsOptionEventTypeEvent10.map { kkk =>
-      kkk.toSeq
+    val readsBooleanEvent10 = (JsPath \ "eventDetails" \ "event10").read[Boolean](readsIsEventTypePresentFromSeq)
+    val readsBooleanEvent13 = (JsPath \ "eventDetails" \ "event13").read[Boolean](readsIsEventTypePresentFromSeq)
+    for {
+      event10 <- readsBooleanEvent10
+      event13 <- readsBooleanEvent13
+    } yield {
+      booleanToValue(event10, Event10) ++
+      booleanToValue(event13, Event13)
     }
   }
 
-
+  private def booleanToValue[A](b: Boolean, v: A) = {
+    if (b) Seq(v) else Nil
+  }
 }
 
