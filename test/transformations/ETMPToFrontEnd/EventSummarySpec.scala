@@ -16,11 +16,11 @@
 
 package transformations.ETMPToFrontEnd
 
-import models.enumeration.EventType._
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
+import play.api.libs.json.Json
 import uk.gov.hmrc.http._
 import utils.JsonFileReader
 
@@ -33,29 +33,16 @@ class EventSummarySpec extends AsyncWordSpec with Matchers with MockitoSugar wit
 
   }
 
-
-//TODO: PODS-7683 below test will fail until transformation code is written
-
   "Reads" must {
     "transform a valid payload correctly" in {
       val json = readJsonFromFile("/api-1834-valid-example.json")
       val result = json.validate(EventSummary.rds).asOpt
 
-      val resultAsSet = result.map(_.toSet)
-
-      resultAsSet mustBe Some(
-        Set(
-          Event10,
-          Event11,
-          Event12,
-          Event13,
-          Event14,
-          Event18,
-          Event19,
-          Event20,
-          WindUp
-        )
+      val expectedResult = Some(
+        Json.arr("10", "11", "12", "13", "14", "19", "20", "0")
       )
+
+      result mustBe expectedResult
     }
   }
 }

@@ -23,10 +23,11 @@ import models.ERVersion
 import models.enumeration.ApiType._
 import models.enumeration.EventType
 import play.api.Logging
-import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.libs.json._
 import play.api.mvc.Result
 import play.api.mvc.Results._
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
+import transformations.ETMPToFrontEnd.EventSummary
 import uk.gov.hmrc.http.HeaderCarrier
 import utils.JSONSchemaValidator
 
@@ -74,10 +75,14 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   }
 
   def getEventSummary(pstr: String, version: String, startDate: String)
-              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    //TODO: PODS-7683 implement and use EventSummary.scala object to transform the object here. (For now, just hardcoding event seq)
-    eventReportConnector.getEventSummary(pstr, startDate, version).map{
-      _ => Json.arr("1","2", "3")
+                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
+
+    eventReportConnector.getEventSummary(pstr, startDate, version).map {
+      etmpJson =>
+        etmpJson.transform(EventSummary.rds) match {
+          case JsSuccess(seqOfEventTypes, _) => seqOfEventTypes
+          case JsError(errors) => throw JsResultException(errors)
+        }
     }
   }
 
