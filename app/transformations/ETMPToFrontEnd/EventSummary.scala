@@ -35,12 +35,16 @@ object EventSummary {
   //     Nil
   //  )
 
+  private val FieldNameRecordVersion = "recordVersion"
+
+  private def booleanToValue[A](b: Boolean, v: A): Seq[A] = if (b) Seq(v) else Nil
+
   private val readsIsEventTypePresentFromSeq: Reads[Boolean] = {
     Reads {
       case JsArray(eventDetails) =>
         JsSuccess(
           eventDetails.exists {
-            item => item \ "recordVersion" match {
+            item => item \ FieldNameRecordVersion match {
                 case JsDefined(JsString("001")) => true
                 case _ => false
               }
@@ -61,10 +65,6 @@ object EventSummary {
       booleanToValue(event10, Event10) ++
       booleanToValue(event13, Event13)
     }
-  }
-
-  private def booleanToValue[A](b: Boolean, v: A) = {
-    if (b) Seq(v) else Nil
   }
 }
 
