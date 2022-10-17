@@ -17,23 +17,10 @@
 package transformations.ETMPToFrontEnd
 
 import models.enumeration.EventType
-import models.enumeration.EventType.{Event10, Event13}
-//import play.api.libs.functional.syntax.toFunctionalBuilderOps
+import models.enumeration.EventType._
 import play.api.libs.json._
 
 object EventSummary {
-
-  //  implicit val rds: Reads[Seq[EventType]] = (
-  //    (JsPath \ "periodStartDate").read[String] and
-  //      (JsPath \ "periodEndDate").read[String] and
-  //      (JsPath \ "tpssReportPresent").readNullable[String].flatMap {
-  //        case Some("Yes") => Reads(_ => JsSuccess(true))
-  //        case _ => Reads(_ => JsSuccess(false))
-  //      }
-  //    ) (
-  //    (endDate, tpssReport, versionDetails) =>
-  //     Nil
-  //  )
 
   private val readsIsEventTypePresentFromSeq: Reads[Boolean] = {
     Reads {
@@ -51,15 +38,45 @@ object EventSummary {
     }
   }
 
+  private val readsIsEventTypePresent: Reads[Boolean] = {
+    Reads {
+      case JsString("001") =>
+        JsSuccess(true)
+      case _ =>
+        JsSuccess(false)
+    }
+  }
+
   implicit val rds: Reads[Seq[EventType]] = {
     val readsBooleanEvent10 = (JsPath \ "eventDetails" \ "event10").read[Boolean](readsIsEventTypePresentFromSeq)
+    val readsBooleanEvent11 = (JsPath \ "eventDetails" \ "event11" \ "recordVersion").read[Boolean](readsIsEventTypePresent)
+    val readsBooleanEvent12 = (JsPath \ "eventDetails" \ "event12" \ "recordVersion").read[Boolean](readsIsEventTypePresent)
     val readsBooleanEvent13 = (JsPath \ "eventDetails" \ "event13").read[Boolean](readsIsEventTypePresentFromSeq)
+    val readsBooleanEvent14 = (JsPath \ "eventDetails" \ "event14" \ "recordVersion").read[Boolean](readsIsEventTypePresent)
+    val readsBooleanEvent18 = (JsPath \ "eventDetails" \ "event18" \ "recordVersion").read[Boolean](readsIsEventTypePresent)
+    val readsBooleanEvent19 = (JsPath \ "eventDetails" \ "event19").read[Boolean](readsIsEventTypePresentFromSeq)
+    val readsBooleanEvent20 = (JsPath \ "eventDetails" \ "event20").read[Boolean](readsIsEventTypePresentFromSeq)
+    val readsBooleanEventWindUp = (JsPath \ "eventDetails" \ "eventWindUp" \ "recordVersion").read[Boolean](readsIsEventTypePresent)
     for {
       event10 <- readsBooleanEvent10
+      event11 <- readsBooleanEvent11
+      event12 <- readsBooleanEvent12
       event13 <- readsBooleanEvent13
+      event14 <- readsBooleanEvent14
+      event18 <- readsBooleanEvent18
+      event19 <- readsBooleanEvent19
+      event20 <- readsBooleanEvent20
+      eventWindUp <- readsBooleanEventWindUp
     } yield {
       booleanToValue(event10, Event10) ++
-      booleanToValue(event13, Event13)
+      booleanToValue(event11, Event11) ++
+      booleanToValue(event12, Event12) ++
+      booleanToValue(event13, Event13) ++
+      booleanToValue(event14, Event14) ++
+      booleanToValue(event18, Event18) ++
+      booleanToValue(event19, Event19) ++
+      booleanToValue(event20, Event20) ++
+      booleanToValue(eventWindUp, WindUp)
     }
   }
 

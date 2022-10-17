@@ -41,7 +41,7 @@ class EventSummarySpec extends AsyncWordSpec with Matchers with MockitoSugar wit
       val json = readJsonFromFile("/api-1834-valid-example.json")
       val result = json.validate(EventSummary.rds).asOpt
 
-      val resultAsSet = result.toSet
+      val resultAsSet = result.map(_.toSet)
 
       resultAsSet mustBe Some(
         Set(
@@ -53,10 +53,7 @@ class EventSummarySpec extends AsyncWordSpec with Matchers with MockitoSugar wit
           Event18,
           Event19,
           Event20,
-          WindUp,
-          Event2,
-          Event4,
-          Event24
+          WindUp
         )
       )
     }
