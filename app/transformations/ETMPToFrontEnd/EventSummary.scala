@@ -71,7 +71,7 @@ object EventSummary {
       event20 <- readsBooleanEvent20
       eventWindUp <- readsBooleanEventWindUp
     } yield {
-      val hh = booleanToValue(event10, Event10) ++
+      val seqJsString = booleanToValue(event10, Event10) ++
         booleanToValue(event11, Event11) ++
         booleanToValue(event12, Event12) ++
         booleanToValue(event13, Event13) ++
@@ -80,7 +80,7 @@ object EventSummary {
         booleanToValue(event19, Event19) ++
         booleanToValue(event20, Event20) ++
         booleanToValue(eventWindUp, WindUp)
-      JsArray(hh.sortWith((a,b) => a.value < b.value))
+      JsArray(seqJsString.sortWith((a,b) => a.value < b.value))
     }
   }
 
