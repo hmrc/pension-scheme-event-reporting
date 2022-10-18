@@ -27,6 +27,8 @@ import org.scalatest.concurrent.ScalaFutures.whenReady
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 import play.api.http.Status.NO_CONTENT
+import play.api.{Application, inject}
+import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.{JsArray, JsObject, Json}
 import play.api.test.Helpers._
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
@@ -52,8 +54,20 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val version = "version"
   private val payload = Json.obj("test" -> "test")
 
-  private def eventReportService = new EventReportService(
-    mockEventReportConnector, mockEventReportCacheRepository, mockJSONPayloadSchemaValidator, mockOverviewCacheRepository)
+
+  val modules: Seq[GuiceableModule] =
+    Seq(
+      inject.bind[EventReportConnector].toInstance(mockEventReportConnector),
+      inject.bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
+      inject.bind[JSONSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
+      inject.bind[OverviewCacheRepository].toInstance(mockOverviewCacheRepository)
+    )
+
+  val application: Application = new GuiceApplicationBuilder()
+    .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false).
+    overrides(modules: _*).build()
+
+  private def eventReportService = application.injector.instanceOf[EventReportService]
 
   override def beforeEach(): Unit = {
     reset(mockEventReportConnector, mockOverviewCacheRepository, mockEventReportCacheRepository, mockJSONPayloadSchemaValidator)
