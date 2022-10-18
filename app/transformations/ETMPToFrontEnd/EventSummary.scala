@@ -51,7 +51,16 @@ object EventSummary {
   }
 
   implicit val rds: Reads[JsArray] = {
-    def booleanToValue(b: Option[Boolean], v: EventType): Seq[JsString] = if (b.getOrElse(false)) Seq(JsString(v.toString)) else Nil
+    val sortEventTypes: (String, String) => Boolean = (a, b) =>
+      (a, b) match {
+        case ("0", _) => false
+        case (_, "0") => true
+        case (a, b) if a < b => true
+        case _ => false
+      }
+
+    def booleanToValue(b: Option[Boolean], v: EventType): Seq[String] = if (b.getOrElse(false)) Seq(v.toString) else Nil
+
     val readsBooleanEvent10 = (JsPath \ "eventDetails" \ "event10").readNullable[Boolean](readsIsEventTypePresentFromSeq)
     val readsBooleanEvent11 = (JsPath \ "eventDetails" \ "event11" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent)
     val readsBooleanEvent12 = (JsPath \ "eventDetails" \ "event12" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent)
@@ -81,7 +90,7 @@ object EventSummary {
         booleanToValue(event19, Event19) ++
         booleanToValue(event20, Event20) ++
         booleanToValue(eventWindUp, WindUp)
-      JsArray(seqJsString.sortWith((a,b) => if (a.value == WindUp.toString) false else a.value < b.value))
+      JsArray(seqJsString.sortWith(sortEventTypes).map(JsString))
     }
   }
 

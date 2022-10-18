@@ -57,10 +57,18 @@ trait ResponseGenerators extends Matchers with OptionValues {
   def nonEmptyString: Gen[String] = Gen.alphaStr.suchThat(!_.isEmpty)
 
   def generateRandomPayloadAPI1834: Gen[Tuple2[JsObject, Seq[String]]] = {
+    val sortEventTypes: (String, String) => Boolean = (a, b) => {
+      (a, b) match {
+        case ("0", _) => false
+        case (_, "0") => true
+        case (a, b) if a < b => true
+        case _ => false
+      }
+    }
     val version = "001"
     for {
       chosenEventTypesWithSeq <- Gen.someOf[String](Seq("10", "13", "19", "20"))
-      chosenEventTypesWithoutSeq <- Gen.someOf[String](Seq("11", "12", "14"))
+      chosenEventTypesWithoutSeq <- Gen.someOf[String](Seq("11", "12", "14", "0"))
     } yield {
       val payloadWithSeq = chosenEventTypesWithSeq.foldLeft(Json.obj()) { (acc, s) =>
         acc ++ Json.obj(
@@ -73,7 +81,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
       }
       val payloadWithoutSeq = chosenEventTypesWithoutSeq.foldLeft(Json.obj()) { (acc, s) =>
         acc ++ Json.obj(
-          s"event${if (s == "0") "WindUp" else s}" ->
+          s"""event${if (s == "0") "WindUp" else s}""" ->
             Json.obj(
               "recordVersion" -> version
             )
@@ -84,7 +92,8 @@ trait ResponseGenerators extends Matchers with OptionValues {
         "eventDetails" -> (payloadWithSeq ++ payloadWithoutSeq)
       )
 
-      val expectedEventTypes = (chosenEventTypesWithSeq ++ chosenEventTypesWithoutSeq).sortWith((a, b) => if (a == "0") false else a < b)
+      val expectedEventTypes = (chosenEventTypesWithSeq ++ chosenEventTypesWithoutSeq)
+        .sortWith(sortEventTypes)
 
       Tuple2(generatedPayload,expectedEventTypes)
     }
