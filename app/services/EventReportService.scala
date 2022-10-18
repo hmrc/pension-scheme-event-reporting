@@ -22,7 +22,6 @@ import connectors.EventReportConnector
 import models.ERVersion
 import models.enumeration.ApiType._
 import models.enumeration.EventType
-import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc.Result
 import play.api.mvc.Results._
@@ -39,7 +38,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    eventReportCacheRepository: EventReportCacheRepository,
                                    jsonPayloadSchemaValidator: JSONSchemaValidator,
                                    overviewCacheRepository: OverviewCacheRepository
-                                  ) extends Logging {
+                                  ) {
 
   private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
@@ -75,7 +74,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   }
 
   def getEventSummary(pstr: String, version: String, startDate: String)
-                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
+                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
     for {
       etmpJson <- eventReportConnector.getEventSummary(pstr, startDate, version)
     } yield {

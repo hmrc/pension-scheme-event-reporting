@@ -27,10 +27,10 @@ import org.scalatest.concurrent.ScalaFutures.whenReady
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 import play.api.http.Status.NO_CONTENT
-import play.api.{Application, inject}
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.{JsArray, JsObject, Json}
 import play.api.test.Helpers._
+import play.api.{Application, inject}
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
 import uk.gov.hmrc.http._
 import utils.JSONSchemaValidator
@@ -261,7 +261,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       val responseJson = JsArray()
       when(mockEventReportConnector.getEventSummary(any(), any(), any())(any(), any()))
         .thenReturn(Future.successful(responseJson))
-      whenReady(eventReportService.getEventSummary(pstr, version, startDate)(implicitly, implicitly)) { result =>
+      eventReportService.getEventSummary(pstr, version, startDate).map { result =>
         result mustBe responseJson
       }
     }

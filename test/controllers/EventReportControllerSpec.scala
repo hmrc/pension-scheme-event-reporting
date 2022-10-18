@@ -512,7 +512,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 }
 
 object EventReportControllerSpec {
-  private val dummyJsValue = JsString("test")
+  private val dummyJsValue = JsArray(Seq(JsString("test")))
   private val pstr = "pstr"
 
   private val versionString = "001"
