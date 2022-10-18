@@ -18,7 +18,7 @@ object AppDependencies {
     "org.mockito"             %% "mockito-scala-scalatest"    % "1.16.42"             % "test",
     "com.github.tomakehurst"  %  "wiremock"                 % "2.26.0"                % "test",
     "com.github.tomakehurst"  %  "wiremock-jre8"            % "2.26.0"                % "test",
-
+    "org.scalatestplus"       %% "scalatestplus-scalacheck" % "3.1.0.0-RC2"           % "test"
   )
 
   def apply(): Seq[ModuleID] = compile ++ test

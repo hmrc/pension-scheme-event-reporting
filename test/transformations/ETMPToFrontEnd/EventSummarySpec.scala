@@ -20,17 +20,51 @@ import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
-import play.api.libs.json.Json
+import play.api.libs.json.{JsArray, JsObject, JsString, Json}
 import uk.gov.hmrc.http._
 import utils.JsonFileReader
 
 class EventSummarySpec extends AsyncWordSpec with Matchers with MockitoSugar with BeforeAndAfter with JsonFileReader {
-
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  before {
+  private def severalOf(s: Seq[String]): Seq[String] = {
+    s.foldLeft(Seq[String]()) { (acc, b) =>
+      if (math.random < 0.5) {
+        acc :+ b
+      } else {
+        acc
+      }
+    }
+  }
 
+  private def generateRandomPayload: Tuple2[JsObject, Seq[String]] = {
+    val chosenEventTypesWithSeq = severalOf(Seq("10", "13", "19", "20"))
+    val payloadWithSeq = chosenEventTypesWithSeq.foldLeft(Json.obj()) { (acc, s) =>
+      acc ++ Json.obj(
+        s"event$s" -> Json.arr(
+          Json.obj(
+            "recordVersion" -> "001"
+          )
+        )
+      )
+    }
 
+    val chosenEventTypesWithoutSeq = severalOf(Seq("11", "12", "14", "0"))
+    val payloadWithoutSeq = chosenEventTypesWithoutSeq.foldLeft(Json.obj()) { (acc, s) =>
+      acc ++ Json.obj(
+        s"event${if (s == "0") "WindUp" else s}" ->
+          Json.obj(
+            "recordVersion" -> "001"
+          )
+      )
+    }
+
+    Tuple2(
+      Json.obj(
+        "eventDetails" -> (payloadWithSeq ++ payloadWithoutSeq)
+      ),
+      (chosenEventTypesWithSeq ++ chosenEventTypesWithoutSeq).sortWith((a, b) => a < b)
+    )
   }
 
   "Reads" must {
@@ -39,9 +73,16 @@ class EventSummarySpec extends AsyncWordSpec with Matchers with MockitoSugar wit
       val result = json.validate(EventSummary.rds).asOpt
 
       val expectedResult = Some(
-        Json.arr("10", "11", "12", "13", "14", "19", "20", "0")
+        Json.arr("0", "10", "11", "12", "13", "14", "19", "20")
       )
 
+      result mustBe expectedResult
+    }
+
+    "transform a randomly generated valid payload correctly" in {
+      val (json: JsObject, eventTypes: Seq[String]) = generateRandomPayload
+      val result = json.validate(EventSummary.rds).asOpt
+      val expectedResult = Some(JsArray(eventTypes.map(JsString)))
       result mustBe expectedResult
     }
   }

@@ -71,7 +71,7 @@ object EventSummary {
       event20 <- readsBooleanEvent20
       eventWindUp <- readsBooleanEventWindUp
     } yield {
-      booleanToValue(event10, Event10) ++
+      val hh = booleanToValue(event10, Event10) ++
         booleanToValue(event11, Event11) ++
         booleanToValue(event12, Event12) ++
         booleanToValue(event13, Event13) ++
@@ -80,11 +80,12 @@ object EventSummary {
         booleanToValue(event19, Event19) ++
         booleanToValue(event20, Event20) ++
         booleanToValue(eventWindUp, WindUp)
+      JsArray(hh.sortWith((a,b) => a.value < b.value))
     }
   }
 
-  private def booleanToValue(b: Option[Boolean], v: EventType): JsArray = {
-    if (b.getOrElse(false)) JsArray(Seq(JsString(v.toString))) else JsArray()
+  private def booleanToValue(b: Option[Boolean], v: EventType): Seq[JsString] = {
+    if (b.getOrElse(false)) Seq(JsString(v.toString)) else Nil
   }
 }
 
