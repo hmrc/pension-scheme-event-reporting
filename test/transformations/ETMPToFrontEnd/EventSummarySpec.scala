@@ -17,57 +17,17 @@
 package transformations.ETMPToFrontEnd
 
 import org.mockito.MockitoSugar
-import org.scalatest.BeforeAndAfter
+import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
-import org.scalatest.wordspec.AsyncWordSpec
+import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json.{JsArray, JsObject, JsString, Json}
-import uk.gov.hmrc.http._
-import utils.JsonFileReader
+import utils.{JsonFileReader, ResponseGenerators}
 
-class EventSummarySpec extends AsyncWordSpec with Matchers with MockitoSugar with BeforeAndAfter with JsonFileReader {
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+class EventSummarySpec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader with ResponseGenerators with ScalaCheckPropertyChecks {
 
-  private def severalOf(s: Seq[String]): Seq[String] = {
-    s.foldLeft(Seq[String]()) { (acc, b) =>
-      if (math.random < 0.5) {
-        acc :+ b
-      } else {
-        acc
-      }
-    }
-  }
 
-  private def generateRandomPayload: Tuple2[JsObject, Seq[String]] = {
-    val chosenEventTypesWithSeq = severalOf(Seq("10", "13", "19", "20"))
-    val payloadWithSeq = chosenEventTypesWithSeq.foldLeft(Json.obj()) { (acc, s) =>
-      acc ++ Json.obj(
-        s"event$s" -> Json.arr(
-          Json.obj(
-            "recordVersion" -> "001"
-          )
-        )
-      )
-    }
 
-    val chosenEventTypesWithoutSeq = severalOf(Seq("11", "12", "14", "0"))
-    val payloadWithoutSeq = chosenEventTypesWithoutSeq.foldLeft(Json.obj()) { (acc, s) =>
-      acc ++ Json.obj(
-        s"event${if (s == "0") "WindUp" else s}" ->
-          Json.obj(
-            "recordVersion" -> "001"
-          )
-      )
-    }
-
-    Tuple2(
-      Json.obj(
-        "eventDetails" -> (payloadWithSeq ++ payloadWithoutSeq)
-      ),
-      (chosenEventTypesWithSeq ++ chosenEventTypesWithoutSeq).sortWith((a, b) => a < b)
-    )
-  }
-
-  "Reads" must {
+  "Reads" - {
     "transform a valid payload correctly" in {
       val json = readJsonFromFile("/api-1834-valid-example.json")
       val result = json.validate(EventSummary.rds).asOpt
@@ -80,10 +40,12 @@ class EventSummarySpec extends AsyncWordSpec with Matchers with MockitoSugar wit
     }
 
     "transform a randomly generated valid payload correctly" in {
-      val (json: JsObject, eventTypes: Seq[String]) = generateRandomPayload
-      val result = json.validate(EventSummary.rds).asOpt
-      val expectedResult = Some(JsArray(eventTypes.map(JsString)))
-      result mustBe expectedResult
+      forAll(generateRandomPayloadAPI1834) {
+        case (json: JsObject, eventTypes: Seq[String]) =>
+          val result = json.validate(EventSummary.rds).asOpt
+          val expectedResult = Some(JsArray(eventTypes.map(JsString)))
+          result mustBe expectedResult
+      }
     }
   }
 }
