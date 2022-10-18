@@ -27,7 +27,7 @@ import org.scalatest.concurrent.ScalaFutures.whenReady
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 import play.api.http.Status.NO_CONTENT
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsArray, JsObject, Json}
 import play.api.test.Helpers._
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
 import uk.gov.hmrc.http._
@@ -41,7 +41,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
   import EventReportServiceSpec._
 
-  implicit val hc: HeaderCarrier = HeaderCarrier()
+  private implicit val hc: HeaderCarrier = HeaderCarrier()
   private val mockEventReportConnector = mock[EventReportConnector]
   private val mockJSONPayloadSchemaValidator = mock[JSONSchemaValidator]
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
@@ -52,7 +52,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val version = "version"
   private val payload = Json.obj("test" -> "test")
 
-  def eventReportService = new EventReportService(
+  private def eventReportService = new EventReportService(
     mockEventReportConnector, mockEventReportCacheRepository, mockJSONPayloadSchemaValidator, mockOverviewCacheRepository)
 
   override def beforeEach(): Unit = {
@@ -242,16 +242,16 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
   }
 
-  //    "getEventSummary" must {
-  //    "return the payload from the connector for Api1834" in {
-  //      val responseJson = JsArray()
-  //      when(mockEventReportConnector.getEventSummary(any(), any(), any())(any(), any()))
-  //        .thenReturn(Future.successful(responseJson))
-  //      whenReady(eventReportService.getEventSummary(pstr,version, startDate)(implicitly, implicitly)) { result =>
-  //        result mustBe responseJson
-  //      }
-  //    }
-  //  }
+  "getEventSummary" must {
+    "return the payload from the connector for Api1834" in {
+      val responseJson = JsArray()
+      when(mockEventReportConnector.getEventSummary(any(), any(), any())(any(), any()))
+        .thenReturn(Future.successful(responseJson))
+      whenReady(eventReportService.getEventSummary(pstr, version, startDate)(implicitly, implicitly)) { result =>
+        result mustBe responseJson
+      }
+    }
+  }
 
   "saveEventToMongo" must {
     "return the payload from the connector when valid event type" in {
@@ -361,18 +361,13 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
 object EventReportServiceSpec {
 
-  val responseJson: JsObject = Json.obj("event" -> "mockEvent - test passed")
-  val pstr: String = "pstr"
-  val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
-  val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
-  val submitEvent20ADeclarationReportSchemaPath = "/resources.schemas/api-1829-submit-event20a-declaration-report-request-schema-v1.0.0.json"
-  val compileMemberEventReportSchemaPath = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
+  private val responseJson: JsObject = Json.obj("event" -> "mockEvent - test passed")
+  private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
+  private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
+  private val compileMemberEventReportSchemaPath = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
 
-  val saveEventSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+  private val saveEventSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678955")
-
-  val compileEventSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
-    "formBundleNumber" -> "12345678977")
 
   private val endDate = "2023-04-05"
   private val reportTypeER = "ER"
@@ -402,10 +397,10 @@ object EventReportServiceSpec {
 
   private val erOverview = Seq(overview1, overview2)
 
-  val submitEventDeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+  private val submitEventDeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678933")
 
-  val submitEvent20ADeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+  private val submitEvent20ADeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345670811")
 
 }
