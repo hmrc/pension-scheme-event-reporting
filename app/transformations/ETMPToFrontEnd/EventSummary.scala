@@ -81,7 +81,7 @@ object EventSummary {
         booleanToValue(event19, Event19) ++
         booleanToValue(event20, Event20) ++
         booleanToValue(eventWindUp, WindUp)
-      JsArray(seqJsString.sortWith((a,b) => a.value < b.value))
+      JsArray(seqJsString.sortWith((a,b) => if (a.value == WindUp.toString) false else a.value < b.value))
     }
   }
 

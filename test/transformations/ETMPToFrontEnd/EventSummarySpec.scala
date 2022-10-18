@@ -31,7 +31,7 @@ class EventSummarySpec extends AnyFreeSpec with Matchers with MockitoSugar with 
       val result = json.validate(EventSummary.rds).asOpt
 
       val expectedResult = Some(
-        Json.arr("0", "10", "11", "12", "13", "14", "19", "20")
+        Json.arr("10", "11", "12", "13", "14", "19", "20", "0")
       )
 
       result mustBe expectedResult

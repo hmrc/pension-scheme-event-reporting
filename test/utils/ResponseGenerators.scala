@@ -84,7 +84,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
         Json.obj(
           "eventDetails" -> (payloadWithSeq ++ payloadWithoutSeq)
         ),
-        (chosenEventTypesWithSeq ++ chosenEventTypesWithoutSeq).sortWith((a, b) => a < b)
+        (chosenEventTypesWithSeq ++ chosenEventTypesWithoutSeq).sortWith((a, b) => if (a == "0") false else a < b)
       )
     }
   }
