@@ -60,7 +60,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
     val version = "001"
     for {
       chosenEventTypesWithSeq <- Gen.someOf[String](Seq("10", "13", "19", "20"))
-      chosenEventTypesWithoutSeq <- Gen.someOf[String](Seq("11", "12", "14", "0"))
+      chosenEventTypesWithoutSeq <- Gen.someOf[String](Seq("11", "12", "14"))
     } yield {
       val payloadWithSeq = chosenEventTypesWithSeq.foldLeft(Json.obj()) { (acc, s) =>
         acc ++ Json.obj(
@@ -80,12 +80,13 @@ trait ResponseGenerators extends Matchers with OptionValues {
         )
       }
 
-      Tuple2(
-        Json.obj(
-          "eventDetails" -> (payloadWithSeq ++ payloadWithoutSeq)
-        ),
-        (chosenEventTypesWithSeq ++ chosenEventTypesWithoutSeq).sortWith((a, b) => if (a == "0") false else a < b)
+      val generatedPayload = Json.obj(
+        "eventDetails" -> (payloadWithSeq ++ payloadWithoutSeq)
       )
+
+      val expectedEventTypes = (chosenEventTypesWithSeq ++ chosenEventTypesWithoutSeq).sortWith((a, b) => if (a == "0") false else a < b)
+
+      Tuple2(generatedPayload,expectedEventTypes)
     }
   }
 }
