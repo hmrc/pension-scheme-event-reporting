@@ -57,6 +57,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
   def nonEmptyString: Gen[String] = Gen.alphaStr.suchThat(!_.isEmpty)
 
   def generateRandomPayloadAPI1834: Gen[Tuple2[JsObject, Seq[String]]] = {
+    val Version = "001"
     for {
       chosenEventTypesWithSeq <- Gen.someOf[String](Seq("10", "13", "19", "20"))
       chosenEventTypesWithoutSeq <- Gen.someOf[String](Seq("11", "12", "14", "0"))
@@ -65,7 +66,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
         acc ++ Json.obj(
           s"event$s" -> Json.arr(
             Json.obj(
-              "recordVersion" -> "001"
+              "recordVersion" -> Version
             )
           )
         )
@@ -74,7 +75,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
         acc ++ Json.obj(
           s"event${if (s == "0") "WindUp" else s}" ->
             Json.obj(
-              "recordVersion" -> "001"
+              "recordVersion" -> Version
             )
         )
       }
