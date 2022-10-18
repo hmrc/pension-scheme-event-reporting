@@ -36,8 +36,8 @@ object EventSummary {
               }
           }
         )
-      case _ =>
-        JsError("error.invalid")
+      case e =>
+        JsError(s"Invalid json $e")
     }
   }
 
