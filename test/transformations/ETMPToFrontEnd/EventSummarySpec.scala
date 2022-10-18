@@ -26,7 +26,7 @@ import utils.{JsonFileReader, ResponseGenerators}
 class EventSummarySpec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader with ResponseGenerators with ScalaCheckPropertyChecks {
 
   "Reads" - {
-    "transform a valid payload correctly" in {
+    "transform a valid payload correctly when read from sample file" in {
       val json = readJsonFromFile("/api-1834-valid-example.json")
       val result = json.validate(EventSummary.rds).asOpt
 
