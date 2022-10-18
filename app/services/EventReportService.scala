@@ -27,6 +27,7 @@ import play.api.libs.json._
 import play.api.mvc.Result
 import play.api.mvc.Results._
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
+import transformations.ETMPToFrontEnd.EventSummary
 import uk.gov.hmrc.http.HeaderCarrier
 import utils.JSONSchemaValidator
 
@@ -76,18 +77,13 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def getEventSummary(pstr: String, version: String, startDate: String)
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
 
-    eventReportConnector.getEventSummary(pstr, startDate, version).map {
-      etmpJson =>
-        println("\n\n -----------TEST")
-                        JsArray()
-//        etmpJson.transform(EventSummary.rds) match {
-//          case JsSuccess(seqOfEventTypes, _) =>
-//            println("\n\n -----------TEST1 " + seqOfEventTypes)
-//            seqOfEventTypes
-//          case JsError(errors) =>
-//            println("\n\n -----------TEST2")
-//            throw JsResultException(errors)
-//        }
+    eventReportConnector.getEventSummary(pstr, startDate, version).map { etmpJson =>
+        etmpJson.transform(EventSummary.rds) match {
+          case JsSuccess(seqOfEventTypes, _) =>
+            seqOfEventTypes
+          case JsError(errors) =>
+            throw JsResultException(errors)
+        }
     }
   }
 
