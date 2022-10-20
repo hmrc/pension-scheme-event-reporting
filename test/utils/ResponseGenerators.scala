@@ -105,13 +105,20 @@ trait ResponseGenerators extends Matchers with OptionValues {
       lastName <- Gen.alphaStr.suchThat(x => x.length < 35 && x.nonEmpty)
       nino <- Gen.oneOf(Seq("AB123456C", "CD123456E"))
     } yield {
-      val userAnswers = Json.obj(
-        "membersDetails" -> Json.obj(
-          "firstName" -> firstName,
-          "lastName" -> lastName,
-          "nino" -> nino
+      val userAnswers = {
+        Json.obj(
+          "membersOrEmployers" ->
+            Json.arr(
+              Json.obj(
+                "membersDetails" -> Json.obj(
+                  "firstName" -> firstName,
+                  "lastName" -> lastName,
+                  "nino" -> nino
+                )
+              )
+            )
         )
-      )
+      }
       val etmpResponse = Json.obj(
         "event1Details" -> Json.arr(
           Json.obj(

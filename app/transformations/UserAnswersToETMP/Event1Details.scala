@@ -16,11 +16,44 @@
 
 package transformations.UserAnswersToETMP
 
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 
 object Event1Details {
+/*
+{
+   "membersOrEmployers":[
+      {
+         "membersDetails":{
+            "firstName":"maryiah",
+            "lastName":"m",
+            "nino":"AB123456C"
+         }
+      }
+   ]
+}
+ */
+//def readsMember: Reads[JsObject] =
+//  ((__ \ 'memberStatus).json.copyFrom((__ \ 'memberStatus).json.pick) and
+//    (__ \ 'memberAFTVersion).json.copyFrom((__ \ 'memberAFTVersion).json.pick) and
+//    (__ \ 'memberTypeDetails).read(readsEmployerTypeDetails) and
+//    (__ \ 'correspondenceAddressDetails).read(readsCorrespondenceAddressDetails) and
+//    (__ \ 'chargeDetails \ 'paymentDate).json.copyFrom((__ \ 'dateOfPayment).json.pick) and
+//    (__ \ 'chargeDetails \ 'amountTaxDue).json.copyFrom((__ \ 'totalAmountOfTaxDue).json.pick)
+//    ).reduce
 
-  def transformToETMPData: Reads[JsObject] = ???
+  val readsMember: Reads[JsObject] =
+    ((__ \ 'firstName).json.copyFrom((__ \ 'firstName).json.pick) and
+      (__ \ 'lastName).json.copyFrom((__ \ 'lastName).json.pick) and
+      (__ \ 'nino).json.copyFrom((__ \ 'nino).json.pick)
+  ).reduce
+//  def readsMembers: Reads[JsArray] = __.read(Reads.seq(readsMember)).map(JsArray(_))
+//  def transformToETMPData: Reads[JsObject] =
+//    ( __ \ 'membersOrEmployers).readNullable[JsArray] {
+//      __.read(
+//        (((__ \ 'membersDetails \ "firstName")))
+//      )
+//    }
   /*
     (__ \ 'chargeADetails).readNullable {
       __.read(
