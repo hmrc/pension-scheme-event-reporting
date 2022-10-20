@@ -101,8 +101,8 @@ trait ResponseGenerators extends Matchers with OptionValues {
 
   def generateRandomPayloadAPI1827: Gen[Tuple2[JsObject, JsObject]] = {
     for {
-      firstName <- Gen.alphaStr.suchThat(x => x.length < 35 && x.nonEmpty)
-      lastName <- Gen.alphaStr.suchThat(x => x.length < 35 && x.nonEmpty)
+      firstName <- Gen.alphaStr
+      lastName <- Gen.alphaStr
       nino <- Gen.oneOf(Seq("AB123456C", "CD123456E"))
     } yield {
       val userAnswers = {
@@ -119,7 +119,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
             )
         )
       }
-      val etmpResponse = Json.obj(
+      val etmpResponse = Json.obj("event1Details" -> Json.obj(
         "event1Details" -> Json.arr(
           Json.obj(
             "individualMemberDetails" -> Json.obj(
@@ -129,6 +129,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
             )
           )
         )
+      )
       )
       Tuple2(userAnswers, etmpResponse)
     }

@@ -45,17 +45,23 @@ object Event1Details {
 
   val readsMember =
     (
-      (__ \ 'firstName).json.copyFrom((__ \ 'firstName).json.pick) and
-        (__ \ 'lastName).json.copyFrom((__ \ 'lastName).json.pick) and
-        (__ \ 'nino).json.copyFrom((__ \ 'nino).json.pick)
+      (__ \ 'individualMemberDetails \ 'firstName).json.copyFrom((__ \'membersDetails \ 'firstName).json.pick) and
+        (__ \ 'individualMemberDetails \ 'lastName).json.copyFrom((__ \'membersDetails \ 'lastName).json.pick) and
+        (__ \ 'individualMemberDetails \ 'nino).json.copyFrom((__ \'membersDetails \'nino).json.pick)
       ).reduce
-  //  def readsMembers: Reads[JsArray] = __.read(Reads.seq(readsMember)).map(JsArray(_))
-  //  def transformToETMPData: Reads[JsObject] =
-  //    ( __ \ 'membersOrEmployers).readNullable[JsArray] {
-  //      __.read(
-  //        (((__ \ 'membersDetails \ "firstName")))
-  //      )
-  //    }
+
+  def readsMembers: Reads[JsArray] = __.read(Reads.seq(readsMember)).map(JsArray(_))
+
+  def transformToETMPData: Reads[JsObject] = {
+   val t = (__ \ 'membersOrEmployers).readNullable[JsArray](readsMembers).map {
+      x: Option[JsArray] => x.getOrElse(Json.arr())
+    }
+     t.map {
+      x: JsArray => Json.obj("event1Details" ->
+        Json.obj("event1Details" -> x)
+      )
+    }
+  }
   /*
     (__ \ 'chargeADetails).readNullable {
       __.read(
