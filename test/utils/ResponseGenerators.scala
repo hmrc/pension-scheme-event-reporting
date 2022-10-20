@@ -104,12 +104,14 @@ trait ResponseGenerators extends Matchers with OptionValues {
       firstName <- Gen.alphaStr
       lastName <- Gen.alphaStr
       nino <- Gen.oneOf(Seq("AB123456C", "CD123456E"))
+      signedMandate <- arbitrary[Boolean]
     } yield {
       val userAnswers = {
         Json.obj(
           "membersOrEmployers" ->
             Json.arr(
               Json.obj(
+                "doYouHoldSignedMandate" -> signedMandate,
                 "membersDetails" -> Json.obj(
                   "firstName" -> firstName,
                   "lastName" -> lastName,
@@ -125,8 +127,12 @@ trait ResponseGenerators extends Matchers with OptionValues {
             "individualMemberDetails" -> Json.obj(
               "firstName" -> firstName,
               "lastName" -> lastName,
-              "nino" -> nino
+              "nino" -> nino,
+              "signedMandate" -> signedMandate
             )
+//            "unAuthorisedPaymentDetails" -> Json.obj(
+//
+//            )
           )
         )
       )
