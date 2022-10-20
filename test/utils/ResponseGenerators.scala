@@ -95,7 +95,35 @@ trait ResponseGenerators extends Matchers with OptionValues {
       val expectedEventTypes = (chosenEventTypesWithSeq ++ chosenEventTypesWithoutSeq)
         .sortWith(sortEventTypes)
 
-      Tuple2(generatedPayload,expectedEventTypes)
+      Tuple2(generatedPayload, expectedEventTypes)
+    }
+  }
+
+  def generateRandomPayloadAPI1827: Gen[Tuple2[JsObject, JsObject]] = {
+    for {
+      firstName <- Gen.alphaStr.suchThat(x => x.length < 35 && x.nonEmpty)
+      lastName <- Gen.alphaStr.suchThat(x => x.length < 35 && x.nonEmpty)
+      nino <- Gen.oneOf(Seq("AB123456C", "CD123456E"))
+    } yield {
+      val userAnswers = Json.obj(
+        "membersDetails" -> Json.obj(
+          "firstName" -> firstName,
+          "lastName" -> lastName,
+          "nino" -> nino
+        )
+      )
+      val etmpResponse = Json.obj(
+        "event1Details" -> Json.arr(
+          Json.obj(
+            "individualMemberDetails" -> Json.obj(
+              "firstName" -> firstName,
+              "lastName" -> lastName,
+              "nino" -> nino
+            )
+          )
+        )
+      )
+      Tuple2(userAnswers, etmpResponse)
     }
   }
 }

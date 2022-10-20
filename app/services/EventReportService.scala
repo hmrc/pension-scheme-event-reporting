@@ -130,6 +130,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   private def compileEventOneReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] =
     for {
+      //TODO: PODS-7714 write code to transform json and call it from here
       _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(data, compileEventOneReportSchemaPath, "compileEventOneReport"))
       response <- eventReportConnector.compileEventOneReport(pstr, data)
     } yield Ok(response.body)
