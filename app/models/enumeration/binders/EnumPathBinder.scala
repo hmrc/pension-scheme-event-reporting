@@ -20,10 +20,10 @@ import play.api.mvc.PathBindable
 
 object EnumPathBinder {
 
-  def pathBinder[T <: Enumeration](enum: T)(implicit stringBinder: PathBindable[String]): PathBindable[T#Value] = new PathBindable[T#Value] {
+  def pathBinder[T <: Enumeration](enumValue: T)(implicit stringBinder: PathBindable[String]): PathBindable[T#Value] = new PathBindable[T#Value] {
 
     def bind(key: String, value: String): Either[String, T#Value] = {
-      enumtByName(enum, value) match {
+      enumtByName(enumValue, value) match {
         case Some(v) => Right(v)
         case None => Left(s"Unknown Enum Type $value")
       }
@@ -31,6 +31,6 @@ object EnumPathBinder {
 
     override def unbind(key: String, value: T#Value): String = stringBinder.unbind(key, value.toString)
 
-    private def enumtByName(enum: T, key: String): Option[T#Value] = enum.values.find(_.toString == key)
+    private def enumtByName(enumValue: T, key: String): Option[T#Value] = enumValue.values.find(_.toString == key)
   }
 }

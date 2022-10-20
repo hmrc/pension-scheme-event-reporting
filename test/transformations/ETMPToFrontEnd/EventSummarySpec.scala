@@ -16,9 +16,9 @@
 
 package transformations.ETMPToFrontEnd
 
-import org.mockito.MockitoSugar
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json.{JsArray, JsObject, JsString, Json}
 import utils.{JsonFileReader, ResponseGenerators}

@@ -93,9 +93,9 @@ trait ResponseGenerators extends Matchers with OptionValues {
       )
 
       val expectedEventTypes = (chosenEventTypesWithSeq ++ chosenEventTypesWithoutSeq)
-        .sortWith(sortEventTypes)
+        .sortWith(sortEventTypes).toSeq
 
-      Tuple2(generatedPayload,expectedEventTypes)
+      Tuple2(generatedPayload, expectedEventTypes)
     }
   }
 }
