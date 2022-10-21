@@ -39,6 +39,21 @@ trait ResponseGenerators extends Matchers with OptionValues {
     "other" -> "Other"
   )
 
+  val whoWasTransferMadeToMap = Map("anEmployerFinanced" -> "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
+  "nonRecognisedScheme" -> "Transfer to a non-recognised pension scheme which is not a qualifying overseas pension scheme",
+    "other" -> "Overpayment of pension/written off other")
+
+  /*
+  "Transfer to an Employer Financed retirement Benefit scheme (EFRB)"
+"Transfer to a non-recognised pension scheme which is not a qualifying overseas pension scheme"
+"Widow and/or orphan"
+"Refund of contributions other"
+"Death of member"
+"Death of dependent"
+"Dependent no longer qualified for pension"
+"Overpayment of pension/written off other"
+   */
+
   val dateGenerator: Gen[LocalDate] = for {
     day <- Gen.choose(1, 28)
     month <- Gen.choose(1, 12)
@@ -111,6 +126,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
     }
   }
 
+  //scalastyle:off
   def generateRandomPayloadAPI1827: Gen[Tuple2[JsObject, JsObject]] = {
     for {
       firstName <- Gen.alphaStr
@@ -118,6 +134,10 @@ trait ResponseGenerators extends Matchers with OptionValues {
       nino <- Gen.oneOf(Seq("AB123456C", "CD123456E"))
       signedMandate <- arbitrary[Boolean]
       paymentNature <- Gen.oneOf(paymentNatureTypesMember.keys.toSeq)
+      unAuthorisedPayment <- arbitrary[Boolean]
+      unAuthPaySurcharge <- arbitrary[Boolean]
+      benefitInKindDesc <- Gen.alphaStr
+      whoWasTransferMadeTo <- Gen.oneOf(whoWasTransferMadeToMap.keys.toSeq)
     } yield {
       val userAnswers = {
         Json.obj(
@@ -130,7 +150,11 @@ trait ResponseGenerators extends Matchers with OptionValues {
                   "nino" -> nino
                 ),
                 "doYouHoldSignedMandate" -> signedMandate,
-                "paymentNature" -> paymentNature
+                "valueOfUnauthorisedPayment" -> unAuthorisedPayment,
+                "schemeUnAuthPaySurchargeMember" -> unAuthPaySurcharge,
+                "paymentNature" -> paymentNature,
+                "benefitInKindBriefDescription" -> benefitInKindDesc,
+                "whoWasTheTransferMade" -> whoWasTransferMadeTo
               )
             )
         )
@@ -142,10 +166,14 @@ trait ResponseGenerators extends Matchers with OptionValues {
               "firstName" -> firstName,
               "lastName" -> lastName,
               "nino" -> nino,
-              "signedMandate" -> signedMandate
+              "signedMandate" -> signedMandate,
+              "pmtMoreThan25PerFundValue" -> unAuthorisedPayment,
+              "schemePayingSurcharge" -> unAuthPaySurcharge
             ),
             "unAuthorisedPaymentDetails" -> Json.obj(
-              "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature)
+              "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature),
+              "freeTxtOrSchemeOrRecipientName" -> benefitInKindDesc,
+              "unAuthorisedPmtType2" -> whoWasTransferMadeToMap(whoWasTransferMadeTo)
             )
           )
         )
