@@ -22,22 +22,21 @@ import play.api.libs.json._
 
 object Event1Details {
 
-  private val paymentNatureTypesMember = Map("benefitInKind" -> "Benefit in kind" ,
+  private val paymentNatureTypesMember = Map("benefitInKind" -> "Benefit in kind",
     "transferToNonRegPensionScheme" -> "Transfer to non-registered pensions scheme",
     "errorCalcTaxFreeLumpSums" -> "Error in calculating tax free lump sums"
     , "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
-    "refundOfContributions" ->"Refund of contributions",
+    "refundOfContributions" -> "Refund of contributions",
     "overpaymentOrWriteOff" -> "Overpayment of pension/written off",
     "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
     "tangibleMoveablePropertyHeld" -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
-    "courtOrConfiscationOrder"-> "Court Order Payment/Confiscation Order",
+    "courtOrConfiscationOrder" -> "Court Order Payment/Confiscation Order",
     "other" -> "Other"
   )
 
   private val whoWasTransferMadeToMap = Map("anEmployerFinanced" -> "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
     "nonRecognisedScheme" -> "Transfer to a non-recognised pension scheme which is not a qualifying overseas pension scheme",
     "other" -> "Overpayment of pension/written off other")
-
 
 
   private val readsPaymentNature: Reads[JsString] =
@@ -47,27 +46,29 @@ object Event1Details {
     (__ \ 'whoWasTheTransferMade).json.pick.map(jsValue => JsString(whoWasTransferMadeToMap(jsValue.as[JsString].value)))
 
   private def freeTxtOrSchemeOrRecipientName(paymentNature: String): Reads[JsString] = {
-  println( "\n>pay nature>>" + paymentNature)
+    println("\n>pay nature>>" + paymentNature)
     paymentNature match {
-    case "benefitInKind" => (__ \ 'benefitInKindBriefDescription).json.pick.map(_.as[JsString])
-    case "transferToNonRegPensionScheme" => (__ \ 'schemeDetails \ 'schemeName).json.pick.map(_.as[JsString])
-    case _ => Reads[JsString](_ => JsSuccess(JsString("")))
-  }
+      case "benefitInKind" => (__ \ 'benefitInKindBriefDescription).json.pick.map(_.as[JsString])
+      case "transferToNonRegPensionScheme" => (__ \ 'schemeDetails \ 'schemeName).json.pick.map(_.as[JsString])
+      case _ => Reads[JsString](_ => JsSuccess(JsString("")))
+    }
   }
 
   private def pstrOrReference(paymentNature: String): Reads[JsString] = {
     println("\n>>pstr or ref>" + paymentNature)
     paymentNature match {
       case "transferToNonRegPensionScheme" => (__ \ 'schemeDetails \ 'reference).json.pick.map(_.as[JsString])
-      case _ => Reads[JsString](_ => JsSuccess(JsString("")))
+      case _ => Reads[JsString](_ => JsError(""))
     }
   }
 
+  val doNothing: Reads[JsObject] = __.json.put(Json.obj())
+
   val readsMember =
     (
-      (__ \ 'individualMemberDetails \ 'firstName).json.copyFrom((__ \'membersDetails \ 'firstName).json.pick) and
-        (__ \ 'individualMemberDetails \ 'lastName).json.copyFrom((__ \'membersDetails \ 'lastName).json.pick) and
-        (__ \ 'individualMemberDetails \ 'nino).json.copyFrom((__ \'membersDetails \'nino).json.pick) and
+      (__ \ 'individualMemberDetails \ 'firstName).json.copyFrom((__ \ 'membersDetails \ 'firstName).json.pick) and
+        (__ \ 'individualMemberDetails \ 'lastName).json.copyFrom((__ \ 'membersDetails \ 'lastName).json.pick) and
+        (__ \ 'individualMemberDetails \ 'nino).json.copyFrom((__ \ 'membersDetails \ 'nino).json.pick) and
         (__ \ 'individualMemberDetails \ 'signedMandate).json.copyFrom((__ \ 'doYouHoldSignedMandate).json.pick) and
         (__ \ 'individualMemberDetails \ 'pmtMoreThan25PerFundValue).json.copyFrom((__ \ 'valueOfUnauthorisedPayment).json.pick) and
         (__ \ 'individualMemberDetails \ 'schemePayingSurcharge).json.copyFrom((__ \ 'schemeUnAuthPaySurchargeMember).json.pick) and
@@ -77,7 +78,7 @@ object Event1Details {
         ) and
         (__ \ 'unAuthorisedPaymentDetails \ 'pstrOrReference).json.copyFrom(
           (__ \ 'paymentNature).json.pick.flatMap(paymentNatureValue => pstrOrReference(paymentNatureValue.as[JsString].value))
-        ) and
+        ).orElse(doNothing) and
         (__ \ 'unAuthorisedPaymentDetails \ 'unAuthorisedPmtType2).json.copyFrom(readsTransferMade)
       ).reduce
 
