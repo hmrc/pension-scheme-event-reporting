@@ -168,6 +168,12 @@ trait ResponseGenerators extends Matchers with OptionValues {
             )
         )
 
+      val xx = if (paymentNature == "transferToNonRegPensionScheme") Json.obj("pstrOrReference" -> pstrOrReference(paymentNature, schemeRef)) else Json.obj()
+      val pstrRefJson = Json.obj(
+        "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature),
+        "freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName(paymentNature, benefitInKindDesc, schemeName),
+        "unAuthorisedPmtType2" -> whoWasTransferMadeToMap(whoWasTransferMadeTo)
+      ) ++ xx
       val etmpResponse = Json.obj("event1Details" -> Json.obj(
         "event1Details" -> Json.arr(
           Json.obj(
@@ -179,12 +185,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
               "pmtMoreThan25PerFundValue" -> unAuthorisedPayment,
               "schemePayingSurcharge" -> unAuthPaySurcharge
             ),
-            "unAuthorisedPaymentDetails" -> Json.obj(
-              "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature),
-              "freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName(paymentNature, benefitInKindDesc, schemeName),
-              "pstrOrReference" -> pstrOrReference(paymentNature, schemeRef),
-              "unAuthorisedPmtType2" -> whoWasTransferMadeToMap(whoWasTransferMadeTo)
-            )
+            "unAuthorisedPaymentDetails" -> pstrRefJson
           )
         )
       )
