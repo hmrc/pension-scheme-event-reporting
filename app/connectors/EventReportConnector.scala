@@ -160,6 +160,29 @@ class EventReportConnector @Inject()(
     }
   }
 
+  def getEventSummary(pstr: String, version: String, startDate: String)
+              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
+
+    val apiToCall = "1834"
+    val apiUrl: String = s"${config.getApiUrlByApiNum(apiToCall).format(pstr)}"
+
+    val fullHeaders = integrationFrameworkHeader ++
+      Seq(
+        "reportStartDate" -> startDate,
+        "reportVersionNumber" -> version
+      )
+
+    logger.debug(s"Get $apiToCall (IF) called - URL: $apiUrl with headers: $fullHeaders")
+
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
+    http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
+      response.status match {
+        case OK => response.json
+        case _ => handleErrorResponse("GET", apiUrl)(response)
+      }
+    }
+  }
+
   def submitEventDeclarationReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
     val submitEventDeclarationReportUrl = config.submitEventDeclarationReportUrl.format(pstr)
     logger.debug("Submit Event Declaration Report called URL:" + submitEventDeclarationReportUrl)

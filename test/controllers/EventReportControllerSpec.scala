@@ -330,6 +330,46 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
   }
 
+  "getEventSummary" must {
+    "return OK with dummy json response" in {
+      when(mockEventReportService.getEventSummary(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(versionString),
+        ArgumentMatchers.eq(startDate)
+      )(any(), any()))
+        .thenReturn(Future.successful(dummyJsValue))
+
+      val result = controller.getEventSummary(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr,
+        "reportStartDate" -> startDate,
+        "reportVersionNumber" -> versionString
+      ))
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe dummyJsValue
+    }
+
+    "throw a Bad Request Exception when all parameters missing in header" in {
+      recoverToExceptionIf[BadRequestException] {
+        controller.getEventSummary(fakeRequest)
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+        response.message must include("Bad Request with missing parameters: PSTR missing version missing start date missing")
+      }
+    }
+
+    "throw a Unauthorised Exception if auth fails" in {
+      when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
+
+      recoverToExceptionIf[UnauthorizedException] {
+        controller.getEventSummary(fakeRequest)
+      } map { response =>
+        response.responseCode mustBe UNAUTHORIZED
+        response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
+      }
+    }
+  }
+
   "getUserAnswers" must {
     "return 200 OK when valid response" in {
 
@@ -472,7 +512,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 }
 
 object EventReportControllerSpec {
-  private val dummyJsValue = JsString("test")
+  private val dummyJsValue = JsArray(Seq(JsString("test")))
   private val pstr = "pstr"
 
   private val versionString = "001"

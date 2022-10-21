@@ -65,7 +65,7 @@ class EventReportController @Inject()(
         EventType.getEventType(eventType) match {
           case Some(et) =>
             eventReportService.getUserAnswers(pstr, et)
-              .map{
+              .map {
                 case None => NotFound
                 case Some(jsobj) => Ok(jsobj)
               }
@@ -90,6 +90,36 @@ class EventReportController @Inject()(
           case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($eventType)"))
         }
       }
+  }
+
+  def getEventSummary: Action[AnyContent] = Action.async {
+    implicit request =>
+      withAuthAndSummaryParameters { (pstr, version, startDate) =>
+        eventReportService.getEventSummary(pstr, version, startDate).map(Ok(_))
+      }
+  }
+
+  private def withAuthAndSummaryParameters(block: (String, String, String) => Future[Result])
+                                          (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+
+    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
+      case Some(_) =>
+        Tuple3(
+          request.headers.get("pstr"),
+          request.headers.get("reportVersionNumber"),
+          request.headers.get("reportStartDate")
+        ) match {
+          case Tuple3(Some(pstr), Some(version), Some(startDate)) =>
+            block(pstr, version, startDate)
+          case (optPstr, optVersion, optStartDate) =>
+            val pstrMissing = prettyMissingParamError(optPstr, "PSTR missing")
+            val versionMissing = prettyMissingParamError(optVersion, "version missing")
+            val startDateMissing = prettyMissingParamError(optStartDate, "start date missing")
+            Future.failed(new BadRequestException(s"Bad Request with missing parameters: $pstrMissing$versionMissing$startDateMissing"))
+        }
+      case _ =>
+        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
+    }
   }
 
   def getVersions: Action[AnyContent] = Action.async {
@@ -178,7 +208,7 @@ class EventReportController @Inject()(
   }
 
   private def withPstrAndEventType(block: (String, String) => Future[Result])
-                                      (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+                                  (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
 
