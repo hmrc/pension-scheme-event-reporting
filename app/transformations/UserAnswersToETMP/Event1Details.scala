@@ -18,11 +18,11 @@ package transformations.UserAnswersToETMP
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
-import play.api.libs.json.{__, _}
+import play.api.libs.json._
 
 object Event1Details {
 
-  val paymentNatureTypesMember = Map("benefitInKind" -> "Benefit in kind" ,
+  private val paymentNatureTypesMember = Map("benefitInKind" -> "Benefit in kind" ,
     "transferToNonRegPensionScheme" -> "Transfer to non-registered pensions scheme",
     "errorCalcTaxFreeLumpSums" -> "Error in calculating tax free lump sums"
     , "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
@@ -34,19 +34,19 @@ object Event1Details {
     "other" -> "Other"
   )
 
+  private val readsPaymentNature: Reads[JsString] =
+    (__ \ 'paymentNature).json.pick.map(jsValue => JsString(paymentNatureTypesMember(jsValue.as[JsString].value)))
+
   val readsMember =
     (
       (__ \ 'individualMemberDetails \ 'firstName).json.copyFrom((__ \'membersDetails \ 'firstName).json.pick) and
         (__ \ 'individualMemberDetails \ 'lastName).json.copyFrom((__ \'membersDetails \ 'lastName).json.pick) and
         (__ \ 'individualMemberDetails \ 'nino).json.copyFrom((__ \'membersDetails \'nino).json.pick) and
         (__ \ 'individualMemberDetails \ 'signedMandate).json.copyFrom((__ \ 'doYouHoldSignedMandate).json.pick) and
-        (__ \ 'unAuthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.copyFrom((__ \ 'paymentNature).json.pick)
+        (__ \ 'unAuthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.copyFrom(readsPaymentNature)
       ).reduce
 
-//  def readsMembers: Reads[JsArray] = __.read(Reads.seq(readsMember)).map(JsArray(_))
-  def readsMembers: Reads[JsArray] = __.read(Reads.seq(readsMember)).map {
-    x =>
-  }
+  def readsMembers: Reads[JsArray] = __.read(Reads.seq(readsMember)).map(JsArray(_))
 
   def transformToETMPData: Reads[JsObject] = {
    val t = (__ \ 'membersOrEmployers).readNullable[JsArray](readsMembers).map {
