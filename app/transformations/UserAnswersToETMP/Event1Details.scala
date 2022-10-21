@@ -24,8 +24,8 @@ object Event1Details {
 
   private val paymentNatureTypesMember = Map("benefitInKind" -> "Benefit in kind",
     "transferToNonRegPensionScheme" -> "Transfer to non-registered pensions scheme",
-    "errorCalcTaxFreeLumpSums" -> "Error in calculating tax free lump sums"
-    , "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
+    "errorCalcTaxFreeLumpSums" -> "Error in calculating tax free lump sums",
+    "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
     "refundOfContributions" -> "Refund of contributions",
     "overpaymentOrWriteOff" -> "Overpayment of pension/written off",
     "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
@@ -50,6 +50,7 @@ object Event1Details {
     paymentNature match {
       case "benefitInKind" => (__ \ 'benefitInKindBriefDescription).json.pick.map(_.as[JsString])
       case "transferToNonRegPensionScheme" => (__ \ 'schemeDetails \ 'schemeName).json.pick.map(_.as[JsString])
+      case "errorCalcTaxFreeLumpSums" => (__ \ 'errorDescription).json.pick.map(_.as[JsString])
       case _ => Reads[JsString](_ => JsSuccess(JsString("")))
     }
   }

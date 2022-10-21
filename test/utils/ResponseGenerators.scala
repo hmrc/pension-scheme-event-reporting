@@ -29,8 +29,8 @@ trait ResponseGenerators extends Matchers with OptionValues {
 
   val paymentNatureTypesMember = Map(
     "benefitInKind" -> "Benefit in kind",
-    "transferToNonRegPensionScheme" -> "Transfer to non-registered pensions scheme"
-    //    "errorCalcTaxFreeLumpSums" -> "Error in calculating tax free lump sums",
+    "transferToNonRegPensionScheme" -> "Transfer to non-registered pensions scheme",
+    "errorCalcTaxFreeLumpSums" -> "Error in calculating tax free lump sums",
     //    "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
     //    "refundOfContributions" -> "Refund of contributions",
     //    "overpaymentOrWriteOff" -> "Overpayment of pension/written off",
@@ -138,6 +138,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
       unAuthorisedPayment <- arbitrary[Boolean]
       unAuthPaySurcharge <- arbitrary[Boolean]
       benefitInKindDesc <- Gen.alphaStr
+      errorDesc <- Gen.alphaStr
       whoWasTransferMadeTo <- Gen.oneOf(whoWasTransferMadeToMap.keys.toSeq)
       schemeName <- Gen.alphaStr
       schemeRef <- Gen.alphaStr
@@ -159,6 +160,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
                 "schemeUnAuthPaySurchargeMember" -> unAuthPaySurcharge,
                 "paymentNature" -> paymentNature,
                 "benefitInKindBriefDescription" -> benefitInKindDesc,
+                "errorDescription" -> errorDesc,
                 "whoWasTheTransferMade" -> whoWasTransferMadeTo,
                 "schemeDetails" -> Json.obj(
                   "schemeName" -> schemeName,
@@ -171,7 +173,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
       val xx = if (paymentNature == "transferToNonRegPensionScheme") Json.obj("pstrOrReference" -> pstrOrReference(paymentNature, schemeRef)) else Json.obj()
       val pstrRefJson = Json.obj(
         "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature),
-        "freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName(paymentNature, benefitInKindDesc, schemeName),
+        "freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName(paymentNature, benefitInKindDesc, schemeName, errorDesc),
         "unAuthorisedPmtType2" -> whoWasTransferMadeToMap(whoWasTransferMadeTo)
       ) ++ xx
       val etmpResponse = Json.obj("event1Details" -> Json.obj(
@@ -194,8 +196,9 @@ trait ResponseGenerators extends Matchers with OptionValues {
     }
   }
 
-  private def freeTxtOrSchemeOrRecipientName(paymentNature: String, benefitInKindDesc: String, schemeName: String) = paymentNature match {
+  private def freeTxtOrSchemeOrRecipientName(paymentNature: String, benefitInKindDesc: String, schemeName: String, errorDesc: String) = paymentNature match {
     case "benefitInKind" => benefitInKindDesc
+    case "errorCalcTaxFreeLumpSums" => errorDesc
     case "transferToNonRegPensionScheme" => schemeName
     case _ => ""
   }
