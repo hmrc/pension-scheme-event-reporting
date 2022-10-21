@@ -47,12 +47,20 @@ object Event1Details {
     (__ \ 'whoWasTheTransferMade).json.pick.map(jsValue => JsString(whoWasTransferMadeToMap(jsValue.as[JsString].value)))
 
   private def freeTxtOrSchemeOrRecipientName(paymentNature: String): Reads[JsString] = {
-  println( "\n>>>" + paymentNature)
+  println( "\n>pay nature>>" + paymentNature)
     paymentNature match {
     case "benefitInKind" => (__ \ 'benefitInKindBriefDescription).json.pick.map(_.as[JsString])
     case "transferToNonRegPensionScheme" => (__ \ 'schemeDetails \ 'schemeName).json.pick.map(_.as[JsString])
-    case _ => (__ \ 'schemeName).json.pick.map(_.as[JsString])
+    case _ => Reads[JsString](_ => JsSuccess(JsString("")))
   }
+  }
+
+  private def pstrOrReference(paymentNature: String): Reads[JsString] = {
+    println("\n>>pstr or ref>" + paymentNature)
+    paymentNature match {
+      case "transferToNonRegPensionScheme" => (__ \ 'schemeDetails \ 'reference).json.pick.map(_.as[JsString])
+      case _ => Reads[JsString](_ => JsSuccess(JsString("")))
+    }
   }
 
   val readsMember =
@@ -68,7 +76,7 @@ object Event1Details {
           (__ \ 'paymentNature).json.pick.flatMap(paymentNatureValue => freeTxtOrSchemeOrRecipientName(paymentNatureValue.as[JsString].value))
         ) and
         (__ \ 'unAuthorisedPaymentDetails \ 'pstrOrReference).json.copyFrom(
-          (__ \ 'paymentNature).json.pick.flatMap(paymentNatureValue => freeTxtOrSchemeOrRecipientName(paymentNatureValue.as[JsString].value))
+          (__ \ 'paymentNature).json.pick.flatMap(paymentNatureValue => pstrOrReference(paymentNatureValue.as[JsString].value))
         ) and
         (__ \ 'unAuthorisedPaymentDetails \ 'unAuthorisedPmtType2).json.copyFrom(readsTransferMade)
       ).reduce

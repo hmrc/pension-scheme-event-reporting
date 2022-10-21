@@ -182,7 +182,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
             "unAuthorisedPaymentDetails" -> Json.obj(
               "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature),
               "freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName(paymentNature, benefitInKindDesc, schemeName),
-              "pstrOrReference" -> schemeRef,
+              "pstrOrReference" -> pstrOrReference(paymentNature, schemeRef),
               "unAuthorisedPmtType2" -> whoWasTransferMadeToMap(whoWasTransferMadeTo)
             )
           )
@@ -196,6 +196,11 @@ trait ResponseGenerators extends Matchers with OptionValues {
   private def freeTxtOrSchemeOrRecipientName(paymentNature: String, benefitInKindDesc: String, schemeName: String) = paymentNature match {
     case "benefitInKind" => benefitInKindDesc
     case "transferToNonRegPensionScheme" => schemeName
-    case _ => "***********"
+    case _ => ""
+  }
+
+  private def pstrOrReference(paymentNature: String, schemeRef: String) = paymentNature match {
+    case "transferToNonRegPensionScheme" => schemeRef
+    case _ => ""
   }
 }
