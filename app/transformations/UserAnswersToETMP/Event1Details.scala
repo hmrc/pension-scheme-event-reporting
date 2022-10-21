@@ -38,6 +38,12 @@ object Event1Details {
     "nonRecognisedScheme" -> "Transfer to a non-recognised pension scheme which is not a qualifying overseas pension scheme",
     "other" -> "Overpayment of pension/written off other")
 
+  private def freeTxtOrSchemeOrRecipientName(paymentNature: String, benefitInKindDesc: String, schemeName: String): Reads[JsValue] = paymentNature match {
+    case "benefitInKind" => ((__ \ 'benefitInKindBriefDescription).json.pick)
+    case "transferToNonRegPensionScheme" => (__ \ 'schemeName).json.pick
+    case _ => ((__ \ 'schemeName).json.pick)
+  }
+
   private val readsPaymentNature: Reads[JsString] =
     (__ \ 'paymentNature).json.pick.map(jsValue => JsString(paymentNatureTypesMember(jsValue.as[JsString].value)))
 
@@ -53,7 +59,7 @@ object Event1Details {
         (__ \ 'individualMemberDetails \ 'pmtMoreThan25PerFundValue).json.copyFrom((__ \ 'valueOfUnauthorisedPayment).json.pick) and
         (__ \ 'individualMemberDetails \ 'schemePayingSurcharge).json.copyFrom((__ \ 'schemeUnAuthPaySurchargeMember).json.pick) and
         (__ \ 'unAuthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.copyFrom(readsPaymentNature) and
-        (__ \ 'unAuthorisedPaymentDetails \ 'freeTxtOrSchemeOrRecipientName).json.copyFrom((__ \ 'benefitInKindBriefDescription).json.pick) and
+        (__ \ 'unAuthorisedPaymentDetails \ 'freeTxtOrSchemeOrRecipientName).json.copyFrom(freeTxtOrSchemeOrRecipientName(pay)) and
         (__ \ 'unAuthorisedPaymentDetails \ 'unAuthorisedPmtType2).json.copyFrom(readsTransferMade)
       ).reduce
 

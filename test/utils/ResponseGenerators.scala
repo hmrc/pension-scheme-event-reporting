@@ -138,6 +138,8 @@ trait ResponseGenerators extends Matchers with OptionValues {
       unAuthPaySurcharge <- arbitrary[Boolean]
       benefitInKindDesc <- Gen.alphaStr
       whoWasTransferMadeTo <- Gen.oneOf(whoWasTransferMadeToMap.keys.toSeq)
+      schemeName <- Gen.alphaStr
+      schemeRef <- Gen.alphaStr
     } yield {
       val userAnswers = {
         Json.obj(
@@ -154,7 +156,11 @@ trait ResponseGenerators extends Matchers with OptionValues {
                 "schemeUnAuthPaySurchargeMember" -> unAuthPaySurcharge,
                 "paymentNature" -> paymentNature,
                 "benefitInKindBriefDescription" -> benefitInKindDesc,
-                "whoWasTheTransferMade" -> whoWasTransferMadeTo
+                "whoWasTheTransferMade" -> whoWasTransferMadeTo,
+                "schemeDetails" -> Json.obj(
+                  "schemeName" -> schemeName,
+                  "reference" -> schemeRef
+                )
               )
             )
         )
@@ -172,7 +178,8 @@ trait ResponseGenerators extends Matchers with OptionValues {
             ),
             "unAuthorisedPaymentDetails" -> Json.obj(
               "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature),
-              "freeTxtOrSchemeOrRecipientName" -> benefitInKindDesc,
+              "freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName(paymentNature, benefitInKindDesc, schemeName),
+              "pstrOrReference" -> schemeRef,
               "unAuthorisedPmtType2" -> whoWasTransferMadeToMap(whoWasTransferMadeTo)
             )
           )
@@ -181,5 +188,11 @@ trait ResponseGenerators extends Matchers with OptionValues {
       )
       Tuple2(userAnswers, etmpResponse)
     }
+  }
+
+  private def freeTxtOrSchemeOrRecipientName(paymentNature: String, benefitInKindDesc: String, schemeName: String) = paymentNature match {
+    case "benefitInKind" => benefitInKindDesc
+    case "transferToNonRegPensionScheme" => schemeName
+    case _ => ""
   }
 }
