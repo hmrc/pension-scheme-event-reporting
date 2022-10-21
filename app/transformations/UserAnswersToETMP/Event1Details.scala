@@ -66,9 +66,10 @@ object Event1Details {
         (__ \ 'unAuthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.copyFrom(readsPaymentNature) and
         (__ \ 'unAuthorisedPaymentDetails \ 'freeTxtOrSchemeOrRecipientName).json.copyFrom(
           (__ \ 'paymentNature).json.pick.flatMap(paymentNatureValue => freeTxtOrSchemeOrRecipientName(paymentNatureValue.as[JsString].value))
-         // Reads(_ => JsSuccess(JsString("")))
         ) and
-//        (__ \ 'unAuthorisedPaymentDetails \ 'freeTxtOrSchemeOrRecipientName).json.copyFrom(freeTxtOrSchemeOrRecipientName(pay)) and
+        (__ \ 'unAuthorisedPaymentDetails \ 'pstrOrReference).json.copyFrom(
+          (__ \ 'paymentNature).json.pick.flatMap(paymentNatureValue => freeTxtOrSchemeOrRecipientName(paymentNatureValue.as[JsString].value))
+        ) and
         (__ \ 'unAuthorisedPaymentDetails \ 'unAuthorisedPmtType2).json.copyFrom(readsTransferMade)
       ).reduce
 
