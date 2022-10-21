@@ -27,6 +27,18 @@ import java.time.LocalDate
 trait ResponseGenerators extends Matchers with OptionValues {
   val ninoGen: Gen[String] = Gen.oneOf(Seq("AB123456C", "CD123456E"))
 
+  val paymentNatureTypesMember = Map("benefitInKind" -> "Benefit in kind" ,
+    "transferToNonRegPensionScheme" -> "Transfer to non-registered pensions scheme",
+    "errorCalcTaxFreeLumpSums" -> "Error in calculating tax free lump sums"
+    , "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
+    "refundOfContributions" ->"Refund of contributions",
+    "overpaymentOrWriteOff" -> "Overpayment of pension/written off",
+    "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
+    "tangibleMoveablePropertyHeld" -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
+    "courtOrConfiscationOrder"-> "Court Order Payment/Confiscation Order",
+    "other" -> "Other"
+  )
+
   val dateGenerator: Gen[LocalDate] = for {
     day <- Gen.choose(1, 28)
     month <- Gen.choose(1, 12)
@@ -105,18 +117,20 @@ trait ResponseGenerators extends Matchers with OptionValues {
       lastName <- Gen.alphaStr
       nino <- Gen.oneOf(Seq("AB123456C", "CD123456E"))
       signedMandate <- arbitrary[Boolean]
+      paymentNature <- Gen.oneOf(paymentNatureTypesMember.keys.toSeq)
     } yield {
       val userAnswers = {
         Json.obj(
           "membersOrEmployers" ->
             Json.arr(
               Json.obj(
-                "doYouHoldSignedMandate" -> signedMandate,
                 "membersDetails" -> Json.obj(
                   "firstName" -> firstName,
                   "lastName" -> lastName,
                   "nino" -> nino
-                )
+                ),
+                "doYouHoldSignedMandate" -> signedMandate,
+                "paymentNature" -> paymentNature
               )
             )
         )
@@ -129,10 +143,10 @@ trait ResponseGenerators extends Matchers with OptionValues {
               "lastName" -> lastName,
               "nino" -> nino,
               "signedMandate" -> signedMandate
+            ),
+            "unAuthorisedPaymentDetails" -> Json.obj(
+              "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature)
             )
-//            "unAuthorisedPaymentDetails" -> Json.obj(
-//
-//            )
           )
         )
       )

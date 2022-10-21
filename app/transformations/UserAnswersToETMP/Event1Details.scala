@@ -22,15 +22,31 @@ import play.api.libs.json.{__, _}
 
 object Event1Details {
 
+  val paymentNatureTypesMember = Map("benefitInKind" -> "Benefit in kind" ,
+    "transferToNonRegPensionScheme" -> "Transfer to non-registered pensions scheme",
+    "errorCalcTaxFreeLumpSums" -> "Error in calculating tax free lump sums"
+    , "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
+    "refundOfContributions" ->"Refund of contributions",
+    "overpaymentOrWriteOff" -> "Overpayment of pension/written off",
+    "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
+    "tangibleMoveablePropertyHeld" -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
+    "courtOrConfiscationOrder"-> "Court Order Payment/Confiscation Order",
+    "other" -> "Other"
+  )
+
   val readsMember =
     (
       (__ \ 'individualMemberDetails \ 'firstName).json.copyFrom((__ \'membersDetails \ 'firstName).json.pick) and
         (__ \ 'individualMemberDetails \ 'lastName).json.copyFrom((__ \'membersDetails \ 'lastName).json.pick) and
         (__ \ 'individualMemberDetails \ 'nino).json.copyFrom((__ \'membersDetails \'nino).json.pick) and
-        (__ \ 'individualMemberDetails \ 'signedMandate).json.copyFrom((__ \ 'doYouHoldSignedMandate).json.pick)
+        (__ \ 'individualMemberDetails \ 'signedMandate).json.copyFrom((__ \ 'doYouHoldSignedMandate).json.pick) and
+        (__ \ 'unAuthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.copyFrom((__ \ 'paymentNature).json.pick)
       ).reduce
 
-  def readsMembers: Reads[JsArray] = __.read(Reads.seq(readsMember)).map(JsArray(_))
+//  def readsMembers: Reads[JsArray] = __.read(Reads.seq(readsMember)).map(JsArray(_))
+  def readsMembers: Reads[JsArray] = __.read(Reads.seq(readsMember)).map {
+    x =>
+  }
 
   def transformToETMPData: Reads[JsObject] = {
    val t = (__ \ 'membersOrEmployers).readNullable[JsArray](readsMembers).map {
