@@ -75,7 +75,6 @@ lazy val silencerSettings: Seq[Setting[_]] = {
     scalacOptions += s"-P:silencer:sourceRoots=${baseDirectory.value.getCanonicalPath}",
     scalacOptions += "-unchecked",
     scalacOptions += "-deprecation",
-    scalacOptions += "-feature",
-    scalacOptions += "-Xfatal-warnings"
+    scalacOptions += "-feature"
   )
 }

@@ -27,20 +27,21 @@ import java.time.LocalDate
 trait ResponseGenerators extends Matchers with OptionValues {
   val ninoGen: Gen[String] = Gen.oneOf(Seq("AB123456C", "CD123456E"))
 
-  val paymentNatureTypesMember = Map("benefitInKind" -> "Benefit in kind" ,
-    "transferToNonRegPensionScheme" -> "Transfer to non-registered pensions scheme",
-    "errorCalcTaxFreeLumpSums" -> "Error in calculating tax free lump sums"
-    , "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
-    "refundOfContributions" ->"Refund of contributions",
-    "overpaymentOrWriteOff" -> "Overpayment of pension/written off",
-    "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
-    "tangibleMoveablePropertyHeld" -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
-    "courtOrConfiscationOrder"-> "Court Order Payment/Confiscation Order",
-    "other" -> "Other"
+  val paymentNatureTypesMember = Map(
+    "benefitInKind" -> "Benefit in kind",
+    "transferToNonRegPensionScheme" -> "Transfer to non-registered pensions scheme"
+//    "errorCalcTaxFreeLumpSums" -> "Error in calculating tax free lump sums",
+//    "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
+//    "refundOfContributions" -> "Refund of contributions",
+//    "overpaymentOrWriteOff" -> "Overpayment of pension/written off",
+//    "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
+//    "tangibleMoveablePropertyHeld" -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
+//    "courtOrConfiscationOrder" -> "Court Order Payment/Confiscation Order",
+//    "other" -> "Other"
   )
 
   val whoWasTransferMadeToMap = Map("anEmployerFinanced" -> "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
-  "nonRecognisedScheme" -> "Transfer to a non-recognised pension scheme which is not a qualifying overseas pension scheme",
+    "nonRecognisedScheme" -> "Transfer to a non-recognised pension scheme which is not a qualifying overseas pension scheme",
     "other" -> "Overpayment of pension/written off other")
 
   /*
@@ -141,7 +142,9 @@ trait ResponseGenerators extends Matchers with OptionValues {
       schemeName <- Gen.alphaStr
       schemeRef <- Gen.alphaStr
     } yield {
-      val userAnswers = {
+      println( "\n>>>SCHEMENAME=" + schemeName)
+      println( "\n>>>ln=" + lastName)
+      val userAnswers =
         Json.obj(
           "membersOrEmployers" ->
             Json.arr(
@@ -164,7 +167,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
               )
             )
         )
-      }
+
       val etmpResponse = Json.obj("event1Details" -> Json.obj(
         "event1Details" -> Json.arr(
           Json.obj(
@@ -193,6 +196,6 @@ trait ResponseGenerators extends Matchers with OptionValues {
   private def freeTxtOrSchemeOrRecipientName(paymentNature: String, benefitInKindDesc: String, schemeName: String) = paymentNature match {
     case "benefitInKind" => benefitInKindDesc
     case "transferToNonRegPensionScheme" => schemeName
-    case _ => ""
+    case _ => "***********"
   }
 }
