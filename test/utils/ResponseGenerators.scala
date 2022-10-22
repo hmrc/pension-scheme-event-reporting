@@ -143,8 +143,6 @@ trait ResponseGenerators extends Matchers with OptionValues {
       schemeName <- Gen.alphaStr
       schemeRef <- Gen.alphaStr
     } yield {
-      println("\n>>>SCHEMENAME=" + schemeName)
-      println("\n>>>ln=" + lastName)
       val userAnswers =
         Json.obj(
           "membersOrEmployers" ->
