@@ -18,7 +18,7 @@ package transformations.UserAnswersToETMP
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
-import play.api.libs.json._
+import play.api.libs.json.{__, _}
 
 object Event1Details {
 
@@ -59,8 +59,12 @@ object Event1Details {
 
   private val doNothing: Reads[JsObject] = __.json.put(Json.obj())
 
+  private val readsPaymentNature: Reads[String] = (__ \ 'paymentNature).json.pick.map(_.as[JsString].value)
+
   private val readsMember: Reads[JsObject] = {
-    (__ \ 'paymentNature).json.pick.map(_.as[JsString].value).flatMap { paymentNature =>
+    (for {
+      paymentNature <- readsPaymentNature
+    } yield {
       (
         (__ \ 'individualMemberDetails \ 'firstName).json.copyFrom((__ \ 'membersDetails \ 'firstName).json.pick) and
           (__ \ 'individualMemberDetails \ 'lastName).json.copyFrom((__ \ 'membersDetails \ 'lastName).json.pick) and
@@ -73,17 +77,17 @@ object Event1Details {
           (__ \ 'unAuthorisedPaymentDetails \ 'pstrOrReference).json.copyFrom(pstrOrReference(paymentNature)).orElse(doNothing) and
           (__ \ 'unAuthorisedPaymentDetails \ 'unAuthorisedPmtType2).json.copyFrom(readsTransferMade)
         ).reduce
-    }
+    }).flatMap[JsObject](identity)
   }
 
   private def readsMembers: Reads[JsArray] = __.read(Reads.seq(readsMember)).map(JsArray(_))
 
   def transformToETMPData: Reads[JsObject] = {
     (__ \ 'membersOrEmployers).readNullable[JsArray](readsMembers).map { optionJsArray =>
-        val jsonArray = optionJsArray.getOrElse(Json.arr())
-        Json.obj("event1Details" ->
-          Json.obj("event1Details" -> jsonArray)
-        )
+      val jsonArray = optionJsArray.getOrElse(Json.arr())
+      Json.obj("event1Details" ->
+        Json.obj("event1Details" -> jsonArray)
+      )
     }
   }
 }
