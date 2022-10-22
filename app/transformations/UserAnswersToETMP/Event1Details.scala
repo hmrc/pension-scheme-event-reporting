@@ -18,13 +18,17 @@ package transformations.UserAnswersToETMP
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
-import play.api.libs.json.{__, _}
+import play.api.libs.json._
 
 object Event1Details {
+  private val paymentNatureTypeKeyBenefitInKind: String = "benefitInKind"
+  private val paymentNatureTypeKeyTransferToNonRegPensionScheme: String = "transferToNonRegPensionScheme"
+  private val paymentNatureTypeKeyErrorCalcTaxFreeLumpSums: String = "errorCalcTaxFreeLumpSums"
 
-  private val paymentNatureTypesMember = Map("benefitInKind" -> "Benefit in kind",
-    "transferToNonRegPensionScheme" -> "Transfer to non-registered pensions scheme",
-    "errorCalcTaxFreeLumpSums" -> "Error in calculating tax free lump sums",
+  private val paymentNatureMap = Map(
+    paymentNatureTypeKeyBenefitInKind -> "Benefit in kind",
+    paymentNatureTypeKeyTransferToNonRegPensionScheme -> "Transfer to non-registered pensions scheme",
+    paymentNatureTypeKeyErrorCalcTaxFreeLumpSums -> "Error in calculating tax free lump sums",
     "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
     "refundOfContributions" -> "Refund of contributions",
     "overpaymentOrWriteOff" -> "Overpayment of pension/written off",
@@ -34,7 +38,8 @@ object Event1Details {
     "other" -> "Other"
   )
 
-  private val whoWasTransferMadeToMap = Map("anEmployerFinanced" -> "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
+  private val whoWasTransferMadeToMap = Map(
+    "anEmployerFinanced" -> "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
     "nonRecognisedScheme" -> "Transfer to a non-recognised pension scheme which is not a qualifying overseas pension scheme",
     "other" -> "Overpayment of pension/written off other")
 
@@ -43,47 +48,51 @@ object Event1Details {
 
   private def freeTxtOrSchemeOrRecipientName(paymentNature: String): Reads[JsString] = {
     paymentNature match {
-      case "benefitInKind" => (__ \ 'benefitInKindBriefDescription).json.pick.map(_.as[JsString])
-      case "transferToNonRegPensionScheme" => (__ \ 'schemeDetails \ 'schemeName).json.pick.map(_.as[JsString])
-      case "errorCalcTaxFreeLumpSums" => (__ \ 'errorDescription).json.pick.map(_.as[JsString])
+      case `paymentNatureTypeKeyBenefitInKind` => (__ \ 'benefitInKindBriefDescription).json.pick.map(_.as[JsString])
+      case `paymentNatureTypeKeyTransferToNonRegPensionScheme` => (__ \ 'schemeDetails \ 'schemeName).json.pick.map(_.as[JsString])
+      case `paymentNatureTypeKeyErrorCalcTaxFreeLumpSums` => (__ \ 'errorDescription).json.pick.map(_.as[JsString])
       case _ => Reads[JsString](_ => JsSuccess(JsString("")))
     }
   }
 
   private def pstrOrReference(paymentNature: String): Reads[JsString] = {
     paymentNature match {
-      case "transferToNonRegPensionScheme" => (__ \ 'schemeDetails \ 'reference).json.pick.map(_.as[JsString])
+      case `paymentNatureTypeKeyTransferToNonRegPensionScheme` => (__ \ 'schemeDetails \ 'reference).json.pick.map(_.as[JsString])
       case _ => Reads[JsString](_ => JsError(""))
     }
   }
 
+  private val pathIndividualMemberDetails = __ \ 'individualMemberDetails
+  private val pathUnauthorisedPaymentDetails = __ \ 'unAuthorisedPaymentDetails
   private val doNothing: Reads[JsObject] = __.json.put(Json.obj())
-
   private val readsPaymentNature: Reads[String] = (__ \ 'paymentNature).json.pick.map(_.as[JsString].value)
+
+  private val readsIndividualMemberDetails: Reads[JsObject] =
+    ((pathIndividualMemberDetails \ 'firstName).json.copyFrom((__ \ 'membersDetails \ 'firstName).json.pick) and
+      (pathIndividualMemberDetails \ 'lastName).json.copyFrom((__ \ 'membersDetails \ 'lastName).json.pick) and
+      (pathIndividualMemberDetails \ 'nino).json.copyFrom((__ \ 'membersDetails \ 'nino).json.pick) and
+      (pathIndividualMemberDetails \ 'signedMandate).json.copyFrom((__ \ 'doYouHoldSignedMandate).json.pick) and
+      (pathIndividualMemberDetails \ 'pmtMoreThan25PerFundValue).json.copyFrom((__ \ 'valueOfUnauthorisedPayment).json.pick) and
+      (pathIndividualMemberDetails \ 'schemePayingSurcharge).json.copyFrom((__ \ 'schemeUnAuthPaySurchargeMember).json.pick)).reduce
+
+  private def readsUnauthorisedPaymentDetails(paymentNature: String): Reads[JsObject] =
+    ((pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.put(JsString(paymentNatureMap(paymentNature))) and
+      (pathUnauthorisedPaymentDetails \ 'freeTxtOrSchemeOrRecipientName).json.copyFrom(freeTxtOrSchemeOrRecipientName(paymentNature)) and
+      (pathUnauthorisedPaymentDetails \ 'pstrOrReference).json.copyFrom(pstrOrReference(paymentNature)).orElse(doNothing) and
+      (pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType2).json.copyFrom(readsTransferMade)).reduce
 
   private val readsMember: Reads[JsObject] = {
     (for {
       paymentNature <- readsPaymentNature
     } yield {
       (
-        (__ \ 'individualMemberDetails \ 'firstName).json.copyFrom((__ \ 'membersDetails \ 'firstName).json.pick) and
-          (__ \ 'individualMemberDetails \ 'lastName).json.copyFrom((__ \ 'membersDetails \ 'lastName).json.pick) and
-          (__ \ 'individualMemberDetails \ 'nino).json.copyFrom((__ \ 'membersDetails \ 'nino).json.pick) and
-          (__ \ 'individualMemberDetails \ 'signedMandate).json.copyFrom((__ \ 'doYouHoldSignedMandate).json.pick) and
-          (__ \ 'individualMemberDetails \ 'pmtMoreThan25PerFundValue).json.copyFrom((__ \ 'valueOfUnauthorisedPayment).json.pick) and
-          (__ \ 'individualMemberDetails \ 'schemePayingSurcharge).json.copyFrom((__ \ 'schemeUnAuthPaySurchargeMember).json.pick) and
-          (__ \ 'unAuthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.put(JsString(paymentNatureTypesMember(paymentNature))) and
-          (__ \ 'unAuthorisedPaymentDetails \ 'freeTxtOrSchemeOrRecipientName).json.copyFrom(freeTxtOrSchemeOrRecipientName(paymentNature)) and
-          (__ \ 'unAuthorisedPaymentDetails \ 'pstrOrReference).json.copyFrom(pstrOrReference(paymentNature)).orElse(doNothing) and
-          (__ \ 'unAuthorisedPaymentDetails \ 'unAuthorisedPmtType2).json.copyFrom(readsTransferMade)
-        ).reduce
+        readsIndividualMemberDetails and
+          readsUnauthorisedPaymentDetails(paymentNature)).reduce
     }).flatMap[JsObject](identity)
   }
 
-  private def readsMembers: Reads[JsArray] = __.read(Reads.seq(readsMember)).map(JsArray(_))
-
   def transformToETMPData: Reads[JsObject] = {
-    (__ \ 'membersOrEmployers).readNullable[JsArray](readsMembers).map { optionJsArray =>
+    (__ \ 'membersOrEmployers).readNullable[JsArray](__.read(Reads.seq(readsMember)).map(JsArray(_))).map { optionJsArray =>
       val jsonArray = optionJsArray.getOrElse(Json.arr())
       Json.obj("event1Details" ->
         Json.obj("event1Details" -> jsonArray)
