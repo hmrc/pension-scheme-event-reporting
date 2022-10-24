@@ -25,6 +25,7 @@ object Event1Details {
   private val paymentNatureTypeKeyTransferToNonRegPensionScheme: String = "transferToNonRegPensionScheme"
   private val paymentNatureTypeKeyRefundOfContributions: String = "refundOfContributions"
   private val paymentNatureTypeKeyOverpaymentOrWriteOff: String = "overpaymentOrWriteOff"
+  private val paymentNatureTypeKeyResidentialPropertyHeld: String = "residentialPropertyHeld"
   private val paymentNatureTypeKeyTangibleMoveablePropertyHeld: String = "tangibleMoveablePropertyHeld"
   private val paymentNatureTypeKeyErrorCalcTaxFreeLumpSums: String = "errorCalcTaxFreeLumpSums"
   private val paymentNatureTypeKeyBenefitsPaidEarly: String = "benefitsPaidEarly"
@@ -38,7 +39,7 @@ object Event1Details {
     paymentNatureTypeKeyBenefitsPaidEarly -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
     paymentNatureTypeKeyRefundOfContributions -> "Refund of contributions",
     paymentNatureTypeKeyOverpaymentOrWriteOff -> "Overpayment of pension/written off",
-    "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
+    paymentNatureTypeKeyResidentialPropertyHeld -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
     paymentNatureTypeKeyTangibleMoveablePropertyHeld -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
     "courtOrConfiscationOrder" -> "Court Order Payment/Confiscation Order",
     "other" -> "Other"
@@ -114,6 +115,15 @@ object Event1Details {
         Reads.pure[JsString](JsString(""))
     }
 
+    val rds: Reads[JsObject] = (__ \ 'event1 \ 'memberResidentialAddress \ 'address ).read
+
+    def readsAddress: Reads[JsObject] = paymentNature match {
+      case `paymentNatureTypeKeyResidentialPropertyHeld` =>
+        (__ \ 'residentialPropertyAddress).json.copyFrom()
+      case _ =>
+        Reads.pure[JsObject](Json.obj())
+    }
+
     ((pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.put(JsString(paymentNatureMap(paymentNature))) and
       (pathUnauthorisedPaymentDetails \ 'freeTxtOrSchemeOrRecipientName).json.copyFrom(freeTxtOrSchemeOrRecipientName(paymentNature)) and
       (pathUnauthorisedPaymentDetails \ 'pstrOrReference).json.copyFrom(pstrOrReference(paymentNature)).orElse(doNothing) and
@@ -121,6 +131,15 @@ object Event1Details {
       (pathUnauthorisedPaymentDetails \ 'valueOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentValue).json.pick) and
       (pathUnauthorisedPaymentDetails \ 'dateOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentDate).json.pick)
       ).reduce
+
+    /*
+    if (paymentNature == "residentialPropertyHeld") {
+          Json.obj("residentialPropertyAddress" -> address.toTarget)
+        } else {
+          Json.obj()
+        }
+        )
+     */
 
   }
 
