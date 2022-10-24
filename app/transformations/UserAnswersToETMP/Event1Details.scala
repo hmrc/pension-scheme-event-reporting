@@ -24,6 +24,8 @@ object Event1Details {
   private val paymentNatureTypeKeyBenefitInKind: String = "benefitInKind"
   private val paymentNatureTypeKeyTransferToNonRegPensionScheme: String = "transferToNonRegPensionScheme"
   private val paymentNatureTypeKeyErrorCalcTaxFreeLumpSums: String = "errorCalcTaxFreeLumpSums"
+  private val whoReceivedUnauthPaymentIndividual = "Individual"
+  private val whoReceivedUnauthPaymentEmployer = "Employer"
 
   private val paymentNatureMap = Map(
     paymentNatureTypeKeyBenefitInKind -> "Benefit in kind",
@@ -67,13 +69,13 @@ object Event1Details {
   private val doNothing: Reads[JsObject] = __.json.put(Json.obj())
   private val readsPaymentNature: Reads[String] = (__ \ 'paymentNature).json.pick.map(_.as[JsString].value)
 
-  private[UserAnswersToETMP] val readsWhoReceivedUnauthorisedPayment: Reads[JsObject] = {
-    (__ \ 'memberType).json.copyFrom((__ \ 'whoReceivedUnauthPayment).json.pick.flatMap {
-      case JsString("member") => Reads.pure[JsString](JsString("Individual"))
-      case JsString("employer") => Reads.pure[JsString](JsString("Employer"))
+  private[UserAnswersToETMP] val readsWhoReceivedUnauthorisedPayment: Reads[String] = {
+    (__ \ 'whoReceivedUnauthPayment).json.pick.flatMap {
+      case JsString("member") => Reads.pure[String](whoReceivedUnauthPaymentIndividual)
+      case JsString("employer") => Reads.pure[String](whoReceivedUnauthPaymentEmployer)
       case s =>
-        Reads.failed[JsString](s"Unknown value $s")
-    })
+        Reads.failed[String](s"Unknown value $s")
+    }
   }
 
   private val readsIndividualMemberDetails: Reads[JsObject] =
@@ -90,13 +92,22 @@ object Event1Details {
       (pathUnauthorisedPaymentDetails \ 'pstrOrReference).json.copyFrom(pstrOrReference(paymentNature)).orElse(doNothing) and
       (pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType2).json.copyFrom(readsTransferMade)).reduce
 
+  private def readsMemberOrEmployer(whoReceivedUnauthorisedPayment: String): Reads[JsObject] = {
+    whoReceivedUnauthorisedPayment match {
+      case `whoReceivedUnauthPaymentIndividual` => readsIndividualMemberDetails
+      case `whoReceivedUnauthPaymentEmployer` => Reads.failed[JsObject]("unimplemented: employer")
+    }
+
+  }
+
   private val readsMember: Reads[JsObject] = {
     (for {
       paymentNature <- readsPaymentNature
+      whoReceivedUnauthorisedPayment <- readsWhoReceivedUnauthorisedPayment
     } yield {
       (
-        readsWhoReceivedUnauthorisedPayment and
-          readsIndividualMemberDetails and
+        (__ \ 'memberType).json.put(JsString(whoReceivedUnauthorisedPayment)) and
+          readsMemberOrEmployer(whoReceivedUnauthorisedPayment) and
           readsUnauthorisedPaymentDetails(paymentNature)
         ).reduce
     }).flatMap[JsObject](identity)

@@ -20,40 +20,10 @@ import org.mockito.MockitoSugar
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
-import play.api.libs.json.{JsError, JsObject, JsSuccess, Json, __}
+import play.api.libs.json._
 import utils.{JsonFileReader, ResponseGenerators}
 
 class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader with ResponseGenerators with ScalaCheckPropertyChecks {
-
-  "readsWhoReceivedUnauthorisedPayment" - {
-    "work correctly for valid payload for member" in {
-      val inputJson = Json.obj(
-        "whoReceivedUnauthPayment" -> "member"
-      )
-      val result = inputJson.transform(Event1Details.readsWhoReceivedUnauthorisedPayment)
-      result mustBe JsSuccess(Json.obj(
-        "memberType" -> "Individual"
-      ))
-    }
-
-    "work correctly for valid payload for employer" in {
-      val inputJson = Json.obj(
-        "whoReceivedUnauthPayment" -> "employer"
-      )
-      val result = inputJson.transform(Event1Details.readsWhoReceivedUnauthorisedPayment)
-      result mustBe JsSuccess(Json.obj(
-        "memberType" -> "Employer"
-      ))
-    }
-
-    "fail for invalid payload" in {
-      val inputJson = Json.obj(
-        "whoReceivedUnauthPayment" -> "unknown"
-      )
-      val result = inputJson.transform(Event1Details.readsWhoReceivedUnauthorisedPayment)
-      result.isError mustBe true
-    }
-  }
 
   "transformToETMPData" - {
     "must transform a randomly generated valid payload correctly" in {
