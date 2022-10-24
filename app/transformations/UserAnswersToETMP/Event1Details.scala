@@ -25,6 +25,7 @@ object Event1Details {
   private val paymentNatureTypeKeyTransferToNonRegPensionScheme: String = "transferToNonRegPensionScheme"
   private val paymentNatureTypeKeyRefundOfContributions: String = "refundOfContributions"
   private val paymentNatureTypeKeyOverpaymentOrWriteOff: String = "overpaymentOrWriteOff"
+  private val paymentNatureTypeKeyTangibleMoveablePropertyHeld: String = "tangibleMoveablePropertyHeld"
   private val paymentNatureTypeKeyErrorCalcTaxFreeLumpSums: String = "errorCalcTaxFreeLumpSums"
   private val paymentNatureTypeKeyBenefitsPaidEarly: String = "benefitsPaidEarly"
   private val whoReceivedUnauthPaymentIndividual = "Individual"
@@ -38,7 +39,7 @@ object Event1Details {
     paymentNatureTypeKeyRefundOfContributions -> "Refund of contributions",
     paymentNatureTypeKeyOverpaymentOrWriteOff -> "Overpayment of pension/written off",
     "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
-    "tangibleMoveablePropertyHeld" -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
+    paymentNatureTypeKeyTangibleMoveablePropertyHeld -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
     "courtOrConfiscationOrder" -> "Court Order Payment/Confiscation Order",
     "other" -> "Other"
   )
@@ -67,6 +68,7 @@ object Event1Details {
       case `paymentNatureTypeKeyTransferToNonRegPensionScheme` => (__ \ 'schemeDetails \ 'schemeName).json.pick.map(_.as[JsString])
       case `paymentNatureTypeKeyErrorCalcTaxFreeLumpSums` => (__ \ 'errorDescription).json.pick.map(_.as[JsString])
       case `paymentNatureTypeKeyBenefitsPaidEarly` => (__ \ 'benefitsPaidEarly).json.pick.map(_.as[JsString])
+      case `paymentNatureTypeKeyTangibleMoveablePropertyHeld` => (__ \ 'memberTangibleMoveableProperty).json.pick.map(_.as[JsString])
       case _ => Reads[JsString](_ => JsSuccess(JsString("")))
     }
   }
@@ -107,7 +109,7 @@ object Event1Details {
       case `paymentNatureTypeKeyRefundOfContributions` =>
         (__ \ 'refundOfContributions).json.pick.map(jsValue => JsString(refundOfContributionsMap(jsValue.as[JsString].value)))
       case `paymentNatureTypeKeyOverpaymentOrWriteOff` =>
-        (__ \ 'reasonForTheOverpaymentOrWriteOff).json.pick.map(jsValue => JsString(refundOfContributionsMap(jsValue.as[JsString].value)))
+        (__ \ 'reasonForTheOverpaymentOrWriteOff).json.pick.map(jsValue => JsString(overpaymentOrWriteOffMap(jsValue.as[JsString].value)))
       case _ =>
         Reads.pure[JsString](JsString(""))
     }

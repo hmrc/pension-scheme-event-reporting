@@ -33,9 +33,9 @@ trait ResponseGenerators extends Matchers with OptionValues {
     "errorCalcTaxFreeLumpSums" -> "Error in calculating tax free lump sums",
     "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
     "refundOfContributions" -> "Refund of contributions",
-    "overpaymentOrWriteOff" -> "Overpayment of pension/written off"
+    "overpaymentOrWriteOff" -> "Overpayment of pension/written off",
     //    "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
-    //    "tangibleMoveablePropertyHeld" -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
+    "tangibleMoveablePropertyHeld" -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
     //    "courtOrConfiscationOrder" -> "Court Order Payment/Confiscation Order",
     //    "other" -> "Other"
   )
@@ -153,6 +153,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
       unAuthPaySurcharge <- arbitrary[Boolean]
       benefitInKindDesc <- Gen.alphaStr
       errorDesc <- Gen.alphaStr
+      tangibleMoveable <- Gen.alphaStr
       whoWasTransferMadeTo <- Gen.oneOf(whoWasTransferMadeToMap.keys.toSeq)
       refundOfContributions <- Gen.oneOf(refundOfContributionsMap.keys.toSeq)
       overpaymentOrWriteOff <- Gen.oneOf(overpaymentOrWriteOffMap.keys.toSeq)
@@ -174,6 +175,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
         "paymentNature" -> paymentNature,
         "benefitInKindBriefDescription" -> benefitInKindDesc,
         "errorDescription" -> errorDesc,
+        "memberTangibleMoveableProperty" -> tangibleMoveable,
         "whoWasTheTransferMade" -> whoWasTransferMadeTo,
         "refundOfContributions" -> refundOfContributions,
         "benefitsPaidEarly" -> benefitsPaidEarly,
@@ -193,6 +195,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
         case "errorCalcTaxFreeLumpSums" => errorDesc
         case "transferToNonRegPensionScheme" => schemeName
         case "benefitsPaidEarly" => benefitsPaidEarly
+        case "tangibleMoveablePropertyHeld" => tangibleMoveable
         case _ => ""
       }
 
