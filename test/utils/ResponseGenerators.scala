@@ -32,8 +32,8 @@ trait ResponseGenerators extends Matchers with OptionValues {
     "transferToNonRegPensionScheme" -> "Transfer to non-registered pensions scheme",
     "errorCalcTaxFreeLumpSums" -> "Error in calculating tax free lump sums",
     "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
-    "refundOfContributions" -> "Refund of contributions"
-    //    "overpaymentOrWriteOff" -> "Overpayment of pension/written off",
+    "refundOfContributions" -> "Refund of contributions",
+    "overpaymentOrWriteOff" -> "Overpayment of pension/written off"
     //    "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
     //    "tangibleMoveablePropertyHeld" -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
     //    "courtOrConfiscationOrder" -> "Court Order Payment/Confiscation Order",
@@ -47,6 +47,13 @@ trait ResponseGenerators extends Matchers with OptionValues {
 
   private val refundOfContributionsMap = Map(
     "widowOrOrphan" -> "Widow and/or orphan",
+    "other" -> "Overpayment of pension/written off other"
+  )
+
+  private val overpaymentOrWriteOffMap = Map(
+    "deathOfMember" -> "Death of member",
+    "deathOfDependent" -> "Death of dependent",
+    "dependentNoLongerQualifiedForPension" -> "Dependent no longer qualified for pension",
     "other" -> "Overpayment of pension/written off other"
   )
 
@@ -148,6 +155,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
       errorDesc <- Gen.alphaStr
       whoWasTransferMadeTo <- Gen.oneOf(whoWasTransferMadeToMap.keys.toSeq)
       refundOfContributions <- Gen.oneOf(refundOfContributionsMap.keys.toSeq)
+      overpaymentOrWriteOff <- Gen.oneOf(overpaymentOrWriteOffMap.keys.toSeq)
       schemeName <- Gen.alphaStr
       schemeRef <- Gen.alphaStr
       paymentVal <- arbitrary[BigDecimal]
@@ -169,6 +177,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
         "whoWasTheTransferMade" -> whoWasTransferMadeTo,
         "refundOfContributions" -> refundOfContributions,
         "benefitsPaidEarly" -> benefitsPaidEarly,
+        "reasonForTheOverpaymentOrWriteOff" -> overpaymentOrWriteOff,
         "schemeDetails" -> Json.obj(
           "schemeName" -> schemeName,
           "reference" -> schemeRef
@@ -191,6 +200,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
         paymentNature match {
           case "transferToNonRegPensionScheme" => whoWasTransferMadeToMap(whoWasTransferMadeTo)
           case "refundOfContributions" => refundOfContributionsMap(refundOfContributions)
+          case "overpaymentOrWriteOff" => overpaymentOrWriteOffMap(overpaymentOrWriteOff)
           case _ => ""
         }
 

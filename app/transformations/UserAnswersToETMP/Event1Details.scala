@@ -24,6 +24,7 @@ object Event1Details {
   private val paymentNatureTypeKeyBenefitInKind: String = "benefitInKind"
   private val paymentNatureTypeKeyTransferToNonRegPensionScheme: String = "transferToNonRegPensionScheme"
   private val paymentNatureTypeKeyRefundOfContributions: String = "refundOfContributions"
+  private val paymentNatureTypeKeyOverpaymentOrWriteOff: String = "overpaymentOrWriteOff"
   private val paymentNatureTypeKeyErrorCalcTaxFreeLumpSums: String = "errorCalcTaxFreeLumpSums"
   private val paymentNatureTypeKeyBenefitsPaidEarly: String = "benefitsPaidEarly"
   private val whoReceivedUnauthPaymentIndividual = "Individual"
@@ -35,7 +36,7 @@ object Event1Details {
     paymentNatureTypeKeyErrorCalcTaxFreeLumpSums -> "Error in calculating tax free lump sums",
     paymentNatureTypeKeyBenefitsPaidEarly -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
     paymentNatureTypeKeyRefundOfContributions -> "Refund of contributions",
-    "overpaymentOrWriteOff" -> "Overpayment of pension/written off",
+    paymentNatureTypeKeyOverpaymentOrWriteOff -> "Overpayment of pension/written off",
     "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
     "tangibleMoveablePropertyHeld" -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
     "courtOrConfiscationOrder" -> "Court Order Payment/Confiscation Order",
@@ -50,6 +51,13 @@ object Event1Details {
 
   private val refundOfContributionsMap = Map(
     "widowOrOrphan" -> "Widow and/or orphan",
+    "other" -> "Overpayment of pension/written off other"
+  )
+
+  private val overpaymentOrWriteOffMap = Map(
+    "deathOfMember" -> "Death of member",
+    "deathOfDependent" -> "Death of dependent",
+    "dependentNoLongerQualifiedForPension" -> "Dependent no longer qualified for pension",
     "other" -> "Overpayment of pension/written off other"
   )
 
@@ -98,6 +106,8 @@ object Event1Details {
         (__ \ 'whoWasTheTransferMade).json.pick.map(jsValue => JsString(whoWasTransferMadeToMap(jsValue.as[JsString].value)))
       case `paymentNatureTypeKeyRefundOfContributions` =>
         (__ \ 'refundOfContributions).json.pick.map(jsValue => JsString(refundOfContributionsMap(jsValue.as[JsString].value)))
+      case `paymentNatureTypeKeyOverpaymentOrWriteOff` =>
+        (__ \ 'reasonForTheOverpaymentOrWriteOff).json.pick.map(jsValue => JsString(refundOfContributionsMap(jsValue.as[JsString].value)))
       case _ =>
         Reads.pure[JsString](JsString(""))
     }
