@@ -203,7 +203,8 @@ trait ResponseGenerators extends Matchers with OptionValues {
       whoReceivedUnauthorisedPaymentMember -> "Individual",
       whoReceivedUnauthorisedPaymentEmployer -> "Employer",
     )
-    Gen.oneOf(whoReceivedUnauthorisedPaymentMember, whoReceivedUnauthorisedPaymentEmployer).flatMap { whoReceivedUnauthorisedPayment =>
+    Gen.oneOf(whoReceivedUnauthorisedPaymentMember, whoReceivedUnauthorisedPaymentMember/*whoReceivedUnauthorisedPaymentEmployer*/)
+      .flatMap { whoReceivedUnauthorisedPayment =>
       (whoReceivedUnauthorisedPayment match {
         case `whoReceivedUnauthorisedPaymentMember` => generateMember
         case _ => generateMember // TODO: Change to generateEmployer

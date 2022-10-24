@@ -68,7 +68,7 @@ object Event1Details {
   private val readsPaymentNature: Reads[String] = (__ \ 'paymentNature).json.pick.map(_.as[JsString].value)
 
   val readsWhoReceivedUnauthorisedPayment: Reads[JsObject] = {
-    (__ \ 'memberType).json.copyFrom((__ \ 'whoReceivedUnauthorisedPayment).json.pick.flatMap {
+    (__ \ 'memberType).json.copyFrom((__ \ 'whoReceivedUnauthPayment).json.pick.flatMap {
       case JsString("member") => Reads.pure[JsString](JsString("Individual"))
       case JsString("employer") => Reads.pure[JsString](JsString("Employer"))
       case s =>

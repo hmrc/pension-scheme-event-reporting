@@ -28,7 +28,7 @@ class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar with
   "readsWhoReceivedUnauthorisedPayment" - {
     "work correctly for valid payload for member" in {
       val inputJson = Json.obj(
-        "whoReceivedUnauthorisedPayment" -> "member"
+        "whoReceivedUnauthPayment" -> "member"
       )
       val result = inputJson.transform(Event1Details.readsWhoReceivedUnauthorisedPayment)
       result mustBe JsSuccess(Json.obj(
@@ -38,7 +38,7 @@ class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar with
 
     "work correctly for valid payload for employer" in {
       val inputJson = Json.obj(
-        "whoReceivedUnauthorisedPayment" -> "employer"
+        "whoReceivedUnauthPayment" -> "employer"
       )
       val result = inputJson.transform(Event1Details.readsWhoReceivedUnauthorisedPayment)
       result mustBe JsSuccess(Json.obj(
@@ -48,7 +48,7 @@ class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar with
 
     "fail for invalid payload" in {
       val inputJson = Json.obj(
-        "whoReceivedUnauthorisedPayment" -> "unknown"
+        "whoReceivedUnauthPayment" -> "unknown"
       )
       val result = inputJson.transform(Event1Details.readsWhoReceivedUnauthorisedPayment)
       result.isError mustBe true
@@ -59,12 +59,12 @@ class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar with
     "must transform a randomly generated valid payload correctly" in {
       forAll(generateRandomPayloadAPI1827) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
-          val result = userAnswers.validate(Event1Details.transformToETMPData).asOpt
-          val expectedResult = Some(expectedResponse)
+          val result = userAnswers.validate(Event1Details.transformToETMPData)
+          val expectedResult = JsSuccess(expectedResponse)
           println(s"\n\n ------- GENERATED USER ANSWERS:  $userAnswers")
           println(s"\n\n ------- GENERATED EXPECTED:   $expectedResult")
           println(s"\n\n ------- ACTUAL RESULT:  $result")
-          result mustBe expectedResult
+          result.asOpt mustBe expectedResult.asOpt
       }
       //      //    {
       //      //    "transform a valid payload correctly when read from sample file" in {
