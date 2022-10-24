@@ -29,6 +29,7 @@ object Event1Details {
   private val paymentNatureTypeKeyTangibleMoveablePropertyHeld: String = "tangibleMoveablePropertyHeld"
   private val paymentNatureTypeKeyErrorCalcTaxFreeLumpSums: String = "errorCalcTaxFreeLumpSums"
   private val paymentNatureTypeKeyCourtOrConfiscationOrder: String = "courtOrConfiscationOrder"
+  private val paymentNatureTypeKeyOther: String = "other"
   private val paymentNatureTypeKeyBenefitsPaidEarly: String = "benefitsPaidEarly"
   private val whoReceivedUnauthPaymentIndividual = "Individual"
   private val whoReceivedUnauthPaymentEmployer = "Employer"
@@ -43,7 +44,7 @@ object Event1Details {
     paymentNatureTypeKeyResidentialPropertyHeld -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
     paymentNatureTypeKeyTangibleMoveablePropertyHeld -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
     paymentNatureTypeKeyCourtOrConfiscationOrder -> "Court Order Payment/Confiscation Order",
-    "other" -> "Other"
+    paymentNatureTypeKeyOther -> "Other"
   )
 
   private val whoWasTransferMadeToMap = Map(
@@ -72,6 +73,7 @@ object Event1Details {
       case `paymentNatureTypeKeyBenefitsPaidEarly` => (__ \ 'benefitsPaidEarly).json.pick.map(_.as[JsString])
       case `paymentNatureTypeKeyTangibleMoveablePropertyHeld` => (__ \ 'memberTangibleMoveableProperty).json.pick.map(_.as[JsString])
       case `paymentNatureTypeKeyCourtOrConfiscationOrder` => (__ \ 'unauthorisedPaymentRecipientName).json.pick.map(_.as[JsString])
+      case `paymentNatureTypeKeyOther` => (__ \ 'memberPaymentNatureDescription).json.pick.map(_.as[JsString])
       case _ => Reads[JsString](_ => JsSuccess(JsString("")))
     }
   }
