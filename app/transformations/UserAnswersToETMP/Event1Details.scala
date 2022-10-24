@@ -78,6 +78,13 @@ object Event1Details {
     }
   }
 
+  private def paymentValDate(paymentNature: String): Reads[JsObject] = paymentNature match {
+    case `paymentNatureTypeKeyErrorCalcTaxFreeLumpSums` =>
+      ((pathUnauthorisedPaymentDetails \ 'valueOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentValue).json.pick) and
+      (pathUnauthorisedPaymentDetails \ 'dateOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentDate).json.pick)).reduce
+    case _ => doNothing
+  }
+
   private val readsIndividualMemberDetails: Reads[JsObject] =
     ((pathIndividualMemberDetails \ 'firstName).json.copyFrom((__ \ 'membersDetails \ 'firstName).json.pick) and
       (pathIndividualMemberDetails \ 'lastName).json.copyFrom((__ \ 'membersDetails \ 'lastName).json.pick) and
@@ -90,7 +97,8 @@ object Event1Details {
     ((pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.put(JsString(paymentNatureMap(paymentNature))) and
       (pathUnauthorisedPaymentDetails \ 'freeTxtOrSchemeOrRecipientName).json.copyFrom(freeTxtOrSchemeOrRecipientName(paymentNature)) and
       (pathUnauthorisedPaymentDetails \ 'pstrOrReference).json.copyFrom(pstrOrReference(paymentNature)).orElse(doNothing) and
-      (pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType2).json.copyFrom(readsTransferMade)).reduce
+      (pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType2).json.copyFrom(readsTransferMade) and paymentValDate(paymentNature)
+      ).reduce
 
   private def readsMemberOrEmployer(whoReceivedUnauthorisedPayment: String): Reads[JsObject] = {
     whoReceivedUnauthorisedPayment match {

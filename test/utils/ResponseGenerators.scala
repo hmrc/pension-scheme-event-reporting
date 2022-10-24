@@ -132,13 +132,22 @@ trait ResponseGenerators extends Matchers with OptionValues {
                                 schemeName: String,
                                 schemeRef: String,
                                 errorDesc: String,
-                                whoWasTransferMadeTo: String): JsObject = Json.obj(
+                                whoWasTransferMadeTo: String,
+                                paymentVal: BigDecimal,
+                                paymentDate: LocalDate): JsObject = Json.obj(
     "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature),
     "freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName(paymentNature, benefitInKindDesc, schemeName, errorDesc),
     "unAuthorisedPmtType2" -> whoWasTransferMadeToMap(whoWasTransferMadeTo)
   ) ++ (
     if (paymentNature == "transferToNonRegPensionScheme") {
       Json.obj("pstrOrReference" -> pstrOrReference(paymentNature, schemeRef))
+    } else {
+      Json.obj()
+    }
+    ) ++ (
+    if (paymentNature == "errorCalcTaxFreeLumpSums") {
+      Json.obj("valueOfUnauthorisedPayment" -> paymentVal,
+      "dateOfUnauthorisedPayment" -> paymentDate)
     } else {
       Json.obj()
     }
@@ -159,6 +168,8 @@ trait ResponseGenerators extends Matchers with OptionValues {
       whoWasTransferMadeTo <- Gen.oneOf(whoWasTransferMadeToMap.keys.toSeq)
       schemeName <- Gen.alphaStr
       schemeRef <- Gen.alphaStr
+      paymentVal <- arbitrary[BigDecimal]
+      paymentDate <- dateGenerator
     } yield {
       val ua = Json.obj(
         "membersDetails" -> Json.obj(
@@ -176,6 +187,10 @@ trait ResponseGenerators extends Matchers with OptionValues {
         "schemeDetails" -> Json.obj(
           "schemeName" -> schemeName,
           "reference" -> schemeRef
+        ),
+      "paymentValueAndDate" -> Json.obj(
+          "paymentValue" -> paymentVal,
+          "paymentDate" -> paymentDate
         )
       )
 
@@ -189,7 +204,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
           "schemePayingSurcharge" -> unAuthPaySurcharge
         ),
         "unAuthorisedPaymentDetails" ->
-          unauthorsedPaymentDetails(paymentNature, benefitInKindDesc, schemeName, schemeRef, errorDesc, whoWasTransferMadeTo)
+          unauthorsedPaymentDetails(paymentNature, benefitInKindDesc, schemeName, schemeRef, errorDesc, whoWasTransferMadeTo, paymentVal, paymentDate)
       )
       Tuple2(ua, expectedJson)
     }
