@@ -74,7 +74,7 @@ object Event1Details {
       case `paymentNatureTypeKeyTangibleMoveablePropertyHeld` => (__ \ 'memberTangibleMoveableProperty).json.pick.map(_.as[JsString])
       case `paymentNatureTypeKeyCourtOrConfiscationOrder` => (__ \ 'unauthorisedPaymentRecipientName).json.pick.map(_.as[JsString])
       case `paymentNatureTypeKeyOther` => (__ \ 'memberPaymentNatureDescription).json.pick.map(_.as[JsString])
-      case _ => Reads[JsString](_ => JsSuccess(JsString("")))
+      case _ => Reads[JsString](_ => JsError(""))
     }
   }
 
@@ -143,7 +143,7 @@ object Event1Details {
 //    }
 
     ((pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.put(JsString(paymentNatureMap(paymentNature))) and
-      (pathUnauthorisedPaymentDetails \ 'freeTxtOrSchemeOrRecipientName).json.copyFrom(freeTxtOrSchemeOrRecipientName(paymentNature)) and
+      (pathUnauthorisedPaymentDetails \ 'freeTxtOrSchemeOrRecipientName).json.copyFrom(freeTxtOrSchemeOrRecipientName(paymentNature)).orElse(doNothing) and
       (pathUnauthorisedPaymentDetails \ 'pstrOrReference).json.copyFrom(pstrOrReference(paymentNature)).orElse(doNothing) and
       (pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType2).json.copyFrom(readsPaymentType2).orElse(doNothing) and
       (pathUnauthorisedPaymentDetails \ 'valueOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentValue).json.pick) and
