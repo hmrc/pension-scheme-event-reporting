@@ -31,7 +31,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
     "benefitInKind" -> "Benefit in kind",
     "transferToNonRegPensionScheme" -> "Transfer to non-registered pensions scheme",
     "errorCalcTaxFreeLumpSums" -> "Error in calculating tax free lump sums",
-    //    "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
+    "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum"
     //    "refundOfContributions" -> "Refund of contributions",
     //    "overpaymentOrWriteOff" -> "Overpayment of pension/written off",
     //    "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
@@ -127,26 +127,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
     }
   }
 
-  def unauthorsedPaymentDetails(paymentNature: String,
-                                benefitInKindDesc: String,
-                                schemeName: String,
-                                schemeRef: String,
-                                errorDesc: String,
-                                whoWasTransferMadeTo: String,
-                                paymentVal: BigDecimal,
-                                paymentDate: LocalDate): JsObject = Json.obj(
-    "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature),
-    "freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName(paymentNature, benefitInKindDesc, schemeName, errorDesc),
-    "unAuthorisedPmtType2" -> whoWasTransferMadeToMap(whoWasTransferMadeTo),
-    "valueOfUnauthorisedPayment" -> paymentVal,
-    "dateOfUnauthorisedPayment" -> paymentDate
-  ) ++ (
-      if (paymentNature == "transferToNonRegPensionScheme") {
-        Json.obj("pstrOrReference" -> pstrOrReference(paymentNature, schemeRef))
-      } else {
-        Json.obj()
-      }
-    )
+
 
   //scalastyle:off
   private def generateMember: Gen[(JsObject, JsObject)] = {
@@ -165,6 +146,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
       schemeRef <- Gen.alphaStr
       paymentVal <- arbitrary[BigDecimal]
       paymentDate <- dateGenerator
+      benefitsPaidEarly <- Gen.alphaStr
     } yield {
       val ua = Json.obj(
         "membersDetails" -> Json.obj(
@@ -179,6 +161,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
         "benefitInKindBriefDescription" -> benefitInKindDesc,
         "errorDescription" -> errorDesc,
         "whoWasTheTransferMade" -> whoWasTransferMadeTo,
+        "benefitsPaidEarly" -> benefitsPaidEarly,
         "schemeDetails" -> Json.obj(
           "schemeName" -> schemeName,
           "reference" -> schemeRef
@@ -188,6 +171,28 @@ trait ResponseGenerators extends Matchers with OptionValues {
           "paymentDate" -> paymentDate
         )
       )
+
+      def freeTxtOrSchemeOrRecipientName = paymentNature match {
+        case "benefitInKind" => benefitInKindDesc
+        case "errorCalcTaxFreeLumpSums" => errorDesc
+        case "transferToNonRegPensionScheme" => schemeName
+        case "benefitsPaidEarly" => benefitsPaidEarly
+        case _ => ""
+      }
+
+      def unauthorsedPaymentDetails: JsObject = Json.obj(
+        "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature),
+        "freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName,
+        "unAuthorisedPmtType2" -> whoWasTransferMadeToMap(whoWasTransferMadeTo),
+        "valueOfUnauthorisedPayment" -> paymentVal,
+        "dateOfUnauthorisedPayment" -> paymentDate
+      ) ++ (
+        if (paymentNature == "transferToNonRegPensionScheme") {
+          Json.obj("pstrOrReference" -> pstrOrReference(paymentNature, schemeRef))
+        } else {
+          Json.obj()
+        }
+        )
 
       val expectedJson = Json.obj(
         "individualMemberDetails" -> Json.obj(
@@ -199,7 +204,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
           "schemePayingSurcharge" -> unAuthPaySurcharge
         ),
         "unAuthorisedPaymentDetails" ->
-          unauthorsedPaymentDetails(paymentNature, benefitInKindDesc, schemeName, schemeRef, errorDesc, whoWasTransferMadeTo, paymentVal, paymentDate)
+          unauthorsedPaymentDetails
       )
       Tuple2(ua, expectedJson)
     }
@@ -237,12 +242,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
       }
   }
 
-  private def freeTxtOrSchemeOrRecipientName(paymentNature: String, benefitInKindDesc: String, schemeName: String, errorDesc: String) = paymentNature match {
-    case "benefitInKind" => benefitInKindDesc
-    case "errorCalcTaxFreeLumpSums" => errorDesc
-    case "transferToNonRegPensionScheme" => schemeName
-    case _ => ""
-  }
+
 
   private def pstrOrReference(paymentNature: String, schemeRef: String): String = paymentNature match {
     case "transferToNonRegPensionScheme" => schemeRef

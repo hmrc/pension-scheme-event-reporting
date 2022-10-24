@@ -24,6 +24,7 @@ object Event1Details {
   private val paymentNatureTypeKeyBenefitInKind: String = "benefitInKind"
   private val paymentNatureTypeKeyTransferToNonRegPensionScheme: String = "transferToNonRegPensionScheme"
   private val paymentNatureTypeKeyErrorCalcTaxFreeLumpSums: String = "errorCalcTaxFreeLumpSums"
+  private val paymentNatureTypeKeyBenefitsPaidEarly: String = "benefitsPaidEarly"
   private val whoReceivedUnauthPaymentIndividual = "Individual"
   private val whoReceivedUnauthPaymentEmployer = "Employer"
 
@@ -31,7 +32,7 @@ object Event1Details {
     paymentNatureTypeKeyBenefitInKind -> "Benefit in kind",
     paymentNatureTypeKeyTransferToNonRegPensionScheme -> "Transfer to non-registered pensions scheme",
     paymentNatureTypeKeyErrorCalcTaxFreeLumpSums -> "Error in calculating tax free lump sums",
-    "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
+    paymentNatureTypeKeyBenefitsPaidEarly -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
     "refundOfContributions" -> "Refund of contributions",
     "overpaymentOrWriteOff" -> "Overpayment of pension/written off",
     "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
@@ -53,6 +54,7 @@ object Event1Details {
       case `paymentNatureTypeKeyBenefitInKind` => (__ \ 'benefitInKindBriefDescription).json.pick.map(_.as[JsString])
       case `paymentNatureTypeKeyTransferToNonRegPensionScheme` => (__ \ 'schemeDetails \ 'schemeName).json.pick.map(_.as[JsString])
       case `paymentNatureTypeKeyErrorCalcTaxFreeLumpSums` => (__ \ 'errorDescription).json.pick.map(_.as[JsString])
+      case `paymentNatureTypeKeyBenefitsPaidEarly` => (__ \ 'benefitsPaidEarly).json.pick.map(_.as[JsString])
       case _ => Reads[JsString](_ => JsSuccess(JsString("")))
     }
   }
