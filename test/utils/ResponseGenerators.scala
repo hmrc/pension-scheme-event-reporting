@@ -34,7 +34,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
     "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
     "refundOfContributions" -> "Refund of contributions",
     "overpaymentOrWriteOff" -> "Overpayment of pension/written off",
-    //    "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
+    "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
     "tangibleMoveablePropertyHeld" -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
     //    "courtOrConfiscationOrder" -> "Court Order Payment/Confiscation Order",
     //    "other" -> "Other"
@@ -76,7 +76,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
 
 
   val addressGenerator: Gen[JsObject] = for {
-    nonUkAddress <- arbitrary[Boolean]
+//    nonUkAddress <- arbitrary[Boolean]
     line1 <- nonEmptyString
     line2 <- nonEmptyString
     line3 <- Gen.option(nonEmptyString)
@@ -85,13 +85,13 @@ trait ResponseGenerators extends Matchers with OptionValues {
     country <- Gen.listOfN(2, nonEmptyString).map(_.mkString)
   } yield {
     Json.obj(
-      fields = "nonUKAddress" -> nonUkAddress.toString.capitalize,
+//      fields = "nonUKAddress" -> nonUkAddress.toString.capitalize,
       "addressLine1" -> line1,
       "addressLine2" -> line2,
       "addressLine3" -> line3,
       "addressLine4" -> line4,
-      "postCode" -> postalCode,
-      "countryCode" -> country
+      "postcode" -> postalCode,
+      "country" -> country
     )
   }
 
@@ -162,6 +162,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
       paymentVal <- arbitrary[BigDecimal]
       paymentDate <- dateGenerator
       benefitsPaidEarly <- Gen.alphaStr
+      address <- addressGenerator
     } yield {
       val ua = Json.obj(
         "membersDetails" -> Json.obj(
@@ -187,6 +188,11 @@ trait ResponseGenerators extends Matchers with OptionValues {
         "paymentValueAndDate" -> Json.obj(
           "paymentValue" -> paymentVal,
           "paymentDate" -> paymentDate
+        ),
+        "event1" -> Json.obj(
+          "memberResidentialAddress" -> Json.obj(
+            "address" -> address
+          )
         )
       )
 
@@ -217,6 +223,12 @@ trait ResponseGenerators extends Matchers with OptionValues {
       ) ++ (
         if (paymentNature == "transferToNonRegPensionScheme") {
           Json.obj("pstrOrReference" -> pstrOrReference(paymentNature, schemeRef))
+        } else {
+          Json.obj()
+        }
+        ) ++ (
+        if (paymentNature == "residentialPropertyHeld") {
+          Json.obj("residentialPropertyAddress" -> address)
         } else {
           Json.obj()
         }
