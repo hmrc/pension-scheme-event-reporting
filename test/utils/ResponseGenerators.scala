@@ -221,10 +221,15 @@ trait ResponseGenerators extends Matchers with OptionValues {
       def unauthorsedPaymentDetails: JsObject = Json.obj(
         "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature),
         "freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName,
-        "unAuthorisedPmtType2" -> unAuthorisedPmtType2,
         "valueOfUnauthorisedPayment" -> paymentVal,
         "dateOfUnauthorisedPayment" -> paymentDate
       ) ++ (
+        if (paymentNature == "transferToNonRegPensionScheme" ||paymentNature == "refundOfContributions" ||paymentNature == "overpaymentOrWriteOff") {
+          Json.obj("unAuthorisedPmtType2" -> unAuthorisedPmtType2)
+        } else {
+          Json.obj()
+        }
+        )++ (
         if (paymentNature == "transferToNonRegPensionScheme") {
           Json.obj("pstrOrReference" -> pstrOrReference(paymentNature, schemeRef))
         } else {
