@@ -137,20 +137,15 @@ trait ResponseGenerators extends Matchers with OptionValues {
                                 paymentDate: LocalDate): JsObject = Json.obj(
     "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature),
     "freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName(paymentNature, benefitInKindDesc, schemeName, errorDesc),
-    "unAuthorisedPmtType2" -> whoWasTransferMadeToMap(whoWasTransferMadeTo)
+    "unAuthorisedPmtType2" -> whoWasTransferMadeToMap(whoWasTransferMadeTo),
+    "valueOfUnauthorisedPayment" -> paymentVal,
+    "dateOfUnauthorisedPayment" -> paymentDate
   ) ++ (
-    if (paymentNature == "transferToNonRegPensionScheme") {
-      Json.obj("pstrOrReference" -> pstrOrReference(paymentNature, schemeRef))
-    } else {
-      Json.obj()
-    }
-    ) ++ (
-    if (paymentNature == "errorCalcTaxFreeLumpSums") {
-      Json.obj("valueOfUnauthorisedPayment" -> paymentVal,
-      "dateOfUnauthorisedPayment" -> paymentDate)
-    } else {
-      Json.obj()
-    }
+      if (paymentNature == "transferToNonRegPensionScheme") {
+        Json.obj("pstrOrReference" -> pstrOrReference(paymentNature, schemeRef))
+      } else {
+        Json.obj()
+      }
     )
 
   //scalastyle:off
@@ -188,7 +183,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
           "schemeName" -> schemeName,
           "reference" -> schemeRef
         ),
-      "paymentValueAndDate" -> Json.obj(
+        "paymentValueAndDate" -> Json.obj(
           "paymentValue" -> paymentVal,
           "paymentDate" -> paymentDate
         )
@@ -218,28 +213,28 @@ trait ResponseGenerators extends Matchers with OptionValues {
       whoReceivedUnauthorisedPaymentMember -> "Individual",
       whoReceivedUnauthorisedPaymentEmployer -> "Employer",
     )
-    Gen.oneOf(whoReceivedUnauthorisedPaymentMember, whoReceivedUnauthorisedPaymentMember/*whoReceivedUnauthorisedPaymentEmployer*/)
+    Gen.oneOf(whoReceivedUnauthorisedPaymentMember, whoReceivedUnauthorisedPaymentMember /*whoReceivedUnauthorisedPaymentEmployer*/)
       .flatMap { whoReceivedUnauthorisedPayment =>
-      (whoReceivedUnauthorisedPayment match {
-        case `whoReceivedUnauthorisedPaymentMember` => generateMember
-        case _ => generateMember // TODO: Change to generateEmployer
-      }).map{ case (generatedUA, generatedExpectedResult) =>
-        val fullUA = Json.obj(
-          "membersOrEmployers" ->
-            Json.arr(
-              generatedUA ++ Json.obj("whoReceivedUnauthPayment" -> whoReceivedUnauthorisedPayment)
-            )
-        )
-        val fullExpectedResult = Json.obj(
-          "event1Details" -> Json.obj(
-            "event1Details" -> Json.arr(
-              generatedExpectedResult ++ Json.obj( "memberType" -> whoReceivedUnauthorisedPaymentMap(whoReceivedUnauthorisedPayment))
+        (whoReceivedUnauthorisedPayment match {
+          case `whoReceivedUnauthorisedPaymentMember` => generateMember
+          case _ => generateMember // TODO: Change to generateEmployer
+        }).map { case (generatedUA, generatedExpectedResult) =>
+          val fullUA = Json.obj(
+            "membersOrEmployers" ->
+              Json.arr(
+                generatedUA ++ Json.obj("whoReceivedUnauthPayment" -> whoReceivedUnauthorisedPayment)
+              )
+          )
+          val fullExpectedResult = Json.obj(
+            "event1Details" -> Json.obj(
+              "event1Details" -> Json.arr(
+                generatedExpectedResult ++ Json.obj("memberType" -> whoReceivedUnauthorisedPaymentMap(whoReceivedUnauthorisedPayment))
+              )
             )
           )
-        )
-        Tuple2(fullUA, fullExpectedResult)
+          Tuple2(fullUA, fullExpectedResult)
+        }
       }
-    }
   }
 
   private def freeTxtOrSchemeOrRecipientName(paymentNature: String, benefitInKindDesc: String, schemeName: String, errorDesc: String) = paymentNature match {
