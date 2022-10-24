@@ -23,6 +23,7 @@ import play.api.libs.json._
 object Event1Details {
   private val paymentNatureTypeKeyBenefitInKind: String = "benefitInKind"
   private val paymentNatureTypeKeyTransferToNonRegPensionScheme: String = "transferToNonRegPensionScheme"
+  private val paymentNatureTypeKeyRefundOfContributions: String = "refundOfContributions"
   private val paymentNatureTypeKeyErrorCalcTaxFreeLumpSums: String = "errorCalcTaxFreeLumpSums"
   private val paymentNatureTypeKeyBenefitsPaidEarly: String = "benefitsPaidEarly"
   private val whoReceivedUnauthPaymentIndividual = "Individual"
@@ -33,7 +34,7 @@ object Event1Details {
     paymentNatureTypeKeyTransferToNonRegPensionScheme -> "Transfer to non-registered pensions scheme",
     paymentNatureTypeKeyErrorCalcTaxFreeLumpSums -> "Error in calculating tax free lump sums",
     paymentNatureTypeKeyBenefitsPaidEarly -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
-    "refundOfContributions" -> "Refund of contributions",
+    paymentNatureTypeKeyRefundOfContributions -> "Refund of contributions",
     "overpaymentOrWriteOff" -> "Overpayment of pension/written off",
     "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
     "tangibleMoveablePropertyHeld" -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
@@ -44,10 +45,13 @@ object Event1Details {
   private val whoWasTransferMadeToMap = Map(
     "anEmployerFinanced" -> "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
     "nonRecognisedScheme" -> "Transfer to a non-recognised pension scheme which is not a qualifying overseas pension scheme",
-    "other" -> "Overpayment of pension/written off other")
+    "other" -> "Overpayment of pension/written off other"
+  )
 
-  private val readsTransferMade: Reads[JsString] =
-    (__ \ 'whoWasTheTransferMade).json.pick.map(jsValue => JsString(whoWasTransferMadeToMap(jsValue.as[JsString].value)))
+  private val refundOfContributionsMap = Map(
+    "widowOrOrphan" -> "Widow and/or orphan",
+    "other" -> "Overpayment of pension/written off other"
+  )
 
   private def freeTxtOrSchemeOrRecipientName(paymentNature: String): Reads[JsString] = {
     paymentNature match {
@@ -88,14 +92,25 @@ object Event1Details {
       (pathIndividualMemberDetails \ 'pmtMoreThan25PerFundValue).json.copyFrom((__ \ 'valueOfUnauthorisedPayment).json.pick) and
       (pathIndividualMemberDetails \ 'schemePayingSurcharge).json.copyFrom((__ \ 'schemeUnAuthPaySurchargeMember).json.pick)).reduce
 
-  private def readsUnauthorisedPaymentDetails(paymentNature: String): Reads[JsObject] =
+  private def readsUnauthorisedPaymentDetails(paymentNature: String): Reads[JsObject] = {
+    def readsPaymentType2: Reads[JsString] = paymentNature match {
+      case `paymentNatureTypeKeyTransferToNonRegPensionScheme` =>
+        (__ \ 'whoWasTheTransferMade).json.pick.map(jsValue => JsString(whoWasTransferMadeToMap(jsValue.as[JsString].value)))
+      case `paymentNatureTypeKeyRefundOfContributions` =>
+        (__ \ 'refundOfContributions).json.pick.map(jsValue => JsString(refundOfContributionsMap(jsValue.as[JsString].value)))
+      case _ =>
+        Reads.pure[JsString](JsString(""))
+    }
+
     ((pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.put(JsString(paymentNatureMap(paymentNature))) and
       (pathUnauthorisedPaymentDetails \ 'freeTxtOrSchemeOrRecipientName).json.copyFrom(freeTxtOrSchemeOrRecipientName(paymentNature)) and
       (pathUnauthorisedPaymentDetails \ 'pstrOrReference).json.copyFrom(pstrOrReference(paymentNature)).orElse(doNothing) and
-      (pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType2).json.copyFrom(readsTransferMade) and
+      (pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType2).json.copyFrom(readsPaymentType2) and
       (pathUnauthorisedPaymentDetails \ 'valueOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentValue).json.pick) and
       (pathUnauthorisedPaymentDetails \ 'dateOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentDate).json.pick)
       ).reduce
+
+  }
 
   private def readsMemberOrEmployer(whoReceivedUnauthorisedPayment: String): Reads[JsObject] = {
     whoReceivedUnauthorisedPayment match {

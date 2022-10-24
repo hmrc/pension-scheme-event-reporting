@@ -31,8 +31,8 @@ trait ResponseGenerators extends Matchers with OptionValues {
     "benefitInKind" -> "Benefit in kind",
     "transferToNonRegPensionScheme" -> "Transfer to non-registered pensions scheme",
     "errorCalcTaxFreeLumpSums" -> "Error in calculating tax free lump sums",
-    "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum"
-    //    "refundOfContributions" -> "Refund of contributions",
+    "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
+    "refundOfContributions" -> "Refund of contributions"
     //    "overpaymentOrWriteOff" -> "Overpayment of pension/written off",
     //    "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
     //    "tangibleMoveablePropertyHeld" -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
@@ -42,7 +42,13 @@ trait ResponseGenerators extends Matchers with OptionValues {
 
   private val whoWasTransferMadeToMap = Map("anEmployerFinanced" -> "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
     "nonRecognisedScheme" -> "Transfer to a non-recognised pension scheme which is not a qualifying overseas pension scheme",
-    "other" -> "Overpayment of pension/written off other")
+    "other" -> "Overpayment of pension/written off other"
+  )
+
+  private val refundOfContributionsMap = Map(
+    "widowOrOrphan" -> "Widow and/or orphan",
+    "other" -> "Overpayment of pension/written off other"
+  )
 
   /*
   "Transfer to an Employer Financed retirement Benefit scheme (EFRB)"
@@ -128,7 +134,6 @@ trait ResponseGenerators extends Matchers with OptionValues {
   }
 
 
-
   //scalastyle:off
   private def generateMember: Gen[(JsObject, JsObject)] = {
     for {
@@ -142,6 +147,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
       benefitInKindDesc <- Gen.alphaStr
       errorDesc <- Gen.alphaStr
       whoWasTransferMadeTo <- Gen.oneOf(whoWasTransferMadeToMap.keys.toSeq)
+      refundOfContributions <- Gen.oneOf(refundOfContributionsMap.keys.toSeq)
       schemeName <- Gen.alphaStr
       schemeRef <- Gen.alphaStr
       paymentVal <- arbitrary[BigDecimal]
@@ -161,6 +167,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
         "benefitInKindBriefDescription" -> benefitInKindDesc,
         "errorDescription" -> errorDesc,
         "whoWasTheTransferMade" -> whoWasTransferMadeTo,
+        "refundOfContributions" -> refundOfContributions,
         "benefitsPaidEarly" -> benefitsPaidEarly,
         "schemeDetails" -> Json.obj(
           "schemeName" -> schemeName,
@@ -180,10 +187,18 @@ trait ResponseGenerators extends Matchers with OptionValues {
         case _ => ""
       }
 
+      val unAuthorisedPmtType2: String =
+        paymentNature match {
+          case "transferToNonRegPensionScheme" => whoWasTransferMadeToMap(whoWasTransferMadeTo)
+          case "refundOfContributions" => refundOfContributionsMap(refundOfContributions)
+          case _ => ""
+        }
+
+
       def unauthorsedPaymentDetails: JsObject = Json.obj(
         "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature),
         "freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName,
-        "unAuthorisedPmtType2" -> whoWasTransferMadeToMap(whoWasTransferMadeTo),
+        "unAuthorisedPmtType2" -> unAuthorisedPmtType2,
         "valueOfUnauthorisedPayment" -> paymentVal,
         "dateOfUnauthorisedPayment" -> paymentDate
       ) ++ (
@@ -241,7 +256,6 @@ trait ResponseGenerators extends Matchers with OptionValues {
         }
       }
   }
-
 
 
   private def pstrOrReference(paymentNature: String, schemeRef: String): String = paymentNature match {
