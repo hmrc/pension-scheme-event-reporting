@@ -115,14 +115,28 @@ object Event1Details {
         Reads.pure[JsString](JsString(""))
     }
 
-    val rds: Reads[JsObject] = (__ \ 'event1 \ 'memberResidentialAddress \ 'address ).read
-
-    def readsAddress: Reads[JsObject] = paymentNature match {
-      case `paymentNatureTypeKeyResidentialPropertyHeld` =>
-        (__ \ 'residentialPropertyAddress).json.copyFrom()
-      case _ =>
-        Reads.pure[JsObject](Json.obj())
+    val rds: Reads[JsObject] = {
+      (
+        (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine1).read[String] and
+      (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine2).read[String] and
+      (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine3).read[Option[String]] and
+      (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine4).read[Option[String]] and
+      (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'postcode).read[Option[String]] and
+      (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'country).read[String]
+        )(
+        (addr1, addr2, addr3, addr4, postcode, country) => Json.obj(
+          "addressLine1" -> addr1,
+          "addressLine2" -> addr2
+        )
+      )
     }
+
+//    def readsAddress: Reads[JsObject] = paymentNature match {
+//      case `paymentNatureTypeKeyResidentialPropertyHeld` =>
+//        val vv = (__ \ 'residentialPropertyAddress )
+//      case _ =>
+//        Reads.pure[JsObject](Json.obj())
+//    }
 
     ((pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.put(JsString(paymentNatureMap(paymentNature))) and
       (pathUnauthorisedPaymentDetails \ 'freeTxtOrSchemeOrRecipientName).json.copyFrom(freeTxtOrSchemeOrRecipientName(paymentNature)) and
