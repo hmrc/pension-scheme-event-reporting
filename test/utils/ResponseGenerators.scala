@@ -197,9 +197,10 @@ trait ResponseGenerators extends Matchers with OptionValues {
 
   //scalastyle:off
   def generateRandomPayloadAPI1827: Gen[Tuple2[JsObject, JsObject]] = {
-    for {
-      (generatedUA, generatedExpectedResult) <- generateMember
-    } yield {
+    Gen.oneOf("member", "employer").flatMap{
+      case "member" => generateMember
+      case _ => generateMember // TODO: Change to generateEmployer
+    }.map{ case (generatedUA, generatedExpectedResult) =>
       val fullUA = Json.obj(
         "membersOrEmployers" ->
           Json.arr(
@@ -213,7 +214,6 @@ trait ResponseGenerators extends Matchers with OptionValues {
           )
         )
       )
-
       Tuple2(fullUA, fullExpectedResult)
     }
   }
@@ -225,7 +225,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
     case _ => ""
   }
 
-  private def pstrOrReference(paymentNature: String, schemeRef: String) = paymentNature match {
+  private def pstrOrReference(paymentNature: String, schemeRef: String): String = paymentNature match {
     case "transferToNonRegPensionScheme" => schemeRef
     case _ => ""
   }
