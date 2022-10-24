@@ -20,7 +20,7 @@ import org.mockito.MockitoSugar
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
-import play.api.libs.json.{JsError, JsObject, JsSuccess, Json}
+import play.api.libs.json.{JsError, JsObject, JsSuccess, Json, __}
 import utils.{JsonFileReader, ResponseGenerators}
 
 class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader with ResponseGenerators with ScalaCheckPropertyChecks {
@@ -60,11 +60,11 @@ class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar with
       forAll(generateRandomPayloadAPI1827) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
           val result = userAnswers.validate(Event1Details.transformToETMPData)
-          val expectedResult = JsSuccess(expectedResponse)
+          val expectedResult = JsSuccess(expectedResponse, __ \ 'membersOrEmployers)
           println(s"\n\n ------- GENERATED USER ANSWERS:  $userAnswers")
           println(s"\n\n ------- GENERATED EXPECTED:   $expectedResult")
           println(s"\n\n ------- ACTUAL RESULT:  $result")
-          result.asOpt mustBe expectedResult.asOpt
+          result mustBe expectedResult
       }
       //      //    {
       //      //    "transform a valid payload correctly when read from sample file" in {
