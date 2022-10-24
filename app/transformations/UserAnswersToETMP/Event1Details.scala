@@ -87,7 +87,8 @@ object Event1Details {
     } yield {
       (
         readsIndividualMemberDetails and
-          readsUnauthorisedPaymentDetails(paymentNature)).reduce
+          readsUnauthorisedPaymentDetails(paymentNature)
+        ).reduce
     }).flatMap[JsObject](identity)
   }
 

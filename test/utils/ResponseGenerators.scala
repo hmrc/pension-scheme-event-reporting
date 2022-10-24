@@ -27,7 +27,7 @@ import java.time.LocalDate
 trait ResponseGenerators extends Matchers with OptionValues {
   val ninoGen: Gen[String] = Gen.oneOf(Seq("AB123456C", "CD123456E"))
 
-  val paymentNatureTypesMember = Map(
+  private val paymentNatureTypesMember = Map(
     "benefitInKind" -> "Benefit in kind",
     "transferToNonRegPensionScheme" -> "Transfer to non-registered pensions scheme",
     "errorCalcTaxFreeLumpSums" -> "Error in calculating tax free lump sums",
@@ -40,7 +40,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
     //    "other" -> "Other"
   )
 
-  val whoWasTransferMadeToMap = Map("anEmployerFinanced" -> "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
+  private val whoWasTransferMadeToMap = Map("anEmployerFinanced" -> "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
     "nonRecognisedScheme" -> "Transfer to a non-recognised pension scheme which is not a qualifying overseas pension scheme",
     "other" -> "Overpayment of pension/written off other")
 
@@ -197,24 +197,32 @@ trait ResponseGenerators extends Matchers with OptionValues {
 
   //scalastyle:off
   def generateRandomPayloadAPI1827: Gen[Tuple2[JsObject, JsObject]] = {
-    Gen.oneOf("member", "employer").flatMap{
-      case "member" => generateMember
-      case _ => generateMember // TODO: Change to generateEmployer
-    }.map{ case (generatedUA, generatedExpectedResult) =>
-      val fullUA = Json.obj(
-        "membersOrEmployers" ->
-          Json.arr(
-            generatedUA
-          )
-      )
-      val fullExpectedResult = Json.obj(
-        "event1Details" -> Json.obj(
-          "event1Details" -> Json.arr(
-            generatedExpectedResult
+    val whoReceivedUnauthorisedPaymentMember = "member"
+    val whoReceivedUnauthorisedPaymentEmployer = "employer"
+    val whoReceivedUnauthorisedPaymentMap: Map[String, String] = Map(
+      whoReceivedUnauthorisedPaymentMember -> "Individual",
+      whoReceivedUnauthorisedPaymentEmployer -> "Employer",
+    )
+    Gen.oneOf(whoReceivedUnauthorisedPaymentMember, whoReceivedUnauthorisedPaymentEmployer).flatMap { whoReceivedUnauthorisedPayment =>
+      (whoReceivedUnauthorisedPayment match {
+        case `whoReceivedUnauthorisedPaymentMember` => generateMember
+        case _ => generateMember // TODO: Change to generateEmployer
+      }).map{ case (generatedUA, generatedExpectedResult) =>
+        val fullUA = Json.obj(
+          "membersOrEmployers" ->
+            Json.arr(
+              generatedUA ++ Json.obj("whoReceivedUnauthPayment" -> whoReceivedUnauthorisedPayment)
+            )
+        )
+        val fullExpectedResult = Json.obj(
+          "event1Details" -> Json.obj(
+            "event1Details" -> Json.arr(
+              generatedExpectedResult ++ Json.obj( "memberType" -> whoReceivedUnauthorisedPaymentMap(whoReceivedUnauthorisedPayment))
+            )
           )
         )
-      )
-      Tuple2(fullUA, fullExpectedResult)
+        Tuple2(fullUA, fullExpectedResult)
+      }
     }
   }
 
