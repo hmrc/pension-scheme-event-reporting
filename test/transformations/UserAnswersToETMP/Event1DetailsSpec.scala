@@ -20,12 +20,42 @@ import org.mockito.MockitoSugar
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
-import play.api.libs.json.JsObject
+import play.api.libs.json.{JsError, JsObject, JsSuccess, Json}
 import utils.{JsonFileReader, ResponseGenerators}
 
 class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader with ResponseGenerators with ScalaCheckPropertyChecks {
 
-  "Reads" - {
+  "readsWhoReceivedUnauthorisedPayment" - {
+    "work correctly for valid payload for member" in {
+      val inputJson = Json.obj(
+        "whoReceivedUnauthorisedPayment" -> "member"
+      )
+      val result = inputJson.transform(Event1Details.readsWhoReceivedUnauthorisedPayment)
+      result mustBe JsSuccess(Json.obj(
+        "memberType" -> "Individual"
+      ))
+    }
+
+    "work correctly for valid payload for employer" in {
+      val inputJson = Json.obj(
+        "whoReceivedUnauthorisedPayment" -> "employer"
+      )
+      val result = inputJson.transform(Event1Details.readsWhoReceivedUnauthorisedPayment)
+      result mustBe JsSuccess(Json.obj(
+        "memberType" -> "Employer"
+      ))
+    }
+
+    "fail for invalid payload" in {
+      val inputJson = Json.obj(
+        "whoReceivedUnauthorisedPayment" -> "unknown"
+      )
+      val result = inputJson.transform(Event1Details.readsWhoReceivedUnauthorisedPayment)
+      result.isError mustBe true
+    }
+  }
+
+  "transformToETMPData" - {
     "must transform a randomly generated valid payload correctly" in {
       forAll(generateRandomPayloadAPI1827) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
@@ -36,19 +66,22 @@ class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar with
           println(s"\n\n ------- ACTUAL RESULT:  $result")
           result mustBe expectedResult
       }
-      //    {
-      //    "transform a valid payload correctly when read from sample file" in {
-      //      val json = readJsonFromFile("/api-1834-valid-example.json")
-      //      val result = json.validate(EventSummary.rds).asOpt
+      //      //    {
+      //      //    "transform a valid payload correctly when read from sample file" in {
+      //      //      val json = readJsonFromFile("/api-1834-valid-example.json")
+      //      //      val result = json.validate(EventSummary.rds).asOpt
+      //      //
+      //      //      val expectedResult = Some(
+      //      //        Json.arr("10", "11", "12", "13", "14", "19", "20", "0")
+      //      //      )
+      //      //
+      //      //      result mustBe expectedResult
+      //      //    }
       //
-      //      val expectedResult = Some(
-      //        Json.arr("10", "11", "12", "13", "14", "19", "20", "0")
-      //      )
-      //
-      //      result mustBe expectedResult
       //    }
-
     }
   }
+
+
 }
 

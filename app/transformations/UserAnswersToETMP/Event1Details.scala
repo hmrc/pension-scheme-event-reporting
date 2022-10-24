@@ -67,6 +67,15 @@ object Event1Details {
   private val doNothing: Reads[JsObject] = __.json.put(Json.obj())
   private val readsPaymentNature: Reads[String] = (__ \ 'paymentNature).json.pick.map(_.as[JsString].value)
 
+  val readsWhoReceivedUnauthorisedPayment: Reads[JsObject] = {
+    (__ \ 'memberType).json.copyFrom((__ \ 'whoReceivedUnauthorisedPayment).json.pick.flatMap {
+      case JsString("member") => Reads.pure[JsString](JsString("Individual"))
+      case JsString("employer") => Reads.pure[JsString](JsString("Employer"))
+      case s =>
+        Reads.failed[JsString](s"Unknown value $s")
+    })
+  }
+
   private val readsIndividualMemberDetails: Reads[JsObject] =
     ((pathIndividualMemberDetails \ 'firstName).json.copyFrom((__ \ 'membersDetails \ 'firstName).json.pick) and
       (pathIndividualMemberDetails \ 'lastName).json.copyFrom((__ \ 'membersDetails \ 'lastName).json.pick) and
@@ -86,14 +95,16 @@ object Event1Details {
       paymentNature <- readsPaymentNature
     } yield {
       (
-        readsIndividualMemberDetails and
+        readsWhoReceivedUnauthorisedPayment and
+          readsIndividualMemberDetails and
           readsUnauthorisedPaymentDetails(paymentNature)
         ).reduce
     }).flatMap[JsObject](identity)
   }
 
   def transformToETMPData: Reads[JsObject] = {
-    (__ \ 'membersOrEmployers).readNullable[JsArray](__.read(Reads.seq(readsMember)).map(JsArray(_))).map { optionJsArray =>
+    (__ \ 'membersOrEmployers).readNullable[JsArray](__.read(Reads.seq(readsMember))
+      .map(JsArray(_))).map { optionJsArray =>
       val jsonArray = optionJsArray.getOrElse(Json.arr())
       Json.obj("event1Details" ->
         Json.obj("event1Details" -> jsonArray)
