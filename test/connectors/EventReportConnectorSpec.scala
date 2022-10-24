@@ -19,13 +19,15 @@ package connectors
 import com.github.tomakehurst.wiremock.client.WireMock._
 import models.enumeration.EventType._
 import models.{EROverview, EROverviewVersion, ERVersion}
-import org.mockito.MockitoSugar
+import org.mockito.Mockito.when
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status._
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.{JsArray, JsString, Json}
+import repositories.{EventReportCacheRepository, OverviewCacheRepository}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.test.HttpClientSupport
 import utils.{JsonFileReader, UnrecognisedHttpResponseException, WireMockHelper}
@@ -42,12 +44,16 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
   override protected def portConfigKeys: String = "microservice.services.if-hod.port,microservice.services.des-hod.port"
 
   private val mockHeaderUtils = mock[HeaderUtils]
+  private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
+  private val mockOverviewCacheRepository = mock[OverviewCacheRepository]
   private lazy val connector: EventReportConnector = injector.instanceOf[EventReportConnector]
 
   override protected def bindings: Seq[GuiceableModule] =
     Seq(
       bind[HttpClient].toInstance(httpClient),
-      bind[HeaderUtils].toInstance(mockHeaderUtils)
+      bind[HeaderUtils].toInstance(mockHeaderUtils),
+      bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
+      bind[OverviewCacheRepository].toInstance(mockOverviewCacheRepository)
     )
 
   override def beforeEach(): Unit = {
@@ -1066,8 +1072,11 @@ object EventReportConnectorSpec {
   private val erOverview = Seq(overview1, overview2)
 
   private val startDt = "2022-04-01"
+
   private def getErVersionUrl(reportType: String) = s"/pension-online/reports/$pstr/$reportType/versions?startDate=$startDt"
+
   private def getErSummaryUrl(pstr: String) = s"/pension-online/event-status-reports/$pstr"
+
   private val dummyJson: JsString = JsString("Dummy")
   private val erVersionResponseJson: JsArray = Json.arr(
     Json.obj(
@@ -1092,7 +1101,7 @@ object EventReportConnectorSpec {
   private val version = "001"
 
   private val erVersions = {
-    val version = ERVersion( 1,
+    val version = ERVersion(1,
       LocalDate.of(2022, 4, 1),
       "Compiled")
     Seq(version)
