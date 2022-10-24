@@ -127,8 +127,25 @@ trait ResponseGenerators extends Matchers with OptionValues {
     }
   }
 
+  def unauthorsedPaymentDetails(paymentNature: String,
+                                benefitInKindDesc: String,
+                                schemeName: String,
+                                schemeRef: String,
+                                errorDesc: String,
+                                whoWasTransferMadeTo: String): JsObject = Json.obj(
+    "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature),
+    "freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName(paymentNature, benefitInKindDesc, schemeName, errorDesc),
+    "unAuthorisedPmtType2" -> whoWasTransferMadeToMap(whoWasTransferMadeTo)
+  ) ++ (
+    if (paymentNature == "transferToNonRegPensionScheme") {
+      Json.obj("pstrOrReference" -> pstrOrReference(paymentNature, schemeRef))
+    } else {
+      Json.obj()
+    }
+    )
+
   //scalastyle:off
-  def generateRandomPayloadAPI1827: Gen[Tuple2[JsObject, JsObject]] = {
+  private def generateMember: Gen[(JsObject, JsObject)] = {
     for {
       firstName <- Gen.alphaStr
       lastName <- Gen.alphaStr
@@ -143,54 +160,61 @@ trait ResponseGenerators extends Matchers with OptionValues {
       schemeName <- Gen.alphaStr
       schemeRef <- Gen.alphaStr
     } yield {
-      val userAnswers =
-        Json.obj(
-          "membersOrEmployers" ->
-            Json.arr(
-              Json.obj(
-                "membersDetails" -> Json.obj(
-                  "firstName" -> firstName,
-                  "lastName" -> lastName,
-                  "nino" -> nino
-                ),
-                "doYouHoldSignedMandate" -> signedMandate,
-                "valueOfUnauthorisedPayment" -> unAuthorisedPayment,
-                "schemeUnAuthPaySurchargeMember" -> unAuthPaySurcharge,
-                "paymentNature" -> paymentNature,
-                "benefitInKindBriefDescription" -> benefitInKindDesc,
-                "errorDescription" -> errorDesc,
-                "whoWasTheTransferMade" -> whoWasTransferMadeTo,
-                "schemeDetails" -> Json.obj(
-                  "schemeName" -> schemeName,
-                  "reference" -> schemeRef
-                )
-              )
-            )
+      val ua = Json.obj(
+        "membersDetails" -> Json.obj(
+          "firstName" -> firstName,
+          "lastName" -> lastName,
+          "nino" -> nino
+        ),
+        "doYouHoldSignedMandate" -> signedMandate,
+        "valueOfUnauthorisedPayment" -> unAuthorisedPayment,
+        "schemeUnAuthPaySurchargeMember" -> unAuthPaySurcharge,
+        "paymentNature" -> paymentNature,
+        "benefitInKindBriefDescription" -> benefitInKindDesc,
+        "errorDescription" -> errorDesc,
+        "whoWasTheTransferMade" -> whoWasTransferMadeTo,
+        "schemeDetails" -> Json.obj(
+          "schemeName" -> schemeName,
+          "reference" -> schemeRef
         )
+      )
 
-      val xx = if (paymentNature == "transferToNonRegPensionScheme") Json.obj("pstrOrReference" -> pstrOrReference(paymentNature, schemeRef)) else Json.obj()
-      val pstrRefJson = Json.obj(
-        "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature),
-        "freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName(paymentNature, benefitInKindDesc, schemeName, errorDesc),
-        "unAuthorisedPmtType2" -> whoWasTransferMadeToMap(whoWasTransferMadeTo)
-      ) ++ xx
-      val etmpResponse = Json.obj("event1Details" -> Json.obj(
-        "event1Details" -> Json.arr(
-          Json.obj(
-            "individualMemberDetails" -> Json.obj(
-              "firstName" -> firstName,
-              "lastName" -> lastName,
-              "nino" -> nino,
-              "signedMandate" -> signedMandate,
-              "pmtMoreThan25PerFundValue" -> unAuthorisedPayment,
-              "schemePayingSurcharge" -> unAuthPaySurcharge
-            ),
-            "unAuthorisedPaymentDetails" -> pstrRefJson
+      val expectedJson = Json.obj(
+        "individualMemberDetails" -> Json.obj(
+          "firstName" -> firstName,
+          "lastName" -> lastName,
+          "nino" -> nino,
+          "signedMandate" -> signedMandate,
+          "pmtMoreThan25PerFundValue" -> unAuthorisedPayment,
+          "schemePayingSurcharge" -> unAuthPaySurcharge
+        ),
+        "unAuthorisedPaymentDetails" ->
+          unauthorsedPaymentDetails(paymentNature, benefitInKindDesc, schemeName, schemeRef, errorDesc, whoWasTransferMadeTo)
+      )
+      Tuple2(ua, expectedJson)
+    }
+  }
+
+  //scalastyle:off
+  def generateRandomPayloadAPI1827: Gen[Tuple2[JsObject, JsObject]] = {
+    for {
+      (generatedUA, generatedExpectedResult) <- generateMember
+    } yield {
+      val fullUA = Json.obj(
+        "membersOrEmployers" ->
+          Json.arr(
+            generatedUA
+          )
+      )
+      val fullExpectedResult = Json.obj(
+        "event1Details" -> Json.obj(
+          "event1Details" -> Json.arr(
+            generatedExpectedResult
           )
         )
       )
-      )
-      Tuple2(userAnswers, etmpResponse)
+
+      Tuple2(fullUA, fullExpectedResult)
     }
   }
 
