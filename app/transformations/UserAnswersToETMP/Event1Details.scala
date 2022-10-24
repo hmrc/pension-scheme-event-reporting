@@ -28,6 +28,7 @@ object Event1Details {
   private val paymentNatureTypeKeyResidentialPropertyHeld: String = "residentialPropertyHeld"
   private val paymentNatureTypeKeyTangibleMoveablePropertyHeld: String = "tangibleMoveablePropertyHeld"
   private val paymentNatureTypeKeyErrorCalcTaxFreeLumpSums: String = "errorCalcTaxFreeLumpSums"
+  private val paymentNatureTypeKeyCourtOrConfiscationOrder: String = "courtOrConfiscationOrder"
   private val paymentNatureTypeKeyBenefitsPaidEarly: String = "benefitsPaidEarly"
   private val whoReceivedUnauthPaymentIndividual = "Individual"
   private val whoReceivedUnauthPaymentEmployer = "Employer"
@@ -41,7 +42,7 @@ object Event1Details {
     paymentNatureTypeKeyOverpaymentOrWriteOff -> "Overpayment of pension/written off",
     paymentNatureTypeKeyResidentialPropertyHeld -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
     paymentNatureTypeKeyTangibleMoveablePropertyHeld -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
-    "courtOrConfiscationOrder" -> "Court Order Payment/Confiscation Order",
+    paymentNatureTypeKeyCourtOrConfiscationOrder -> "Court Order Payment/Confiscation Order",
     "other" -> "Other"
   )
 
@@ -70,6 +71,7 @@ object Event1Details {
       case `paymentNatureTypeKeyErrorCalcTaxFreeLumpSums` => (__ \ 'errorDescription).json.pick.map(_.as[JsString])
       case `paymentNatureTypeKeyBenefitsPaidEarly` => (__ \ 'benefitsPaidEarly).json.pick.map(_.as[JsString])
       case `paymentNatureTypeKeyTangibleMoveablePropertyHeld` => (__ \ 'memberTangibleMoveableProperty).json.pick.map(_.as[JsString])
+      case `paymentNatureTypeKeyCourtOrConfiscationOrder` => (__ \ 'unauthorisedPaymentRecipientName).json.pick.map(_.as[JsString])
       case _ => Reads[JsString](_ => JsSuccess(JsString("")))
     }
   }
@@ -115,21 +117,21 @@ object Event1Details {
         Reads.pure[JsString](JsString(""))
     }
 
-    val rds: Reads[JsObject] = {
-      (
-        (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine1).read[String] and
-      (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine2).read[String] and
-      (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine3).read[Option[String]] and
-      (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine4).read[Option[String]] and
-      (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'postcode).read[Option[String]] and
-      (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'country).read[String]
-        )(
-        (addr1, addr2, addr3, addr4, postcode, country) => Json.obj(
-          "addressLine1" -> addr1,
-          "addressLine2" -> addr2
-        )
-      )
-    }
+//    val rds: Reads[JsObject] = {
+//      (
+//        (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine1).read[String] and
+//      (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine2).read[String] and
+//      (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine3).read[Option[String]] and
+//      (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine4).read[Option[String]] and
+//      (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'postcode).read[Option[String]] and
+//      (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'country).read[String]
+//        )(
+//        (addr1, addr2, addr3, addr4, postcode, country) => Json.obj(
+//          "addressLine1" -> addr1,
+//          "addressLine2" -> addr2
+//        )
+//      )
+//    }
 
 //    def readsAddress: Reads[JsObject] = paymentNature match {
 //      case `paymentNatureTypeKeyResidentialPropertyHeld` =>

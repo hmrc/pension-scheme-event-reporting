@@ -29,15 +29,15 @@ trait ResponseGenerators extends Matchers with OptionValues {
   val ninoGen: Gen[String] = Gen.oneOf(Seq("AB123456C", "CD123456E"))
 
   private val paymentNatureTypesMember = Map(
-    "benefitInKind" -> "Benefit in kind",
-    "transferToNonRegPensionScheme" -> "Transfer to non-registered pensions scheme",
-    "errorCalcTaxFreeLumpSums" -> "Error in calculating tax free lump sums",
-    "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
-    "refundOfContributions" -> "Refund of contributions",
-    "overpaymentOrWriteOff" -> "Overpayment of pension/written off",
-    "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
-    "tangibleMoveablePropertyHeld" -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
-    //    "courtOrConfiscationOrder" -> "Court Order Payment/Confiscation Order",
+//    "benefitInKind" -> "Benefit in kind",
+//    "transferToNonRegPensionScheme" -> "Transfer to non-registered pensions scheme",
+//    "errorCalcTaxFreeLumpSums" -> "Error in calculating tax free lump sums",
+//    "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
+//    "refundOfContributions" -> "Refund of contributions",
+//    "overpaymentOrWriteOff" -> "Overpayment of pension/written off",
+//    "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
+//    "tangibleMoveablePropertyHeld" -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
+    "courtOrConfiscationOrder" -> "Court Order Payment/Confiscation Order",
     //    "other" -> "Other"
   )
 
@@ -161,6 +161,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
       paymentDate <- dateGenerator
       benefitsPaidEarly <- Gen.alphaStr
       address <- addressGenerator
+      unAuthPmtRecipient <- Gen.alphaStr
     } yield {
       val ua = Json.obj(
         "membersDetails" -> Json.obj(
@@ -187,11 +188,12 @@ trait ResponseGenerators extends Matchers with OptionValues {
           "paymentValue" -> paymentVal,
           "paymentDate" -> paymentDate
         ),
-        "event1" -> Json.obj(
-          "memberResidentialAddress" -> Json.obj(
-            "address" -> address.toUA
-          )
-        )
+        "unauthorisedPaymentRecipientName" -> unAuthPmtRecipient
+//        "event1" -> Json.obj(
+//          "memberResidentialAddress" -> Json.obj(
+//            "address" -> address.toUA
+//          )
+//        )
       )
 
       def freeTxtOrSchemeOrRecipientName = paymentNature match {
@@ -200,6 +202,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
         case "transferToNonRegPensionScheme" => schemeName
         case "benefitsPaidEarly" => benefitsPaidEarly
         case "tangibleMoveablePropertyHeld" => tangibleMoveable
+        case "courtOrConfiscationOrder" => unAuthPmtRecipient
         case _ => ""
       }
 
@@ -224,13 +227,14 @@ trait ResponseGenerators extends Matchers with OptionValues {
         } else {
           Json.obj()
         }
-        ) ++ (
-        if (paymentNature == "residentialPropertyHeld") {
-          Json.obj("residentialPropertyAddress" -> address.toTarget)
-        } else {
-          Json.obj()
-        }
         )
+//      ++ (
+//        if (paymentNature == "residentialPropertyHeld") {
+//          Json.obj("residentialPropertyAddress" -> address.toTarget)
+//        } else {
+//          Json.obj()
+//        }
+//        )
 
       val expectedJson = Json.obj(
         "individualMemberDetails" -> Json.obj(
