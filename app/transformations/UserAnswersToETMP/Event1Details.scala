@@ -116,49 +116,48 @@ object Event1Details {
       case `paymentNatureTypeKeyOverpaymentOrWriteOff` =>
         (__ \ 'reasonForTheOverpaymentOrWriteOff).json.pick.map(jsValue => JsString(overpaymentOrWriteOffMap(jsValue.as[JsString].value)))
       case _ => Reads[JsString](_ => JsError(""))
-
     }
 
-//    val rds: Reads[JsObject] = {
-//      (
-//        (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine1).read[String] and
-//      (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine2).read[String] and
-//      (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine3).read[Option[String]] and
-//      (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine4).read[Option[String]] and
-//      (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'postcode).read[Option[String]] and
-//      (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'country).read[String]
-//        )(
-//        (addr1, addr2, addr3, addr4, postcode, country) => Json.obj(
-//          "addressLine1" -> addr1,
-//          "addressLine2" -> addr2
-//        )
-//      )
-//    }
+    def readsAddress(paymentNature: String): Reads[JsObject] = {
+      paymentNature match {
+        case `paymentNatureTypeKeyResidentialPropertyHeld` =>
+          (
+            (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine1).read[String] and
+              (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine2).read[String] and
+              (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine3).readNullable[String] and
+              (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine4).readNullable[String] and
+              (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'postcode).readNullable[String] and
+              (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'country).read[String]
+            ) (
+            (addressLine1, addressLine2, addressLine3, addressLine4, postcode, country) =>
+              Json.obj(
+                "addressLine1" -> addressLine1,
+                "addressLine2" -> addressLine2,
+                "countryCode" -> country
+              ) ++ addressLine3.fold(Json.obj()) { addr =>
+                Json.obj("addressLine3" -> addr)
+              } ++
+                addressLine4.fold(Json.obj()) { addr =>
+                  Json.obj("addressLine3" -> addr)
+                } ++
+                postcode.fold(Json.obj()) { postcode =>
+                  Json.obj("postCode" -> postcode)
+                }
 
-//    def readsAddress: Reads[JsObject] = paymentNature match {
-//      case `paymentNatureTypeKeyResidentialPropertyHeld` =>
-//        val vv = (__ \ 'residentialPropertyAddress )
-//      case _ =>
-//        Reads.pure[JsObject](Json.obj())
-//    }
+          )
+        case _ => Reads[JsObject](_ => JsError(""))
+      }
+
+    }
 
     ((pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.put(JsString(paymentNatureMap(paymentNature))) and
       (pathUnauthorisedPaymentDetails \ 'freeTxtOrSchemeOrRecipientName).json.copyFrom(freeTxtOrSchemeOrRecipientName(paymentNature)).orElse(doNothing) and
       (pathUnauthorisedPaymentDetails \ 'pstrOrReference).json.copyFrom(pstrOrReference(paymentNature)).orElse(doNothing) and
       (pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType2).json.copyFrom(readsPaymentType2).orElse(doNothing) and
       (pathUnauthorisedPaymentDetails \ 'valueOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentValue).json.pick) and
-      (pathUnauthorisedPaymentDetails \ 'dateOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentDate).json.pick)
+      (pathUnauthorisedPaymentDetails \ 'dateOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentDate).json.pick) and
+      (pathUnauthorisedPaymentDetails \ 'residentialPropertyAddress).json.copyFrom(readsAddress(paymentNature)).orElse(doNothing)
       ).reduce
-
-    /*
-    if (paymentNature == "residentialPropertyHeld") {
-          Json.obj("residentialPropertyAddress" -> address.toTarget)
-        } else {
-          Json.obj()
-        }
-        )
-     */
-
   }
 
   private def readsMemberOrEmployer(whoReceivedUnauthorisedPayment: String): Reads[JsObject] = {

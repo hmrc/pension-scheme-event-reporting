@@ -190,12 +190,12 @@ trait ResponseGenerators extends Matchers with OptionValues {
           "paymentDate" -> paymentDate
         ),
         "unauthorisedPaymentRecipientName" -> unAuthPmtRecipient,
-        "memberPaymentNatureDescription" -> otherDesc
-//        "event1" -> Json.obj(
-//          "memberResidentialAddress" -> Json.obj(
-//            "address" -> address.toUA
-//          )
-//        )
+        "memberPaymentNatureDescription" -> otherDesc,
+        "event1" -> Json.obj(
+          "memberResidentialAddress" -> Json.obj(
+            "address" -> address.toUA
+          )
+        )
       )
 
       def freeTxtOrSchemeOrRecipientName = paymentNature match {
@@ -223,31 +223,30 @@ trait ResponseGenerators extends Matchers with OptionValues {
         "valueOfUnauthorisedPayment" -> paymentVal,
         "dateOfUnauthorisedPayment" -> paymentDate
       ) ++ (
-        if (paymentNature == "transferToNonRegPensionScheme" ||paymentNature == "refundOfContributions" ||paymentNature == "overpaymentOrWriteOff") {
+        if (paymentNature == "transferToNonRegPensionScheme" || paymentNature == "refundOfContributions" || paymentNature == "overpaymentOrWriteOff") {
           Json.obj("unAuthorisedPmtType2" -> unAuthorisedPmtType2)
         } else {
           Json.obj()
         }
-        )++ (
-        if (paymentNature == "overpaymentOrWriteOff" ||paymentNature == "refundOfContributions" ||paymentNature == "residentialPropertyHeld") {
+        ) ++ (
+        if (paymentNature == "overpaymentOrWriteOff" || paymentNature == "refundOfContributions" || paymentNature == "residentialPropertyHeld") {
           Json.obj()
         } else {
           Json.obj("freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName)
         }
-        )++ (
+        ) ++ (
         if (paymentNature == "transferToNonRegPensionScheme") {
           Json.obj("pstrOrReference" -> pstrOrReference(paymentNature, schemeRef))
         } else {
           Json.obj()
         }
+        ) ++ (
+        if (paymentNature == "residentialPropertyHeld") {
+          Json.obj("residentialPropertyAddress" -> address.toTarget)
+        } else {
+          Json.obj()
+        }
         )
-//      ++ (
-//        if (paymentNature == "residentialPropertyHeld") {
-//          Json.obj("residentialPropertyAddress" -> address.toTarget)
-//        } else {
-//          Json.obj()
-//        }
-//        )
 
       val expectedJson = Json.obj(
         "individualMemberDetails" -> Json.obj(
