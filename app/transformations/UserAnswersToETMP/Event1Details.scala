@@ -116,14 +116,14 @@ object Event1Details {
         case _ => Reads[JsObject](_ => JsError(""))
       }
 
-  private def toYesNo(b:Boolean): JsString = if (b) JsString("Yes") else JsString("No")
+  private def toYesNo(b: JsValue): JsString = if (b.as[JsBoolean].value) JsString("Yes") else JsString("No")
 
   private val readsIndividualMemberDetails: Reads[JsObject] =
     ((pathIndividualMemberDetails \ 'firstName).json.copyFrom((__ \ 'membersDetails \ 'firstName).json.pick) and
       (pathIndividualMemberDetails \ 'lastName).json.copyFrom((__ \ 'membersDetails \ 'lastName).json.pick) and
       (pathIndividualMemberDetails \ 'nino).json.copyFrom((__ \ 'membersDetails \ 'nino).json.pick) and
-      (pathIndividualMemberDetails \ 'signedMandate).json.copyFrom((__ \ 'doYouHoldSignedMandate).json.pick.map(x => toYesNo(x.as[JsBoolean].value))) and
-      (pathIndividualMemberDetails \ 'pmtMoreThan25PerFundValue).json.copyFrom((__ \ 'valueOfUnauthorisedPayment).json.pick) and
+      (pathIndividualMemberDetails \ 'signedMandate).json.copyFrom((__ \ 'doYouHoldSignedMandate).json.pick.map(toYesNo)) and
+      (pathIndividualMemberDetails \ 'pmtMoreThan25PerFundValue).json.copyFrom((__ \ 'valueOfUnauthorisedPayment).json.pick.map(toYesNo)) and
       Sh.orElse(doNothing)).reduce
 
   private val readsEmployerDetails: Reads[JsObject] =

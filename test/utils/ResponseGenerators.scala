@@ -264,7 +264,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
         "lastName" -> lastName,
         "nino" -> nino,
         "signedMandate" -> toYesNo(signedMandate),
-        "pmtMoreThan25PerFundValue" -> unAuthorisedPayment,
+        "pmtMoreThan25PerFundValue" -> toYesNo(unAuthorisedPayment),
       ) ++ unAuthPaySurchargeValue
 
       val expectedJson = Json.obj(

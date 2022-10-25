@@ -62,7 +62,7 @@ class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar with
             |            "individualMemberDetails":{
             |               "firstName":"maryiah",
             |               "lastName":"m",
-            |               "pmtMoreThan25PerFundValue":false,
+            |               "pmtMoreThan25PerFundValue":"No",
             |               "nino":"AB123456C",
             |               "signedMandate":"Yes"
             |            },
