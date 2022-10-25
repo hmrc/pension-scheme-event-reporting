@@ -121,17 +121,17 @@ object Event1Details {
   private val readsEmployerDetails: Reads[JsObject] =
     ((pathEmployerMemberDetails \ 'compOrOrgName).json.copyFrom((__ \ 'event1 \ 'companyDetails \ 'companyName).json.pick) and
       (pathEmployerMemberDetails \ 'crnNumber).json.copyFrom((__ \ 'event1 \ 'companyDetails \ 'companyNumber).json.pick) and
-      (pathEmployerMemberDetails \ 'addressDetails).json.copyFrom(readsAddressXX).orElse(doNothing)
+      (pathEmployerMemberDetails \ 'addressDetails).json.copyFrom(readsAddress(__ \ 'event1 \ 'employerAddress)).orElse(doNothing)
       ).reduce
 
-  private def readsAddressXX: Reads[JsObject] = {
+  private def readsAddress(jsPath: JsPath): Reads[JsObject] =
     (
-      (__ \ 'event1 \ 'employerAddress \ 'address \ 'addressLine1).read[String] and
-        (__ \ 'event1 \ 'employerAddress \ 'address \ 'addressLine2).read[String] and
-        (__ \ 'event1 \ 'employerAddress \ 'address \ 'addressLine3).readNullable[String] and
-        (__ \ 'event1 \ 'employerAddress \ 'address \ 'addressLine4).readNullable[String] and
-        (__ \ 'event1 \ 'employerAddress \ 'address \ 'postcode).readNullable[String] and
-        (__ \ 'event1 \ 'employerAddress \ 'address \ 'country).read[String]
+      (jsPath \ 'address \ 'addressLine1).read[String] and
+        (jsPath \ 'address \ 'addressLine2).read[String] and
+        (jsPath \ 'address \ 'addressLine3).readNullable[String] and
+        (jsPath \ 'address \ 'addressLine4).readNullable[String] and
+        (jsPath \ 'address \ 'postcode).readNullable[String] and
+        (jsPath \ 'address \ 'country).read[String]
       ) (
       (addressLine1, addressLine2, addressLine3, addressLine4, postcode, country) =>
         Json.obj(
@@ -147,72 +147,7 @@ object Event1Details {
           postcode.fold(Json.obj()) { postcode =>
             Json.obj("postCode" -> postcode)
           }
-
     )
-
-  }
-
-  private def readsAddress(paymentNature: String): Reads[JsObject] = {
-    paymentNature match {
-      case `paymentNatureTypeKeyResidentialPropertyHeld` =>
-        (
-          (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine1).read[String] and
-            (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine2).read[String] and
-            (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine3).readNullable[String] and
-            (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'addressLine4).readNullable[String] and
-            (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'postcode).readNullable[String] and
-            (__ \ 'event1 \ 'memberResidentialAddress \ 'address \ 'country).read[String]
-          ) (
-          (addressLine1, addressLine2, addressLine3, addressLine4, postcode, country) =>
-            Json.obj(
-              "addressLine1" -> addressLine1,
-              "addressLine2" -> addressLine2,
-              "countryCode" -> country
-            ) ++ addressLine3.fold(Json.obj()) { addr =>
-              Json.obj("addressLine3" -> addr)
-            } ++
-              addressLine4.fold(Json.obj()) { addr =>
-                Json.obj("addressLine3" -> addr)
-              } ++
-              postcode.fold(Json.obj()) { postcode =>
-                Json.obj("postCode" -> postcode)
-              }
-
-        )
-      case _ => Reads[JsObject](_ => JsError(""))
-    }
-  }
-
-  private def readsAddressEmployer(paymentNature: String): Reads[JsObject] = {
-    paymentNature match {
-      case `paymentNatureTypeKeyResidentialPropertyHeld` =>
-        (
-          (__ \ 'event1 \ 'employerResidentialAddress \ 'address \ 'addressLine1).read[String] and
-            (__ \ 'event1 \ 'employerResidentialAddress \ 'address \ 'addressLine2).read[String] and
-            (__ \ 'event1 \ 'employerResidentialAddress \ 'address \ 'addressLine3).readNullable[String] and
-            (__ \ 'event1 \ 'employerResidentialAddress \ 'address \ 'addressLine4).readNullable[String] and
-            (__ \ 'event1 \ 'employerResidentialAddress \ 'address \ 'postcode).readNullable[String] and
-            (__ \ 'event1 \ 'employerResidentialAddress \ 'address \ 'country).read[String]
-          ) (
-          (addressLine1, addressLine2, addressLine3, addressLine4, postcode, country) =>
-            Json.obj(
-              "addressLine1" -> addressLine1,
-              "addressLine2" -> addressLine2,
-              "countryCode" -> country
-            ) ++ addressLine3.fold(Json.obj()) { addr =>
-              Json.obj("addressLine3" -> addr)
-            } ++
-              addressLine4.fold(Json.obj()) { addr =>
-                Json.obj("addressLine3" -> addr)
-              } ++
-              postcode.fold(Json.obj()) { postcode =>
-                Json.obj("postCode" -> postcode)
-              }
-
-        )
-      case _ => Reads[JsObject](_ => JsError(""))
-    }
-  }
 
   private def readsUnauthorisedPaymentDetails(paymentNature: String, whoReceivedUnauthorisedPayment: String): Reads[JsObject] = {
     def readsPaymentType2: Reads[JsString] = paymentNature match {
@@ -225,6 +160,16 @@ object Event1Details {
       case _ => Reads[JsString](_ => JsError(""))
     }
 
+    val readsResidentialAddress: Reads[JsObject] = paymentNature match {
+      case `paymentNatureTypeKeyResidentialPropertyHeld` => readsAddress(__ \ 'event1 \ 'memberResidentialAddress)
+      case _ => Reads[JsObject](_ => JsError(s"Invalid payment nature $paymentNature for residential address"))
+    }
+
+    val readsResidentialAddressEmployer: Reads[JsObject] = paymentNature match {
+      case `paymentNatureTypeKeyResidentialPropertyHeld` => readsAddress(__ \ 'event1 \ 'employerResidentialAddress)
+      case _ => Reads[JsObject](_ => JsError(s"Invalid payment nature $paymentNature for residential address"))
+    }
+
     whoReceivedUnauthorisedPayment match {
       case `whoReceivedUnauthPaymentIndividual` =>
         ((pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.put(JsString(paymentNatureMap(paymentNature))) and
@@ -233,14 +178,14 @@ object Event1Details {
           (pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType2).json.copyFrom(readsPaymentType2).orElse(doNothing) and
           (pathUnauthorisedPaymentDetails \ 'valueOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentValue).json.pick) and
           (pathUnauthorisedPaymentDetails \ 'dateOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentDate).json.pick) and
-          (pathUnauthorisedPaymentDetails \ 'residentialPropertyAddress).json.copyFrom(readsAddress(paymentNature)).orElse(doNothing)
+          (pathUnauthorisedPaymentDetails \ 'residentialPropertyAddress).json.copyFrom(readsResidentialAddress).orElse(doNothing)
           ).reduce
       case `whoReceivedUnauthPaymentEmployer` =>
         ((pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.put(JsString(paymentNatureEmployerMap(paymentNature))) and
           (pathUnauthorisedPaymentDetails \ 'freeTxtOrSchemeOrRecipientName).json.copyFrom(freeTxtOrSchemeOrRecipientName(paymentNature, whoReceivedUnauthorisedPayment)).orElse(doNothing) and
           (pathUnauthorisedPaymentDetails \ 'pmtAmtOrLoanAmt).json.copyFrom((__ \ 'loanDetails \ 'loanAmount).json.pick) and
           (pathUnauthorisedPaymentDetails \ 'fundValue).json.copyFrom((__ \ 'loanDetails \ 'fundValue).json.pick) and
-          (pathUnauthorisedPaymentDetails \ 'residentialPropertyAddress).json.copyFrom(readsAddressEmployer(paymentNature)).orElse(doNothing)
+          (pathUnauthorisedPaymentDetails \ 'residentialPropertyAddress).json.copyFrom(readsResidentialAddressEmployer).orElse(doNothing)
           ).reduce
       case _ => Reads[JsObject](_ => JsError(""))
     }
