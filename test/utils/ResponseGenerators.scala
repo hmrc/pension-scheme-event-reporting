@@ -231,7 +231,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
         case _ => Json.obj()
       }
 
-      val freeTxtOrRecipientName = paymentNature match {
+      val freeTxtOrRecipientNameMember = paymentNature match {
         case "overpaymentOrWriteOff"|| "refundOfContributions" || "residentialPropertyHeld" =>
           Json.obj()
         case _ => Json.obj("freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName)
@@ -247,11 +247,11 @@ trait ResponseGenerators extends Matchers with OptionValues {
         case _ => Json.obj()
       }
 
-      def unauthorsedPaymentDetails: JsObject = Json.obj(
+      def unAuthorsedPaymentDetails: JsObject = Json.obj(
         "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature),
         "valueOfUnauthorisedPayment" -> paymentVal,
         "dateOfUnauthorisedPayment" -> paymentDate
-      ) ++ unAuthPmt2 ++ freeTxtOrRecipientName ++ pstrOrRef ++ residentialPropertyHeld
+      ) ++ unAuthPmt2 ++ freeTxtOrRecipientNameMember ++ pstrOrRef ++ residentialPropertyHeld
 
       val expectedJson = Json.obj(
         "individualMemberDetails" -> Json.obj(
@@ -263,7 +263,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
           "schemePayingSurcharge" -> unAuthPaySurcharge
         ),
         "unAuthorisedPaymentDetails" ->
-          unauthorsedPaymentDetails
+          unAuthorsedPaymentDetails
       )
       Tuple2(ua, expectedJson)
     }
@@ -312,25 +312,24 @@ trait ResponseGenerators extends Matchers with OptionValues {
         case _ => None
       }
 
+      val freeTextOrSchemeOrRecipientName = paymentNature match {
+        case "overpaymentOrWriteOff" ||"refundOfContributions" || "residentialPropertyHeld" =>
+        Json.obj()
+        case _ => freeTxtOrSchemeOrRecipientName.fold(Json.obj()) { ft =>
+          Json.obj("freeTxtOrSchemeOrRecipientName" -> ft)
+        }
+      }
+
+      val residentialPropertyAddressEmployer = paymentNature match {
+        case "residentialPropertyHeld" => Json.obj("residentialPropertyAddress" -> residentialAddress.toTarget)
+        case _ =>  Json.obj()
+      }
+
       def unauthorsedPaymentDetails: JsObject = Json.obj(
         "unAuthorisedPmtType1" -> paymentNatureTypesEmployer(paymentNature),
         "pmtAmtOrLoanAmt" -> loanAmount,
         "fundValue" -> loanValue
-      ) ++ (
-        if (paymentNature == "overpaymentOrWriteOff" || paymentNature == "refundOfContributions" || paymentNature == "residentialPropertyHeld") {
-          Json.obj()
-        } else {
-          freeTxtOrSchemeOrRecipientName.fold(Json.obj()) { ft =>
-            Json.obj("freeTxtOrSchemeOrRecipientName" -> ft)
-          }
-        }
-        ) ++ (
-        if (paymentNature == "residentialPropertyHeld") {
-          Json.obj("residentialPropertyAddress" -> residentialAddress.toTarget)
-        } else {
-          Json.obj()
-        }
-        )
+      ) ++ freeTextOrSchemeOrRecipientName ++ residentialPropertyAddressEmployer
 
       val expectedJson = Json.obj(
         "employerMemDetails" -> Json.obj(
