@@ -41,6 +41,14 @@ trait ResponseGenerators extends Matchers with OptionValues {
     "other" -> "Other"
   )
 
+  private val paymentNatureTypesEmployer = Map(
+    "loansExceeding50PercentOfFundValue" -> "Loans to or in respect of the employer exceeding 50% of the value of the fund",
+    "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
+    "tangibleMoveablePropertyHeld" -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
+    "courtOrConfiscationOrder" -> "Court Order Payment/Confiscation Order",
+    "other" -> "Other"
+  )
+
   private val whoWasTransferMadeToMap = Map("anEmployerFinanced" -> "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
     "nonRecognisedScheme" -> "Transfer to a non-recognised pension scheme which is not a qualifying overseas pension scheme",
     "other" -> "Overpayment of pension/written off other"
@@ -264,7 +272,82 @@ trait ResponseGenerators extends Matchers with OptionValues {
     }
   }
 
-  //scalastyle:off
+  private def generateEmployer: Gen[(JsObject, JsObject)] = {
+    for {
+      companyName <- Gen.alphaStr
+      companyNumber <- Gen.alphaStr
+      address <- addressGenerator
+      paymentNature <- Gen.oneOf(paymentNatureTypesEmployer.keys.toSeq)
+      loanAmount <- arbitrary[BigDecimal]
+      loanValue <- arbitrary[BigDecimal]
+      residentialAddress <- addressGenerator
+      tangibleMoveableProperyDesc <- Gen.alphaStr
+      recipientName <- Gen.alphaStr
+      paymentNatureDesc <- Gen.alphaStr
+    } yield {
+      val ua = Json.obj(
+        "event1" -> Json.obj(
+          "companyDetails" -> Json.obj(
+            "companyName" -> companyName,
+            "companyNumber" -> companyNumber
+          ),
+          "employerAddress" -> Json.obj(
+            "address" -> address.toUA
+          ),
+          "employerResidentialAddress" -> Json.obj(
+            "address" -> residentialAddress.toUA
+          )
+        ),
+        "paymentNature" -> paymentNature,
+        "loanDetails" -> Json.obj(
+          "loanAmount" -> loanAmount,
+          "fundValue" -> loanValue
+        ),
+        "employerTangibleMoveableProperty" -> tangibleMoveableProperyDesc,
+        "unauthorisedPaymentRecipientName" -> recipientName,
+        "paymentNatureDesc" -> paymentNatureDesc
+      )
+
+      def freeTxtOrSchemeOrRecipientName: Option[String] = paymentNature match {
+        case "tangibleMoveablePropertyHeld" => Some(tangibleMoveableProperyDesc)
+        case "courtOrConfiscationOrder" => Some(recipientName)
+        case "other" => Some(paymentNatureDesc)
+        case _ => None
+      }
+
+      def unauthorsedPaymentDetails: JsObject = Json.obj(
+        "unAuthorisedPmtType1" -> paymentNatureTypesEmployer(paymentNature),
+        "pmtAmtOrLoanAmt" -> loanAmount,
+        "fundValue" -> loanValue
+      ) ++ (
+        if (paymentNature == "overpaymentOrWriteOff" || paymentNature == "refundOfContributions" || paymentNature == "residentialPropertyHeld") {
+          Json.obj()
+        } else {
+          freeTxtOrSchemeOrRecipientName.fold(Json.obj()) { ft =>
+            Json.obj("freeTxtOrSchemeOrRecipientName" -> ft)
+          }
+        }
+        ) ++ (
+        if (paymentNature == "residentialPropertyHeld") {
+          Json.obj("residentialPropertyAddress" -> residentialAddress.toTarget)
+        } else {
+          Json.obj()
+        }
+        )
+
+      val expectedJson = Json.obj(
+        "employerMemDetails" -> Json.obj(
+          "compOrOrgName" -> companyName,
+          "crnNumber" -> companyNumber,
+          "addressDetails" -> address.toTarget
+        ),
+        "unAuthorisedPaymentDetails" ->
+          unauthorsedPaymentDetails
+      )
+      Tuple2(ua, expectedJson)
+    }
+  }
+
   def generateRandomPayloadAPI1827: Gen[Tuple2[JsObject, JsObject]] = {
     val whoReceivedUnauthorisedPaymentMember = "member"
     val whoReceivedUnauthorisedPaymentEmployer = "employer"
@@ -272,11 +355,11 @@ trait ResponseGenerators extends Matchers with OptionValues {
       whoReceivedUnauthorisedPaymentMember -> "Individual",
       whoReceivedUnauthorisedPaymentEmployer -> "Employer",
     )
-    Gen.oneOf(whoReceivedUnauthorisedPaymentMember, whoReceivedUnauthorisedPaymentMember /*whoReceivedUnauthorisedPaymentEmployer*/)
+    Gen.oneOf(whoReceivedUnauthorisedPaymentMember, whoReceivedUnauthorisedPaymentEmployer)
       .flatMap { whoReceivedUnauthorisedPayment =>
         (whoReceivedUnauthorisedPayment match {
           case `whoReceivedUnauthorisedPaymentMember` => generateMember
-          case _ => generateMember // TODO: Change to generateEmployer
+          case _ => generateEmployer
         }).map { case (generatedUA, generatedExpectedResult) =>
           val fullUA = Json.obj(
             "membersOrEmployers" ->
