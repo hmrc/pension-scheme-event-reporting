@@ -22,6 +22,7 @@ import connectors.EventReportConnector
 import models.ERVersion
 import models.enumeration.ApiType._
 import models.enumeration.EventType
+import play.api.libs.json.JsResult.toTry
 import play.api.libs.json._
 import play.api.mvc.Result
 import play.api.mvc.Results._
@@ -32,7 +33,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 import utils.JSONSchemaValidator
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 
 @Singleton()
@@ -131,7 +132,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     } yield Ok(response.body)
 
   private def compileEventOneReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
-    val t: JsResult[Try[Future[Result]]] = data.transform(transformToETMPData).map{
+    val  outcome: Try[Future[Result]] = toTry(data.transform(transformToETMPData)).flatMap{
       transformedData =>
         jsonPayloadSchemaValidator.validatePayload(transformedData, compileEventOneReportSchemaPath, "compileEventOneReport").map{
           _ => eventReportConnector.compileEventOneReport(pstr, transformedData).map{ response =>
@@ -139,10 +140,10 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           }
         }
     }
-    for {
-      _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, compileEventOneReportSchemaPath, "compileEventOneReport"))
-      response <- eventReportConnector.compileEventOneReport(pstr, data)
-    } yield Ok(response.body)
+    outcome match {
+      case Success(s) => s
+      case Failure(e) => throw e
+    }
   }
 
   private def compileMemberEventReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] =
