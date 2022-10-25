@@ -225,36 +225,33 @@ trait ResponseGenerators extends Matchers with OptionValues {
           case _ => ""
         }
 
+      val unAuthPmt2 = paymentNature match {
+        case "transferToNonRegPensionScheme"|| "refundOfContributions" || "overpaymentOrWriteOff" =>
+        Json.obj("unAuthorisedPmtType2" -> unAuthorisedPmtType2)
+        case _ => Json.obj()
+      }
+
+      val freeTxtOrRecipientName = paymentNature match {
+        case "overpaymentOrWriteOff"|| "refundOfContributions" || "residentialPropertyHeld" =>
+          Json.obj()
+        case _ => Json.obj("freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName)
+      }
+
+      val pstrOrRef = paymentNature match {
+        case "transferToNonRegPensionScheme" => Json.obj("pstrOrReference" -> pstrOrReference(paymentNature, schemeRef))
+        case _ => Json.obj()
+      }
+
+      val residentialPropertyHeld = paymentNature match {
+        case "residentialPropertyHeld" => Json.obj("residentialPropertyAddress" -> address.toTarget)
+        case _ => Json.obj()
+      }
 
       def unauthorsedPaymentDetails: JsObject = Json.obj(
         "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature),
         "valueOfUnauthorisedPayment" -> paymentVal,
         "dateOfUnauthorisedPayment" -> paymentDate
-      ) ++ (
-        if (paymentNature == "transferToNonRegPensionScheme" || paymentNature == "refundOfContributions" || paymentNature == "overpaymentOrWriteOff") {
-          Json.obj("unAuthorisedPmtType2" -> unAuthorisedPmtType2)
-        } else {
-          Json.obj()
-        }
-        ) ++ (
-        if (paymentNature == "overpaymentOrWriteOff" || paymentNature == "refundOfContributions" || paymentNature == "residentialPropertyHeld") {
-          Json.obj()
-        } else {
-          Json.obj("freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName)
-        }
-        ) ++ (
-        if (paymentNature == "transferToNonRegPensionScheme") {
-          Json.obj("pstrOrReference" -> pstrOrReference(paymentNature, schemeRef))
-        } else {
-          Json.obj()
-        }
-        ) ++ (
-        if (paymentNature == "residentialPropertyHeld") {
-          Json.obj("residentialPropertyAddress" -> address.toTarget)
-        } else {
-          Json.obj()
-        }
-        )
+      ) ++ unAuthPmt2 ++ freeTxtOrRecipientName ++ pstrOrRef ++ residentialPropertyHeld
 
       val expectedJson = Json.obj(
         "individualMemberDetails" -> Json.obj(
