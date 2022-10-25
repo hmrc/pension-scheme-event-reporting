@@ -160,7 +160,7 @@ object Event1Details {
       case _ => Reads[JsString](_ => JsError(""))
     }
 
-    val readsResidentialAddress: Reads[JsObject] = paymentNature match {
+    val readsResidentialAddressMember: Reads[JsObject] = paymentNature match {
       case `paymentNatureTypeKeyResidentialPropertyHeld` => readsAddress(__ \ 'event1 \ 'memberResidentialAddress)
       case _ => Reads[JsObject](_ => JsError(s"Invalid payment nature $paymentNature for residential address"))
     }
@@ -178,7 +178,7 @@ object Event1Details {
           (pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType2).json.copyFrom(readsPaymentType2).orElse(doNothing) and
           (pathUnauthorisedPaymentDetails \ 'valueOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentValue).json.pick) and
           (pathUnauthorisedPaymentDetails \ 'dateOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentDate).json.pick) and
-          (pathUnauthorisedPaymentDetails \ 'residentialPropertyAddress).json.copyFrom(readsResidentialAddress).orElse(doNothing)
+          (pathUnauthorisedPaymentDetails \ 'residentialPropertyAddress).json.copyFrom(readsResidentialAddressMember).orElse(doNothing)
           ).reduce
       case `whoReceivedUnauthPaymentEmployer` =>
         ((pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.put(JsString(paymentNatureEmployerMap(paymentNature))) and
@@ -194,7 +194,7 @@ object Event1Details {
   private def readsMemberOrEmployer(whoReceivedUnauthorisedPayment: String): Reads[JsObject] = {
     whoReceivedUnauthorisedPayment match {
       case `whoReceivedUnauthPaymentIndividual` => readsIndividualMemberDetails
-      case `whoReceivedUnauthPaymentEmployer` => readsEmployerDetails //Reads.failed[JsObject]("unimplemented: employer")
+      case `whoReceivedUnauthPaymentEmployer` => readsEmployerDetails
     }
   }
 
