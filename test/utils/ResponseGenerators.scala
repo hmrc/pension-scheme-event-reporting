@@ -226,13 +226,13 @@ trait ResponseGenerators extends Matchers with OptionValues {
         }
 
       val unAuthPmt2 = paymentNature match {
-        case "transferToNonRegPensionScheme"|| "refundOfContributions" || "overpaymentOrWriteOff" =>
+        case "transferToNonRegPensionScheme"| "refundOfContributions" | "overpaymentOrWriteOff" =>
         Json.obj("unAuthorisedPmtType2" -> unAuthorisedPmtType2)
         case _ => Json.obj()
       }
 
       val freeTxtOrRecipientNameMember = paymentNature match {
-        case "overpaymentOrWriteOff"|| "refundOfContributions" || "residentialPropertyHeld" =>
+        case "overpaymentOrWriteOff"|"refundOfContributions"|"residentialPropertyHeld" =>
           Json.obj()
         case _ => Json.obj("freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName)
       }
@@ -313,7 +313,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
       }
 
       val freeTextOrSchemeOrRecipientName = paymentNature match {
-        case "overpaymentOrWriteOff" ||"refundOfContributions" || "residentialPropertyHeld" =>
+        case "overpaymentOrWriteOff" |"refundOfContributions" | "residentialPropertyHeld" =>
         Json.obj()
         case _ => freeTxtOrSchemeOrRecipientName.fold(Json.obj()) { ft =>
           Json.obj("freeTxtOrSchemeOrRecipientName" -> ft)
