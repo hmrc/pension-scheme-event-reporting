@@ -111,12 +111,10 @@ object Event1Details {
   }
 
   val Sh: Reads[JsObject] =
-    (__ \ 'valueOfUnauthorisedPayment).json.pick.flatMap { value =>
-      value match {
-        case JsString("true") => (pathIndividualMemberDetails \ 'schemePayingSurcharge).json.copyFrom((__ \ 'schemeUnAuthPaySurchargeMember).json.pick)
+    (__ \ 'valueOfUnauthorisedPayment).read[Boolean].flatMap {
+        case true => (pathIndividualMemberDetails \ 'schemePayingSurcharge).json.copyFrom((__ \ 'schemeUnAuthPaySurchargeMember).json.pick)
         case _ => Reads[JsObject](_ => JsError(""))
       }
-    }
 
   private val readsIndividualMemberDetails: Reads[JsObject] =
     ((pathIndividualMemberDetails \ 'firstName).json.copyFrom((__ \ 'membersDetails \ 'firstName).json.pick) and

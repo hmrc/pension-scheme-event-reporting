@@ -247,29 +247,33 @@ trait ResponseGenerators extends Matchers with OptionValues {
         case _ => Json.obj()
       }
 
+      val unAuthPaySurchargeValue = unAuthorisedPayment match {
+        case true =>  Json.obj("schemePayingSurcharge" -> unAuthPaySurcharge)
+        case _ => Json.obj()
+      }
+
       def unAuthorsedPaymentDetails: JsObject = Json.obj(
         "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature),
         "valueOfUnauthorisedPayment" -> paymentVal,
         "dateOfUnauthorisedPayment" -> paymentDate
       ) ++ unAuthPmt2 ++ freeTxtOrRecipientNameMember ++ pstrOrRef ++ residentialPropertyHeld
 
-      val unAuthPaySurchargeValue = unAuthorisedPayment match {
-        case true =>  Json.obj("schemePayingSurcharge" -> unAuthPaySurcharge)
-        case _ => Json.obj()
-      }
+      val indMembDetails = Json.obj(
+        "firstName" -> firstName,
+        "lastName" -> lastName,
+        "nino" -> nino,
+        "signedMandate" -> signedMandate,
+        "pmtMoreThan25PerFundValue" -> unAuthorisedPayment,
+      ) ++ unAuthPaySurchargeValue
+
       val expectedJson = Json.obj(
-        "individualMemberDetails" -> Json.obj(
-          "firstName" -> firstName,
-          "lastName" -> lastName,
-          "nino" -> nino,
-          "signedMandate" -> signedMandate,
-          "pmtMoreThan25PerFundValue" -> unAuthorisedPayment,
-        ),
+        "individualMemberDetails" -> indMembDetails,
         "unAuthorisedPaymentDetails" ->
           unAuthorsedPaymentDetails
-      ) ++ unAuthPaySurchargeValue
+      )
       Tuple2(ua, expectedJson)
     }
+
   }
 
   private def generateEmployer: Gen[(JsObject, JsObject)] = {
