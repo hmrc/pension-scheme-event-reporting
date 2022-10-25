@@ -110,13 +110,21 @@ object Event1Details {
     }
   }
 
+  val Sh: Reads[JsObject] =
+    (__ \ 'valueOfUnauthorisedPayment).json.pick.flatMap { value =>
+      value match {
+        case JsString("true") => (pathIndividualMemberDetails \ 'schemePayingSurcharge).json.copyFrom((__ \ 'schemeUnAuthPaySurchargeMember).json.pick)
+        case _ => Reads[JsObject](_ => JsError(""))
+      }
+    }
+
   private val readsIndividualMemberDetails: Reads[JsObject] =
     ((pathIndividualMemberDetails \ 'firstName).json.copyFrom((__ \ 'membersDetails \ 'firstName).json.pick) and
       (pathIndividualMemberDetails \ 'lastName).json.copyFrom((__ \ 'membersDetails \ 'lastName).json.pick) and
       (pathIndividualMemberDetails \ 'nino).json.copyFrom((__ \ 'membersDetails \ 'nino).json.pick) and
       (pathIndividualMemberDetails \ 'signedMandate).json.copyFrom((__ \ 'doYouHoldSignedMandate).json.pick) and
       (pathIndividualMemberDetails \ 'pmtMoreThan25PerFundValue).json.copyFrom((__ \ 'valueOfUnauthorisedPayment).json.pick) and
-      (pathIndividualMemberDetails \ 'schemePayingSurcharge).json.copyFrom((__ \ 'schemeUnAuthPaySurchargeMember).json.pick)).reduce
+      Sh.orElse(doNothing)).reduce
 
   private val readsEmployerDetails: Reads[JsObject] =
     ((pathEmployerMemberDetails \ 'compOrOrgName).json.copyFrom((__ \ 'event1 \ 'companyDetails \ 'companyName).json.pick) and
@@ -215,8 +223,14 @@ object Event1Details {
     (__ \ 'membersOrEmployers).readNullable[JsArray](__.read(Reads.seq(readsMember))
       .map(JsArray(_))).map { optionJsArray =>
       val jsonArray = optionJsArray.getOrElse(Json.arr())
-      Json.obj("event1Details" ->
-        Json.obj("event1Details" -> jsonArray)
+      Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "reportStartDate" -> "2020-09-01",
+          "reportEndDate" -> "2020-09-01"
+        ),
+        "event1Details" -> Json.obj(
+          "event1Details" -> jsonArray
+        )
       )
     }
   }

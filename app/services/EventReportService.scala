@@ -134,6 +134,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   private def compileEventOneReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
     val  outcome: Try[Future[Result]] = toTry(data.transform(transformToETMPData)).flatMap{
       transformedData =>
+        println(s"\n\n ****** = $transformedData")
         jsonPayloadSchemaValidator.validatePayload(transformedData, compileEventOneReportSchemaPath, "compileEventOneReport").map{
           _ => eventReportConnector.compileEventOneReport(pstr, transformedData).map{ response =>
             Ok(response.body)

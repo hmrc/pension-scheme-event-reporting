@@ -27,31 +27,27 @@ class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar with
 
   "transformToETMPData" - {
     "must transform a randomly generated valid payload correctly" in {
-      forAll(generateRandomPayloadAPI1827) {
-        case (userAnswers: JsObject, expectedResponse: JsObject) =>
-          val result = userAnswers.validate(Event1Details.transformToETMPData)
-          val expectedResult = JsSuccess(expectedResponse, __ \ 'membersOrEmployers)
-          println(s"\n\n ------- GENERATED USER ANSWERS:  $userAnswers")
-          println(s"\n\n ------- GENERATED EXPECTED:   $expectedResult")
-          println(s"\n\n ------- ACTUAL RESULT:  $result")
-          result mustBe expectedResult
+            forAll(generateRandomPayloadAPI1827) {
+              case (userAnswers: JsObject, expectedResponse: JsObject) =>
+                val result = userAnswers.validate(Event1Details.transformToETMPData)
+                val expectedResult = JsSuccess(expectedResponse, __ \ 'membersOrEmployers)
+                println(s"\n\n ------- GENERATED USER ANSWERS:  $userAnswers")
+                println(s"\n\n ------- GENERATED EXPECTED:   $expectedResult")
+                println(s"\n\n ------- ACTUAL RESULT:  $result")
+                result mustBe expectedResult
+            }
+//      {
+//        "transform a valid payload correctly when read from sample file" in {
+//          val json = readJsonFromFile("/api-1827-valid-example.json")
+//          val result = json.validate(Event1Details.transformToETMPData)
+//
+//          val expectedResult = JsSuccess(
+//            Json.arr("10", "11", "12", "13", "14", "19", "20", "0")
+//          )
+//
+//          result mustBe expectedResult
+//        }
       }
-      //      //    {
-      //      //    "transform a valid payload correctly when read from sample file" in {
-      //      //      val json = readJsonFromFile("/api-1834-valid-example.json")
-      //      //      val result = json.validate(EventSummary.rds).asOpt
-      //      //
-      //      //      val expectedResult = Some(
-      //      //        Json.arr("10", "11", "12", "13", "14", "19", "20", "0")
-      //      //      )
-      //      //
-      //      //      result mustBe expectedResult
-      //      //    }
-      //
-      //    }
     }
-  }
-
-
 }
 
