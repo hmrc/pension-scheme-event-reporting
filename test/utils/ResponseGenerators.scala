@@ -146,7 +146,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
     }
   }
 
-  private def toYesNo(b:Boolean): String = if (b) "Yes" else "No"
+  private def toYesNo(b: Boolean): String = if (b) "Yes" else "No"
 
   //scalastyle:off
   private def generateMember: Gen[(JsObject, JsObject)] = {
@@ -249,7 +249,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
       }
 
       val unAuthPaySurchargeValue = unAuthorisedPayment match {
-        case true =>  Json.obj("schemePayingSurcharge" -> toYesNo(unAuthPaySurcharge))
+        case true => Json.obj("schemePayingSurcharge" -> toYesNo(unAuthPaySurcharge))
         case _ => Json.obj()
       }
 
@@ -288,6 +288,8 @@ trait ResponseGenerators extends Matchers with OptionValues {
       tangibleMoveableProperyDesc <- Gen.alphaStr
       recipientName <- Gen.alphaStr
       paymentNatureDesc <- Gen.alphaStr
+      paymentVal <- arbitrary[BigDecimal]
+      paymentDate <- dateGenerator
     } yield {
       val ua = Json.obj(
         "event1" -> Json.obj(
@@ -301,6 +303,10 @@ trait ResponseGenerators extends Matchers with OptionValues {
           "employerResidentialAddress" -> Json.obj(
             "address" -> residentialAddress.toUA
           )
+        ),
+        "paymentValueAndDate" -> Json.obj(
+          "paymentValue" -> paymentVal,
+          "paymentDate" -> paymentDate
         ),
         "paymentNature" -> paymentNature,
         "loanDetails" -> Json.obj(
@@ -327,6 +333,16 @@ trait ResponseGenerators extends Matchers with OptionValues {
         }
       }
 
+      val xx = paymentNature match {
+        case "loansExceeding50PercentOfFundValue" | "courtOrConfiscationOrder" =>
+          Json.obj(
+            "pmtAmtOrLoanAmt" -> loanAmount,
+            "fundValue" -> loanValue
+          )
+        case _ =>
+          Json.obj()
+      }
+
       val residentialPropertyAddressEmployer = paymentNature match {
         case "residentialPropertyHeld" => Json.obj("residentialPropertyAddress" -> residentialAddress.toTarget)
         case _ => Json.obj()
@@ -334,9 +350,10 @@ trait ResponseGenerators extends Matchers with OptionValues {
 
       def unauthorsedPaymentDetails: JsObject = Json.obj(
         "unAuthorisedPmtType1" -> paymentNatureTypesEmployer(paymentNature),
-        "pmtAmtOrLoanAmt" -> loanAmount,
-        "fundValue" -> loanValue
-      ) ++ freeTextOrSchemeOrRecipientName ++ residentialPropertyAddressEmployer
+        "valueOfUnauthorisedPayment" -> paymentVal,
+        "dateOfUnauthorisedPayment" -> paymentDate
+
+      ) ++ freeTextOrSchemeOrRecipientName ++ residentialPropertyAddressEmployer ++ xx
 
       val expectedJson = Json.obj(
         "employerMemDetails" -> Json.obj(
