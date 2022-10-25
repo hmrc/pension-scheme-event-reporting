@@ -48,25 +48,26 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   private val compileMemberEventReportSchemaPath = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
 
 
-  def compileEventReport(pstr: String, userAnswersJson: JsValue)
+  def compileEventReport(pstr: String, eventType: EventType)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
 
-    val maybeApi1826 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1826.toString)).map {
-      case Some(data) => compileEventReportSummary(pstr, data).map(_ => NoContent)
-      case _ => Future.successful(Ok)
-    }.flatten
+//    val maybeApi1826 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1826.toString)).map {
+//      case Some(data) => compileEventReportSummary(pstr, data).map(_ => NoContent)
+//      case _ => Future.successful(Ok)
+//    }.flatten
 
     val maybeApi1827 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1827.toString)).map {
       case Some(data) => compileEventOneReport(pstr, data).map(_ => NoContent)
       case _ => Future.successful(Ok)
     }.flatten
 
-    val maybeApi1830 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1830.toString)).map {
-      case Some(data) => compileMemberEventReport(pstr, data).map(_ => NoContent)
-      case _ => Future.successful(Ok)
-    }.flatten
+//    val maybeApi1830 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1830.toString)).map {
+//      case Some(data) => compileMemberEventReport(pstr, data).map(_ => NoContent)
+//      case _ => Future.successful(Ok)
+//    }.flatten
 
-    val seqOfMaybeApiCalls = Future.sequence(Seq(maybeApi1826, maybeApi1827, maybeApi1830))
+    val seqOfMaybeApiCalls = Future.sequence(Seq(maybeApi1827))
+   // val seqOfMaybeApiCalls = Future.sequence(Seq(maybeApi1826, maybeApi1827, maybeApi1830))
 
     seqOfMaybeApiCalls.map { _ => NoContent }
   }
@@ -134,7 +135,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   private def compileEventOneReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
     val  outcome: Try[Future[Result]] = toTry(data.transform(transformToETMPData)).flatMap{
       transformedData =>
-        println(s"\n\n ****** = $transformedData")
+        println(s"\n\n BEFORE****** = $data")
+        println(s"\n\n AFTER****** = $transformedData")
         jsonPayloadSchemaValidator.validatePayload(transformedData, compileEventOneReportSchemaPath, "compileEventOneReport").map{
           _ => eventReportConnector.compileEventOneReport(pstr, transformedData).map{ response =>
             Ok(response.body)

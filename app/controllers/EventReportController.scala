@@ -76,9 +76,11 @@ class EventReportController @Inject()(
 
   def compileEvent: Action[AnyContent] = Action.async {
     implicit request =>
-      withPstrAndBody { (pstr, userAnswersJson) =>
-        logger.debug(message = s"[Compile Event: Incoming-Payload]$userAnswersJson")
-        eventReportService.compileEventReport(pstr, userAnswersJson)
+      withPstrAndEventType { (pstr, et) =>
+        EventType.getEventType(et) match {
+          case Some(eventType) => eventReportService.compileEventReport(pstr, eventType)
+          case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
+        }
       }
   }
 
