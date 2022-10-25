@@ -213,6 +213,7 @@ object Event1Details {
     } yield {
       (
         (__ \ 'memberType).json.put(JsString(whoReceivedUnauthorisedPayment)) and
+        (__ \ 'memberStatus).json.put(JsString("New")) and
           readsMemberOrEmployer(whoReceivedUnauthorisedPayment) and
           readsUnauthorisedPaymentDetails(paymentNature, whoReceivedUnauthorisedPayment)
         ).reduce

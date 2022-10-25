@@ -66,7 +66,8 @@ class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar with
             |               "nino":"AB123456C",
             |               "signedMandate":"Yes"
             |            },
-            |            "memberType":"Individual"
+            |            "memberType":"Individual",
+            |            "memberStatus":"New"
             |         }
             |      ]
             |   }

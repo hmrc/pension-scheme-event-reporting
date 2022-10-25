@@ -377,7 +377,11 @@ trait ResponseGenerators extends Matchers with OptionValues {
             ),
             "event1Details" -> Json.obj(
               "event1Details" -> Json.arr(
-                generatedExpectedResult ++ Json.obj("memberType" -> whoReceivedUnauthorisedPaymentMap(whoReceivedUnauthorisedPayment))
+                generatedExpectedResult ++ Json.obj(
+                  "memberType" -> whoReceivedUnauthorisedPaymentMap(whoReceivedUnauthorisedPayment)
+                ) ++ Json.obj(
+                  "memberStatus" -> "New"
+                )
               )
             )
           )

@@ -139,6 +139,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         println(s"\n\n AFTER****** = $transformedData")
         jsonPayloadSchemaValidator.validatePayload(transformedData, compileEventOneReportSchemaPath, "compileEventOneReport").map{
           _ => eventReportConnector.compileEventOneReport(pstr, transformedData).map{ response =>
+            println("\nSUCCESS!")
             Ok(response.body)
           }
         }
