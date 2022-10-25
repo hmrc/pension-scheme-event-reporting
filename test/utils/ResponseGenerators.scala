@@ -253,7 +253,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
         case _ => Json.obj()
       }
 
-      def unAuthorsedPaymentDetails: JsObject = Json.obj(
+      def unAuthorisedPaymentDetails: JsObject = Json.obj(
         "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature),
         "valueOfUnauthorisedPayment" -> paymentVal,
         "dateOfUnauthorisedPayment" -> paymentDate
@@ -270,7 +270,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
       val expectedJson = Json.obj(
         "individualMemberDetails" -> indMembDetails,
         "unAuthorisedPaymentDetails" ->
-          unAuthorsedPaymentDetails
+          unAuthorisedPaymentDetails
       )
       Tuple2(ua, expectedJson)
     }
@@ -333,12 +333,17 @@ trait ResponseGenerators extends Matchers with OptionValues {
         }
       }
 
+      val loanOptionFundValue = paymentNature match {
+        case "loansExceeding50PercentOfFundValue" => Json.obj("fundValue" -> loanValue)
+        case _ =>
+          Json.obj()
+      }
+
       val xx = paymentNature match {
         case "loansExceeding50PercentOfFundValue" | "courtOrConfiscationOrder" =>
           Json.obj(
-            "pmtAmtOrLoanAmt" -> loanAmount,
-            "fundValue" -> loanValue
-          )
+            "pmtAmtOrLoanAmt" -> loanAmount
+          ) ++ loanOptionFundValue
         case _ =>
           Json.obj()
       }
@@ -348,11 +353,10 @@ trait ResponseGenerators extends Matchers with OptionValues {
         case _ => Json.obj()
       }
 
-      def unauthorsedPaymentDetails: JsObject = Json.obj(
+      def unauthorisedPaymentDetails: JsObject = Json.obj(
         "unAuthorisedPmtType1" -> paymentNatureTypesEmployer(paymentNature),
         "valueOfUnauthorisedPayment" -> paymentVal,
         "dateOfUnauthorisedPayment" -> paymentDate
-
       ) ++ freeTextOrSchemeOrRecipientName ++ residentialPropertyAddressEmployer ++ xx
 
       val expectedJson = Json.obj(
@@ -362,7 +366,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
           "addressDetails" -> address.toTarget
         ),
         "unAuthorisedPaymentDetails" ->
-          unauthorsedPaymentDetails
+          unauthorisedPaymentDetails
       )
       Tuple2(ua, expectedJson)
     }

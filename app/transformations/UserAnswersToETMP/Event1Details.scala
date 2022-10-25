@@ -29,6 +29,7 @@ object Event1Details {
   private val paymentNatureTypeKeyTangibleMoveablePropertyHeld: String = "tangibleMoveablePropertyHeld"
   private val paymentNatureTypeKeyErrorCalcTaxFreeLumpSums: String = "errorCalcTaxFreeLumpSums"
   private val paymentNatureTypeKeyCourtOrConfiscationOrder: String = "courtOrConfiscationOrder"
+  private val paymentNatureTypeKeyLoansExceeding50PercentOfFundValue: String = "loansExceeding50PercentOfFundValue"
   private val paymentNatureTypeKeyOther: String = "other"
   private val paymentNatureTypeKeyBenefitsPaidEarly: String = "benefitsPaidEarly"
   private val whoReceivedUnauthPaymentIndividual = "Individual"
@@ -48,7 +49,7 @@ object Event1Details {
   )
 
   private val paymentNatureEmployerMap = Map(
-    "loansExceeding50PercentOfFundValue" -> "Loans to or in respect of the employer exceeding 50% of the value of the fund",
+    paymentNatureTypeKeyLoansExceeding50PercentOfFundValue -> "Loans to or in respect of the employer exceeding 50% of the value of the fund",
     paymentNatureTypeKeyResidentialPropertyHeld -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
     paymentNatureTypeKeyTangibleMoveablePropertyHeld -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
     paymentNatureTypeKeyCourtOrConfiscationOrder -> "Court Order Payment/Confiscation Order",
@@ -179,6 +180,15 @@ object Event1Details {
       case _ => Reads[JsObject](_ => JsError(s"Invalid payment nature $paymentNature for residential address"))
     }
 
+    val loanPymtPgs: Reads[JsObject] = paymentNature match {
+      case `paymentNatureTypeKeyLoansExceeding50PercentOfFundValue` =>
+        ((pathUnauthorisedPaymentDetails \ 'pmtAmtOrLoanAmt).json.copyFrom((__ \ 'loanDetails \ 'loanAmount).json.pick) and
+        (pathUnauthorisedPaymentDetails \ 'fundValue).json.copyFrom((__ \ 'loanDetails \ 'fundValue).json.pick)).reduce
+      case `paymentNatureTypeKeyCourtOrConfiscationOrder` =>
+        (pathUnauthorisedPaymentDetails \ 'pmtAmtOrLoanAmt).json.copyFrom((__ \ 'loanDetails \ 'loanAmount).json.pick)
+      case _ => Reads[JsObject](_ => JsError(""))
+    }
+
     whoReceivedUnauthorisedPayment match {
       case `whoReceivedUnauthPaymentIndividual` =>
         ((pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.put(JsString(paymentNatureMap(paymentNature))) and
@@ -192,9 +202,10 @@ object Event1Details {
       case `whoReceivedUnauthPaymentEmployer` =>
         ((pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.put(JsString(paymentNatureEmployerMap(paymentNature))) and
           (pathUnauthorisedPaymentDetails \ 'freeTxtOrSchemeOrRecipientName).json.copyFrom(freeTxtOrSchemeOrRecipientName(paymentNature, whoReceivedUnauthorisedPayment)).orElse(doNothing) and
-          (pathUnauthorisedPaymentDetails \ 'pmtAmtOrLoanAmt).json.copyFrom((__ \ 'loanDetails \ 'loanAmount).json.pick) and
-          (pathUnauthorisedPaymentDetails \ 'fundValue).json.copyFrom((__ \ 'loanDetails \ 'fundValue).json.pick) and
-          (pathUnauthorisedPaymentDetails \ 'residentialPropertyAddress).json.copyFrom(readsResidentialAddressEmployer).orElse(doNothing)
+          loanPymtPgs.orElse(doNothing) and
+          (pathUnauthorisedPaymentDetails \ 'residentialPropertyAddress).json.copyFrom(readsResidentialAddressEmployer).orElse(doNothing) and
+          (pathUnauthorisedPaymentDetails \ 'valueOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentValue).json.pick) and
+          (pathUnauthorisedPaymentDetails \ 'dateOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentDate).json.pick)
           ).reduce
       case _ => Reads[JsObject](_ => JsError(""))
     }
