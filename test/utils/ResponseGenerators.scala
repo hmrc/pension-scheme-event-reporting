@@ -146,6 +146,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
     }
   }
 
+  private def toYesNo(b:Boolean): String = if (b) "Yes" else "No"
 
   //scalastyle:off
   private def generateMember: Gen[(JsObject, JsObject)] = {
@@ -262,7 +263,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
         "firstName" -> firstName,
         "lastName" -> lastName,
         "nino" -> nino,
-        "signedMandate" -> signedMandate,
+        "signedMandate" -> toYesNo(signedMandate),
         "pmtMoreThan25PerFundValue" -> unAuthorisedPayment,
       ) ++ unAuthPaySurchargeValue
 

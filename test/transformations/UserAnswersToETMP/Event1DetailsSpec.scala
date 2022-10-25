@@ -26,17 +26,17 @@ import utils.{JsonFileReader, ResponseGenerators}
 class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader with ResponseGenerators with ScalaCheckPropertyChecks {
 
   "transformToETMPData" - {
-//    "must transform a randomly generated valid payload correctly" in {
-//      forAll(generateRandomPayloadAPI1827) {
-//        case (userAnswers: JsObject, expectedResponse: JsObject) =>
-//          val result = userAnswers.validate(Event1Details.transformToETMPData)
-//          val expectedResult = JsSuccess(expectedResponse, __ \ 'membersOrEmployers)
-//          println(s"\n\n ------- GENERATED USER ANSWERS:  $userAnswers")
-//          println(s"\n\n ------- GENERATED EXPECTED:   $expectedResult")
-//          println(s"\n\n ------- ACTUAL RESULT:  $result")
-//          result mustBe expectedResult
-//      }
-//    }
+    "must transform a randomly generated valid payload correctly" in {
+      forAll(generateRandomPayloadAPI1827) {
+        case (userAnswers: JsObject, expectedResponse: JsObject) =>
+          val result = userAnswers.validate(Event1Details.transformToETMPData)
+          val expectedResult = JsSuccess(expectedResponse, __ \ 'membersOrEmployers)
+          println(s"\n\n ------- GENERATED USER ANSWERS:  $userAnswers")
+          println(s"\n\n ------- GENERATED EXPECTED:   $expectedResult")
+          println(s"\n\n ------- ACTUAL RESULT:  $result")
+          result mustBe expectedResult
+      }
+    }
 
     "must transform a valid payload correctly when read from sample file" in {
       val json = readJsonFromFile("/api-1827-valid-example.json")
@@ -64,7 +64,7 @@ class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar with
             |               "lastName":"m",
             |               "pmtMoreThan25PerFundValue":false,
             |               "nino":"AB123456C",
-            |               "signedMandate":true
+            |               "signedMandate":"Yes"
             |            },
             |            "memberType":"Individual"
             |         }
