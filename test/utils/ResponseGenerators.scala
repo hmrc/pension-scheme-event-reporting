@@ -273,7 +273,6 @@ trait ResponseGenerators extends Matchers with OptionValues {
       )
       Tuple2(ua, expectedJson)
     }
-
   }
 
   private def generateEmployer: Gen[(JsObject, JsObject)] = {
