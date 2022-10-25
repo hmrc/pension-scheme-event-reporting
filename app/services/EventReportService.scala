@@ -27,10 +27,12 @@ import play.api.mvc.Result
 import play.api.mvc.Results._
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
 import transformations.ETMPToFrontEnd.EventSummary
+import transformations.UserAnswersToETMP.Event1Details.transformToETMPData
 import uk.gov.hmrc.http.HeaderCarrier
 import utils.JSONSchemaValidator
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 
 @Singleton()
@@ -128,12 +130,20 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       response <- eventReportConnector.compileEventReportSummary(pstr, data)
     } yield Ok(response.body)
 
-  private def compileEventOneReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] =
+  private def compileEventOneReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
+    val t: JsResult[Try[Future[Result]]] = data.transform(transformToETMPData).map{
+      transformedData =>
+        jsonPayloadSchemaValidator.validatePayload(transformedData, compileEventOneReportSchemaPath, "compileEventOneReport").map{
+          _ => eventReportConnector.compileEventOneReport(pstr, transformedData).map{ response =>
+            Ok(response.body)
+          }
+        }
+    }
     for {
-      //TODO: PODS-7714 write code to transform json and call it from here
-      _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(data, compileEventOneReportSchemaPath, "compileEventOneReport"))
+      _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, compileEventOneReportSchemaPath, "compileEventOneReport"))
       response <- eventReportConnector.compileEventOneReport(pstr, data)
     } yield Ok(response.body)
+  }
 
   private def compileMemberEventReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] =
     for {
