@@ -249,7 +249,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
       }
 
       val unAuthPaySurchargeValue = unAuthorisedPayment match {
-        case true =>  Json.obj("schemePayingSurcharge" -> unAuthPaySurcharge)
+        case true =>  Json.obj("schemePayingSurcharge" -> toYesNo(unAuthPaySurcharge))
         case _ => Json.obj()
       }
 

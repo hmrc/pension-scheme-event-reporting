@@ -112,7 +112,8 @@ object Event1Details {
 
   val Sh: Reads[JsObject] =
     (__ \ 'valueOfUnauthorisedPayment).read[Boolean].flatMap {
-        case true => (pathIndividualMemberDetails \ 'schemePayingSurcharge).json.copyFrom((__ \ 'schemeUnAuthPaySurchargeMember).json.pick)
+        case true => (pathIndividualMemberDetails \ 'schemePayingSurcharge).json
+          .copyFrom((__ \ 'schemeUnAuthPaySurchargeMember).json.pick.map(toYesNo))
         case _ => Reads[JsObject](_ => JsError(""))
       }
 
