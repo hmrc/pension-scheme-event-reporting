@@ -26,28 +26,57 @@ import utils.{JsonFileReader, ResponseGenerators}
 class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader with ResponseGenerators with ScalaCheckPropertyChecks {
 
   "transformToETMPData" - {
-    "must transform a randomly generated valid payload correctly" in {
-            forAll(generateRandomPayloadAPI1827) {
-              case (userAnswers: JsObject, expectedResponse: JsObject) =>
-                val result = userAnswers.validate(Event1Details.transformToETMPData)
-                val expectedResult = JsSuccess(expectedResponse, __ \ 'membersOrEmployers)
-                println(s"\n\n ------- GENERATED USER ANSWERS:  $userAnswers")
-                println(s"\n\n ------- GENERATED EXPECTED:   $expectedResult")
-                println(s"\n\n ------- ACTUAL RESULT:  $result")
-                result mustBe expectedResult
-            }
-//      {
-//        "transform a valid payload correctly when read from sample file" in {
-//          val json = readJsonFromFile("/api-1827-valid-example.json")
-//          val result = json.validate(Event1Details.transformToETMPData)
-//
-//          val expectedResult = JsSuccess(
-//            Json.arr("10", "11", "12", "13", "14", "19", "20", "0")
-//          )
-//
+//    "must transform a randomly generated valid payload correctly" in {
+//      forAll(generateRandomPayloadAPI1827) {
+//        case (userAnswers: JsObject, expectedResponse: JsObject) =>
+//          val result = userAnswers.validate(Event1Details.transformToETMPData)
+//          val expectedResult = JsSuccess(expectedResponse, __ \ 'membersOrEmployers)
+//          println(s"\n\n ------- GENERATED USER ANSWERS:  $userAnswers")
+//          println(s"\n\n ------- GENERATED EXPECTED:   $expectedResult")
+//          println(s"\n\n ------- ACTUAL RESULT:  $result")
 //          result mustBe expectedResult
-//        }
-      }
+//      }
+//    }
+
+    "must transform a valid payload correctly when read from sample file" in {
+      val json = readJsonFromFile("/api-1827-valid-example.json")
+      val result = json.validate(Event1Details.transformToETMPData)
+
+      val expectedResult = JsSuccess(
+        Json.parse(
+          """
+            |{
+            |   "eventReportDetails":{
+            |      "reportStartDate":"2020-09-01",
+            |      "reportEndDate":"2020-09-01"
+            |   },
+            |   "event1Details":{
+            |      "event1Details":[
+            |         {
+            |            "unAuthorisedPaymentDetails":{
+            |               "freeTxtOrSchemeOrRecipientName":"bik",
+            |               "dateOfUnauthorisedPayment":"2022-09-22",
+            |               "unAuthorisedPmtType1":"Benefit in kind",
+            |               "valueOfUnauthorisedPayment":2000.6
+            |            },
+            |            "individualMemberDetails":{
+            |               "firstName":"maryiah",
+            |               "lastName":"m",
+            |               "pmtMoreThan25PerFundValue":false,
+            |               "nino":"AB123456C",
+            |               "signedMandate":true
+            |            },
+            |            "memberType":"Individual"
+            |         }
+            |      ]
+            |   }
+            |}
+            |""".stripMargin),
+        __ \ 'membersOrEmployers
+      )
+
+      result mustBe expectedResult
     }
+  }
 }
 
