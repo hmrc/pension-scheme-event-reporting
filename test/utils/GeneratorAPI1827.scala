@@ -72,7 +72,8 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
     other -> "Overpayment of pension/written off other"
   )
 
-  //scalastyle:off
+  //scalastyle:off cyclomatic.complexity
+  // scalastyle:off method.length
   private def generateMember: Gen[(JsObject, JsObject)] = {
     for {
       firstName <- Gen.alphaStr
