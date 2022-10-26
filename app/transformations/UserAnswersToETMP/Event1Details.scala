@@ -22,6 +22,10 @@ import play.api.libs.json._
 import transformations.Transformer
 
 object Event1Details extends Transformer {
+  private val pathIndividualMemberDetails = __ \ 'individualMemberDetails
+  private val pathEmployerMemberDetails = __ \ 'employerMemDetails
+  private val pathUnauthorisedPaymentDetails = __ \ 'unAuthorisedPaymentDetails
+
   private val paymentNatureTypeKeyBenefitInKind: String = "benefitInKind"
   private val paymentNatureTypeKeyTransferToNonRegPensionScheme: String = "transferToNonRegPensionScheme"
   private val paymentNatureTypeKeyRefundOfContributions: String = "refundOfContributions"
@@ -97,9 +101,6 @@ object Event1Details extends Transformer {
     }
   }
 
-  private val pathIndividualMemberDetails = __ \ 'individualMemberDetails
-  private val pathEmployerMemberDetails = __ \ 'employerMemDetails
-  private val pathUnauthorisedPaymentDetails = __ \ 'unAuthorisedPaymentDetails
   private val readsPaymentNature: Reads[String] = (__ \ 'paymentNature).json.pick.map(_.as[JsString].value)
 
   private val readsWhoReceivedUnauthorisedPayment: Reads[String] = {
@@ -110,7 +111,7 @@ object Event1Details extends Transformer {
     }
   }
 
-  val schemePayingSurcharge: Reads[JsObject] =
+  private val schemePayingSurcharge: Reads[JsObject] =
     (__ \ 'valueOfUnauthorisedPayment).read[Boolean].flatMap {
       case true => (pathIndividualMemberDetails \ 'schemePayingSurcharge).json
         .copyFrom((__ \ 'schemeUnAuthPaySurchargeMember).json.pick.map(toYesNo))
@@ -131,17 +132,30 @@ object Event1Details extends Transformer {
       (pathEmployerMemberDetails \ 'addressDetails).json.copyFrom(readsAddress(__ \ 'event1 \ 'employerAddress)).orElse(doNothing)
       ).reduce
 
-  private def readsUnauthorisedPaymentDetails(paymentNature: String, whoReceivedUnauthorisedPayment: String): Reads[JsObject] = {
-    def readsPaymentType2: Reads[JsString] = paymentNature match {
-      case `paymentNatureTypeKeyTransferToNonRegPensionScheme` =>
-        (__ \ 'whoWasTheTransferMade).json.pick.map(jsValue => JsString(whoWasTransferMadeToMap(jsValue.as[JsString].value)))
-      case `paymentNatureTypeKeyRefundOfContributions` =>
-        (__ \ 'refundOfContributions).json.pick.map(jsValue => JsString(refundOfContributionsMap(jsValue.as[JsString].value)))
-      case `paymentNatureTypeKeyOverpaymentOrWriteOff` =>
-        (__ \ 'reasonForTheOverpaymentOrWriteOff).json.pick.map(jsValue => JsString(overpaymentOrWriteOffMap(jsValue.as[JsString].value)))
+  private def loanPymtPgs(paymentNature: String): Reads[JsObject] = {
+    def readsLoanAmount: Reads[JsObject] =
+      (pathUnauthorisedPaymentDetails \ 'pmtAmtOrLoanAmt).json.copyFrom((__ \ 'loanDetails \ 'loanAmount).json.pick)
+
+    def readsFundValue: Reads[JsObject] = (pathUnauthorisedPaymentDetails \ 'fundValue).json.copyFrom((__ \ 'loanDetails \ 'fundValue).json.pick)
+
+    paymentNature match {
+      case `paymentNatureTypeKeyLoansExceeding50PercentOfFundValue` => (readsLoanAmount and readsFundValue).reduce
+      case `paymentNatureTypeKeyCourtOrConfiscationOrder` => readsLoanAmount
       case _ => fail
     }
+  }
 
+  private def readsPaymentType2(paymentNature: String): Reads[JsString] = paymentNature match {
+    case `paymentNatureTypeKeyTransferToNonRegPensionScheme` =>
+      (__ \ 'whoWasTheTransferMade).json.pick.map(jsValue => JsString(whoWasTransferMadeToMap(jsValue.as[JsString].value)))
+    case `paymentNatureTypeKeyRefundOfContributions` =>
+      (__ \ 'refundOfContributions).json.pick.map(jsValue => JsString(refundOfContributionsMap(jsValue.as[JsString].value)))
+    case `paymentNatureTypeKeyOverpaymentOrWriteOff` =>
+      (__ \ 'reasonForTheOverpaymentOrWriteOff).json.pick.map(jsValue => JsString(overpaymentOrWriteOffMap(jsValue.as[JsString].value)))
+    case _ => fail
+  }
+
+  private def readsUnauthorisedPaymentDetails(paymentNature: String, whoReceivedUnauthorisedPayment: String): Reads[JsObject] = {
     val readsResidentialAddressMember: Reads[JsObject] = paymentNature match {
       case `paymentNatureTypeKeyResidentialPropertyHeld` => readsAddress(__ \ 'event1 \ 'memberResidentialAddress)
       case _ => fail
@@ -152,21 +166,12 @@ object Event1Details extends Transformer {
       case _ => fail
     }
 
-    val loanPymtPgs: Reads[JsObject] = paymentNature match {
-      case `paymentNatureTypeKeyLoansExceeding50PercentOfFundValue` =>
-        ((pathUnauthorisedPaymentDetails \ 'pmtAmtOrLoanAmt).json.copyFrom((__ \ 'loanDetails \ 'loanAmount).json.pick) and
-          (pathUnauthorisedPaymentDetails \ 'fundValue).json.copyFrom((__ \ 'loanDetails \ 'fundValue).json.pick)).reduce
-      case `paymentNatureTypeKeyCourtOrConfiscationOrder` =>
-        (pathUnauthorisedPaymentDetails \ 'pmtAmtOrLoanAmt).json.copyFrom((__ \ 'loanDetails \ 'loanAmount).json.pick)
-      case _ => fail
-    }
-
     whoReceivedUnauthorisedPayment match {
       case `whoReceivedUnauthPaymentIndividual` =>
         ((pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.put(JsString(paymentNatureMemberMap(paymentNature))) and
           (pathUnauthorisedPaymentDetails \ 'freeTxtOrSchemeOrRecipientName).json.copyFrom(freeTxtOrSchemeOrRecipientName(paymentNature, whoReceivedUnauthorisedPayment)).orElse(doNothing) and
           (pathUnauthorisedPaymentDetails \ 'pstrOrReference).json.copyFrom(pstrOrReference(paymentNature)).orElse(doNothing) and
-          (pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType2).json.copyFrom(readsPaymentType2).orElse(doNothing) and
+          (pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType2).json.copyFrom(readsPaymentType2(paymentNature)).orElse(doNothing) and
           (pathUnauthorisedPaymentDetails \ 'valueOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentValue).json.pick) and
           (pathUnauthorisedPaymentDetails \ 'dateOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentDate).json.pick) and
           (pathUnauthorisedPaymentDetails \ 'residentialPropertyAddress).json.copyFrom(readsResidentialAddressMember).orElse(doNothing)
@@ -174,7 +179,7 @@ object Event1Details extends Transformer {
       case `whoReceivedUnauthPaymentEmployer` =>
         ((pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.put(JsString(paymentNatureEmployerMap(paymentNature))) and
           (pathUnauthorisedPaymentDetails \ 'freeTxtOrSchemeOrRecipientName).json.copyFrom(freeTxtOrSchemeOrRecipientName(paymentNature, whoReceivedUnauthorisedPayment)).orElse(doNothing) and
-          loanPymtPgs.orElse(doNothing) and
+          loanPymtPgs(paymentNature).orElse(doNothing) and
           (pathUnauthorisedPaymentDetails \ 'residentialPropertyAddress).json.copyFrom(readsResidentialAddressEmployer).orElse(doNothing) and
           (pathUnauthorisedPaymentDetails \ 'valueOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentValue).json.pick) and
           (pathUnauthorisedPaymentDetails \ 'dateOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentDate).json.pick)
