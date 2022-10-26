@@ -213,6 +213,7 @@ object Event1Details extends Transformer {
     (__ \ 'membersOrEmployers).readNullable[JsArray](__.read(Reads.seq(readsMember))
       .map(JsArray(_))).map { optionJsArray =>
       val jsonArray = optionJsArray.getOrElse(Json.arr())
+      // TODO: Insert correct report start date and end date once we implement the relevant ticket
       Json.obj(
         "eventReportDetails" -> Json.obj(
           "reportStartDate" -> "2020-09-01",
