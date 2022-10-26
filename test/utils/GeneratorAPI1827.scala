@@ -76,6 +76,12 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
     "other" -> "Overpayment of pension/written off other"
   )
 
+
+  private def pstrOrReference(paymentNature: String, schemeRef: String): String = paymentNature match {
+    case `transferToNonRegPensionScheme` => schemeRef
+    case _ => ""
+  }
+
   //scalastyle:off cyclomatic.complexity
   // scalastyle:off method.length
   private def generateMember: Gen[(JsObject, JsObject)] = {
@@ -339,11 +345,5 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
           Tuple2(fullUA, fullExpectedResult)
         }
       }
-  }
-
-
-  private def pstrOrReference(paymentNature: String, schemeRef: String): String = paymentNature match {
-    case `transferToNonRegPensionScheme` => schemeRef
-    case _ => ""
   }
 }
