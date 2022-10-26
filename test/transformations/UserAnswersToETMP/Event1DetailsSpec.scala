@@ -21,13 +21,14 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json._
-import utils.{JsonFileReader, ResponseGenerators}
+import utils.{JsonFileReader, GeneratorAPI1827}
 
-class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader with ResponseGenerators with ScalaCheckPropertyChecks {
+class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar
+  with JsonFileReader with GeneratorAPI1827 with ScalaCheckPropertyChecks {
 
   "transformToETMPData" - {
     "must transform a randomly generated valid payload correctly" in {
-      forAll(generateRandomPayloadAPI1827) {
+      forAll(generateUserAnswersAndPOSTBody) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
           val result = userAnswers.validate(Event1Details.transformToETMPData)
           val expectedResult = JsSuccess(expectedResponse, __ \ 'membersOrEmployers)
@@ -36,47 +37,6 @@ class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar with
           println(s"\n\n ------- ACTUAL RESULT:  $result")
           result mustBe expectedResult
       }
-    }
-
-    "must transform a valid payload correctly when read from sample file" in {
-      val json = readJsonFromFile("/api-1827-valid-example.json")
-      val result = json.validate(Event1Details.transformToETMPData)
-
-      val expectedResult = JsSuccess(
-        Json.parse(
-          """
-            |{
-            |   "eventReportDetails":{
-            |      "reportStartDate":"2020-09-01",
-            |      "reportEndDate":"2020-09-01"
-            |   },
-            |   "event1Details":{
-            |      "event1Details":[
-            |         {
-            |            "unAuthorisedPaymentDetails":{
-            |               "freeTxtOrSchemeOrRecipientName":"bik",
-            |               "dateOfUnauthorisedPayment":"2022-09-22",
-            |               "unAuthorisedPmtType1":"Benefit in kind",
-            |               "valueOfUnauthorisedPayment":2000.6
-            |            },
-            |            "individualMemberDetails":{
-            |               "firstName":"maryiah",
-            |               "lastName":"m",
-            |               "pmtMoreThan25PerFundValue":"No",
-            |               "nino":"AB123456C",
-            |               "signedMandate":"Yes"
-            |            },
-            |            "memberType":"Individual",
-            |            "memberStatus":"New"
-            |         }
-            |      ]
-            |   }
-            |}
-            |""".stripMargin),
-        __ \ 'membersOrEmployers
-      )
-
-      result mustBe expectedResult
     }
   }
 }

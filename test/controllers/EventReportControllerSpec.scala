@@ -493,7 +493,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         .thenReturn(Future.successful(NoContent))
 
       val result = controller.compileEvent(fakeRequest.withJsonBody(compileEventSuccessResponse).withHeaders(
-        newHeaders = "pstr" -> pstr))
+        newHeaders = "pstr" -> pstr, "eventType" -> "1"))
 
       status(result) mustBe NO_CONTENT
     }
@@ -502,7 +502,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
 
       recoverToExceptionIf[UnauthorizedException] {
-        controller.compileEvent()(fakeRequest.withJsonBody(compileEventSuccessResponse).withHeaders(newHeaders = "pstr" -> pstr))
+        controller.compileEvent()(fakeRequest.withJsonBody(compileEventSuccessResponse)
+          .withHeaders(newHeaders = "pstr" -> pstr, "eventType" -> "1"))
       } map { response =>
         response.responseCode mustBe UNAUTHORIZED
         response.message must include("Not Authorised - Unable to retrieve credentials - externalId")

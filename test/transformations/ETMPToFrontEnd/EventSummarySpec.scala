@@ -21,9 +21,10 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json.{JsArray, JsObject, JsString, Json}
-import utils.{JsonFileReader, ResponseGenerators}
+import utils.{JsonFileReader, GeneratorAPI1834}
 
-class EventSummarySpec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader with ResponseGenerators with ScalaCheckPropertyChecks {
+class EventSummarySpec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader
+  with GeneratorAPI1834 with ScalaCheckPropertyChecks {
 
   "Reads" - {
     "transform a valid payload correctly when read from sample file" in {
@@ -38,7 +39,7 @@ class EventSummarySpec extends AnyFreeSpec with Matchers with MockitoSugar with 
     }
 
     "transform a randomly generated valid payload correctly" in {
-      forAll(generateRandomPayloadAPI1834) {
+      forAll(generateGETResponseAndUserAnswers) {
         case (json: JsObject, eventTypes: Seq[String]) =>
           val result = json.validate(EventSummary.rds).asOpt
           val expectedResult = Some(JsArray(eventTypes.map(JsString)))

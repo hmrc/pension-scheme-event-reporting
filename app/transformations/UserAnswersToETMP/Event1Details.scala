@@ -35,7 +35,7 @@ object Event1Details {
   private val whoReceivedUnauthPaymentIndividual = "Individual"
   private val whoReceivedUnauthPaymentEmployer = "Employer"
 
-  private val paymentNatureMap = Map(
+  private val paymentNatureMemberMap = Map(
     paymentNatureTypeKeyBenefitInKind -> "Benefit in kind",
     paymentNatureTypeKeyTransferToNonRegPensionScheme -> "Transfer to non-registered pensions scheme",
     paymentNatureTypeKeyErrorCalcTaxFreeLumpSums -> "Error in calculating tax free lump sums",
@@ -102,21 +102,20 @@ object Event1Details {
   private val doNothing: Reads[JsObject] = __.json.put(Json.obj())
   private val readsPaymentNature: Reads[String] = (__ \ 'paymentNature).json.pick.map(_.as[JsString].value)
 
-  private[UserAnswersToETMP] val readsWhoReceivedUnauthorisedPayment: Reads[String] = {
+  private val readsWhoReceivedUnauthorisedPayment: Reads[String] = {
     (__ \ 'whoReceivedUnauthPayment).json.pick.flatMap {
       case JsString("member") => Reads.pure[String](whoReceivedUnauthPaymentIndividual)
       case JsString("employer") => Reads.pure[String](whoReceivedUnauthPaymentEmployer)
-      case s =>
-        Reads.failed[String](s"Unknown value $s")
+      case s => Reads.failed[String](s"Unknown value $s")
     }
   }
 
-  val Sh: Reads[JsObject] =
+  val schemePayingSurcharge: Reads[JsObject] =
     (__ \ 'valueOfUnauthorisedPayment).read[Boolean].flatMap {
-        case true => (pathIndividualMemberDetails \ 'schemePayingSurcharge).json
-          .copyFrom((__ \ 'schemeUnAuthPaySurchargeMember).json.pick.map(toYesNo))
-        case _ => Reads[JsObject](_ => JsError(""))
-      }
+      case true => (pathIndividualMemberDetails \ 'schemePayingSurcharge).json
+        .copyFrom((__ \ 'schemeUnAuthPaySurchargeMember).json.pick.map(toYesNo))
+      case _ => doNothing
+    }
 
   private def toYesNo(b: JsValue): JsString = if (b.as[JsBoolean].value) JsString("Yes") else JsString("No")
 
@@ -126,7 +125,7 @@ object Event1Details {
       (pathIndividualMemberDetails \ 'nino).json.copyFrom((__ \ 'membersDetails \ 'nino).json.pick) and
       (pathIndividualMemberDetails \ 'signedMandate).json.copyFrom((__ \ 'doYouHoldSignedMandate).json.pick.map(toYesNo)) and
       (pathIndividualMemberDetails \ 'pmtMoreThan25PerFundValue).json.copyFrom((__ \ 'valueOfUnauthorisedPayment).json.pick.map(toYesNo)) and
-      Sh.orElse(doNothing)).reduce
+      schemePayingSurcharge.orElse(doNothing)).reduce
 
   private val readsEmployerDetails: Reads[JsObject] =
     ((pathEmployerMemberDetails \ 'compOrOrgName).json.copyFrom((__ \ 'event1 \ 'companyDetails \ 'companyName).json.pick) and
@@ -167,7 +166,7 @@ object Event1Details {
         (__ \ 'refundOfContributions).json.pick.map(jsValue => JsString(refundOfContributionsMap(jsValue.as[JsString].value)))
       case `paymentNatureTypeKeyOverpaymentOrWriteOff` =>
         (__ \ 'reasonForTheOverpaymentOrWriteOff).json.pick.map(jsValue => JsString(overpaymentOrWriteOffMap(jsValue.as[JsString].value)))
-      case _ => Reads[JsString](_ => JsError(""))
+      case _ => Reads[JsString](_ => JsError(s"Invalid $paymentNature"))
     }
 
     val readsResidentialAddressMember: Reads[JsObject] = paymentNature match {
@@ -183,15 +182,15 @@ object Event1Details {
     val loanPymtPgs: Reads[JsObject] = paymentNature match {
       case `paymentNatureTypeKeyLoansExceeding50PercentOfFundValue` =>
         ((pathUnauthorisedPaymentDetails \ 'pmtAmtOrLoanAmt).json.copyFrom((__ \ 'loanDetails \ 'loanAmount).json.pick) and
-        (pathUnauthorisedPaymentDetails \ 'fundValue).json.copyFrom((__ \ 'loanDetails \ 'fundValue).json.pick)).reduce
+          (pathUnauthorisedPaymentDetails \ 'fundValue).json.copyFrom((__ \ 'loanDetails \ 'fundValue).json.pick)).reduce
       case `paymentNatureTypeKeyCourtOrConfiscationOrder` =>
         (pathUnauthorisedPaymentDetails \ 'pmtAmtOrLoanAmt).json.copyFrom((__ \ 'loanDetails \ 'loanAmount).json.pick)
-      case _ => Reads[JsObject](_ => JsError(""))
+      case _ => Reads[JsObject](_ => JsError(s"Invalid: $paymentNature"))
     }
 
     whoReceivedUnauthorisedPayment match {
       case `whoReceivedUnauthPaymentIndividual` =>
-        ((pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.put(JsString(paymentNatureMap(paymentNature))) and
+        ((pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.put(JsString(paymentNatureMemberMap(paymentNature))) and
           (pathUnauthorisedPaymentDetails \ 'freeTxtOrSchemeOrRecipientName).json.copyFrom(freeTxtOrSchemeOrRecipientName(paymentNature, whoReceivedUnauthorisedPayment)).orElse(doNothing) and
           (pathUnauthorisedPaymentDetails \ 'pstrOrReference).json.copyFrom(pstrOrReference(paymentNature)).orElse(doNothing) and
           (pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType2).json.copyFrom(readsPaymentType2).orElse(doNothing) and
@@ -207,7 +206,7 @@ object Event1Details {
           (pathUnauthorisedPaymentDetails \ 'valueOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentValue).json.pick) and
           (pathUnauthorisedPaymentDetails \ 'dateOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentDate).json.pick)
           ).reduce
-      case _ => Reads[JsObject](_ => JsError(""))
+      case _ => Reads[JsObject](_ => JsError(s"Invalid: $whoReceivedUnauthorisedPayment"))
     }
   }
 
@@ -225,14 +224,14 @@ object Event1Details {
     } yield {
       (
         (__ \ 'memberType).json.put(JsString(whoReceivedUnauthorisedPayment)) and
-        (__ \ 'memberStatus).json.put(JsString("New")) and
+          (__ \ 'memberStatus).json.put(JsString("New")) and
           readsMemberOrEmployer(whoReceivedUnauthorisedPayment) and
           readsUnauthorisedPaymentDetails(paymentNature, whoReceivedUnauthorisedPayment)
         ).reduce
     }).flatMap[JsObject](identity)
   }
 
-  def transformToETMPData: Reads[JsObject] = {
+  val transformToETMPData: Reads[JsObject] = {
     (__ \ 'membersOrEmployers).readNullable[JsArray](__.read(Reads.seq(readsMember))
       .map(JsArray(_))).map { optionJsArray =>
       val jsonArray = optionJsArray.getOrElse(Json.arr())
