@@ -23,42 +23,53 @@ import org.scalatest.matchers.must.Matchers
 import play.api.libs.json.{JsObject, Json}
 
 trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerators {
+  private val benefitInKind = "benefitInKind"
+  private val transferToNonRegPensionScheme = "transferToNonRegPensionScheme"
+  private val errorCalcTaxFreeLumpSums = "errorCalcTaxFreeLumpSums"
+  private val benefitsPaidEarly = "benefitsPaidEarly"
+  private val refundOfContributions = "refundOfContributions"
+  private val overpaymentOrWriteOff = "overpaymentOrWriteOff"
+  private val residentialPropertyHeld1 = "residentialPropertyHeld"
+  private val tangibleMoveablePropertyHeld = "tangibleMoveablePropertyHeld"
+  private val courtOrConfiscationOrder = "courtOrConfiscationOrder"
+  private val other = "other"
   private val paymentNatureTypesMember = Map(
-    "benefitInKind" -> "Benefit in kind",
-    "transferToNonRegPensionScheme" -> "Transfer to non-registered pensions scheme",
-    "errorCalcTaxFreeLumpSums" -> "Error in calculating tax free lump sums",
-    "benefitsPaidEarly" -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
-    "refundOfContributions" -> "Refund of contributions",
-    "overpaymentOrWriteOff" -> "Overpayment of pension/written off",
-    "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
-    "tangibleMoveablePropertyHeld" -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
-    "courtOrConfiscationOrder" -> "Court Order Payment/Confiscation Order",
-    "other" -> "Other"
+    benefitInKind -> "Benefit in kind",
+    transferToNonRegPensionScheme -> "Transfer to non-registered pensions scheme",
+    errorCalcTaxFreeLumpSums -> "Error in calculating tax free lump sums",
+    benefitsPaidEarly -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
+    refundOfContributions -> "Refund of contributions",
+    overpaymentOrWriteOff -> "Overpayment of pension/written off",
+    residentialPropertyHeld1 -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
+    tangibleMoveablePropertyHeld -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
+    courtOrConfiscationOrder -> "Court Order Payment/Confiscation Order",
+    other -> "Other"
   )
 
+  private val loansExceeding50PercentOfFundValue = "loansExceeding50PercentOfFundValue"
   private val paymentNatureTypesEmployer = Map(
-    "loansExceeding50PercentOfFundValue" -> "Loans to or in respect of the employer exceeding 50% of the value of the fund",
-    "residentialPropertyHeld" -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
-    "tangibleMoveablePropertyHeld" -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
-    "courtOrConfiscationOrder" -> "Court Order Payment/Confiscation Order",
-    "other" -> "Other"
+    loansExceeding50PercentOfFundValue -> "Loans to or in respect of the employer exceeding 50% of the value of the fund",
+    residentialPropertyHeld1 -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
+    tangibleMoveablePropertyHeld -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
+    courtOrConfiscationOrder -> "Court Order Payment/Confiscation Order",
+    other -> "Other"
   )
 
   private val whoWasTransferMadeToMap = Map("anEmployerFinanced" -> "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
     "nonRecognisedScheme" -> "Transfer to a non-recognised pension scheme which is not a qualifying overseas pension scheme",
-    "other" -> "Overpayment of pension/written off other"
+    other -> "Overpayment of pension/written off other"
   )
 
   private val refundOfContributionsMap = Map(
     "widowOrOrphan" -> "Widow and/or orphan",
-    "other" -> "Overpayment of pension/written off other"
+    other -> "Overpayment of pension/written off other"
   )
 
   private val overpaymentOrWriteOffMap = Map(
     "deathOfMember" -> "Death of member",
     "deathOfDependent" -> "Death of dependent",
     "dependentNoLongerQualifiedForPension" -> "Dependent no longer qualified for pension",
-    "other" -> "Overpayment of pension/written off other"
+    other -> "Overpayment of pension/written off other"
   )
 
   //scalastyle:off
@@ -75,13 +86,13 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
       errorDesc <- Gen.alphaStr
       tangibleMoveable <- Gen.alphaStr
       whoWasTransferMadeTo <- Gen.oneOf(whoWasTransferMadeToMap.keys.toSeq)
-      refundOfContributions <- Gen.oneOf(refundOfContributionsMap.keys.toSeq)
-      overpaymentOrWriteOff <- Gen.oneOf(overpaymentOrWriteOffMap.keys.toSeq)
+      refundOfContributionsVal <- Gen.oneOf(refundOfContributionsMap.keys.toSeq)
+      overpaymentOrWriteOffVal <- Gen.oneOf(overpaymentOrWriteOffMap.keys.toSeq)
       schemeName <- Gen.alphaStr
       schemeRef <- Gen.alphaStr
       paymentVal <- arbitrary[BigDecimal]
       paymentDate <- dateGenerator
-      benefitsPaidEarly <- Gen.alphaStr
+      benefitsPaidEarlyVal <- Gen.alphaStr
       address <- addressGenerator
       unAuthPmtRecipient <- Gen.alphaStr
       otherDesc <- Gen.alphaStr
@@ -100,9 +111,9 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
         "errorDescription" -> errorDesc,
         "memberTangibleMoveableProperty" -> tangibleMoveable,
         "whoWasTheTransferMade" -> whoWasTransferMadeTo,
-        "refundOfContributions" -> refundOfContributions,
-        "benefitsPaidEarly" -> benefitsPaidEarly,
-        "reasonForTheOverpaymentOrWriteOff" -> overpaymentOrWriteOff,
+        refundOfContributions -> refundOfContributionsVal,
+        benefitsPaidEarly -> benefitsPaidEarlyVal,
+        "reasonForTheOverpaymentOrWriteOff" -> overpaymentOrWriteOffVal,
         "schemeDetails" -> Json.obj(
           "schemeName" -> schemeName,
           "reference" -> schemeRef
@@ -121,43 +132,43 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
       )
 
       def freeTxtOrSchemeOrRecipientName = paymentNature match {
-        case "benefitInKind" => benefitInKindDesc
-        case "errorCalcTaxFreeLumpSums" => errorDesc
-        case "transferToNonRegPensionScheme" => schemeName
-        case "benefitsPaidEarly" => benefitsPaidEarly
-        case "tangibleMoveablePropertyHeld" => tangibleMoveable
-        case "courtOrConfiscationOrder" => unAuthPmtRecipient
-        case "other" => otherDesc
+        case `benefitInKind` => benefitInKindDesc
+        case `errorCalcTaxFreeLumpSums` => errorDesc
+        case `transferToNonRegPensionScheme` => schemeName
+        case `benefitsPaidEarly` => benefitsPaidEarlyVal
+        case `tangibleMoveablePropertyHeld` => tangibleMoveable
+        case `courtOrConfiscationOrder` => unAuthPmtRecipient
+        case `other` => otherDesc
         case _ => ""
       }
 
       val unAuthorisedPmtType2: String =
         paymentNature match {
-          case "transferToNonRegPensionScheme" => whoWasTransferMadeToMap(whoWasTransferMadeTo)
-          case "refundOfContributions" => refundOfContributionsMap(refundOfContributions)
-          case "overpaymentOrWriteOff" => overpaymentOrWriteOffMap(overpaymentOrWriteOff)
+          case `transferToNonRegPensionScheme` => whoWasTransferMadeToMap(whoWasTransferMadeTo)
+          case `refundOfContributions` => refundOfContributionsMap(refundOfContributionsVal)
+          case `overpaymentOrWriteOff` => overpaymentOrWriteOffMap(overpaymentOrWriteOffVal)
           case _ => ""
         }
 
       val unAuthPmt2 = paymentNature match {
-        case "transferToNonRegPensionScheme" | "refundOfContributions" | "overpaymentOrWriteOff" =>
+        case `transferToNonRegPensionScheme` | `refundOfContributions` | `overpaymentOrWriteOff` =>
           Json.obj("unAuthorisedPmtType2" -> unAuthorisedPmtType2)
         case _ => Json.obj()
       }
 
       val freeTxtOrRecipientNameMember = paymentNature match {
-        case "overpaymentOrWriteOff" | "refundOfContributions" | "residentialPropertyHeld" =>
+        case `overpaymentOrWriteOff` | `refundOfContributions` | `residentialPropertyHeld1` =>
           Json.obj()
         case _ => Json.obj("freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName)
       }
 
       val pstrOrRef = paymentNature match {
-        case "transferToNonRegPensionScheme" => Json.obj("pstrOrReference" -> pstrOrReference(paymentNature, schemeRef))
+        case `transferToNonRegPensionScheme` => Json.obj("pstrOrReference" -> pstrOrReference(paymentNature, schemeRef))
         case _ => Json.obj()
       }
 
       val residentialPropertyHeld = paymentNature match {
-        case "residentialPropertyHeld" => Json.obj("residentialPropertyAddress" -> toAPIFormat(address))
+        case `residentialPropertyHeld1` => Json.obj("residentialPropertyAddress" -> toAPIFormat(address))
         case _ => Json.obj()
       }
 
@@ -233,14 +244,14 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
       )
 
       def freeTxtOrSchemeOrRecipientName: Option[String] = paymentNature match {
-        case "tangibleMoveablePropertyHeld" => Some(tangibleMoveableProperyDesc)
-        case "courtOrConfiscationOrder" => Some(recipientName)
-        case "other" => Some(paymentNatureDesc)
+        case `tangibleMoveablePropertyHeld` => Some(tangibleMoveableProperyDesc)
+        case `courtOrConfiscationOrder` => Some(recipientName)
+        case `other` => Some(paymentNatureDesc)
         case _ => None
       }
 
       val freeTextOrSchemeOrRecipientName = paymentNature match {
-        case "overpaymentOrWriteOff" | "refundOfContributions" | "residentialPropertyHeld" =>
+        case `overpaymentOrWriteOff` | `refundOfContributions` | `residentialPropertyHeld1` =>
           Json.obj()
         case _ => freeTxtOrSchemeOrRecipientName.fold(Json.obj()) { ft =>
           Json.obj("freeTxtOrSchemeOrRecipientName" -> ft)
@@ -248,13 +259,13 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
       }
 
       val loanOptionFundValue = paymentNature match {
-        case "loansExceeding50PercentOfFundValue" => Json.obj("fundValue" -> loanValue)
+        case `loansExceeding50PercentOfFundValue` => Json.obj("fundValue" -> loanValue)
         case _ =>
           Json.obj()
       }
 
       val xx = paymentNature match {
-        case "loansExceeding50PercentOfFundValue" | "courtOrConfiscationOrder" =>
+        case `loansExceeding50PercentOfFundValue` | `courtOrConfiscationOrder` =>
           Json.obj(
             "pmtAmtOrLoanAmt" -> loanAmount
           ) ++ loanOptionFundValue
@@ -263,7 +274,7 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
       }
 
       val residentialPropertyAddressEmployer = paymentNature match {
-        case "residentialPropertyHeld" => Json.obj("residentialPropertyAddress" -> toAPIFormat(residentialAddress))
+        case `residentialPropertyHeld1` => Json.obj("residentialPropertyAddress" -> toAPIFormat(residentialAddress))
         case _ => Json.obj()
       }
 
@@ -327,7 +338,7 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
 
 
   private def pstrOrReference(paymentNature: String, schemeRef: String): String = paymentNature match {
-    case "transferToNonRegPensionScheme" => schemeRef
+    case `transferToNonRegPensionScheme` => schemeRef
     case _ => ""
   }
 }
