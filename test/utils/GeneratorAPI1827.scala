@@ -30,9 +30,13 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
   private val refundOfContributions = "refundOfContributions"
   private val overpaymentOrWriteOff = "overpaymentOrWriteOff"
   private val residentialPropertyHeld1 = "residentialPropertyHeld"
+  private val residentialPropertyHeldEmployer = "residentialProperty"
   private val tangibleMoveablePropertyHeld = "tangibleMoveablePropertyHeld"
+  private val tangibleMoveablePropertyHeldEmployer = "tangibleMoveableProperty"
   private val courtOrConfiscationOrder = "courtOrConfiscationOrder"
-  private val other = "other"
+  private val courtOrConfiscationOrderEmployer = "courtOrder"
+  private val other = "memberOther"
+  private val otherEmployer = "employerOther"
   private val paymentNatureTypesMember = Map(
     benefitInKind -> "Benefit in kind",
     transferToNonRegPensionScheme -> "Transfer to non-registered pensions scheme",
@@ -49,10 +53,10 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
   private val loansExceeding50PercentOfFundValue = "loansExceeding50PercentOfFundValue"
   private val paymentNatureTypesEmployer = Map(
     loansExceeding50PercentOfFundValue -> "Loans to or in respect of the employer exceeding 50% of the value of the fund",
-    residentialPropertyHeld1 -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
-    tangibleMoveablePropertyHeld -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
-    courtOrConfiscationOrder -> "Court Order Payment/Confiscation Order",
-    other -> "Other"
+    residentialPropertyHeldEmployer -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
+    tangibleMoveablePropertyHeldEmployer -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
+    courtOrConfiscationOrderEmployer -> "Court Order Payment/Confiscation Order",
+    otherEmployer -> "Other"
   )
 
   private val whoWasTransferMadeToMap = Map("anEmployerFinanced" -> "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
@@ -245,14 +249,14 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
       )
 
       def freeTxtOrSchemeOrRecipientName: Option[String] = paymentNature match {
-        case `tangibleMoveablePropertyHeld` => Some(tangibleMoveableProperyDesc)
-        case `courtOrConfiscationOrder` => Some(recipientName)
-        case `other` => Some(paymentNatureDesc)
+        case `tangibleMoveablePropertyHeldEmployer` => Some(tangibleMoveableProperyDesc)
+        case `courtOrConfiscationOrderEmployer` => Some(recipientName)
+        case `otherEmployer` => Some(paymentNatureDesc)
         case _ => None
       }
 
       val freeTextOrSchemeOrRecipientName = paymentNature match {
-        case `overpaymentOrWriteOff` | `refundOfContributions` | `residentialPropertyHeld1` =>
+        case `overpaymentOrWriteOff` | `refundOfContributions` | `residentialPropertyHeldEmployer` =>
           Json.obj()
         case _ => freeTxtOrSchemeOrRecipientName.fold(Json.obj()) { ft =>
           Json.obj("freeTxtOrSchemeOrRecipientName" -> ft)
@@ -266,7 +270,7 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
       }
 
       val xx = paymentNature match {
-        case `loansExceeding50PercentOfFundValue` | `courtOrConfiscationOrder` =>
+        case `loansExceeding50PercentOfFundValue` | `courtOrConfiscationOrderEmployer` =>
           Json.obj(
             "pmtAmtOrLoanAmt" -> loanAmount
           ) ++ loanOptionFundValue
@@ -275,7 +279,7 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
       }
 
       val residentialPropertyAddressEmployer = paymentNature match {
-        case `residentialPropertyHeld1` => Json.obj("residentialPropertyAddress" -> toAPIFormat(residentialAddress))
+        case `residentialPropertyHeldEmployer` => Json.obj("residentialPropertyAddress" -> toAPIFormat(residentialAddress))
         case _ => Json.obj()
       }
 
