@@ -31,11 +31,15 @@ object Event1Details extends Transformer {
   private val paymentNatureTypeKeyRefundOfContributions: String = "refundOfContributions"
   private val paymentNatureTypeKeyOverpaymentOrWriteOff: String = "overpaymentOrWriteOff"
   private val paymentNatureTypeKeyResidentialPropertyHeld: String = "residentialPropertyHeld"
+  private val paymentNatureTypeKeyResidentialPropertyHeldEmployer: String = "residentialProperty"
   private val paymentNatureTypeKeyTangibleMoveablePropertyHeld: String = "tangibleMoveablePropertyHeld"
+  private val paymentNatureTypeKeyTangibleMoveablePropertyHeldEmployer: String = "tangibleMoveableProperty"
   private val paymentNatureTypeKeyErrorCalcTaxFreeLumpSums: String = "errorCalcTaxFreeLumpSums"
   private val paymentNatureTypeKeyCourtOrConfiscationOrder: String = "courtOrConfiscationOrder"
+  private val paymentNatureTypeKeyCourtOrConfiscationOrderEmployer: String = "courtOrder"
   private val paymentNatureTypeKeyLoansExceeding50PercentOfFundValue: String = "loansExceeding50PercentOfFundValue"
-  private val paymentNatureTypeKeyOther: String = "other"
+  private val paymentNatureTypeKeyOther: String = "memberOther"
+  private val paymentNatureTypeKeyOtherEmployer: String = "employerOther"
   private val paymentNatureTypeKeyBenefitsPaidEarly: String = "benefitsPaidEarly"
   private val whoReceivedUnauthPaymentIndividual = "Individual"
   private val whoReceivedUnauthPaymentEmployer = "Employer"
@@ -55,10 +59,10 @@ object Event1Details extends Transformer {
 
   private val paymentNatureEmployerMap = Map(
     paymentNatureTypeKeyLoansExceeding50PercentOfFundValue -> "Loans to or in respect of the employer exceeding 50% of the value of the fund",
-    paymentNatureTypeKeyResidentialPropertyHeld -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
-    paymentNatureTypeKeyTangibleMoveablePropertyHeld -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
-    paymentNatureTypeKeyCourtOrConfiscationOrder -> "Court Order Payment/Confiscation Order",
-    paymentNatureTypeKeyOther -> "Other"
+    paymentNatureTypeKeyResidentialPropertyHeldEmployer -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
+    paymentNatureTypeKeyTangibleMoveablePropertyHeldEmployer -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
+    paymentNatureTypeKeyCourtOrConfiscationOrderEmployer -> "Court Order Payment/Confiscation Order",
+    paymentNatureTypeKeyOtherEmployer -> "Other"
   )
 
   private val whoWasTransferMadeToMap = Map(
@@ -86,10 +90,11 @@ object Event1Details extends Transformer {
       case (`paymentNatureTypeKeyErrorCalcTaxFreeLumpSums`, `whoReceivedUnauthPaymentIndividual`) => (__ \ Symbol("errorDescription")).json.pick.map(_.as[JsString])
       case (`paymentNatureTypeKeyBenefitsPaidEarly`, `whoReceivedUnauthPaymentIndividual`) => (__ \ Symbol("benefitsPaidEarly")).json.pick.map(_.as[JsString])
       case (`paymentNatureTypeKeyTangibleMoveablePropertyHeld`, `whoReceivedUnauthPaymentIndividual`) => (__ \ Symbol("memberTangibleMoveableProperty")).json.pick.map(_.as[JsString])
-      case (`paymentNatureTypeKeyTangibleMoveablePropertyHeld`, `whoReceivedUnauthPaymentEmployer`) => (__ \ Symbol("employerTangibleMoveableProperty")).json.pick.map(_.as[JsString])
+      case (`paymentNatureTypeKeyTangibleMoveablePropertyHeldEmployer`, `whoReceivedUnauthPaymentEmployer`) => (__ \ Symbol("employerTangibleMoveableProperty")).json.pick.map(_.as[JsString])
       case (`paymentNatureTypeKeyCourtOrConfiscationOrder`, _) => (__ \ Symbol("unauthorisedPaymentRecipientName")).json.pick.map(_.as[JsString])
+      case (`paymentNatureTypeKeyCourtOrConfiscationOrderEmployer`, _) => (__ \ Symbol("unauthorisedPaymentRecipientName")).json.pick.map(_.as[JsString])
       case (`paymentNatureTypeKeyOther`, `whoReceivedUnauthPaymentIndividual`) => (__ \ Symbol("memberPaymentNatureDescription")).json.pick.map(_.as[JsString])
-      case (`paymentNatureTypeKeyOther`, `whoReceivedUnauthPaymentEmployer`) => (__ \ Symbol("paymentNatureDesc")).json.pick.map(_.as[JsString])
+      case (`paymentNatureTypeKeyOtherEmployer`, `whoReceivedUnauthPaymentEmployer`) => (__ \ Symbol("paymentNatureDesc")).json.pick.map(_.as[JsString])
       case _ => Reads[JsString](_ => JsError(""))
     }
   }
@@ -140,7 +145,7 @@ object Event1Details extends Transformer {
 
     paymentNature match {
       case `paymentNatureTypeKeyLoansExceeding50PercentOfFundValue` => (readsLoanAmount and readsFundValue).reduce
-      case `paymentNatureTypeKeyCourtOrConfiscationOrder` => readsLoanAmount
+      case `paymentNatureTypeKeyCourtOrConfiscationOrderEmployer` => readsLoanAmount
       case _ => fail
     }
   }
@@ -162,7 +167,7 @@ object Event1Details extends Transformer {
     }
 
     val readsResidentialAddressEmployer: Reads[JsObject] = paymentNature match {
-      case `paymentNatureTypeKeyResidentialPropertyHeld` => readsAddress(__ \ Symbol("event1") \ Symbol("employerResidentialAddress"))
+      case `paymentNatureTypeKeyResidentialPropertyHeldEmployer` => readsAddress(__ \ Symbol("event1") \ Symbol("employerResidentialAddress"))
       case _ => fail
     }
 
