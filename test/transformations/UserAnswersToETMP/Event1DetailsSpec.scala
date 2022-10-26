@@ -31,6 +31,10 @@ class Event1DetailsSpec extends AnyFreeSpec with Matchers
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
           val result = userAnswers.validate(Event1Details.transformToETMPData)
           val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("membersOrEmployers"))
+          println("\nua=" + userAnswers)
+          println("\nexp=" + expectedResult)
+          println("\nres=" + result)
+
           result mustBe expectedResult
       }
     }

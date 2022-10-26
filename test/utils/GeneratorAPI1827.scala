@@ -61,19 +61,19 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
 
   private val whoWasTransferMadeToMap = Map("anEmployerFinanced" -> "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
     "nonRecognisedScheme" -> "Transfer to a non-recognised pension scheme which is not a qualifying overseas pension scheme",
-    other -> "Overpayment of pension/written off other"
+    "other" -> "Overpayment of pension/written off other"
   )
 
   private val refundOfContributionsMap = Map(
     "widowOrOrphan" -> "Widow and/or orphan",
-    other -> "Overpayment of pension/written off other"
+    "other" -> "Overpayment of pension/written off other"
   )
 
   private val overpaymentOrWriteOffMap = Map(
     "deathOfMember" -> "Death of member",
     "deathOfDependent" -> "Death of dependent",
     "dependentNoLongerQualifiedForPension" -> "Dependent no longer qualified for pension",
-    other -> "Overpayment of pension/written off other"
+    "other" -> "Overpayment of pension/written off other"
   )
 
   //scalastyle:off cyclomatic.complexity
