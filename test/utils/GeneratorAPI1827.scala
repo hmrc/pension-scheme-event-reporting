@@ -61,8 +61,6 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
     "other" -> "Overpayment of pension/written off other"
   )
 
-
-
   //scalastyle:off
   private def generateMember: Gen[(JsObject, JsObject)] = {
     for {
@@ -163,9 +161,10 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
         case _ => Json.obj()
       }
 
-      val unAuthPaySurchargeValue = unAuthorisedPayment match {
-        case true => Json.obj("schemePayingSurcharge" -> toYesNo(unAuthPaySurcharge))
-        case _ => Json.obj()
+      val unAuthPaySurchargeValue = if (unAuthorisedPayment) {
+        Json.obj("schemePayingSurcharge" -> toYesNo(unAuthPaySurcharge))
+      } else {
+        Json.obj()
       }
 
       def unAuthorisedPaymentDetails: JsObject = Json.obj(
