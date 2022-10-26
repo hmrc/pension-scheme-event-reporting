@@ -269,7 +269,7 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
           Json.obj()
       }
 
-      val xx = paymentNature match {
+      val paymentOrLoanAmountVal = paymentNature match {
         case `loansExceeding50PercentOfFundValue` | `courtOrConfiscationOrderEmployer` =>
           Json.obj(
             "pmtAmtOrLoanAmt" -> loanAmount
@@ -287,7 +287,7 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
         "unAuthorisedPmtType1" -> paymentNatureTypesEmployer(paymentNature),
         "valueOfUnauthorisedPayment" -> paymentVal,
         "dateOfUnauthorisedPayment" -> paymentDate
-      ) ++ freeTextOrSchemeOrRecipientName ++ residentialPropertyAddressEmployer ++ xx
+      ) ++ freeTextOrSchemeOrRecipientName ++ residentialPropertyAddressEmployer ++ paymentOrLoanAmountVal
 
       val expectedJson = Json.obj(
         "employerMemDetails" -> Json.obj(
