@@ -22,9 +22,9 @@ import play.api.libs.json._
 import transformations.Transformer
 
 object Event1Details extends Transformer {
-  private val pathIndividualMemberDetails = __ \ 'individualMemberDetails
-  private val pathEmployerMemberDetails = __ \ 'employerMemDetails
-  private val pathUnauthorisedPaymentDetails = __ \ 'unAuthorisedPaymentDetails
+  private val pathIndividualMemberDetails = __ \ Symbol("individualMemberDetails")
+  private val pathEmployerMemberDetails = __ \ Symbol("employerMemDetails")
+  private val pathUnauthorisedPaymentDetails = __ \ Symbol("unAuthorisedPaymentDetails")
 
   private val paymentNatureTypeKeyBenefitInKind: String = "benefitInKind"
   private val paymentNatureTypeKeyTransferToNonRegPensionScheme: String = "transferToNonRegPensionScheme"
@@ -81,30 +81,30 @@ object Event1Details extends Transformer {
 
   private def freeTxtOrSchemeOrRecipientName(paymentNature: String, whoReceivedUnauthorisedPayment: String): Reads[JsString] = {
     (paymentNature, whoReceivedUnauthorisedPayment) match {
-      case (`paymentNatureTypeKeyBenefitInKind`, `whoReceivedUnauthPaymentIndividual`) => (__ \ 'benefitInKindBriefDescription).json.pick.map(_.as[JsString])
-      case (`paymentNatureTypeKeyTransferToNonRegPensionScheme`, `whoReceivedUnauthPaymentIndividual`) => (__ \ 'schemeDetails \ 'schemeName).json.pick.map(_.as[JsString])
-      case (`paymentNatureTypeKeyErrorCalcTaxFreeLumpSums`, `whoReceivedUnauthPaymentIndividual`) => (__ \ 'errorDescription).json.pick.map(_.as[JsString])
-      case (`paymentNatureTypeKeyBenefitsPaidEarly`, `whoReceivedUnauthPaymentIndividual`) => (__ \ 'benefitsPaidEarly).json.pick.map(_.as[JsString])
-      case (`paymentNatureTypeKeyTangibleMoveablePropertyHeld`, `whoReceivedUnauthPaymentIndividual`) => (__ \ 'memberTangibleMoveableProperty).json.pick.map(_.as[JsString])
-      case (`paymentNatureTypeKeyTangibleMoveablePropertyHeld`, `whoReceivedUnauthPaymentEmployer`) => (__ \ 'employerTangibleMoveableProperty).json.pick.map(_.as[JsString])
-      case (`paymentNatureTypeKeyCourtOrConfiscationOrder`, _) => (__ \ 'unauthorisedPaymentRecipientName).json.pick.map(_.as[JsString])
-      case (`paymentNatureTypeKeyOther`, `whoReceivedUnauthPaymentIndividual`) => (__ \ 'memberPaymentNatureDescription).json.pick.map(_.as[JsString])
-      case (`paymentNatureTypeKeyOther`, `whoReceivedUnauthPaymentEmployer`) => (__ \ 'paymentNatureDesc).json.pick.map(_.as[JsString])
+      case (`paymentNatureTypeKeyBenefitInKind`, `whoReceivedUnauthPaymentIndividual`) => (__ \ Symbol("benefitInKindBriefDescription")).json.pick.map(_.as[JsString])
+      case (`paymentNatureTypeKeyTransferToNonRegPensionScheme`, `whoReceivedUnauthPaymentIndividual`) => (__ \ Symbol("schemeDetails") \ Symbol("schemeName")).json.pick.map(_.as[JsString])
+      case (`paymentNatureTypeKeyErrorCalcTaxFreeLumpSums`, `whoReceivedUnauthPaymentIndividual`) => (__ \ Symbol("errorDescription")).json.pick.map(_.as[JsString])
+      case (`paymentNatureTypeKeyBenefitsPaidEarly`, `whoReceivedUnauthPaymentIndividual`) => (__ \ Symbol("benefitsPaidEarly")).json.pick.map(_.as[JsString])
+      case (`paymentNatureTypeKeyTangibleMoveablePropertyHeld`, `whoReceivedUnauthPaymentIndividual`) => (__ \ Symbol("memberTangibleMoveableProperty")).json.pick.map(_.as[JsString])
+      case (`paymentNatureTypeKeyTangibleMoveablePropertyHeld`, `whoReceivedUnauthPaymentEmployer`) => (__ \ Symbol("employerTangibleMoveableProperty")).json.pick.map(_.as[JsString])
+      case (`paymentNatureTypeKeyCourtOrConfiscationOrder`, _) => (__ \ Symbol("unauthorisedPaymentRecipientName")).json.pick.map(_.as[JsString])
+      case (`paymentNatureTypeKeyOther`, `whoReceivedUnauthPaymentIndividual`) => (__ \ Symbol("memberPaymentNatureDescription")).json.pick.map(_.as[JsString])
+      case (`paymentNatureTypeKeyOther`, `whoReceivedUnauthPaymentEmployer`) => (__ \ Symbol("paymentNatureDesc")).json.pick.map(_.as[JsString])
       case _ => Reads[JsString](_ => JsError(""))
     }
   }
 
   private def pstrOrReference(paymentNature: String): Reads[JsString] = {
     paymentNature match {
-      case `paymentNatureTypeKeyTransferToNonRegPensionScheme` => (__ \ 'schemeDetails \ 'reference).json.pick.map(_.as[JsString])
+      case `paymentNatureTypeKeyTransferToNonRegPensionScheme` => (__ \ Symbol("schemeDetails") \ Symbol("reference")).json.pick.map(_.as[JsString])
       case _ => Reads[JsString](_ => JsError(""))
     }
   }
 
-  private val readsPaymentNature: Reads[String] = (__ \ 'paymentNature).json.pick.map(_.as[JsString].value)
+  private val readsPaymentNature: Reads[String] = (__ \ Symbol("paymentNature")).json.pick.map(_.as[JsString].value)
 
   private val readsWhoReceivedUnauthorisedPayment: Reads[String] = {
-    (__ \ 'whoReceivedUnauthPayment).json.pick.flatMap {
+    (__ \ Symbol("whoReceivedUnauthPayment")).json.pick.flatMap {
       case JsString("member") => Reads.pure[String](whoReceivedUnauthPaymentIndividual)
       case JsString("employer") => Reads.pure[String](whoReceivedUnauthPaymentEmployer)
       case _ => fail
@@ -112,31 +112,31 @@ object Event1Details extends Transformer {
   }
 
   private val schemePayingSurcharge: Reads[JsObject] =
-    (__ \ 'valueOfUnauthorisedPayment).read[Boolean].flatMap {
-      case true => (pathIndividualMemberDetails \ 'schemePayingSurcharge).json
-        .copyFrom((__ \ 'schemeUnAuthPaySurchargeMember).json.pick.map(toYesNo))
+    (__ \ Symbol("valueOfUnauthorisedPayment")).read[Boolean].flatMap {
+      case true => (pathIndividualMemberDetails \ Symbol("schemePayingSurcharge")).json
+        .copyFrom((__ \ Symbol("schemeUnAuthPaySurchargeMember")).json.pick.map(toYesNo))
       case _ => fail
     }
 
   private val readsIndividualMemberDetails: Reads[JsObject] =
-    ((pathIndividualMemberDetails \ 'firstName).json.copyFrom((__ \ 'membersDetails \ 'firstName).json.pick) and
-      (pathIndividualMemberDetails \ 'lastName).json.copyFrom((__ \ 'membersDetails \ 'lastName).json.pick) and
-      (pathIndividualMemberDetails \ 'nino).json.copyFrom((__ \ 'membersDetails \ 'nino).json.pick) and
-      (pathIndividualMemberDetails \ 'signedMandate).json.copyFrom((__ \ 'doYouHoldSignedMandate).json.pick.map(toYesNo)) and
-      (pathIndividualMemberDetails \ 'pmtMoreThan25PerFundValue).json.copyFrom((__ \ 'valueOfUnauthorisedPayment).json.pick.map(toYesNo)) and
+    ((pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick) and
+      (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("lastName")).json.pick) and
+      (pathIndividualMemberDetails \ Symbol("nino")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("nino")).json.pick) and
+      (pathIndividualMemberDetails \ Symbol("signedMandate")).json.copyFrom((__ \ Symbol("doYouHoldSignedMandate")).json.pick.map(toYesNo)) and
+      (pathIndividualMemberDetails \ Symbol("pmtMoreThan25PerFundValue")).json.copyFrom((__ \ Symbol("valueOfUnauthorisedPayment")).json.pick.map(toYesNo)) and
       schemePayingSurcharge.orElse(doNothing)).reduce
 
   private val readsEmployerDetails: Reads[JsObject] =
-    ((pathEmployerMemberDetails \ 'compOrOrgName).json.copyFrom((__ \ 'event1 \ 'companyDetails \ 'companyName).json.pick) and
-      (pathEmployerMemberDetails \ 'crnNumber).json.copyFrom((__ \ 'event1 \ 'companyDetails \ 'companyNumber).json.pick) and
-      (pathEmployerMemberDetails \ 'addressDetails).json.copyFrom(readsAddress(__ \ 'event1 \ 'employerAddress)).orElse(doNothing)
+    ((pathEmployerMemberDetails \ Symbol("compOrOrgName")).json.copyFrom((__ \ Symbol("event1") \ Symbol("companyDetails") \ Symbol("companyName")).json.pick) and
+      (pathEmployerMemberDetails \ Symbol("crnNumber")).json.copyFrom((__ \ Symbol("event1") \ Symbol("companyDetails") \ Symbol("companyNumber")).json.pick) and
+      (pathEmployerMemberDetails \ Symbol("addressDetails")).json.copyFrom(readsAddress(__ \ Symbol("event1") \ Symbol("employerAddress"))).orElse(doNothing)
       ).reduce
 
   private def loanPymtPgs(paymentNature: String): Reads[JsObject] = {
     def readsLoanAmount: Reads[JsObject] =
-      (pathUnauthorisedPaymentDetails \ 'pmtAmtOrLoanAmt).json.copyFrom((__ \ 'loanDetails \ 'loanAmount).json.pick)
+      (pathUnauthorisedPaymentDetails \ Symbol("pmtAmtOrLoanAmt")).json.copyFrom((__ \ Symbol("loanDetails") \ Symbol("loanAmount")).json.pick)
 
-    def readsFundValue: Reads[JsObject] = (pathUnauthorisedPaymentDetails \ 'fundValue).json.copyFrom((__ \ 'loanDetails \ 'fundValue).json.pick)
+    def readsFundValue: Reads[JsObject] = (pathUnauthorisedPaymentDetails \ Symbol("fundValue")).json.copyFrom((__ \ Symbol("loanDetails") \ Symbol("fundValue")).json.pick)
 
     paymentNature match {
       case `paymentNatureTypeKeyLoansExceeding50PercentOfFundValue` => (readsLoanAmount and readsFundValue).reduce
@@ -147,42 +147,42 @@ object Event1Details extends Transformer {
 
   private def readsPaymentType2(paymentNature: String): Reads[JsString] = paymentNature match {
     case `paymentNatureTypeKeyTransferToNonRegPensionScheme` =>
-      (__ \ 'whoWasTheTransferMade).json.pick.map(jsValue => JsString(whoWasTransferMadeToMap(jsValue.as[JsString].value)))
+      (__ \ Symbol("whoWasTheTransferMade")).json.pick.map(jsValue => JsString(whoWasTransferMadeToMap(jsValue.as[JsString].value)))
     case `paymentNatureTypeKeyRefundOfContributions` =>
-      (__ \ 'refundOfContributions).json.pick.map(jsValue => JsString(refundOfContributionsMap(jsValue.as[JsString].value)))
+      (__ \ Symbol("refundOfContributions")).json.pick.map(jsValue => JsString(refundOfContributionsMap(jsValue.as[JsString].value)))
     case `paymentNatureTypeKeyOverpaymentOrWriteOff` =>
-      (__ \ 'reasonForTheOverpaymentOrWriteOff).json.pick.map(jsValue => JsString(overpaymentOrWriteOffMap(jsValue.as[JsString].value)))
+      (__ \ Symbol("reasonForTheOverpaymentOrWriteOff")).json.pick.map(jsValue => JsString(overpaymentOrWriteOffMap(jsValue.as[JsString].value)))
     case _ => fail
   }
 
   private def readsUnauthorisedPaymentDetails(paymentNature: String, whoReceivedUnauthorisedPayment: String): Reads[JsObject] = {
     val readsResidentialAddressMember: Reads[JsObject] = paymentNature match {
-      case `paymentNatureTypeKeyResidentialPropertyHeld` => readsAddress(__ \ 'event1 \ 'memberResidentialAddress)
+      case `paymentNatureTypeKeyResidentialPropertyHeld` => readsAddress(__ \ Symbol("event1") \ Symbol("memberResidentialAddress"))
       case _ => fail
     }
 
     val readsResidentialAddressEmployer: Reads[JsObject] = paymentNature match {
-      case `paymentNatureTypeKeyResidentialPropertyHeld` => readsAddress(__ \ 'event1 \ 'employerResidentialAddress)
+      case `paymentNatureTypeKeyResidentialPropertyHeld` => readsAddress(__ \ Symbol("event1") \ Symbol("employerResidentialAddress"))
       case _ => fail
     }
 
     whoReceivedUnauthorisedPayment match {
       case `whoReceivedUnauthPaymentIndividual` =>
-        ((pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.put(JsString(paymentNatureMemberMap(paymentNature))) and
-          (pathUnauthorisedPaymentDetails \ 'freeTxtOrSchemeOrRecipientName).json.copyFrom(freeTxtOrSchemeOrRecipientName(paymentNature, whoReceivedUnauthorisedPayment)).orElse(doNothing) and
-          (pathUnauthorisedPaymentDetails \ 'pstrOrReference).json.copyFrom(pstrOrReference(paymentNature)).orElse(doNothing) and
-          (pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType2).json.copyFrom(readsPaymentType2(paymentNature)).orElse(doNothing) and
-          (pathUnauthorisedPaymentDetails \ 'valueOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentValue).json.pick) and
-          (pathUnauthorisedPaymentDetails \ 'dateOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentDate).json.pick) and
-          (pathUnauthorisedPaymentDetails \ 'residentialPropertyAddress).json.copyFrom(readsResidentialAddressMember).orElse(doNothing)
+        ((pathUnauthorisedPaymentDetails \ Symbol("unAuthorisedPmtType1")).json.put(JsString(paymentNatureMemberMap(paymentNature))) and
+          (pathUnauthorisedPaymentDetails \ Symbol("freeTxtOrSchemeOrRecipientName")).json.copyFrom(freeTxtOrSchemeOrRecipientName(paymentNature, whoReceivedUnauthorisedPayment)).orElse(doNothing) and
+          (pathUnauthorisedPaymentDetails \ Symbol("pstrOrReference")).json.copyFrom(pstrOrReference(paymentNature)).orElse(doNothing) and
+          (pathUnauthorisedPaymentDetails \ Symbol("unAuthorisedPmtType2")).json.copyFrom(readsPaymentType2(paymentNature)).orElse(doNothing) and
+          (pathUnauthorisedPaymentDetails \ Symbol("valueOfUnauthorisedPayment")).json.copyFrom((__ \ Symbol("paymentValueAndDate") \ Symbol("paymentValue")).json.pick) and
+          (pathUnauthorisedPaymentDetails \ Symbol("dateOfUnauthorisedPayment")).json.copyFrom((__ \ Symbol("paymentValueAndDate") \ Symbol("paymentDate")).json.pick) and
+          (pathUnauthorisedPaymentDetails \ Symbol("residentialPropertyAddress")).json.copyFrom(readsResidentialAddressMember).orElse(doNothing)
           ).reduce
       case `whoReceivedUnauthPaymentEmployer` =>
-        ((pathUnauthorisedPaymentDetails \ 'unAuthorisedPmtType1).json.put(JsString(paymentNatureEmployerMap(paymentNature))) and
-          (pathUnauthorisedPaymentDetails \ 'freeTxtOrSchemeOrRecipientName).json.copyFrom(freeTxtOrSchemeOrRecipientName(paymentNature, whoReceivedUnauthorisedPayment)).orElse(doNothing) and
+        ((pathUnauthorisedPaymentDetails \ Symbol("unAuthorisedPmtType1")).json.put(JsString(paymentNatureEmployerMap(paymentNature))) and
+          (pathUnauthorisedPaymentDetails \ Symbol("freeTxtOrSchemeOrRecipientName")).json.copyFrom(freeTxtOrSchemeOrRecipientName(paymentNature, whoReceivedUnauthorisedPayment)).orElse(doNothing) and
           loanPymtPgs(paymentNature).orElse(doNothing) and
-          (pathUnauthorisedPaymentDetails \ 'residentialPropertyAddress).json.copyFrom(readsResidentialAddressEmployer).orElse(doNothing) and
-          (pathUnauthorisedPaymentDetails \ 'valueOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentValue).json.pick) and
-          (pathUnauthorisedPaymentDetails \ 'dateOfUnauthorisedPayment).json.copyFrom((__ \ 'paymentValueAndDate \ 'paymentDate).json.pick)
+          (pathUnauthorisedPaymentDetails \ Symbol("residentialPropertyAddress")).json.copyFrom(readsResidentialAddressEmployer).orElse(doNothing) and
+          (pathUnauthorisedPaymentDetails \ Symbol("valueOfUnauthorisedPayment")).json.copyFrom((__ \ Symbol("paymentValueAndDate") \ Symbol("paymentValue")).json.pick) and
+          (pathUnauthorisedPaymentDetails \ Symbol("dateOfUnauthorisedPayment")).json.copyFrom((__ \ Symbol("paymentValueAndDate") \ Symbol("paymentDate")).json.pick)
           ).reduce
       case _ => fail
     }
@@ -201,8 +201,8 @@ object Event1Details extends Transformer {
       whoReceivedUnauthorisedPayment <- readsWhoReceivedUnauthorisedPayment
     } yield {
       (
-        (__ \ 'memberType).json.put(JsString(whoReceivedUnauthorisedPayment)) and
-          (__ \ 'memberStatus).json.put(JsString("New")) and
+        (__ \ Symbol("memberType")).json.put(JsString(whoReceivedUnauthorisedPayment)) and
+          (__ \ Symbol("memberStatus")).json.put(JsString("New")) and
           readsMemberOrEmployer(whoReceivedUnauthorisedPayment) and
           readsUnauthorisedPaymentDetails(paymentNature, whoReceivedUnauthorisedPayment)
         ).reduce
@@ -210,7 +210,7 @@ object Event1Details extends Transformer {
   }
 
   val transformToETMPData: Reads[JsObject] = {
-    (__ \ 'membersOrEmployers).readNullable[JsArray](__.read(Reads.seq(readsMember))
+    (__ \ Symbol("membersOrEmployers")).readNullable[JsArray](__.read(Reads.seq(readsMember))
       .map(JsArray(_))).map { optionJsArray =>
       val jsonArray = optionJsArray.getOrElse(Json.arr())
       // TODO: Insert correct report start date and end date once we implement the relevant ticket

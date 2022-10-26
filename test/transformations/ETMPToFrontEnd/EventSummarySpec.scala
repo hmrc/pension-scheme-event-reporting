@@ -21,7 +21,7 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json.{JsArray, JsObject, JsString, Json}
-import utils.{JsonFileReader, GeneratorAPI1834}
+import utils.{GeneratorAPI1834, JsonFileReader}
 
 class EventSummarySpec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader
   with GeneratorAPI1834 with ScalaCheckPropertyChecks {

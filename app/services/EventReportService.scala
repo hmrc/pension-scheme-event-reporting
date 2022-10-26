@@ -21,7 +21,7 @@ import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
 import models.ERVersion
 import models.enumeration.ApiType._
-import models.enumeration.{ApiType, EventType}
+import models.enumeration.EventType
 import play.api.libs.json.JsResult.toTry
 import play.api.libs.json._
 import play.api.mvc.Result

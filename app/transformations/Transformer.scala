@@ -17,22 +17,25 @@
 package transformations
 
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json.{JsBoolean, JsObject, JsPath, JsString, JsValue, Json, Reads, __}
+import play.api.libs.json._
 
 trait Transformer {
   protected val doNothing: Reads[JsObject] = __.json.put(Json.obj())
+
   protected def fail[A]: Reads[A] = Reads.failed[A]("Unknown value")
-  protected def fail[A](s:A): Reads[A] = Reads.failed[A](s"Unknown value: $s")
+
+  protected def fail[A](s: A): Reads[A] = Reads.failed[A](s"Unknown value: $s")
+
   protected def toYesNo(b: JsValue): JsString = if (b.as[JsBoolean].value) JsString("Yes") else JsString("No")
 
   protected def readsAddress(jsPath: JsPath): Reads[JsObject] =
     (
-      (jsPath \ 'address \ 'addressLine1).read[String] and
-        (jsPath \ 'address \ 'addressLine2).read[String] and
-        (jsPath \ 'address \ 'addressLine3).readNullable[String] and
-        (jsPath \ 'address \ 'addressLine4).readNullable[String] and
-        (jsPath \ 'address \ 'postcode).readNullable[String] and
-        (jsPath \ 'address \ 'country).read[String]
+      (jsPath \ Symbol("address") \ Symbol("addressLine1")).read[String] and
+        (jsPath \ Symbol("address") \ Symbol("addressLine2")).read[String] and
+        (jsPath \ Symbol("address") \ Symbol("addressLine3")).readNullable[String] and
+        (jsPath \ Symbol("address") \ Symbol("addressLine4")).readNullable[String] and
+        (jsPath \ Symbol("address") \ Symbol("postcode")).readNullable[String] and
+        (jsPath \ Symbol("address") \ Symbol("country")).read[String]
       ) (
       (addressLine1, addressLine2, addressLine3, addressLine4, postcode, country) =>
         Json.obj(
