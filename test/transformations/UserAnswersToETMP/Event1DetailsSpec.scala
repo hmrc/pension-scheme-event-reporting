@@ -32,9 +32,6 @@ class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
           val result = userAnswers.validate(Event1Details.transformToETMPData)
           val expectedResult = JsSuccess(expectedResponse, __ \ 'membersOrEmployers)
-          println(s"\n\n ------- GENERATED USER ANSWERS:  $userAnswers")
-          println(s"\n\n ------- GENERATED EXPECTED:   $expectedResult")
-          println(s"\n\n ------- ACTUAL RESULT:  $result")
           result mustBe expectedResult
       }
     }
