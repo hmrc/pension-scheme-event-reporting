@@ -61,6 +61,8 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
     "other" -> "Overpayment of pension/written off other"
   )
 
+
+
   //scalastyle:off
   private def generateMember: Gen[(JsObject, JsObject)] = {
     for {
@@ -115,7 +117,7 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
         "memberPaymentNatureDescription" -> otherDesc,
         "event1" -> Json.obj(
           "memberResidentialAddress" -> Json.obj(
-            "address" -> address.toUA
+            "address" -> toUserAnswersFormat(address)
           )
         )
       )
@@ -157,7 +159,7 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
       }
 
       val residentialPropertyHeld = paymentNature match {
-        case "residentialPropertyHeld" => Json.obj("residentialPropertyAddress" -> address.toTarget)
+        case "residentialPropertyHeld" => Json.obj("residentialPropertyAddress" -> toAPIFormat(address))
         case _ => Json.obj()
       }
 
@@ -211,10 +213,10 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
             "companyNumber" -> companyNumber
           ),
           "employerAddress" -> Json.obj(
-            "address" -> address.toUA
+            "address" -> toUserAnswersFormat(address)
           ),
           "employerResidentialAddress" -> Json.obj(
-            "address" -> residentialAddress.toUA
+            "address" -> toUserAnswersFormat(residentialAddress)
           )
         ),
         "paymentValueAndDate" -> Json.obj(
@@ -262,7 +264,7 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
       }
 
       val residentialPropertyAddressEmployer = paymentNature match {
-        case "residentialPropertyHeld" => Json.obj("residentialPropertyAddress" -> residentialAddress.toTarget)
+        case "residentialPropertyHeld" => Json.obj("residentialPropertyAddress" -> toAPIFormat(residentialAddress))
         case _ => Json.obj()
       }
 
@@ -276,7 +278,7 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
         "employerMemDetails" -> Json.obj(
           "compOrOrgName" -> companyName,
           "crnNumber" -> companyNumber,
-          "addressDetails" -> address.toTarget
+          "addressDetails" -> toAPIFormat(address)
         ),
         "unAuthorisedPaymentDetails" ->
           unauthorisedPaymentDetails

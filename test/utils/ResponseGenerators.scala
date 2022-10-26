@@ -20,6 +20,7 @@ import models.Address
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
+import play.api.libs.json.{JsObject, Json}
 
 import java.time.LocalDate
 
@@ -53,4 +54,32 @@ trait ResponseGenerators extends Matchers with OptionValues {
   def nonEmptyString: Gen[String] = Gen.alphaStr.suchThat(!_.isEmpty)
 
   protected def toYesNo(b: Boolean): String = if (b) "Yes" else "No"
+
+  protected def toUserAnswersFormat(address: Address): JsObject = Json.obj(
+    "addressLine1" -> address.addressLine1,
+    "addressLine2" -> address.addressLine2,
+    "country" -> address.country
+  ) ++ address.addressLine3.fold(Json.obj()) { addr =>
+    Json.obj("addressLine3" -> addr)
+  } ++
+    address.addressLine4.fold(Json.obj()) { addr =>
+      Json.obj("addressLine3" -> addr)
+    } ++
+    address.postcode.fold(Json.obj()) { postcode =>
+      Json.obj("postcode" -> postcode)
+    }
+
+  protected def toAPIFormat(address: Address): JsObject = Json.obj(
+    "addressLine1" -> address.addressLine1,
+    "addressLine2" -> address.addressLine2,
+    "countryCode" -> address.country
+  ) ++ address.addressLine3.fold(Json.obj()) { addr =>
+    Json.obj("addressLine3" -> addr)
+  } ++
+    address.addressLine4.fold(Json.obj()) { addr =>
+      Json.obj("addressLine3" -> addr)
+    } ++
+    address.postcode.fold(Json.obj()) { postcode =>
+      Json.obj("postCode" -> postcode)
+    }
 }
