@@ -29,7 +29,7 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
   private val benefitsPaidEarly = "benefitsPaidEarly"
   private val refundOfContributions = "refundOfContributions"
   private val overpaymentOrWriteOff = "overpaymentOrWriteOff"
-  private val residentialPropertyHeld1 = "residentialPropertyHeld"
+  private val residentialPropertyHeldMember = "residentialPropertyHeld"
   private val residentialPropertyHeldEmployer = "residentialProperty"
   private val tangibleMoveablePropertyHeld = "tangibleMoveablePropertyHeld"
   private val tangibleMoveablePropertyHeldEmployer = "tangibleMoveableProperty"
@@ -44,7 +44,7 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
     benefitsPaidEarly -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
     refundOfContributions -> "Refund of contributions",
     overpaymentOrWriteOff -> "Overpayment of pension/written off",
-    residentialPropertyHeld1 -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
+    residentialPropertyHeldMember -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
     tangibleMoveablePropertyHeld -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
     courtOrConfiscationOrder -> "Court Order Payment/Confiscation Order",
     other -> "Other"
@@ -162,7 +162,7 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
       }
 
       val freeTxtOrRecipientNameMember = paymentNature match {
-        case `overpaymentOrWriteOff` | `refundOfContributions` | `residentialPropertyHeld1` =>
+        case `overpaymentOrWriteOff` | `refundOfContributions` | `residentialPropertyHeldMember` =>
           Json.obj()
         case _ => Json.obj("freeTxtOrSchemeOrRecipientName" -> freeTxtOrSchemeOrRecipientName)
       }
@@ -172,8 +172,8 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
         case _ => Json.obj()
       }
 
-      val residentialPropertyHeld = paymentNature match {
-        case `residentialPropertyHeld1` => Json.obj("residentialPropertyAddress" -> toAPIFormat(address))
+      val residentialPropertyHeldReads = paymentNature match {
+        case `residentialPropertyHeldMember` => Json.obj("residentialPropertyAddress" -> toAPIFormat(address))
         case _ => Json.obj()
       }
 
@@ -187,7 +187,7 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
         "unAuthorisedPmtType1" -> paymentNatureTypesMember(paymentNature),
         "valueOfUnauthorisedPayment" -> paymentVal,
         "dateOfUnauthorisedPayment" -> paymentDate
-      ) ++ unAuthPmt2 ++ freeTxtOrRecipientNameMember ++ pstrOrRef ++ residentialPropertyHeld
+      ) ++ unAuthPmt2 ++ freeTxtOrRecipientNameMember ++ pstrOrRef ++ residentialPropertyHeldReads
 
       val indMembDetails = Json.obj(
         "firstName" -> firstName,
