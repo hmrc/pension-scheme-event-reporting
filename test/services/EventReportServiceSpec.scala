@@ -21,12 +21,14 @@ import models.enumeration.ApiType._
 import models.enumeration.EventType.{Event1, Event10}
 import models.enumeration.{ApiType, EventType}
 import models.{EROverview, EROverviewVersion, ERVersion}
+import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
-import org.mockito.{ArgumentMatchers, MockitoSugar}
+import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures.whenReady
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status.NO_CONTENT
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.{JsArray, JsObject, Json}
@@ -55,7 +57,6 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val version = "version"
   private val payload = Json.obj("test" -> "test")
 
-
   val modules: Seq[GuiceableModule] =
     Seq(
       inject.bind[EventReportConnector].toInstance(mockEventReportConnector),
@@ -71,7 +72,10 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private def eventReportService = application.injector.instanceOf[EventReportService]
 
   override def beforeEach(): Unit = {
-    reset(mockEventReportConnector, mockOverviewCacheRepository, mockEventReportCacheRepository, mockJSONPayloadSchemaValidator)
+    reset(mockEventReportConnector)
+    reset(mockOverviewCacheRepository)
+    reset(mockEventReportCacheRepository)
+    reset(mockJSONPayloadSchemaValidator)
     when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any())).thenReturn(Success(()))
     when(mockOverviewCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
   }
@@ -338,7 +342,6 @@ object EventReportServiceSpec {
   private val responseJson: JsObject = Json.obj("event" -> "mockEvent - test passed")
   private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
-  private val compileMemberEventReportSchemaPath = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
 
   private val saveEventSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678955")

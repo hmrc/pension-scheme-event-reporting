@@ -23,6 +23,49 @@ import play.api.libs.json.{JsObject, Json}
 
 trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerators {
 
+//  def generateGETResponseAndUserAnswers: Gen[Tuple2[JsObject, Seq[String]]] = {
+//    val sortEventTypes: (String, String) => Boolean = (a, b) => {
+//      (a, b) match {
+//        case ("0", _) => false
+//        case (_, "0") => true
+//        case (a, b) if a < b => true
+//        case _ => false
+//      }
+//    }
+//    val version = "001"
+//    for {
+//      chosenEventTypesWithSeq <- Gen.someOf[String](Seq("10", "13", "19", "20"))
+//      chosenEventTypesWithoutSeq <- Gen.someOf[String](Seq("11", "12", "14", "0"))
+//    } yield {
+//      val payloadWithSeq = chosenEventTypesWithSeq.foldLeft(Json.obj()) { (acc, s) =>
+//        acc ++ Json.obj(
+//          s"event$s" -> Json.arr(
+//            Json.obj(
+//              "recordVersion" -> version
+//            )
+//          )
+//        )
+//      }
+//      val payloadWithoutSeq = chosenEventTypesWithoutSeq.foldLeft(Json.obj()) { (acc, s) =>
+//        acc ++ Json.obj(
+//          s"""event${if (s == "0") "WindUp" else s}""" ->
+//            Json.obj(
+//              "recordVersion" -> version
+//            )
+//        )
+//      }
+//
+//      val generatedPayload = Json.obj(
+//        "eventDetails" -> (payloadWithSeq ++ payloadWithoutSeq)
+//      )
+//
+//      val expectedEventTypes = (chosenEventTypesWithSeq ++ chosenEventTypesWithoutSeq)
+//        .sortWith(sortEventTypes)
+//
+//      Tuple2(generatedPayload, expectedEventTypes)
+//    }
+//  }
+
   def generateGETResponseAndUserAnswers: Gen[Tuple2[JsObject, Seq[String]]] = {
     val sortEventTypes: (String, String) => Boolean = (a, b) => {
       (a, b) match {
@@ -60,7 +103,7 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
       )
 
       val expectedEventTypes = (chosenEventTypesWithSeq ++ chosenEventTypesWithoutSeq)
-        .sortWith(sortEventTypes)
+        .sortWith(sortEventTypes).toSeq
 
       Tuple2(generatedPayload, expectedEventTypes)
     }

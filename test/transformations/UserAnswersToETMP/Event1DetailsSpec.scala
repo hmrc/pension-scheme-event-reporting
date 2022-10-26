@@ -16,14 +16,13 @@
 
 package transformations.UserAnswersToETMP
 
-import org.mockito.MockitoSugar
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json._
-import utils.{JsonFileReader, GeneratorAPI1827}
+import utils.{GeneratorAPI1827, JsonFileReader}
 
-class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar
+class Event1DetailsSpec extends AnyFreeSpec with Matchers
   with JsonFileReader with GeneratorAPI1827 with ScalaCheckPropertyChecks {
 
   "transformToETMPData" - {
@@ -31,7 +30,7 @@ class Event1DetailsSpec extends AnyFreeSpec with Matchers with MockitoSugar
       forAll(generateUserAnswersAndPOSTBody) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
           val result = userAnswers.validate(Event1Details.transformToETMPData)
-          val expectedResult = JsSuccess(expectedResponse, __ \ 'membersOrEmployers)
+          val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("membersOrEmployers"))
           result mustBe expectedResult
       }
     }
