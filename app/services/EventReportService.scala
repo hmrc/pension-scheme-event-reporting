@@ -22,11 +22,13 @@ import connectors.EventReportConnector
 import models.ERVersion
 import models.enumeration.ApiType._
 import models.enumeration.EventType
+import play.api.libs.json.JsResult.toTry
 import play.api.libs.json._
 import play.api.mvc.Result
 import play.api.mvc.Results._
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
 import transformations.ETMPToFrontEnd.EventSummary
+import transformations.UserAnswersToETMP.Event1Details.transformToETMPData
 import uk.gov.hmrc.http.HeaderCarrier
 import utils.JSONSchemaValidator
 
@@ -44,28 +46,22 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
   private val compileMemberEventReportSchemaPath = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
 
-
-  def compileEventReport(pstr: String, userAnswersJson: JsValue)
+  def compileEventReport(pstr: String, eventType: EventType)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
 
-    val maybeApi1826 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1826.toString)).map {
-      case Some(data) => compileEventReportSummary(pstr, data).map(_ => NoContent)
-      case _ => Future.successful(Ok)
-    }.flatten
+    val apiType = EventType.postApiTypeByEventType(eventType)
+    val performCompile: (String, JsValue) => Future[Result] =
+      apiType match {
+        case Api1826 => compileEventReportSummary _
+        case Api1827 => compileEventOneReport _
+        case Api1830 => compileMemberEventReport _
+        case _ => (_, _) => Future.successful(NoContent)
+      }
 
-    val maybeApi1827 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1827.toString)).map {
-      case Some(data) => compileEventOneReport(pstr, data).map(_ => NoContent)
-      case _ => Future.successful(Ok)
-    }.flatten
-
-    val maybeApi1830 = eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1830.toString)).map {
-      case Some(data) => compileMemberEventReport(pstr, data).map(_ => NoContent)
-      case _ => Future.successful(Ok)
-    }.flatten
-
-    val seqOfMaybeApiCalls = Future.sequence(Seq(maybeApi1826, maybeApi1827, maybeApi1830))
-
-    seqOfMaybeApiCalls.map { _ => NoContent }
+    eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString)).flatMap {
+      case Some(data) => performCompile(pstr, data).map(_ => NoContent)
+      case _ => Future.successful(NoContent)
+    }
   }
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
@@ -128,11 +124,15 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       response <- eventReportConnector.compileEventReportSummary(pstr, data)
     } yield Ok(response.body)
 
-  private def compileEventOneReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] =
+  private def compileEventOneReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
     for {
-      _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(data, compileEventOneReportSchemaPath, "compileEventOneReport"))
-      response <- eventReportConnector.compileEventOneReport(pstr, data)
-    } yield Ok(response.body)
+      transformedData <- Future.fromTry(toTry(data.transform(transformToETMPData)))
+      _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, compileEventOneReportSchemaPath, "compileEventOneReport"))
+      response <- eventReportConnector.compileEventOneReport(pstr, transformedData)
+    } yield {
+      Ok(response.body)
+    }
+  }
 
   private def compileMemberEventReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] =
     for {

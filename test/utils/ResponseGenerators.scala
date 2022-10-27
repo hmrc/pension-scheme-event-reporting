@@ -16,7 +16,7 @@
 
 package utils
 
-import org.scalacheck.Arbitrary.arbitrary
+import models.Address
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
@@ -33,9 +33,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
     year <- Gen.choose(1990, 2000)
   } yield LocalDate.of(year, month, day)
 
-
-  val addressGenerator: Gen[JsObject] = for {
-    nonUkAddress <- arbitrary[Boolean]
+  val addressGenerator: Gen[Address] = for {
     line1 <- nonEmptyString
     line2 <- nonEmptyString
     line3 <- Gen.option(nonEmptyString)
@@ -43,59 +41,45 @@ trait ResponseGenerators extends Matchers with OptionValues {
     postalCode <- Gen.option(nonEmptyString)
     country <- Gen.listOfN(2, nonEmptyString).map(_.mkString)
   } yield {
-    Json.obj(
-      fields = "nonUKAddress" -> nonUkAddress.toString.capitalize,
-      "addressLine1" -> line1,
-      "addressLine2" -> line2,
-      "addressLine3" -> line3,
-      "addressLine4" -> line4,
-      "postCode" -> postalCode,
-      "countryCode" -> country
+    Address(
+      line1,
+      line2,
+      line3,
+      line4,
+      postalCode,
+      country
     )
   }
 
   def nonEmptyString: Gen[String] = Gen.alphaStr.suchThat(!_.isEmpty)
 
-  def generateRandomPayloadAPI1834: Gen[Tuple2[JsObject, Seq[String]]] = {
-    val sortEventTypes: (String, String) => Boolean = (a, b) => {
-      (a, b) match {
-        case ("0", _) => false
-        case (_, "0") => true
-        case (a, b) if a < b => true
-        case _ => false
-      }
+  protected def toYesNo(b: Boolean): String = if (b) "Yes" else "No"
+
+  protected def toUserAnswersFormat(address: Address): JsObject = Json.obj(
+    "addressLine1" -> address.addressLine1,
+    "addressLine2" -> address.addressLine2,
+    "country" -> address.country
+  ) ++ address.addressLine3.fold(Json.obj()) { addr =>
+    Json.obj("addressLine3" -> addr)
+  } ++
+    address.addressLine4.fold(Json.obj()) { addr =>
+      Json.obj("addressLine3" -> addr)
+    } ++
+    address.postcode.fold(Json.obj()) { postcode =>
+      Json.obj("postcode" -> postcode)
     }
-    val version = "001"
-    for {
-      chosenEventTypesWithSeq <- Gen.someOf[String](Seq("10", "13", "19", "20"))
-      chosenEventTypesWithoutSeq <- Gen.someOf[String](Seq("11", "12", "14", "0"))
-    } yield {
-      val payloadWithSeq = chosenEventTypesWithSeq.foldLeft(Json.obj()) { (acc, s) =>
-        acc ++ Json.obj(
-          s"event$s" -> Json.arr(
-            Json.obj(
-              "recordVersion" -> version
-            )
-          )
-        )
-      }
-      val payloadWithoutSeq = chosenEventTypesWithoutSeq.foldLeft(Json.obj()) { (acc, s) =>
-        acc ++ Json.obj(
-          s"""event${if (s == "0") "WindUp" else s}""" ->
-            Json.obj(
-              "recordVersion" -> version
-            )
-        )
-      }
 
-      val generatedPayload = Json.obj(
-        "eventDetails" -> (payloadWithSeq ++ payloadWithoutSeq)
-      )
-
-      val expectedEventTypes = (chosenEventTypesWithSeq ++ chosenEventTypesWithoutSeq)
-        .sortWith(sortEventTypes).toSeq
-
-      Tuple2(generatedPayload, expectedEventTypes)
+  protected def toAPIFormat(address: Address): JsObject = Json.obj(
+    "addressLine1" -> address.addressLine1,
+    "addressLine2" -> address.addressLine2,
+    "countryCode" -> address.country
+  ) ++ address.addressLine3.fold(Json.obj()) { addr =>
+    Json.obj("addressLine3" -> addr)
+  } ++
+    address.addressLine4.fold(Json.obj()) { addr =>
+      Json.obj("addressLine3" -> addr)
+    } ++
+    address.postcode.fold(Json.obj()) { postcode =>
+      Json.obj("postCode" -> postcode)
     }
-  }
 }
