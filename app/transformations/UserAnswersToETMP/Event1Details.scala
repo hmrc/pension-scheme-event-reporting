@@ -206,8 +206,8 @@ object Event1Details extends Transformer {
     (for {
       whoReceivedUnauthorisedPayment <- readsWhoReceivedUnauthorisedPayment
       paymentNature <- whoReceivedUnauthorisedPayment match {
-        case "Individual" => readsPaymentNatureMember
-        case "Employer" => readsPaymentNatureEmployer
+        case `whoReceivedUnauthPaymentIndividual` => readsPaymentNatureMember
+        case `whoReceivedUnauthPaymentEmployer` => readsPaymentNatureEmployer
         case _ => fail
       }
     } yield {
