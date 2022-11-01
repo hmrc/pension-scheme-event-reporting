@@ -117,7 +117,7 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
         "doYouHoldSignedMandate" -> signedMandate,
         "valueOfUnauthorisedPayment" -> unAuthorisedPayment,
         "schemeUnAuthPaySurchargeMember" -> unAuthPaySurcharge,
-        "paymentNature" -> paymentNature,
+        "paymentNatureMember" -> paymentNature,
         "benefitInKindBriefDescription" -> benefitInKindDesc,
         "errorDescription" -> errorDesc,
         "memberTangibleMoveableProperty" -> tangibleMoveable,
@@ -244,7 +244,7 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
           "paymentValue" -> paymentVal,
           "paymentDate" -> paymentDate
         ),
-        "paymentNature" -> paymentNature,
+        "paymentNatureEmployer" -> paymentNature,
         "loanDetails" -> Json.obj(
           "loanAmount" -> loanAmount,
           "fundValue" -> loanValue
@@ -322,9 +322,12 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
           case _ => generateEmployer
         }).map { case (generatedUA, generatedExpectedResult) =>
           val fullUA = Json.obj(
-            "membersOrEmployers" ->
-              Json.arr(
-                generatedUA ++ Json.obj("whoReceivedUnauthPayment" -> whoReceivedUnauthorisedPayment)
+            "event1" ->
+              Json.obj(
+                "membersOrEmployers" ->
+                  Json.arr(
+                    generatedUA ++ Json.obj("whoReceivedUnauthPayment" -> whoReceivedUnauthorisedPayment)
+                  )
               )
           )
           val fullExpectedResult = Json.obj(

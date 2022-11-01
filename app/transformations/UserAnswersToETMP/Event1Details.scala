@@ -106,7 +106,8 @@ object Event1Details extends Transformer {
     }
   }
 
-  private val readsPaymentNature: Reads[String] = (__ \ Symbol("paymentNature")).json.pick.map(_.as[JsString].value)
+  private val readsPaymentNatureMember: Reads[String] = (__ \ Symbol("paymentNatureMember")).json.pick.map(_.as[JsString].value)
+  private val readsPaymentNatureEmployer: Reads[String] = (__ \ Symbol("paymentNatureEmployer")).json.pick.map(_.as[JsString].value)
 
   private val readsWhoReceivedUnauthorisedPayment: Reads[String] = {
     (__ \ Symbol("whoReceivedUnauthPayment")).json.pick.flatMap {
@@ -197,13 +198,18 @@ object Event1Details extends Transformer {
     whoReceivedUnauthorisedPayment match {
       case `whoReceivedUnauthPaymentIndividual` => readsIndividualMemberDetails
       case `whoReceivedUnauthPaymentEmployer` => readsEmployerDetails
+      case _ => fail
     }
   }
 
   private val readsMember: Reads[JsObject] = {
     (for {
-      paymentNature <- readsPaymentNature
       whoReceivedUnauthorisedPayment <- readsWhoReceivedUnauthorisedPayment
+      paymentNature <- whoReceivedUnauthorisedPayment match {
+        case `whoReceivedUnauthPaymentIndividual` => readsPaymentNatureMember
+        case `whoReceivedUnauthPaymentEmployer` => readsPaymentNatureEmployer
+        case _ => fail
+      }
     } yield {
       (
         (__ \ Symbol("memberType")).json.put(JsString(whoReceivedUnauthorisedPayment)) and
@@ -215,7 +221,7 @@ object Event1Details extends Transformer {
   }
 
   val transformToETMPData: Reads[JsObject] = {
-    (__ \ Symbol("membersOrEmployers")).readNullable[JsArray](__.read(Reads.seq(readsMember))
+    (__ \ Symbol("event1") \ Symbol("membersOrEmployers")).readNullable[JsArray](__.read(Reads.seq(readsMember))
       .map(JsArray(_))).map { optionJsArray =>
       val jsonArray = optionJsArray.getOrElse(Json.arr())
       // TODO: Insert correct report start date and end date once we implement the relevant ticket
