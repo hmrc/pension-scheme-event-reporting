@@ -28,6 +28,7 @@ import play.api.mvc.Result
 import play.api.mvc.Results._
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
 import transformations.ETMPToFrontEnd.EventSummary
+import transformations.UserAnswersToETMP.{Event1Details, EventWindUpDetails}
 import transformations.UserAnswersToETMP.Event1Details.transformToETMPData
 import uk.gov.hmrc.http.HeaderCarrier
 import utils.JSONSchemaValidator
@@ -120,14 +121,20 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   private def compileEventReportSummary(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] =
     for {
-      _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(data, createCompiledEventSummaryReportSchemaPath, "compileEventReportSummary"))
+      transformedData <- Future.fromTry(toTry(data.transform(EventWindUpDetails.transformToETMPData)))
+      _ <- Future.fromTry(jsonPayloadSchemaValidator
+        .validatePayload(transformedData, createCompiledEventSummaryReportSchemaPath, "compileEventReportSummary"))
       response <- eventReportConnector.compileEventReportSummary(pstr, data)
-    } yield Ok(response.body)
+    } yield {
+      println( "\n>>>>OK!")
+      Ok(response.body)
+    }
 
   private def compileEventOneReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
     for {
-      transformedData <- Future.fromTry(toTry(data.transform(transformToETMPData)))
-      _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, compileEventOneReportSchemaPath, "compileEventOneReport"))
+      transformedData <- Future.fromTry(toTry(data.transform(Event1Details.transformToETMPData)))
+      _ <- Future.fromTry(jsonPayloadSchemaValidator
+        .validatePayload(transformedData, compileEventOneReportSchemaPath, "compileEventOneReport"))
       response <- eventReportConnector.compileEventOneReport(pstr, transformedData)
     } yield {
       Ok(response.body)
@@ -136,7 +143,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   private def compileMemberEventReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] =
     for {
-      _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(data, compileMemberEventReportSchemaPath, "compileMemberEventReport"))
+      _ <- Future.fromTry(jsonPayloadSchemaValidator
+        .validatePayload(data, compileMemberEventReportSchemaPath, "compileMemberEventReport"))
       response <- eventReportConnector.compileMemberEventReport(pstr, data)
     } yield Ok(response.body)
 }
