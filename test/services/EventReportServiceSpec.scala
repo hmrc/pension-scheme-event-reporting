@@ -18,7 +18,7 @@ package services
 
 import connectors.EventReportConnector
 import models.enumeration.ApiType._
-import models.enumeration.EventType.{Event1, Event10}
+import models.enumeration.EventType.{Event1, Event10, WindUp}
 import models.enumeration.{ApiType, EventType}
 import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.ArgumentMatchers
@@ -80,7 +80,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     when(mockOverviewCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
   }
 
-  "compileEventReport" must {
+  "compileEventReport for event 1" must {
     "return 204 No Content when no data return from repository" in {
       when(mockEventReportCacheRepository.getByKeys(any())(any()))
         .thenReturn(Future.successful(None))
@@ -184,6 +184,62 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       }
     }
   }
+
+  "compileEventReport for event windup" must {
+    "return 204 No Content when no data return from repository" in {
+      when(mockEventReportCacheRepository.getByKeys(any())(any()))
+        .thenReturn(Future.successful(None))
+      eventReportService.compileEventReport("pstr", WindUp)(implicitly, implicitly).map {
+        result => result.header.status mustBe NO_CONTENT
+      }
+    }
+
+    "return 204 No Content when valid data return from repository - event 1" in {
+      when(mockEventReportCacheRepository.getByKeys(any())(any()))
+        .thenReturn(Future.successful(Some(responseJson)))
+
+      when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
+        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
+
+      eventReportService.compileEventReport("pstr", WindUp).map {
+        result => result.header.status mustBe NO_CONTENT
+      }
+    }
+
+    "return an exception when validation errors response" in {
+      when(mockEventReportCacheRepository.getByKeys(any())(any()))
+        .thenReturn(Future.successful(Some(responseJson)))
+
+      when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
+        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
+
+      when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
+        .thenReturn(Failure(new Exception("Message")))
+
+      recoverToExceptionIf[Exception] {
+        eventReportService.compileEventReport("pstr", WindUp)
+      } map {
+        failure =>
+          failure.getMessage mustBe "Message"
+      }
+    }
+
+    "throw Upstream5XXResponse on Internal Server Error" in {
+      when(mockEventReportCacheRepository.getByKeys(any())(any()))
+        .thenReturn(Future.successful(Some(responseJson)))
+
+      when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
+        .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
+
+      recoverToExceptionIf[UpstreamErrorResponse] {
+        eventReportService.compileEventReport("pstr", WindUp)
+      } map {
+        _.statusCode mustBe INTERNAL_SERVER_ERROR
+      }
+    }
+  }
+
+
 
   "getEvent" must {
     "return the payload from the connector when a valid event type is supplied for Api1832" in {
