@@ -18,7 +18,7 @@ package services
 
 import connectors.EventReportConnector
 import models.enumeration.ApiType._
-import models.enumeration.EventType.{Event1, Event10, WindUp}
+import models.enumeration.EventType.{Event1, Event10, Event20A, WindUp}
 import models.enumeration.{ApiType, EventType}
 import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.ArgumentMatchers
@@ -78,6 +78,16 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     reset(mockJSONPayloadSchemaValidator)
     when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any())).thenReturn(Success(()))
     when(mockOverviewCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
+  }
+
+  "compileEventReport for unimplemented api type" must {
+    "return Not Implemented when no data return from repository" in {
+      when(mockEventReportCacheRepository.getByKeys(any())(any()))
+        .thenReturn(Future.successful(Some(responseJson)))
+      eventReportService.compileEventReport("pstr", Event20A)(implicitly, implicitly).map {
+        result => result.header.status mustBe NOT_IMPLEMENTED
+      }
+    }
   }
 
   "compileEventReport for event 1" must {
@@ -190,15 +200,13 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       }
     }
 
-    "return an exception when validation errors response" in {
-      when(mockEventReportCacheRepository.getByKeys(any())(any()))
+    "return 400 when validation errors response" in {
+      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1826.toString))(implicitly))
         .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
-
+      when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(createCompiledEventSummaryReportSchemaPath), any()))
+        .thenReturn(Failure(new Exception("Message")))
       when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
-
-      when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
-        .thenReturn(Failure(new Exception("Message")))
 
       recoverToExceptionIf[Exception] {
         eventReportService.compileEventReport("pstr", WindUp)

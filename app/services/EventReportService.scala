@@ -22,6 +22,7 @@ import connectors.EventReportConnector
 import models.ERVersion
 import models.enumeration.ApiType._
 import models.enumeration.EventType
+import play.api.http.Status.NOT_IMPLEMENTED
 import play.api.libs.json.JsResult.toTry
 import play.api.libs.json._
 import play.api.mvc.Result
@@ -29,7 +30,6 @@ import play.api.mvc.Results._
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
 import transformations.ETMPToFrontEnd.EventSummary
 import transformations.UserAnswersToETMP.{Event1Details, EventWindUpDetails}
-import transformations.UserAnswersToETMP.Event1Details.transformToETMPData
 import uk.gov.hmrc.http.HeaderCarrier
 import utils.JSONSchemaValidator
 
@@ -56,11 +56,18 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         case Api1826 => compileEventReportSummary _
         case Api1827 => compileEventOneReport _
         case Api1830 => compileMemberEventReport _
-        case _ => (_, _) => Future.successful(NoContent)
+        case api => (_, _) =>
+          Future.successful(NotImplemented(s"Compile unimplemented for API type $api (event type $eventType)"))
       }
 
     eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString)).flatMap {
-      case Some(data) => performCompile(pstr, data).map(_ => NoContent)
+      case Some(data) =>
+        performCompile(pstr, data).map { result =>
+          result.header.status match {
+            case NOT_IMPLEMENTED => result
+            case _ => NoContent
+          }
+        }
       case _ => Future.successful(NoContent)
     }
   }
