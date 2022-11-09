@@ -18,7 +18,7 @@ package services
 
 import connectors.EventReportConnector
 import models.enumeration.ApiType._
-import models.enumeration.EventType.{Event1, Event10, Event20A, WindUp}
+import models.enumeration.EventType.{Event1, Event20A, WindUp}
 import models.enumeration.{ApiType, EventType}
 import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.ArgumentMatchers
