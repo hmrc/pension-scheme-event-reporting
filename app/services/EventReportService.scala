@@ -126,11 +126,11 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         .validatePayload(transformedData, createCompiledEventSummaryReportSchemaPath, "compileEventReportSummary"))
       response <- eventReportConnector.compileEventReportSummary(pstr, data)
     } yield {
-      println( "\n>>>>OK!")
       Ok(response.body)
     }
 
   private def compileEventOneReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
+    println( "\nAA:" + data)
     for {
       transformedData <- Future.fromTry(toTry(data.transform(Event1Details.transformToETMPData)))
       _ <- Future.fromTry(jsonPayloadSchemaValidator

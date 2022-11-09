@@ -154,22 +154,6 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       }
     }
 
-    "return 400 when validation errors response for member event report" in {
-      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1826.toString))(implicitly))
-        .thenReturn(Future.successful(Some(responseJson)))
-      when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(createCompiledEventSummaryReportSchemaPath), any()))
-        .thenReturn(Failure(new Exception("Message")))
-      when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
-        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
-
-      recoverToExceptionIf[Exception] {
-        eventReportService.compileEventReport("pstr", Event10)
-      } map {
-        failure =>
-          failure.getMessage mustBe "Message"
-      }
-    }
-
     "throw Upstream5XXResponse on Internal Server Error" in {
       when(mockEventReportCacheRepository.getByKeys(any())(any()))
         .thenReturn(Future.successful(Some(responseJson)))
@@ -196,7 +180,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
     "return 204 No Content when valid data return from repository - event 1" in {
       when(mockEventReportCacheRepository.getByKeys(any())(any()))
-        .thenReturn(Future.successful(Some(responseJson)))
+        .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
 
       when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
@@ -208,7 +192,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
     "return an exception when validation errors response" in {
       when(mockEventReportCacheRepository.getByKeys(any())(any()))
-        .thenReturn(Future.successful(Some(responseJson)))
+        .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
 
       when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
@@ -226,7 +210,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
     "throw Upstream5XXResponse on Internal Server Error" in {
       when(mockEventReportCacheRepository.getByKeys(any())(any()))
-        .thenReturn(Future.successful(Some(responseJson)))
+        .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
 
       when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
         .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
@@ -238,7 +222,6 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       }
     }
   }
-
 
 
   "getEvent" must {
@@ -396,6 +379,10 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 object EventReportServiceSpec {
 
   private val responseJson: JsObject = Json.obj("event" -> "mockEvent - test passed")
+  private val uaJsonEventWindUp: JsObject =
+    Json.obj(
+      "schemeWindUpDate" -> "2020-06-01"
+    )
   private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
 
