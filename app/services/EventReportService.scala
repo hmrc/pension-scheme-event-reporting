@@ -130,7 +130,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
 
   private def compileEventOneReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
-    println( "\nAA:" + data)
     for {
       transformedData <- Future.fromTry(toTry(data.transform(Event1Details.transformToETMPData)))
       _ <- Future.fromTry(jsonPayloadSchemaValidator
