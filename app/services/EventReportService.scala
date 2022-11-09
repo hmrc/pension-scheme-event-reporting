@@ -29,7 +29,7 @@ import play.api.mvc.Result
 import play.api.mvc.Results._
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
 import transformations.ETMPToFrontEnd.EventSummary
-import transformations.UserAnswersToETMP.{Event1Details, EventWindUpDetails}
+import transformations.UserAnswersToETMP.{API1827, API1826}
 import uk.gov.hmrc.http.HeaderCarrier
 import utils.JSONSchemaValidator
 
@@ -43,9 +43,9 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    overviewCacheRepository: OverviewCacheRepository
                                   ) {
 
-  private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
-  private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
-  private val compileMemberEventReportSchemaPath = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
+  private val schemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
+  private val schemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
+  private val schemaPath1830 = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
 
   def compileEventReport(pstr: String, eventType: EventType)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
@@ -53,9 +53,9 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     val apiType = EventType.postApiTypeByEventType(eventType)
     val performCompile: (String, JsValue) => Future[Result] =
       apiType match {
-        case Api1826 => compileEventReportSummary _
-        case Api1827 => compileEventOneReport _
-        case Api1830 => compileMemberEventReport _
+        case Api1826 => compile1826 _
+        case Api1827 => compile1827 _
+        case Api1830 => compile1830 _
         case api => (_, _) =>
           Future.successful(NotImplemented(s"Compile unimplemented for API type $api (event type $eventType)"))
       }
@@ -126,31 +126,31 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     eventReportConnector.submitEvent20ADeclarationReport(pstr, data).map(_.json)
   }
 
-  private def compileEventReportSummary(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] =
+  private def compile1826(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] =
     for {
-      transformedData <- Future.fromTry(toTry(data.transform(EventWindUpDetails.transformToETMPData)))
+      transformedData <- Future.fromTry(toTry(data.transform(API1826.transformToETMPData)))
       _ <- Future.fromTry(jsonPayloadSchemaValidator
-        .validatePayload(transformedData, createCompiledEventSummaryReportSchemaPath, "compileEventReportSummary"))
+        .validatePayload(transformedData, schemaPath1826, "API1826"))
       response <- eventReportConnector.compileEventReportSummary(pstr, data)
     } yield {
       Ok(response.body)
     }
 
-  private def compileEventOneReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
+  private def compile1827(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
     for {
-      transformedData <- Future.fromTry(toTry(data.transform(Event1Details.transformToETMPData)))
+      transformedData <- Future.fromTry(toTry(data.transform(API1827.transformToETMPData)))
       _ <- Future.fromTry(jsonPayloadSchemaValidator
-        .validatePayload(transformedData, compileEventOneReportSchemaPath, "compileEventOneReport"))
+        .validatePayload(transformedData, schemaPath1827, "API1827"))
       response <- eventReportConnector.compileEventOneReport(pstr, transformedData)
     } yield {
       Ok(response.body)
     }
   }
 
-  private def compileMemberEventReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] =
+  private def compile1830(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] =
     for {
       _ <- Future.fromTry(jsonPayloadSchemaValidator
-        .validatePayload(data, compileMemberEventReportSchemaPath, "compileMemberEventReport"))
+        .validatePayload(data, schemaPath1830, "API1830"))
       response <- eventReportConnector.compileMemberEventReport(pstr, data)
     } yield Ok(response.body)
 }

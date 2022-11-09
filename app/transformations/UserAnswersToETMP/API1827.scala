@@ -21,7 +21,7 @@ import play.api.libs.json.Reads._
 import play.api.libs.json._
 import transformations.Transformer
 
-object Event1Details extends Transformer {
+object API1827 extends Transformer {
   private val pathIndividualMemberDetails = __ \ Symbol("individualMemberDetails")
   private val pathEmployerMemberDetails = __ \ Symbol("employerMemDetails")
   private val pathUnauthorisedPaymentDetails = __ \ Symbol("unAuthorisedPaymentDetails")

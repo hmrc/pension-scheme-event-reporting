@@ -20,17 +20,17 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json._
-import utils.{GeneratorAPI1827, JsonFileReader}
+import utils.{GeneratorAPI1826, JsonFileReader}
 
-class Event1DetailsSpec extends AnyFreeSpec with Matchers
-  with JsonFileReader with GeneratorAPI1827 with ScalaCheckPropertyChecks {
+class API1826Spec extends AnyFreeSpec with Matchers
+  with JsonFileReader with GeneratorAPI1826 with ScalaCheckPropertyChecks {
 
   "transformToETMPData" - {
     "must transform a randomly generated valid payload correctly" in {
       forAll(generateUserAnswersAndPOSTBody) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
-          val result = userAnswers.validate(Event1Details.transformToETMPData)
-          val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event1") \ Symbol("membersOrEmployers"))
+          val result = userAnswers.validate(API1826.transformToETMPData)
+          val expectedResult = JsSuccess(expectedResponse, __ \ "schemeWindUpDate")
           result mustBe expectedResult
       }
     }

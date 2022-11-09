@@ -19,7 +19,7 @@ package transformations.UserAnswersToETMP
 import play.api.libs.json._
 import transformations.Transformer
 
-object EventWindUpDetails extends Transformer {
+object API1826 extends Transformer {
   val transformToETMPData: Reads[JsObject] = {
     (__ \ "eventDetails" \ "eventWindUp" \ "dateOfWindUp").json.copyFrom((__ \ "schemeWindUpDate").json.pick).map {
       jsObject =>
