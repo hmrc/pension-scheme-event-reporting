@@ -46,7 +46,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private final val SchemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
   private final val SchemaPath1830 = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
-  private final val NoConnection: (String, JsValue) => Future[HttpResponse] =
+  private final val UnimplementedConnection: (String, JsValue) => Future[HttpResponse] =
     (_, _) => Future.successful(HttpResponse(NOT_FOUND, "Unimplemented"))
 
   private case class APIProcessingInfo(apiType: ApiType,
@@ -63,7 +63,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case Api1827 =>
         Some(APIProcessingInfo(Api1827, API1827.transformToETMPData, SchemaPath1827, eventReportConnector.compileEventOneReport _))
       case Api1830 =>
-        Some(APIProcessingInfo(Api1830, Reads.pure(Json.obj()), SchemaPath1830, NoConnection))
+        Some(APIProcessingInfo(Api1830, Reads.pure(Json.obj()), SchemaPath1830, UnimplementedConnection))
       case _ => None
     }
   }
