@@ -180,13 +180,13 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   }
 
   "compileEventReport for event windup" must {
-    "return Not Found when no data returned from repository" in {
-      when(mockEventReportCacheRepository.getByKeys(any())(any()))
-        .thenReturn(Future.successful(None))
-      eventReportService.compileEventReport("pstr", WindUp)(implicitly, implicitly).map {
-        result => result.header.status mustBe NOT_FOUND
-      }
-    }
+//    "return Not Found when no data returned from repository" in {
+//      when(mockEventReportCacheRepository.getByKeys(any())(any()))
+//        .thenReturn(Future.successful(None))
+//      eventReportService.compileEventReport("pstr", WindUp)(implicitly, implicitly).map {
+//        result => result.header.status mustBe NOT_FOUND
+//      }
+//    }
 
     "return Not Found  when data return from repository but nothing to transform" in {
       when(mockEventReportCacheRepository.getByKeys(any())(any()))

@@ -22,7 +22,7 @@ import connectors.EventReportConnector
 import models.ERVersion
 import models.enumeration.ApiType._
 import models.enumeration.{ApiType, EventType}
-import play.api.http.Status.NOT_IMPLEMENTED
+import play.api.http.Status.{NOT_FOUND, NOT_IMPLEMENTED}
 import play.api.libs.json.JsResult.toTry
 import play.api.libs.json._
 import play.api.mvc.Result
@@ -42,56 +42,65 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    jsonPayloadSchemaValidator: JSONSchemaValidator,
                                    overviewCacheRepository: OverviewCacheRepository
                                   ) {
-
   private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private final val SchemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
   private final val SchemaPath1830 = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
-  private final val UnimplementedConnection: (String, JsValue) => Future[HttpResponse] =
+  private final val UnimplementedConnection: (String, Option[JsValue]) => Future[HttpResponse] =
     (_, _) => Future.successful(HttpResponse(NOT_IMPLEMENTED, "Unimplemented"))
 
   private case class APIProcessingInfo(apiType: ApiType,
                                        readsForTransformation: Reads[Option[JsObject]],
                                        schemaPath: String,
-                                       connectToAPI: (String, JsValue) => Future[HttpResponse]
+                                       connectToAPI: (String, Option[JsValue]) => Future[HttpResponse]
                                       )
 
+  private def connectToAPI(connectFunctionForAPI: (String, JsValue) => Future[HttpResponse]): (String, Option[JsValue]) => Future[HttpResponse] =
+    (pstr, optionJsValue) => optionJsValue match {
+      case None => Future.successful(HttpResponse(NOT_FOUND, "No data to submit"))
+      case Some(jsValue) => connectFunctionForAPI(pstr, jsValue)
+    }
+
   private def apiProcessingInfo(eventType: EventType)
-                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Option[APIProcessingInfo] = {
+                               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Option[APIProcessingInfo] = {
     EventType.postApiTypeByEventType(eventType) flatMap {
       case Api1826 =>
-        Some(APIProcessingInfo(Api1826, API1826.transformToETMPData, SchemaPath1826, eventReportConnector.compileEventReportSummary _))
+        Some(APIProcessingInfo(Api1826, API1826.transformToETMPData, SchemaPath1826, connectToAPI(eventReportConnector.compileEventReportSummary _)))
       case Api1827 =>
-        Some(APIProcessingInfo(Api1827, API1827.transformToETMPData, SchemaPath1827, eventReportConnector.compileEventOneReport _))
+        Some(APIProcessingInfo(Api1827, API1827.transformToETMPData, SchemaPath1827, connectToAPI(eventReportConnector.compileEventOneReport _)))
       case Api1830 =>
         Some(APIProcessingInfo(Api1830, Reads.pure(None), SchemaPath1830, UnimplementedConnection))
       case _ => None
     }
   }
 
+  private def validatePayloadAgainstSchema(optionTransformedData: Option[JsObject], schemaPath: String, apiType: String): Future[Unit] =
+    optionTransformedData match {
+      case None => Future.successful(())
+      case Some(transformedData) => Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, schemaPath, apiType))
+    }
+
   def compileEventReport(pstr: String, eventType: EventType)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
-      apiProcessingInfo(eventType) match {
-      case Some(APIProcessingInfo(apiType, reads, schemaPath, connect)) =>
+    apiProcessingInfo(eventType) match {
+      case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
         eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString)).flatMap {
           case Some(data) =>
-            Future.fromTry(toTry(data.validate(reads))).flatMap{
-              case None => Future.successful(NotFound("Nothing to submit"))
-              case Some(transformedData) =>
-                Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, schemaPath, apiType.toString)).flatMap{ _ =>
-                  connect(pstr, transformedData).map{ response =>
-                    response.status match {
-                      case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
-                      case _ => NoContent
-                    }
-                  }
-                }
+            for {
+              optionTransformedData <- Future.fromTry(toTry(data.validate(reads)))
+              _ <- validatePayloadAgainstSchema(optionTransformedData, schemaPath, apiType.toString)
+              response <- connectToAPI(pstr, optionTransformedData)
+            } yield {
+              response.status match {
+                case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
+                case NOT_FOUND => NotFound(s"Not found - event type $eventType")
+                case _ => NoContent
+              }
             }
           case _ => Future.successful(NotFound)
         }
       case _ => Future.successful(BadRequest(s"Compile unimplemented for event type $eventType"))
     }
   }
-
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsValue]] = {
@@ -119,14 +128,13 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def getUserAnswers(pstr: String, eventType: EventType)(implicit ec: ExecutionContext): Future[Option[JsObject]] = {
+  def getUserAnswers(pstr: String, eventType: EventType)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     EventType.postApiTypeByEventType(eventType) match {
       case Some(apiType) =>
         eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString))
           .map(_.map(_.as[JsObject]))
       case _ => Future.successful(None)
     }
-  }
 
   def getVersions(pstr: String, reportType: String, startDate: String)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[ERVersion]] = {
     eventReportConnector.getVersions(pstr, reportType, startDate)
@@ -153,6 +161,4 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
     eventReportConnector.submitEvent20ADeclarationReport(pstr, data).map(_.json)
   }
-
-
 }
