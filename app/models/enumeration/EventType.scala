@@ -78,21 +78,23 @@ object EventType extends Enumerable.Implicits {
 
   def getEventType(s: String): Option[EventType] = values.find(_.toString == s)
 
-  def postApiTypeByEventType(eventType: EventType): ApiType = {
+  def postApiTypeByEventType(eventType: EventType): Option[ApiType] = {
     eventType match {
-      case evType1826 if api1826Events.contains(evType1826) => ApiType.Api1826
-      case evType1827 if api1827Events.contains(evType1827) => ApiType.Api1827
-      case evType1829 if api1829Events.contains(evType1829) => ApiType.Api1829
-      case evType1830 if api1830Events.contains(evType1830) => ApiType.Api1830
+      case evType1826 if api1826Events.contains(evType1826) => Some(ApiType.Api1826)
+      case evType1827 if api1827Events.contains(evType1827) => Some(ApiType.Api1827)
+      case evType1829 if api1829Events.contains(evType1829) => Some(ApiType.Api1829)
+      case evType1830 if api1830Events.contains(evType1830) => Some(ApiType.Api1830)
+      case _ => None
     }
   }
 
-  def getApiTypeByEventType(eventType: EventType): ApiType = {
+  def getApiTypeByEventType(eventType: EventType): Option[ApiType] = {
     eventType match {
-      case evType1832 if api1832Events.contains(evType1832) => ApiType.Api1832
-      case evType1833 if api1833Events.contains(evType1833) => ApiType.Api1833
-      case evType1831 if api1831Events.contains(evType1831) => ApiType.Api1831
-      case evType1834 if api1834Events.contains(evType1834) => ApiType.Api1834
+      case evType1832 if api1832Events.contains(evType1832) => Some(ApiType.Api1832)
+      case evType1833 if api1833Events.contains(evType1833) => Some(ApiType.Api1833)
+      case evType1831 if api1831Events.contains(evType1831) => Some(ApiType.Api1831)
+      case evType1834 if api1834Events.contains(evType1834) => Some(ApiType.Api1834)
+      case _ => None
     }
   }
 

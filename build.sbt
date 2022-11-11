@@ -32,7 +32,7 @@ lazy val root = (project in file("."))
   .settings(
     name := appName,
     PlayKeys.playDefaultPort := 8215,
-    scalacOptions ++= Seq("-feature", "-deprecation"),
+    scalacOptions ++= Seq("-feature", "-Xfatal-warnings", "-deprecation"),
     scalacOptions += "-Wconf:src=routes/.*:s",
     libraryDependencies ++= AppDependencies(),
     retrieveManaged := true,

@@ -101,7 +101,7 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
         _ <- eventReportCacheRepository.collection.drop().toFuture()
         _ <- eventReportCacheRepository.upsert(record1._1, record1._2, record1._3)
         _ <- eventReportCacheRepository.upsert(record2._1, record2._2, record2._3)
-        documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry].toFuture()
+        documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry]().toFuture()
       } yield documentsInDB
 
       whenReady(documentsInDB) {

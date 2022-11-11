@@ -99,7 +99,7 @@ class OverviewCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Mat
         _ <- overviewCacheRepository.collection.drop().toFuture()
         _ <- overviewCacheRepository.upsert(record1._1, record1._2, record1._3, record1._4, record1._5)
         _ <- overviewCacheRepository.upsert(record2._1, record2._2, record2._3, record2._4, record2._5)
-        documentsInDB <- overviewCacheRepository.collection.find[OverviewCacheEntry].toFuture()
+        documentsInDB <- overviewCacheRepository.collection.find[OverviewCacheEntry]().toFuture()
       } yield documentsInDB
 
       whenReady(documentsInDB) {
