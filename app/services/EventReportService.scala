@@ -47,7 +47,11 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   private val schemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
   private val schemaPath1830 = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
 
-  private case class APIProcessingInfo(apiType: ApiType, reads: Reads[JsObject], schemaPath: String, connect: (String, JsValue) => Future[HttpResponse])
+  private case class APIProcessingInfo(apiType: ApiType,
+                                       readsForTransformation: Reads[JsObject],
+                                       schemaPath: String,
+                                       connectToAPI: (String, JsValue) => Future[HttpResponse]
+                                      )
 
   // scalastyle:off
   def compileEventReport(pstr: String, eventType: EventType)
