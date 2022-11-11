@@ -20,16 +20,24 @@ import play.api.libs.json._
 import transformations.Transformer
 
 object API1826 extends Transformer {
-  val transformToETMPData: Reads[JsObject] = {
-    (__ \ "eventDetails" \ "eventWindUp" \ "dateOfWindUp").json.copyFrom((__ \ "schemeWindUpDate").json.pick).map {
-      jsObject =>
-        jsObject ++
+  val transformToETMPData: Reads[Option[JsObject]] = {
+    (__ \ "schemeWindUpDate").readNullable[String].map {
+      case Some(date) =>
+        Some(
           Json.obj(
+            "eventDetails" ->
+              Json.obj(
+                "eventWindUp" -> Json.obj(
+                  "dateOfWindUp" -> date
+                )
+              ),
             "eventReportDetails" -> Json.obj(
               "reportStartDate" -> "2020-09-01",
               "reportEndDate" -> "2020-09-01"
             )
           )
+        )
+      case _ => None
     }
   }
 }

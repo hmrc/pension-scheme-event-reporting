@@ -30,7 +30,7 @@ class API1826Spec extends AnyFreeSpec with Matchers
       forAll(generateUserAnswersAndPOSTBody) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
           val result = userAnswers.validate(API1826.transformToETMPData)
-          val expectedResult = JsSuccess(expectedResponse, __ \ "schemeWindUpDate")
+          val expectedResult = JsSuccess(Some(expectedResponse), __ \ "schemeWindUpDate")
           result mustBe expectedResult
       }
     }

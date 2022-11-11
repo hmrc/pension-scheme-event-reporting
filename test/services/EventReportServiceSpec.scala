@@ -81,21 +81,21 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   }
 
   "compileEventReport for unimplemented api type" must {
-    "return Not Found when no data return from repository" in {
+    "return Bad Request" in {
       when(mockEventReportCacheRepository.getByKeys(any())(any()))
         .thenReturn(Future.successful(Some(responseJson)))
       eventReportService.compileEventReport("pstr", Event20A)(implicitly, implicitly).map {
-        result => result.header.status mustBe NOT_FOUND
+        result => result.header.status mustBe BAD_REQUEST
       }
     }
   }
 
   "compileEventReport for event 1" must {
-    "return 204 No Content when no data return from repository" in {
+    "return NOT FOUND when no data return from repository" in {
       when(mockEventReportCacheRepository.getByKeys(any())(any()))
         .thenReturn(Future.successful(None))
       eventReportService.compileEventReport("pstr", Event1)(implicitly, implicitly).map {
-        result => result.header.status mustBe NO_CONTENT
+        result => result.header.status mustBe NOT_FOUND
       }
     }
 
@@ -180,11 +180,19 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   }
 
   "compileEventReport for event windup" must {
-    "return 204 No Content when no data return from repository" in {
+    "return Not Found when no data returned from repository" in {
       when(mockEventReportCacheRepository.getByKeys(any())(any()))
         .thenReturn(Future.successful(None))
       eventReportService.compileEventReport("pstr", WindUp)(implicitly, implicitly).map {
-        result => result.header.status mustBe NO_CONTENT
+        result => result.header.status mustBe NOT_FOUND
+      }
+    }
+
+    "return Not Found  when data return from repository but nothing to transform" in {
+      when(mockEventReportCacheRepository.getByKeys(any())(any()))
+        .thenReturn(Future.successful(Some(Json.obj())))
+      eventReportService.compileEventReport("pstr", WindUp)(implicitly, implicitly).map {
+        result => result.header.status mustBe NOT_FOUND
       }
     }
 
