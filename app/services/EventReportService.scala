@@ -43,9 +43,11 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    overviewCacheRepository: OverviewCacheRepository
                                   ) {
 
-  private val schemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
-  private val schemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
-  private val schemaPath1830 = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
+  private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
+  private final val SchemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
+  private final val SchemaPath1830 = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
+  private final val NoConnection: (String, JsValue) => Future[HttpResponse] =
+    (_, _) => Future.successful(HttpResponse(NOT_FOUND, "Unimplemented"))
 
   private case class APIProcessingInfo(apiType: ApiType,
                                        readsForTransformation: Reads[JsObject],
@@ -53,20 +55,22 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                        connectToAPI: (String, JsValue) => Future[HttpResponse]
                                       )
 
-  // scalastyle:off
-  def compileEventReport(pstr: String, eventType: EventType)
-                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
-    val optionApiProcessingInfo = EventType.postApiTypeByEventType(eventType) flatMap {
+  private def apiProcessingInfo(eventType: EventType)
+                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Option[APIProcessingInfo] = {
+    EventType.postApiTypeByEventType(eventType) flatMap {
       case Api1826 =>
-        Some(APIProcessingInfo(Api1826, API1826.transformToETMPData, schemaPath1826, eventReportConnector.compileEventReportSummary _))
+        Some(APIProcessingInfo(Api1826, API1826.transformToETMPData, SchemaPath1826, eventReportConnector.compileEventReportSummary _))
       case Api1827 =>
-        Some(APIProcessingInfo(Api1827, API1827.transformToETMPData, schemaPath1827, eventReportConnector.compileEventOneReport _))
+        Some(APIProcessingInfo(Api1827, API1827.transformToETMPData, SchemaPath1827, eventReportConnector.compileEventOneReport _))
       case Api1830 =>
-        Some(APIProcessingInfo(Api1830, Reads.pure(Json.obj()), schemaPath1830, (_, _) => Future.successful(HttpResponse(NOT_FOUND, "Unimplemented"))))
+        Some(APIProcessingInfo(Api1830, Reads.pure(Json.obj()), SchemaPath1830, NoConnection))
       case _ => None
     }
+  }
 
-    optionApiProcessingInfo match {
+  def compileEventReport(pstr: String, eventType: EventType)
+                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
+      apiProcessingInfo(eventType) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connect)) =>
         eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString)).flatMap {
           case Some(data) =>
