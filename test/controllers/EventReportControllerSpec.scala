@@ -252,6 +252,25 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   }
 
   "getEvent" must {
+    "return NotFound where no data" in {
+      when(mockEventReportService.getEvent(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(startDate),
+        ArgumentMatchers.eq(versionString),
+        ArgumentMatchers.eq(Event1)
+      )(any(), any()))
+        .thenReturn(Future.successful(None))
+
+      val result = controller.getEvent(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr,
+        "startDate" -> startDate,
+        "version" -> "1",
+        "eventType" -> Event1.toString
+      ))
+
+      status(result) mustBe NOT_FOUND
+    }
+
     "return OK for Event 1 with dummy json response" in {
       when(mockEventReportService.getEvent(
         ArgumentMatchers.eq(pstr),
@@ -259,7 +278,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         ArgumentMatchers.eq(versionString),
         ArgumentMatchers.eq(Event1)
       )(any(), any()))
-        .thenReturn(Future.successful(dummyJsValue))
+        .thenReturn(Future.successful(Some(dummyJsValue)))
 
       val result = controller.getEvent(fakeRequest.withHeaders(
         newHeaders = "pstr" -> pstr,
@@ -279,7 +298,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         ArgumentMatchers.eq(versionString),
         ArgumentMatchers.eq(Event2)
       )(any(), any()))
-        .thenReturn(Future.successful(dummyJsValue))
+        .thenReturn(Future.successful(Some(dummyJsValue)))
 
       val result = controller.getEvent(fakeRequest.withHeaders(
         newHeaders = "pstr" -> pstr,

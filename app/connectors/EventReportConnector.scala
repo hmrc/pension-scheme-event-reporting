@@ -135,7 +135,7 @@ class EventReportConnector @Inject()(
   }
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
-              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
+              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsValue]] = {
     getApiTypeByEventType(eventType) match {
       case Some(apiType) =>
         val apiToCall = apiType.toString
@@ -154,11 +154,11 @@ class EventReportConnector @Inject()(
         implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
         http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
           response.status match {
-            case OK => response.json
+            case OK => Some(response.json)
             case _ => handleErrorResponse("GET", apiUrl)(response)
           }
         }
-      case _ => Future.successful(Json.obj())
+      case _ => Future.successful(None)
     }
 
   }

@@ -88,7 +88,11 @@ class EventReportController @Inject()(
     implicit request =>
       withAuthAndGetEventParameters { (pstr, startDate, version, eventType) =>
         EventType.getEventType(eventType) match {
-          case Some(et) => eventReportService.getEvent(pstr, startDate, version, et).map(Ok(_))
+          case Some(et) =>
+            eventReportService.getEvent(pstr, startDate, version, et).map{
+              case Some(ee) => Ok(ee)
+              case _ => NotFound
+            }
           case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($eventType)"))
         }
       }

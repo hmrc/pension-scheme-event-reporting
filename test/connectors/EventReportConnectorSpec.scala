@@ -443,7 +443,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         )
 
         connector.getEvent(pstr, fromDt, "001", Event3).map { actualResponse =>
-          actualResponse mustBe expectedGetEventResponse
+          actualResponse mustBe Some(expectedGetEventResponse)
         }
       }
 
@@ -495,7 +495,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
 
         connector.getEvent(pstr, fromDt, "001", Event1).map { actualResponse =>
 
-          actualResponse mustBe expectedGetEventResponse
+          actualResponse mustBe Some(expectedGetEventResponse)
         }
       }
 
@@ -547,7 +547,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
 
         connector.getEvent(pstr, fromDt, "001", Event10).map { actualResponse =>
 
-          actualResponse mustBe expectedGetEventResponse
+          actualResponse mustBe Some(expectedGetEventResponse)
         }
       }
 
@@ -599,7 +599,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         )
 
         connector.getEvent(pstr, fromDt, "001", Event20A).map { actualResponse =>
-          actualResponse mustBe expectedGetEventResponse
+          actualResponse mustBe Some(expectedGetEventResponse)
         }
       }
 

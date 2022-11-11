@@ -85,7 +85,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
-              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
+              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsValue]] = {
     eventReportConnector.getEvent(pstr, startDate, version, eventType)
   }
 

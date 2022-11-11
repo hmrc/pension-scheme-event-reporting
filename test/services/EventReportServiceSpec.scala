@@ -233,36 +233,43 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
 
   "getEvent" must {
+    "return the payload from the connector when a valid event type is supplied for Api1832 and connector returns no data" in {
+      when(mockEventReportConnector.getEvent(any(), any(), any(), any())(any(), any()))
+        .thenReturn(Future.successful(None))
+      whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event3)(implicitly, implicitly)) { result =>
+        result mustBe None
+      }
+    }
     "return the payload from the connector when a valid event type is supplied for Api1832" in {
       when(mockEventReportConnector.getEvent(any(), any(), any(), any())(any(), any()))
-        .thenReturn(Future.successful(responseJson))
+        .thenReturn(Future.successful(Some(responseJson)))
       whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event3)(implicitly, implicitly)) { result =>
-        result mustBe responseJson
+        result mustBe Some(responseJson)
       }
     }
 
     "return the payload from the connector when a valid event type is supplied for API1833" in {
       when(mockEventReportConnector.getEvent(any(), any(), any(), any())(any(), any()))
-        .thenReturn(Future.successful(responseJson))
+        .thenReturn(Future.successful(Some(responseJson)))
       whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event1)(implicitly, implicitly)) { result =>
-        result mustBe responseJson
+        result mustBe Some(responseJson)
 
       }
     }
 
     "return the payload from the connector when a valid event type is supplied for API1834" in {
       when(mockEventReportConnector.getEvent(any(), any(), any(), any())(any(), any()))
-        .thenReturn(Future.successful(responseJson))
+        .thenReturn(Future.successful(Some(responseJson)))
       whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event10)) { result =>
-        result mustBe responseJson
+        result mustBe Some(responseJson)
       }
     }
 
     "return the payload from the connector when event type 20A" in {
       when(mockEventReportConnector.getEvent(any(), any(), any(), any())(any(), any()))
-        .thenReturn(Future.successful(responseJson))
+        .thenReturn(Future.successful(Some(responseJson)))
       whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event20A)(implicitly, implicitly)) { result =>
-        result mustBe responseJson
+        result mustBe Some(responseJson)
       }
     }
   }
