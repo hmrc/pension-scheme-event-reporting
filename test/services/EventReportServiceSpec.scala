@@ -81,11 +81,11 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   }
 
   "compileEventReport for unimplemented api type" must {
-    "return Not Implemented when no data return from repository" in {
+    "return Not Found when no data return from repository" in {
       when(mockEventReportCacheRepository.getByKeys(any())(any()))
         .thenReturn(Future.successful(Some(responseJson)))
       eventReportService.compileEventReport("pstr", Event20A)(implicitly, implicitly).map {
-        result => result.header.status mustBe NOT_IMPLEMENTED
+        result => result.header.status mustBe NOT_FOUND
       }
     }
   }

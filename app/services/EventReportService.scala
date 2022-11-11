@@ -22,14 +22,14 @@ import connectors.EventReportConnector
 import models.ERVersion
 import models.enumeration.ApiType._
 import models.enumeration.EventType
-import play.api.http.Status.NOT_IMPLEMENTED
+import play.api.http.Status.NOT_FOUND
 import play.api.libs.json.JsResult.toTry
 import play.api.libs.json._
 import play.api.mvc.Result
 import play.api.mvc.Results._
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
 import transformations.ETMPToFrontEnd.EventSummary
-import transformations.UserAnswersToETMP.{API1827, API1826}
+import transformations.UserAnswersToETMP.{API1826, API1827}
 import uk.gov.hmrc.http.HeaderCarrier
 import utils.JSONSchemaValidator
 
@@ -57,14 +57,14 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         case Api1827 => compile1827 _
         case Api1830 => compile1830 _
         case api => (_, _) =>
-          Future.successful(NotImplemented(s"Compile unimplemented for API type $api (event type $eventType)"))
+          Future.successful(NotFound(s"Compile unimplemented for API type $api (event type $eventType)"))
       }
 
     eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString)).flatMap {
       case Some(data) =>
         performCompile(pstr, data).map { result =>
           result.header.status match {
-            case NOT_IMPLEMENTED => result
+            case NOT_FOUND => result
             case _ => NoContent
           }
         }
