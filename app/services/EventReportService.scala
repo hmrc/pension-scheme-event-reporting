@@ -22,7 +22,7 @@ import connectors.EventReportConnector
 import models.ERVersion
 import models.enumeration.ApiType._
 import models.enumeration.{ApiType, EventType}
-import play.api.http.Status.BAD_REQUEST
+import play.api.http.Status.NOT_IMPLEMENTED
 import play.api.libs.json.JsResult.toTry
 import play.api.libs.json._
 import play.api.mvc.Result
@@ -47,7 +47,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   private final val SchemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
   private final val SchemaPath1830 = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
   private final val UnimplementedConnection: (String, JsValue) => Future[HttpResponse] =
-    (_, _) => Future.successful(HttpResponse(BAD_REQUEST, "Unimplemented"))
+    (_, _) => Future.successful(HttpResponse(NOT_IMPLEMENTED, "Unimplemented"))
 
   private case class APIProcessingInfo(apiType: ApiType,
                                        readsForTransformation: Reads[Option[JsObject]],
@@ -80,7 +80,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                 Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, schemaPath, apiType.toString)).flatMap{ _ =>
                   connect(pstr, transformedData).map{ response =>
                     response.status match {
-                      case BAD_REQUEST => BadRequest(s"Not implemented - event type $eventType")
+                      case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
                       case _ => NoContent
                     }
                   }
