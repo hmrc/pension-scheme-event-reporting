@@ -29,7 +29,7 @@ import play.api.mvc.Result
 import play.api.mvc.Results._
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
 import transformations.ETMPToFrontEnd.EventSummary
-import transformations.UserAnswersToETMP.{API1826, API1827}
+import transformations.UserAnswersToETMP.{API1826, API1827, API1830}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
 
@@ -45,8 +45,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private final val SchemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
   private final val SchemaPath1830 = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
-  private final val UnimplementedConnection: (String, Option[JsValue]) => Future[HttpResponse] =
-    (_, _) => Future.successful(HttpResponse(NOT_IMPLEMENTED, "Unimplemented"))
 
   private case class APIProcessingInfo(apiType: ApiType,
                                        readsForTransformation: Reads[Option[JsObject]],
@@ -68,7 +66,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case Api1827 =>
         Some(APIProcessingInfo(Api1827, API1827.transformToETMPData, SchemaPath1827, connectToAPI(eventReportConnector.compileEventOneReport _)))
       case Api1830 =>
-        Some(APIProcessingInfo(Api1830, Reads.pure(None), SchemaPath1830, UnimplementedConnection))
+        Some(APIProcessingInfo(Api1830, API1830.transformToETMPData, SchemaPath1830, connectToAPI(eventReportConnector.compileMemberEventReport _)))
       case _ => None
     }
   }
