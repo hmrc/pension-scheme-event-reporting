@@ -16,6 +16,7 @@
 
 package transformations.UserAnswersToETMP
 
+import models.enumeration.EventType
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
@@ -39,17 +40,19 @@ object API1830 extends Transformer {
         (pathPaymentDetails \ Symbol("taxYearEndingDate")).json.copyFrom(readsTaxYearEndDate) and
         (pathPaymentDetails \ Symbol("monetaryAmount")).json.copyFrom((__ \ Symbol("totalPensionAmounts")).json.pick)).reduce
 
-  val transformToETMPData: Reads[Option[JsObject]] = {
+  def transformToETMPData(eventType: EventType, pstr: String): Reads[Option[JsObject]] = {
     (__ \ Symbol("event23") \ Symbol("membersOrEmployers")).readNullable[JsArray](__.read(Reads.seq(readsIndividualMemberDetails))
       .map(JsArray(_))).map { optionJsArray =>
       val jsonArray = optionJsArray.getOrElse(Json.arr())
-      Some(Json.obj(
+      Some(Json.obj("memberEventsDetails" -> Json.obj(
         "eventReportDetails" -> Json.obj(
           "reportStartDate" -> "2020-09-01",
-          "reportEndDate" -> "2020-09-01"
+          "reportEndDate" -> "2020-09-01",
+          "pSTR" -> pstr,
+          "eventType" -> s"Event${eventType.toString}",
         ),
         "eventDetails" -> jsonArray
-      ))
+      )))
     }
   }
 }

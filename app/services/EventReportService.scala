@@ -58,7 +58,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case Some(jsValue) => connectFunctionForAPI(pstr, jsValue)
     }
 
-  private def apiProcessingInfo(eventType: EventType)
+  private def apiProcessingInfo(eventType: EventType, pstr: String)
                                (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Option[APIProcessingInfo] = {
     EventType.postApiTypeByEventType(eventType) flatMap {
       case Api1826 =>
@@ -66,7 +66,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case Api1827 =>
         Some(APIProcessingInfo(Api1827, API1827.transformToETMPData, SchemaPath1827, connectToAPI(eventReportConnector.compileEventOneReport _)))
       case Api1830 =>
-        Some(APIProcessingInfo(Api1830, API1830.transformToETMPData, SchemaPath1830, connectToAPI(eventReportConnector.compileMemberEventReport _)))
+        Some(APIProcessingInfo(Api1830, API1830.transformToETMPData(eventType, pstr), SchemaPath1830,
+          connectToAPI(eventReportConnector.compileMemberEventReport _)))
       case _ => None
     }
   }
@@ -79,7 +80,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def compileEventReport(pstr: String, eventType: EventType)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
-    apiProcessingInfo(eventType) match {
+    apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
         eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString)).flatMap {
           case Some(data) =>
@@ -91,8 +92,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               response.status match {
                 case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
                 case NOT_FOUND => NotFound(s"Not found - event type $eventType")
-                case _ => println("\n\n\n transformedData " + optionTransformedData)
-                  NoContent
+                case _ => NoContent
               }
             }
           case _ => Future.successful(NotFound)

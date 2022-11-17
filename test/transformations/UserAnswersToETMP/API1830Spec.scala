@@ -16,6 +16,7 @@
 
 package transformations.UserAnswersToETMP
 
+import models.enumeration.EventType.Event23
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
@@ -29,7 +30,7 @@ class API1830Spec extends AnyFreeSpec with Matchers
     "must transform a randomly generated valid payload correctly in event 23" in {
       forAll(generateUserAnswersAndPOSTBody) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
-          val result = userAnswers.validate(API1830.transformToETMPData)
+          val result = userAnswers.validate(API1830.transformToETMPData(Event23,"87219363YN"))
           val expectedResult = JsSuccess(Some(expectedResponse), __ \ Symbol("event23") \ Symbol("membersOrEmployers"))
           result mustBe expectedResult
       }

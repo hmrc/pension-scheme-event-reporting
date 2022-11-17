@@ -43,8 +43,10 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
             "totalPensionAmounts" -> monetaryAmount
           ))
       ))
-      val expected = Json.obj(
+      val expected = Json.obj("memberEventsDetails" -> Json.obj(
         "eventReportDetails" -> Json.obj(
+          "pSTR" -> "87219363YN",
+          "eventType" -> "Event23",
           "reportStartDate" -> "2020-09-01",
           "reportEndDate" -> "2020-09-01"
         ),
@@ -62,6 +64,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
             )
           )
         )
+      )
       )
       Tuple2(ua, expected)
     }
