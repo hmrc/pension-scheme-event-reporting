@@ -18,9 +18,10 @@ package transformations.UserAnswersToETMP
 
 import play.api.libs.json._
 import transformations.Transformer
+import play.api.libs.functional.syntax._
 
 object API1830 extends Transformer {
-//  private val pathIndividualMemberDetails = __ \ Symbol("individualMemberDetails")
+  private val pathIndividualMemberDetails = __ \ Symbol("individualMemberDetails")
 //  private val pathEmployerMemberDetails = __ \ Symbol("employerMemDetails")
 //  private val pathUnauthorisedPaymentDetails = __ \ Symbol("unAuthorisedPaymentDetails")
 //
@@ -134,13 +135,11 @@ object API1830 extends Transformer {
 //      case _ => fail
 //    }
 //
-//  private val readsIndividualMemberDetails: Reads[JsObject] =
-//    ((pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick) and
-//      (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("lastName")).json.pick) and
-//      (pathIndividualMemberDetails \ Symbol("nino")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("nino")).json.pick) and
-//      (pathIndividualMemberDetails \ Symbol("signedMandate")).json.copyFrom((__ \ Symbol("doYouHoldSignedMandate")).json.pick.map(toYesNo)) and
-//      (pathIndividualMemberDetails \ Symbol("pmtMoreThan25PerFundValue")).json.copyFrom((__ \ Symbol("valueOfUnauthorisedPayment")).json.pick.map(toYesNo)) and
-//      schemePayingSurcharge.orElse(doNothing)).reduce
+  private val readsIndividualMemberDetails: Reads[JsObject] =
+    (
+      (pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick) and
+      (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("lastName")).json.pick) and
+      (pathIndividualMemberDetails \ Symbol("nino")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("nino")).json.pick)).reduce
 //
 //  private val readsEmployerDetails: Reads[JsObject] =
 //    ((pathEmployerMemberDetails \ Symbol("compOrOrgName")).json
@@ -253,7 +252,23 @@ object API1830 extends Transformer {
    */
 
   val transformToETMPData: Reads[Option[JsObject]] = {
-    ???
+    (__ \ Symbol("event23") \ Symbol("membersOrEmployers")).readNullable[JsArray](__.read(Reads.seq(readsIndividualMemberDetails))
+      .map(JsArray(_))).map { optionJsArray =>
+      val jsonArray = optionJsArray.getOrElse(Json.arr())
+      Some(Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "reportStartDate" -> "2020-09-01",
+          "reportEndDate" -> "2020-09-01"
+        ),
+        "event23Details" -> Json.obj(
+          "event1Details" -> jsonArray
+        )
+      ))
+    }
+  }
+
+  /*
+      ???
 //    (__ \ Symbol("event1") \ Symbol("membersOrEmployers")).readNullable[JsArray](__.read(Reads.seq(readsMember))
 //      .map(JsArray(_))).map { optionJsArray =>
 //      val jsonArray = optionJsArray.getOrElse(Json.arr())
@@ -269,6 +284,7 @@ object API1830 extends Transformer {
 //      )
 //      )
 //    }
-  }
+
+   */
 }
 
