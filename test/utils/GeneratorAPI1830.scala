@@ -32,7 +32,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
       monetaryAmount <- arbitrary[BigDecimal]
       taxYearEndDate <- Gen.oneOf(2020, 2021, 2022)
     } yield {
-      val ua = Json.obj("event23" -> Json.obj("membersOrEmployers" ->
+      val ua = Json.obj("event23" -> Json.obj("members" ->
         Json.arr(
           Json.obj(
             "membersDetails" -> Json.obj(

@@ -41,7 +41,7 @@ object API1830 extends Transformer {
         (pathPaymentDetails \ Symbol("monetaryAmount")).json.copyFrom((__ \ Symbol("totalPensionAmounts")).json.pick)).reduce
 
   def transformToETMPData(eventType: EventType, pstr: String): Reads[Option[JsObject]] = {
-    (__ \ Symbol("event23") \ Symbol("membersOrEmployers")).readNullable[JsArray](__.read(Reads.seq(readsIndividualMemberDetails))
+    (__ \ Symbol("event23") \ Symbol("members")).readNullable[JsArray](__.read(Reads.seq(readsIndividualMemberDetails))
       .map(JsArray(_))).map { optionJsArray =>
       val jsonArray = optionJsArray.getOrElse(Json.arr())
       Some(Json.obj("memberEventsDetails" -> Json.obj(
