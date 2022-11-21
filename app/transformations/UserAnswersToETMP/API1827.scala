@@ -149,7 +149,7 @@ object API1827 extends Transformer {
       .copyFrom((__ \ Symbol("event1") \ Symbol("companyDetails") \ Symbol("companyName")).json.pick) and
       (pathEmployerMemberDetails \ Symbol("crnNumber")).json
         .copyFrom((__ \ Symbol("event1") \ Symbol("companyDetails") \ Symbol("companyNumber")).json.pick) and
-      (pathEmployerMemberDetails \ Symbol("addressDetails")).json.copyFrom(readsAddress(__ \ Symbol("event1") \ Symbol("employerAddress"))).orElse(doNothing)
+      (pathEmployerMemberDetails \ Symbol("addressDetails")).json.copyFrom(readsAddress(__ \ Symbol("employerAddress"))).orElse(doNothing)
       ).reduce
 
   private def loanPymtPgs(paymentNature: String): Reads[JsObject] = {
@@ -178,12 +178,12 @@ object API1827 extends Transformer {
 
   private def readsUnauthorisedPaymentDetails(paymentNature: String, whoReceivedUnauthorisedPayment: String): Reads[JsObject] = {
     val readsResidentialAddressMember: Reads[JsObject] = paymentNature match {
-      case `paymentNatureTypeKeyResidentialPropertyHeld` => readsAddress(__ \ Symbol("event1") \ Symbol("memberResidentialAddress"))
+      case `paymentNatureTypeKeyResidentialPropertyHeld` => readsAddress(__ \ Symbol("memberResidentialAddress"))
       case _ => fail
     }
 
     val readsResidentialAddressEmployer: Reads[JsObject] = paymentNature match {
-      case `paymentNatureTypeKeyResidentialPropertyHeldEmployer` => readsAddress(__ \ Symbol("event1") \ Symbol("employerResidentialAddress"))
+      case `paymentNatureTypeKeyResidentialPropertyHeldEmployer` => readsAddress(__ \ Symbol("employerResidentialAddress"))
       case _ => fail
     }
 

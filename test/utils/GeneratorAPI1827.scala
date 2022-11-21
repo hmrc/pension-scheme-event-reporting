@@ -135,11 +135,10 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
         ),
         "unauthorisedPaymentRecipientName" -> unAuthPmtRecipient,
         "memberPaymentNatureDescription" -> otherDesc,
-        "event1" -> Json.obj(
-          "memberResidentialAddress" -> Json.obj(
-            "address" -> toUserAnswersFormat(address)
-          )
+        "memberResidentialAddress" -> Json.obj(
+          "address" -> toUserAnswersFormat(address)
         )
+
       )
 
       def freeTxtOrSchemeOrRecipientName = paymentNature match {
@@ -232,13 +231,13 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
           "companyDetails" -> Json.obj(
             "companyName" -> companyName,
             "companyNumber" -> companyNumber
-          ),
-          "employerAddress" -> Json.obj(
-            "address" -> toUserAnswersFormat(address)
-          ),
-          "employerResidentialAddress" -> Json.obj(
-            "address" -> toUserAnswersFormat(residentialAddress)
           )
+        ),
+        "employerAddress" -> Json.obj(
+          "address" -> toUserAnswersFormat(address)
+        ),
+        "employerResidentialAddress" -> Json.obj(
+          "address" -> toUserAnswersFormat(residentialAddress)
         ),
         "paymentValueAndDate" -> Json.obj(
           "paymentValue" -> paymentVal,
