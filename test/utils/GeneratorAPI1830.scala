@@ -16,6 +16,7 @@
 
 package utils
 
+import models.enumeration.EventType
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
@@ -24,7 +25,7 @@ import play.api.libs.json.{JsObject, Json}
 
 trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerators {
 
-  def generateUserAnswersAndPOSTBody: Gen[Tuple2[JsObject, JsObject]] = {
+  def generateUserAnswersAndPOSTBody(eventType: EventType): Gen[Tuple2[JsObject, JsObject]] = {
     for {
       firstName <- Gen.alphaStr
       lastName <- Gen.alphaStr
@@ -32,7 +33,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
       monetaryAmount <- arbitrary[BigDecimal]
       taxYearEndDate <- Gen.oneOf(2020, 2021, 2022)
     } yield {
-      val ua = Json.obj("event23" -> Json.obj("members" ->
+      val ua = Json.obj(s"event${eventType.toString}" -> Json.obj("members" ->
         Json.arr(
           Json.obj(
             "membersDetails" -> Json.obj(
@@ -46,13 +47,13 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
       val expected = Json.obj("memberEventsDetails" -> Json.obj(
         "eventReportDetails" -> Json.obj(
           "pSTR" -> "87219363YN",
-          "eventType" -> "Event23",
+          "eventType" -> s"Event${eventType.toString}",
           "reportStartDate" -> "2020-09-01",
           "reportEndDate" -> "2020-09-01"
         ),
         "eventDetails" -> Json.arr(
           Json.obj(
-            "eventType" -> "Event23",
+            "eventType" -> s"Event${eventType.toString}",
             "individualDetails" -> Json.obj(
               "firstName" -> firstName,
               "lastName" -> lastName,

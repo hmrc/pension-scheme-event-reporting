@@ -31,17 +31,19 @@ object API1830 extends Transformer {
     case _ => fail[JsString]
   }
 
-  private val readsIndividualMemberDetails: Reads[JsObject] =
+  private def readsIndividualMemberDetailsByEventType(eventType: EventType): Reads[JsObject] = {
     (
       (pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick) and
         (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("lastName")).json.pick) and
         (pathIndividualMemberDetails \ Symbol("nino")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("nino")).json.pick) and
-        (__ \ Symbol("eventType")).json.put(JsString("Event23")) and
+        (__ \ Symbol("eventType")).json.put(JsString(s"Event${eventType}")) and
         (pathPaymentDetails \ Symbol("taxYearEndingDate")).json.copyFrom(readsTaxYearEndDate) and
         (pathPaymentDetails \ Symbol("monetaryAmount")).json.copyFrom((__ \ Symbol("totalPensionAmounts")).json.pick)).reduce
+  }
 
   def transformToETMPData(eventType: EventType, pstr: String): Reads[Option[JsObject]] = {
-    (__ \ Symbol(s"event${eventType.toString}") \ Symbol("members")).readNullable[JsArray](__.read(Reads.seq(readsIndividualMemberDetails))
+    (__ \ Symbol(s"event${eventType.toString}") \ Symbol("members")).readNullable[JsArray](__.read(Reads.seq(
+      readsIndividualMemberDetailsByEventType(eventType)))
       .map(JsArray(_))).map { optionJsArray =>
       val jsonArray = optionJsArray.getOrElse(Json.arr())
       Some(Json.obj("memberEventsDetails" -> Json.obj(
