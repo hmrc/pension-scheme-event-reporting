@@ -73,11 +73,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  private def validatePayloadAgainstSchema(optionTransformedData: Option[JsObject], schemaPath: String, apiType: String): Future[Unit] =
+  private def validatePayloadAgainstSchema(optionTransformedData: Option[JsObject], schemaPath: String, apiType: String): Future[Unit] = {
     optionTransformedData match {
       case None => Future.successful(())
       case Some(transformedData) => Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, schemaPath, apiType))
     }
+  }
 
   def compileEventReport(pstr: String, eventType: EventType)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
