@@ -49,7 +49,7 @@ object API1830 extends Transformer {
           "reportStartDate" -> "2020-09-01",
           "reportEndDate" -> "2020-09-01",
           "pSTR" -> pstr,
-          "eventType" -> s"Event${eventType.toString}",
+          "eventType" -> s"Event${eventType.toString}"
         ),
         "eventDetails" -> jsonArray
       )))
