@@ -26,11 +26,19 @@ class API1826Spec extends AnyFreeSpec with Matchers
   with JsonFileReader with GeneratorAPI1826 with ScalaCheckPropertyChecks {
 
   "transformToETMPData" - {
-    "must transform a randomly generated valid payload correctly" in {
-      forAll(generateUserAnswersAndPOSTBody) {
+    "must transform a randomly generated valid payload correctly for Wind Up" in {
+      forAll(generateUserAnswersAndPOSTBodyWindUp) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
           val result = userAnswers.validate(API1826.transformToETMPData)
           val expectedResult = JsSuccess(Some(expectedResponse), __ \ "schemeWindUpDate")
+          result mustBe expectedResult
+      }
+    }
+    "must transform a randomly generated valid payload correctly for Event 18" in {
+      forAll(generateUserAnswersAndPOSTBodyEvent18) {
+        case (userAnswers: JsObject, expectedResponse: JsObject) =>
+          val result = userAnswers.validate(API1826.transformToETMPData)
+          val expectedResult = JsSuccess(Some(expectedResponse), __ \ "event18")
           result mustBe expectedResult
       }
     }
