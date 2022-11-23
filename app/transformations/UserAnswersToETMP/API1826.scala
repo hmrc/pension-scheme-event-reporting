@@ -21,23 +21,48 @@ import transformations.Transformer
 
 object API1826 extends Transformer {
   val transformToETMPData: Reads[Option[JsObject]] = {
-    (__ \ "schemeWindUpDate").readNullable[String].map {
+
+    def eventReportDetailsNode(x: JsObject) = Json.obj(
+      "eventDetails" -> x,
+      "eventReportDetails" -> Json.obj(
+        "reportStartDate" -> "2020-09-01",
+        "reportEndDate" -> "2020-09-01"
+      )
+    )
+
+    val y = (__ \ "schemeWindUpDate").readNullable[String].map {
       case Some(date) =>
         Some(
           Json.obj(
-            "eventDetails" ->
-              Json.obj(
-                "eventWindUp" -> Json.obj(
-                  "dateOfWindUp" -> date
-                )
-              ),
-            "eventReportDetails" -> Json.obj(
-              "reportStartDate" -> "2020-09-01",
-              "reportEndDate" -> "2020-09-01"
+            "eventWindUp" -> Json.obj(
+              "dateOfWindUp" -> date
             )
           )
         )
       case _ => None
+    }
+    val x = (__ \ "event18Confirmation").readNullable[Boolean].map {
+      case Some(true) =>
+        Some(
+          Json.obj(
+            "event18" -> Json.obj(
+              "chargeablePmt" -> yes
+            )
+          )
+        )
+      case _ => None
+    }
+    x.flatMap { v =>
+      y.map {
+        c =>
+          (v, c) match {
+            case (Some(valueA), Some(valueB)) =>
+              Some(eventReportDetailsNode(valueA ++ valueB))
+            case (Some(valueA), None) => Some(eventReportDetailsNode(valueA))
+            case (None, Some(valueB)) => Some(eventReportDetailsNode(valueB))
+            case (None, None) => None
+          }
+      }
     }
   }
 }

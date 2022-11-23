@@ -28,6 +28,8 @@ trait Transformer {
 
   protected def toYesNo(b: JsValue): JsString = if (b.as[JsBoolean].value) JsString("Yes") else JsString("No")
 
+  protected val yes: JsString = JsString("Yes")
+
   protected def readsAddress(jsPath: JsPath): Reads[JsObject] =
     (
       (jsPath \ Symbol("address") \ Symbol("addressLine1")).read[String] and
