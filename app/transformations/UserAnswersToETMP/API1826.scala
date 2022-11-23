@@ -30,7 +30,17 @@ object API1826 extends Transformer {
       )
     )
 
-    val y = (__ \ "schemeWindUpDate").readNullable[String].map {
+    def eventTypeNodes(event18:  Option[JsObject], schWindUp:  Option[JsObject]):  Option[JsObject] = {
+      (event18, schWindUp) match {
+        case (Some(valueA), Some(valueB)) =>
+          Some(eventReportDetailsNode(valueA ++ valueB))
+        case (Some(valueA), None) => Some(eventReportDetailsNode(valueA))
+        case (None, Some(valueB)) => Some(eventReportDetailsNode(valueB))
+        case (None, None) => None
+      }
+    }
+
+    val schemeWindUp = (__ \ "schemeWindUpDate").readNullable[String].map {
       case Some(date) =>
         Some(
           Json.obj(
@@ -41,7 +51,7 @@ object API1826 extends Transformer {
         )
       case _ => None
     }
-    val x = (__ \ "event18Confirmation").readNullable[Boolean].map {
+    val event18 = (__ \ "event18Confirmation").readNullable[Boolean].map {
       case Some(true) =>
         Some(
           Json.obj(
@@ -52,17 +62,11 @@ object API1826 extends Transformer {
         )
       case _ => None
     }
-    x.flatMap { v =>
-      y.map {
-        c =>
-          (v, c) match {
-            case (Some(valueA), Some(valueB)) =>
-              Some(eventReportDetailsNode(valueA ++ valueB))
-            case (Some(valueA), None) => Some(eventReportDetailsNode(valueA))
-            case (None, Some(valueB)) => Some(eventReportDetailsNode(valueB))
-            case (None, None) => None
-          }
-      }
+    for {
+      event18 <- event18
+      schWindUp <- schemeWindUp
+    } yield {
+     eventTypeNodes(event18, schWindUp)
     }
   }
 }
