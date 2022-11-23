@@ -51,6 +51,7 @@ object API1826 extends Transformer {
         )
       case _ => None
     }
+
     val event18 = (__ \ "event18Confirmation").readNullable[Boolean].map {
       case Some(true) =>
         Some(
@@ -62,6 +63,7 @@ object API1826 extends Transformer {
         )
       case _ => None
     }
+
     for {
       event18 <- event18
       schWindUp <- schemeWindUp
