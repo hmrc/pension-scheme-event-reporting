@@ -41,6 +41,69 @@ class API1826Spec extends AnyFreeSpec with Matchers
           result.asOpt.flatten mustBe expectedResponse
       }
     }
+
+    "must transform all events when present" in {
+      val userAnswers: JsObject = {
+        Json.obj(
+          "event18Confirmation" -> true,
+          "schemeWindUpDate" -> "1991-11-22"
+        )
+      }
+      val expected: JsObject = {
+        Json.obj(
+          "eventReportDetails" -> Json.obj(
+            "reportStartDate" -> "2020-09-01",
+            "reportEndDate" -> "2020-09-01"
+          ),
+          "eventDetails" -> Json.obj(
+            "eventWindUp" -> Json.obj(
+              "dateOfWindUp" -> "1991-11-22"
+            ),
+            "event18" -> Json.obj(
+              "chargeablePmt"->"Yes"
+            )
+          )
+        )
+      }
+      val result = userAnswers.validate(API1826.transformToETMPData)
+      result.asOpt.flatten mustBe Some(expected.as[JsObject])
+    }
+
+    "must not transform an event that is not present" in {
+      val userAnswers: JsObject = {
+        Json.obj(
+          "schemeWindUpDate" -> "1991-11-22"
+        )
+      }
+      val expected = {
+        Json.obj(
+          "eventReportDetails" -> Json.obj(
+            "reportStartDate" -> "2020-09-01",
+            "reportEndDate" -> "2020-09-01"
+          ),
+          "eventDetails" -> Json.obj(
+            "eventWindUp" -> Json.obj(
+              "dateOfWindUp" -> "1991-11-22"
+            )
+          )
+        )
+      }
+      val result = userAnswers.validate(API1826.transformToETMPData)
+      result.asOpt.flatten mustBe Some(expected)
+    }
+
+//    "must not transform an event that is not present" in {
+//      val userAnswers: JsObject = {
+//        Json.obj(
+//          "schemeWindUpDate" -> ""
+//        )
+//      }
+//      val expected = {
+//        Json.obj()
+//      }
+//      val result = userAnswers.validate(API1826.transformToETMPData)
+//      result.asOpt.flatten mustBe Some(expected)
+//    }
   }
 }
 
