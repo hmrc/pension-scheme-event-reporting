@@ -22,8 +22,8 @@ import transformations.Transformer
 object API1826 extends Transformer {
   val transformToETMPData: Reads[Option[JsObject]] = {
 
-    def eventReportDetailsNode(x: JsObject) = Json.obj(
-      "eventDetails" -> x,
+    def eventReportDetailsNode(events: JsObject) = Json.obj(
+      "eventDetails" -> events,
       "eventReportDetails" -> Json.obj(
         "reportStartDate" -> "2020-09-01",
         "reportEndDate" -> "2020-09-01"
@@ -31,19 +31,12 @@ object API1826 extends Transformer {
     )
 
     def eventTypeNodes(event18:  Option[JsObject], schWindUp:  Option[JsObject]):  Option[JsObject] = {
-      val x = (event18 ++ schWindUp).toSeq.foldLeft(Json.obj())((a,b) => a ++ b)
-      if (x == Json.obj()) {
+      val eventTypeNodes = (event18 ++ schWindUp).toSeq.foldLeft(Json.obj())((a,b) => a ++ b)
+      if (eventTypeNodes == Json.obj()) {
         None
       } else {
-        Some(eventReportDetailsNode(x))
+        Some(eventReportDetailsNode(eventTypeNodes))
       }
-//      (event18, schWindUp) match {
-//        case (Some(valueA), Some(valueB)) =>
-//          Some(eventReportDetailsNode(valueA ++ valueB))
-//        case (Some(valueA), None) => Some(eventReportDetailsNode(valueA))
-//        case (None, Some(valueB)) => Some(eventReportDetailsNode(valueB))
-//        case (None, None) => None
-//      }
     }
 
     val schemeWindUp = (__ \ "schemeWindUpDate").readNullable[String].map {
