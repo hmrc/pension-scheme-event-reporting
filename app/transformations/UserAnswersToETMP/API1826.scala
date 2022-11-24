@@ -65,10 +65,10 @@ object API1826 extends Transformer {
     }
 
     for {
-      event18 <- event18
+      ev18 <- event18
       schWindUp <- schemeWindUp
     } yield {
-     eventTypeNodes(event18, schWindUp)
+     eventTypeNodes(ev18, schWindUp)
     }
   }
 }
