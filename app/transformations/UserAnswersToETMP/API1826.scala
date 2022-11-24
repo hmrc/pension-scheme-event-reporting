@@ -31,13 +31,19 @@ object API1826 extends Transformer {
     )
 
     def eventTypeNodes(event18:  Option[JsObject], schWindUp:  Option[JsObject]):  Option[JsObject] = {
-      (event18, schWindUp) match {
-        case (Some(valueA), Some(valueB)) =>
-          Some(eventReportDetailsNode(valueA ++ valueB))
-        case (Some(valueA), None) => Some(eventReportDetailsNode(valueA))
-        case (None, Some(valueB)) => Some(eventReportDetailsNode(valueB))
-        case (None, None) => None
+      val x = (event18 ++ schWindUp).toSeq.foldLeft(Json.obj())((a,b) => a ++ b)
+      if (x == Json.obj()) {
+        None
+      } else {
+        Some(eventReportDetailsNode(x))
       }
+//      (event18, schWindUp) match {
+//        case (Some(valueA), Some(valueB)) =>
+//          Some(eventReportDetailsNode(valueA ++ valueB))
+//        case (Some(valueA), None) => Some(eventReportDetailsNode(valueA))
+//        case (None, Some(valueB)) => Some(eventReportDetailsNode(valueB))
+//        case (None, None) => None
+//      }
     }
 
     val schemeWindUp = (__ \ "schemeWindUpDate").readNullable[String].map {
