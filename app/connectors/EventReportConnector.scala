@@ -163,8 +163,8 @@ class EventReportConnector @Inject()(
 
   }
 
-  def getEventSummary(pstr: String, version: String, startDate: String)
-                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Seq[Future[JsValue]] = {
+  def getEventSummaryForApi(pstr: String, version: String, startDate: String, apiNumAsString: String)
+                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
 
     val fullHeaders = integrationFrameworkHeader ++
       Seq(
@@ -172,17 +172,8 @@ class EventReportConnector @Inject()(
         "reportVersionNumber" -> version
       )
 
-    val apisToCall: List[String] = List("1832", "1834")
+    val url = s"${config.getApiUrlByApiNum(apiNumAsString).format(pstr)}"
 
-    val apiUrls: List[String] = for {
-      api <- apisToCall
-    } yield {
-      s"${config.getApiUrlByApiNum(api).format(pstr)}"
-    }
-
-    for {
-      url <- apiUrls
-    } yield {
       implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
       http.GET[HttpResponse](url)(implicitly, hc, implicitly).map { response =>
         response.status match {
@@ -190,7 +181,6 @@ class EventReportConnector @Inject()(
           case _ => handleErrorResponse("GET", url)(response)
         }
       }
-    }
   }
 
   def submitEventDeclarationReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {

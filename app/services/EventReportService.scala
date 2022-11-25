@@ -108,21 +108,25 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   }
 
   def getEventSummary(pstr: String, version: String, startDate: String)
-                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Seq[Future[JsArray]] = {
+                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
-    for {
-      etmpJson <- eventReportConnector.getEventSummary(pstr, startDate, version)
-    } yield {
-      etmpJson.map { test =>
-        test.transform(EventSummary.rds) match {
+    val num1 = eventReportConnector.getEventSummaryForApi(pstr, startDate, version, "1832")
+    val num2 = eventReportConnector.getEventSummaryForApi(pstr, startDate, version, "1834")
+
+    val futs = List(num1, num2)
+
+    val x = Future.sequence(futs).map { listOfJsValues =>
+      val y = listOfJsValues.map { etmpJson =>
+        etmpJson.transform(EventSummary.rds) match {
           case JsSuccess(seqOfEventTypes, _) =>
             seqOfEventTypes
           case JsError(errors) =>
             throw JsResultException(errors)
         }
       }
+      y // .fold((x, y) => x . y)
     }
-
+    x
   }
 
   def saveUserAnswers(pstr: String, eventType: EventType, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
