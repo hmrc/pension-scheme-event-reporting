@@ -30,8 +30,8 @@ object API1826 extends Transformer {
       )
     )
 
-    def eventTypeNodes(event18:  Option[JsObject], schWindUp:  Option[JsObject]):  Option[JsObject] = {
-      val eventTypeNodes = (event18 ++ schWindUp).toSeq.foldLeft(Json.obj())((a,b) => a ++ b)
+    def eventTypeNodes(events: Seq[JsObject]):  Option[JsObject] = {
+      val eventTypeNodes = events.foldLeft(Json.obj())((a,b) => a ++ b)
       if (eventTypeNodes == Json.obj()) {
         None
       } else {
@@ -67,7 +67,7 @@ object API1826 extends Transformer {
       ev18 <- event18
       schWindUp <- schemeWindUp
     } yield {
-     eventTypeNodes(ev18, schWindUp)
+     eventTypeNodes((ev18 ++ schWindUp).toSeq)
     }
   }
 }
