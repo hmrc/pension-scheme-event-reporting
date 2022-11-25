@@ -29,7 +29,7 @@ class EventSummarySpec extends AnyFreeSpec with Matchers with MockitoSugar with 
   "Reads" - {
     "transform a valid payload correctly when read from sample file" in {
       val json = readJsonFromFile("/api-1834-valid-example.json")
-      val result = json.validate(EventSummary.rds).asOpt
+      val result = json.validate(EventSummary.rdsFor1832).asOpt
 
       val expectedResult = Some(
         Json.arr("10", "11", "12", "13", "14", "19", "20", "0")
@@ -41,7 +41,7 @@ class EventSummarySpec extends AnyFreeSpec with Matchers with MockitoSugar with 
     "transform a randomly generated valid payload correctly" in {
       forAll(generateGETResponseAndUserAnswers) {
         case (json: JsObject, eventTypes: Seq[String]) =>
-          val result = json.validate(EventSummary.rds).asOpt
+          val result = json.validate(EventSummary.rdsFor1832).asOpt
           val expectedResult = Some(JsArray(eventTypes.map(JsString)))
           result mustBe expectedResult
       }

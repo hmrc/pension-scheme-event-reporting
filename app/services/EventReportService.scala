@@ -110,24 +110,42 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def getEventSummary(pstr: String, version: String, startDate: String)
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
-    val num1 = eventReportConnector.getEventSummaryForApi(pstr, startDate, version, "1832")
-    val num2 = eventReportConnector.getEventSummaryForApi(pstr, startDate, version, "1834")
-
-    val futs = List(num1, num2)
-
-    val x = Future.sequence(futs).map { listOfJsValues =>
-      val y = listOfJsValues.map { etmpJson =>
-        etmpJson.transform(EventSummary.rds) match {
-          case JsSuccess(seqOfEventTypes, _) =>
-            seqOfEventTypes
-          case JsError(errors) =>
-            throw JsResultException(errors)
-        }
+    val future1832 = eventReportConnector.getEventSummaryForApi(pstr, startDate, version, "1832")
+    val transformedFuture1832 = future1832.map { etmpJson =>
+      etmpJson.transform(EventSummary.rdsFor1832) match {
+        case JsSuccess(seqOfEventTypes, _) =>
+          seqOfEventTypes
+        case JsError(errors) =>
+          throw JsResultException(errors)
       }
-      y.reduce((x,y) => x.++(y))
     }
-    x
+
+
+    val future1834 = eventReportConnector.getEventSummaryForApi(pstr, startDate, version, "1834")
+    val transformedFuture1834 = future1834.map { etmpJson =>
+      etmpJson.transform(EventSummary.rdsFor1834) match {
+        case JsSuccess(seqOfEventTypes, _) =>
+          seqOfEventTypes
+        case JsError(errors) =>
+          throw JsResultException(errors)
+      }
+    }
+
+    val listOfFutures = List(transformedFuture1832, transformedFuture1834)
+
+    Future.sequence(listOfFutures).map { listOfJsValues =>
+      val t = listOfJsValues.reduce((x, y) => x.++(y))
+      JsArray(t.value.sortWith(sortEventTypes))
+    }
   }
+
+  val sortEventTypes: (JsValue, JsValue) => Boolean = (a, b) =>
+    (a, b) match {
+      case (JsString("0"), _) => false
+      case (_, JsString("0")) => true
+      case (a, b) if EventType.getEventType(a.toString()).get.order < EventType.getEventType(b.toString()).get.order => true
+      case _ => false
+    }
 
   def saveUserAnswers(pstr: String, eventType: EventType, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     EventType.postApiTypeByEventType(eventType) match {

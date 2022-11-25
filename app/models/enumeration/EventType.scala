@@ -16,53 +16,99 @@
 
 package models.enumeration
 
-sealed trait EventType
+sealed trait EventType {
+  val order: Int
+}
 
 object EventType extends Enumerable.Implicits {
 
-  case object WindUp extends WithName("0") with EventType
+  case object WindUp extends WithName("0") with EventType {
+    override val order = 21
+  }
 
-  case object Event1 extends WithName("1") with EventType
+  case object Event1 extends WithName("1") with EventType {
+    override val order = 0
+  }
 
-  case object Event2 extends WithName("2") with EventType
+  case object Event2 extends WithName("2") with EventType {
+    override val order = 1
+  }
 
-  case object Event3 extends WithName("3") with EventType
+  case object Event3 extends WithName("3") with EventType {
+    override val order = 2
+  }
 
-  case object Event4 extends WithName("4") with EventType
+  case object Event4 extends WithName("4") with EventType {
+    override val order = 3
+  }
 
-  case object Event5 extends WithName("5") with EventType
+  case object Event5 extends WithName("5") with EventType {
+    override val order = 4
+  }
 
-  case object Event6 extends WithName("6") with EventType
+  case object Event6 extends WithName("6") with EventType {
+    override val order = 5
+  }
 
-  case object Event7 extends WithName("7") with EventType
+  case object Event7 extends WithName("7") with EventType {
+    override val order = 6
+  }
 
-  case object Event8 extends WithName("8") with EventType
+  case object Event8 extends WithName("8") with EventType {
+    override val order = 7
+  }
 
-  case object Event8A extends WithName("8A") with EventType
+  case object Event8A extends WithName("8A") with EventType {
+    override val order = 8
+  }
 
-  case object Event10 extends WithName("10") with EventType
+  case object Event10 extends WithName("10") with EventType {
+    override val order = 9
+  }
 
-  case object Event11 extends WithName("11") with EventType
+  case object Event11 extends WithName("11") with EventType {
+    override val order = 10
+  }
 
-  case object Event12 extends WithName("12") with EventType
+  case object Event12 extends WithName("12") with EventType {
+    override val order = 11
+  }
 
-  case object Event13 extends WithName("13") with EventType
+  case object Event13 extends WithName("13") with EventType {
+    override val order = 12
+  }
 
-  case object Event14 extends WithName("14") with EventType
+  case object Event14 extends WithName("14") with EventType {
+    override val order = 13
+  }
 
-  case object Event18 extends WithName("18") with EventType
+  case object Event18 extends WithName("18") with EventType {
+    override val order = 14
+  }
 
-  case object Event19 extends WithName("19") with EventType
+  case object Event19 extends WithName("19") with EventType {
+    override val order = 15
+  }
 
-  case object Event20 extends WithName("20") with EventType
+  case object Event20 extends WithName("20") with EventType {
+    override val order = 16
+  }
 
-  case object Event20A extends WithName("20A") with EventType
+  case object Event20A extends WithName("20A") with EventType {
+    override val order = 17
+  }
 
-  case object Event22 extends WithName("22") with EventType
+  case object Event22 extends WithName("22") with EventType {
+    override val order = 18
+  }
 
-  case object Event23 extends WithName("23") with EventType
+  case object Event23 extends WithName("23") with EventType {
+    override val order = 19
+  }
 
-  case object Event24 extends WithName("24") with EventType
+  case object Event24 extends WithName("24") with EventType {
+    override val order = 20
+  }
 
   private val values: List[EventType] = List(WindUp, Event1, Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A,
     Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, Event20A, Event22, Event23, Event24)
