@@ -50,6 +50,34 @@ object EventSummary {
         JsSuccess(false)
     }
   }
+
+  private val readsFor1832: Reads[Boolean] = {
+    Reads {
+      case JsArray(eventDetails) =>
+        JsSuccess(
+          eventDetails.exists {
+            item =>
+              item \ "memberDetails" \ "eventType" match {
+                case JsDefined(JsString("Event2")) => true
+                case JsDefined(JsString("Event3")) => true
+                case JsDefined(JsString("Event4")) => true
+                case JsDefined(JsString("Event5")) => true
+                case JsDefined(JsString("Event6")) => true
+                case JsDefined(JsString("Event7")) => true
+                case JsDefined(JsString("Event8")) => true
+                case JsDefined(JsString("Event8A")) => true
+                case JsDefined(JsString("Event22")) => true
+                case JsDefined(JsString("Event23")) => true
+                case JsDefined(JsString("Event24")) => true
+                case _ => false
+              }
+          }
+        )
+      case e =>
+        JsError(s"Invalid json $e")
+    }
+  }
+
   implicit val rds: Reads[JsArray] = {
     val sortEventTypes: (String, String) => Boolean = (a, b) =>
       (a, b) match {
@@ -61,14 +89,14 @@ object EventSummary {
 
     def booleanToValue(b: Option[Boolean], v: EventType): Seq[String] = if (b.getOrElse(false)) Seq(v.toString) else Nil
     (
-      (JsPath \ "eventDetails" \ "event2").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
-      (JsPath \ "eventDetails" \ "event3").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
-      (JsPath \ "eventDetails" \ "event4").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
-      (JsPath \ "eventDetails" \ "event5").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
-      (JsPath \ "eventDetails" \ "event6").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
-      (JsPath \ "eventDetails" \ "event7").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
-      (JsPath \ "eventDetails" \ "event8").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
-      (JsPath \ "eventDetails" \ "event8A").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
+      (JsPath \ "eventDetails").readNullable[Boolean](readsFor1832) and
+      (JsPath \ "eventDetails").readNullable[Boolean](readsFor1832) and
+      (JsPath \ "eventDetails").readNullable[Boolean](readsFor1832) and
+      (JsPath \ "eventDetails").readNullable[Boolean](readsFor1832) and
+      (JsPath \ "eventDetails").readNullable[Boolean](readsFor1832) and
+      (JsPath \ "eventDetails").readNullable[Boolean](readsFor1832) and
+      (JsPath \ "eventDetails").readNullable[Boolean](readsFor1832) and
+      (JsPath \ "eventDetails").readNullable[Boolean](readsFor1832) and
       (JsPath \ "eventDetails" \ "event10").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
       (JsPath \ "eventDetails" \ "event11" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) and
       (JsPath \ "eventDetails" \ "event12" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) and
@@ -77,9 +105,9 @@ object EventSummary {
       (JsPath \ "eventDetails" \ "event18" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) and
       (JsPath \ "eventDetails" \ "event19").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
       (JsPath \ "eventDetails" \ "event20").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
-      (JsPath \ "eventDetails" \ "event22").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
-      (JsPath \ "eventDetails" \ "event23").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
-      (JsPath \ "eventDetails" \ "event24").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
+      (JsPath \ "eventDetails").readNullable[Boolean](readsFor1832) and
+      (JsPath \ "eventDetails").readNullable[Boolean](readsFor1832) and
+        (JsPath \ "eventDetails").readNullable[Boolean](readsFor1832) and // 24
       (JsPath \ "eventDetails" \ "eventWindUp" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent)
       ) (
       (event2, event3, event4, event5, event6, event7, event8, event8A, event10, event11,

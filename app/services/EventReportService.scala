@@ -124,7 +124,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
             throw JsResultException(errors)
         }
       }
-      y // .fold((x, y) => x . y)
+      y.reduce((x,y) => x.++(y))
     }
     x
   }
