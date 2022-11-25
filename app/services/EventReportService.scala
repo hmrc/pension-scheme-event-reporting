@@ -108,17 +108,21 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   }
 
   def getEventSummary(pstr: String, version: String, startDate: String)
-                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
+                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Seq[Future[JsArray]] = {
+
     for {
       etmpJson <- eventReportConnector.getEventSummary(pstr, startDate, version)
     } yield {
-      etmpJson.transform(EventSummary.rds) match {
-        case JsSuccess(seqOfEventTypes, _) =>
-          seqOfEventTypes
-        case JsError(errors) =>
-          throw JsResultException(errors)
+      etmpJson.map { test =>
+        test.transform(EventSummary.rds) match {
+          case JsSuccess(seqOfEventTypes, _) =>
+            seqOfEventTypes
+          case JsError(errors) =>
+            throw JsResultException(errors)
+        }
       }
     }
+
   }
 
   def saveUserAnswers(pstr: String, eventType: EventType, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {

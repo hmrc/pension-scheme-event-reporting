@@ -164,10 +164,7 @@ class EventReportConnector @Inject()(
   }
 
   def getEventSummary(pstr: String, version: String, startDate: String)
-              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-
-    val apiToCall = "1834"
-    val apiUrl: String = s"${config.getApiUrlByApiNum(apiToCall).format(pstr)}"
+                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Seq[Future[JsValue]] = {
 
     val fullHeaders = integrationFrameworkHeader ++
       Seq(
@@ -175,13 +172,23 @@ class EventReportConnector @Inject()(
         "reportVersionNumber" -> version
       )
 
-    logger.debug(s"Get $apiToCall (IF) called - URL: $apiUrl with headers: $fullHeaders")
+    val apisToCall: List[String] = List("1832", "1834")
 
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
-    http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
-      response.status match {
-        case OK => response.json
-        case _ => handleErrorResponse("GET", apiUrl)(response)
+    val apiUrls: List[String] = for {
+      api <- apisToCall
+    } yield {
+      s"${config.getApiUrlByApiNum(api).format(pstr)}"
+    }
+
+    for {
+      url <- apiUrls
+    } yield {
+      implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
+      http.GET[HttpResponse](url)(implicitly, hc, implicitly).map { response =>
+        response.status match {
+          case OK => response.json
+          case _ => handleErrorResponse("GET", url)(response)
+        }
       }
     }
   }

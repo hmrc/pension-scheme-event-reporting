@@ -89,7 +89,7 @@ class EventReportController @Inject()(
       withAuthAndGetEventParameters { (pstr, startDate, version, eventType) =>
         EventType.getEventType(eventType) match {
           case Some(et) =>
-            eventReportService.getEvent(pstr, startDate, version, et).map{
+            eventReportService.getEvent(pstr, startDate, version, et).map {
               case Some(ee) => Ok(ee)
               case _ => NotFound
             }
@@ -101,7 +101,17 @@ class EventReportController @Inject()(
   def getEventSummary: Action[AnyContent] = Action.async {
     implicit request =>
       withAuthAndSummaryParameters { (pstr, version, startDate) =>
-        eventReportService.getEventSummary(pstr, version, startDate).map(Ok(_))
+
+
+        val results = eventReportService.getEventSummary(pstr, version, startDate)
+
+        val x = for {
+          result <- results
+        } yield {
+          result.map(Ok(_))
+        }.collect(_ => _)
+
+        x
       }
   }
 
