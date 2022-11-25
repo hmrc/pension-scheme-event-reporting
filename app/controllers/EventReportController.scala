@@ -101,17 +101,12 @@ class EventReportController @Inject()(
   def getEventSummary: Action[AnyContent] = Action.async {
     implicit request =>
       withAuthAndSummaryParameters { (pstr, version, startDate) =>
-
-
-        val results = eventReportService.getEventSummary(pstr, version, startDate)
-
         val x = for {
-          result <- results
+          result <- eventReportService.getEventSummary(pstr, version, startDate)
         } yield {
           result.map(Ok(_))
-        }.collect(_ => _)
-
-        x
+        }
+        x.head // We need to collect these into one response and return that.
       }
   }
 
