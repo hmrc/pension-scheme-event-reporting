@@ -82,7 +82,6 @@ object EventSummary {
     apiNumAsStr match {
       case "1832" => rdsFor1832
       case "1834" => rdsFor1834
-      case _ => throw new Exception(s"No rds implemented for api${apiNumAsStr}")
     }
   }
 
