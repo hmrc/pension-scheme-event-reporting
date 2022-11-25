@@ -71,39 +71,11 @@ class API1826Spec extends AnyFreeSpec with Matchers
 
     "must not transform an event that is not present" in {
       val userAnswers: JsObject = {
-        Json.obj(
-          "schemeWindUpDate" -> "1991-11-22"
-        )
-      }
-      val expected = {
-        Json.obj(
-          "eventReportDetails" -> Json.obj(
-            "reportStartDate" -> "2020-09-01",
-            "reportEndDate" -> "2020-09-01"
-          ),
-          "eventDetails" -> Json.obj(
-            "eventWindUp" -> Json.obj(
-              "dateOfWindUp" -> "1991-11-22"
-            )
-          )
-        )
+        Json.obj()
       }
       val result = userAnswers.validate(API1826.transformToETMPData)
-      result.asOpt.flatten mustBe Some(expected)
+      result.asOpt.flatten mustBe None
     }
-
-//    "must not transform an event that is not present" in {
-//      val userAnswers: JsObject = {
-//        Json.obj(
-//          "schemeWindUpDate" -> ""
-//        )
-//      }
-//      val expected = {
-//        Json.obj()
-//      }
-//      val result = userAnswers.validate(API1826.transformToETMPData)
-//      result.asOpt.flatten mustBe Some(expected)
-//    }
   }
 }
 
