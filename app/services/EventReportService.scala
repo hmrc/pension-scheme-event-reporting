@@ -110,32 +110,25 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def getEventSummary(pstr: String, version: String, startDate: String)
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
-    val future1832 = eventReportConnector.getEventSummaryForApi(pstr, startDate, version, "1832")
-    val transformedFuture1832 = future1832.map { etmpJson =>
-      etmpJson.transform(EventSummary.rdsFor1832) match {
-        case JsSuccess(seqOfEventTypes, _) =>
-          seqOfEventTypes
-        case JsError(errors) =>
-          throw JsResultException(errors)
+    val apiNums = List("1832", "1834")
+
+    val transformedFutures = for {
+      api <- apiNums
+    } yield {
+      val futureJsValue = eventReportConnector.getEventSummaryForApi(pstr, startDate, version, api)
+      futureJsValue.map { etmpJson =>
+        etmpJson.transform(EventSummary.rdsForApi(api)) match {
+          case JsSuccess(seqOfEventTypes, _) =>
+            seqOfEventTypes
+          case JsError(errors) =>
+            throw JsResultException(errors)
+        }
       }
     }
 
-
-    val future1834 = eventReportConnector.getEventSummaryForApi(pstr, startDate, version, "1834")
-    val transformedFuture1834 = future1834.map { etmpJson =>
-      etmpJson.transform(EventSummary.rdsFor1834) match {
-        case JsSuccess(seqOfEventTypes, _) =>
-          seqOfEventTypes
-        case JsError(errors) =>
-          throw JsResultException(errors)
-      }
-    }
-
-    val listOfFutures = List(transformedFuture1832, transformedFuture1834)
-
-    Future.sequence(listOfFutures).map { listOfJsValues =>
-      val t = listOfJsValues.reduce((x, y) => x.++(y))
-      JsArray(t.value.sortWith(sortEventTypes))
+    Future.sequence(transformedFutures).map { listOfJsArrays =>
+      val combinedJsArray = listOfJsArrays.reduce((jsArrayA, jsArrayB) => jsArrayA.++(jsArrayB))
+      JsArray(combinedJsArray.value.sortWith(sortEventTypes))
     }
   }
 

@@ -78,6 +78,14 @@ object EventSummary {
     }
   }
 
+  def rdsForApi(apiNumAsStr: String): Reads[JsArray] = {
+    apiNumAsStr match {
+      case "1832" => rdsFor1832
+      case "1834" => rdsFor1834
+      case _ => throw new Exception(s"No rds implemented for api${apiNumAsStr}")
+    }
+  }
+
   implicit val rdsFor1832: Reads[JsArray] = {
 
     def booleanToValue(b: Option[Boolean], v: EventType): Seq[String] = if (b.getOrElse(false)) Seq(v.toString) else Nil
