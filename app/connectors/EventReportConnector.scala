@@ -19,7 +19,7 @@ package connectors
 import com.google.inject.Inject
 import config.AppConfig
 import models.enumeration.ApiType.Api1832
-import models.enumeration.EventType
+import models.enumeration.{ApiType, EventType}
 import models.enumeration.EventType.getApiTypeByEventType
 import models.{EROverview, ERVersion}
 import play.api.Logging
@@ -160,10 +160,9 @@ class EventReportConnector @Inject()(
         }
       case _ => Future.successful(None)
     }
-
   }
 
-  def getEventSummaryForApi(pstr: String, version: String, startDate: String, apiNumAsString: String)
+  def getEventSummaryForApi(pstr: String, version: String, startDate: String, apiType: ApiType)
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
 
     val fullHeaders = integrationFrameworkHeader ++
@@ -172,7 +171,7 @@ class EventReportConnector @Inject()(
         "reportVersionNumber" -> version
       )
 
-    val url = s"${config.getApiUrlByApiNum(apiNumAsString).format(pstr)}"
+    val url = s"${config.getApiUrlByApiNum(apiType.toString).format(pstr)}"
 
       implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
       http.GET[HttpResponse](url)(implicitly, hc, implicitly).map { response =>

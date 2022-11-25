@@ -28,7 +28,7 @@ import play.api.libs.json._
 import play.api.mvc.Result
 import play.api.mvc.Results._
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
-import transformations.ETMPToFrontEnd.EventSummary
+import transformations.ETMPToFrontEnd.EventSummary.{rdsFor1832, rdsFor1834}
 import transformations.UserAnswersToETMP.{API1826, API1827, API1830}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
@@ -45,6 +45,14 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private final val SchemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
   private final val SchemaPath1830 = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
+
+  val sortEventTypes: (JsValue, JsValue) => Boolean = (a, b) =>
+    (a, b) match {
+      case (JsString("0"), _) => false
+      case (_, JsString("0")) => true
+      case (a: JsString, b: JsString) if EventType.getEventType(a.value).get.order < EventType.getEventType(b.value).get.order => true
+      case _ => false
+    }
 
   private case class APIProcessingInfo(apiType: ApiType,
                                        readsForTransformation: Reads[Option[JsObject]],
@@ -110,14 +118,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def getEventSummary(pstr: String, version: String, startDate: String)
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
-    val apiNums = List("1832", "1834")
-
     val transformedFutures = for {
-      api <- apiNums
+      apiReadPairs <- Map(Api1832 -> rdsFor1832, Api1834 -> rdsFor1834)
     } yield {
-      val futureJsValue = eventReportConnector.getEventSummaryForApi(pstr, startDate, version, api)
+      val futureJsValue = eventReportConnector.getEventSummaryForApi(pstr, startDate, version, apiReadPairs._1)
       futureJsValue.map { etmpJson =>
-        etmpJson.transform(EventSummary.rdsForApi(api)) match {
+        etmpJson.transform(apiReadPairs._2) match {
           case JsSuccess(seqOfEventTypes, _) =>
             seqOfEventTypes
           case JsError(errors) =>
@@ -127,18 +133,10 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
 
     Future.sequence(transformedFutures).map { listOfJsArrays =>
-      val combinedJsArray = listOfJsArrays.reduce((jsArrayA, jsArrayB) => jsArrayA.++(jsArrayB))
+      val combinedJsArray = listOfJsArrays.reduce((jsArrayA, jsArrayB) => jsArrayA ++ jsArrayB)
       JsArray(combinedJsArray.value.sortWith(sortEventTypes))
     }
   }
-
-  val sortEventTypes: (JsValue, JsValue) => Boolean = (a, b) =>
-    (a, b) match {
-      case (JsString("0"), _) => false
-      case (_, JsString("0")) => true
-      case (a: JsString, b: JsString) if EventType.getEventType(a.value).get.order < EventType.getEventType(b.value).get.order => true
-      case _ => false
-    }
 
   def saveUserAnswers(pstr: String, eventType: EventType, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     EventType.postApiTypeByEventType(eventType) match {

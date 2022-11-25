@@ -23,7 +23,10 @@ import play.api.libs.json._
 
 object EventSummary {
 
-  private val FieldNameRecordVersion = "recordVersion"
+  private val fieldNameRecordVersion = "recordVersion"
+  private val eventTypeListForReads1832 = List(
+    "Event2", "Event3", "Event4", "Event5", "Event6", "Event7",
+    "Event8", "Event8A", "Event22", "Event23", "Event24")
 
   private val readsIsEventTypePresentFromSeq: Reads[Boolean] = {
     Reads {
@@ -31,7 +34,7 @@ object EventSummary {
         JsSuccess(
           eventDetails.exists {
             item =>
-              item \ FieldNameRecordVersion match {
+              item \ fieldNameRecordVersion match {
                 case JsDefined(JsString("001")) => true
                 case _ => false
               }
@@ -58,17 +61,7 @@ object EventSummary {
           eventDetails.exists {
             item =>
               item \ "memberDetails" \ "eventType" match {
-                case JsDefined(JsString("Event2")) => true
-                case JsDefined(JsString("Event3")) => true
-                case JsDefined(JsString("Event4")) => true
-                case JsDefined(JsString("Event5")) => true
-                case JsDefined(JsString("Event6")) => true
-                case JsDefined(JsString("Event7")) => true
-                case JsDefined(JsString("Event8")) => true
-                case JsDefined(JsString("Event8A")) => true
-                case JsDefined(JsString("Event22")) => true
-                case JsDefined(JsString("Event23")) => true
-                case JsDefined(JsString("Event24")) => true
+                case JsDefined(JsString(x)) => eventTypeListForReads1832.contains(x)
                 case _ => false
               }
           }
@@ -78,17 +71,7 @@ object EventSummary {
     }
   }
 
-  def rdsForApi(apiNumAsStr: String): Reads[JsArray] = {
-    apiNumAsStr match {
-      case "1832" => rdsFor1832
-      case "1834" => rdsFor1834
-    }
-  }
-
   implicit val rdsFor1832: Reads[JsArray] = {
-
-    def booleanToValue(b: Option[Boolean], v: EventType): Seq[String] = if (b.getOrElse(false)) Seq(v.toString) else Nil
-
 
     (
       (JsPath \ "success" \ "eventDetails").readNullable[Boolean](readsFor1832) and
@@ -123,8 +106,6 @@ object EventSummary {
 
   implicit val rdsFor1834: Reads[JsArray] = {
 
-    def booleanToValue(b: Option[Boolean], v: EventType): Seq[String] = if (b.getOrElse(false)) Seq(v.toString) else Nil
-
     (
       (JsPath \ "eventDetails" \ "event10").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
         (JsPath \ "eventDetails" \ "event11" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) and
@@ -151,5 +132,8 @@ object EventSummary {
       }
     )
   }
+
+  def booleanToValue(b: Option[Boolean], v: EventType): Seq[String] = if (b.getOrElse(false)) Seq(v.toString) else Nil
+
 }
 
