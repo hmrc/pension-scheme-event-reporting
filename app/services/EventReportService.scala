@@ -143,7 +143,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     (a, b) match {
       case (JsString("0"), _) => false
       case (_, JsString("0")) => true
-      case (a, b) if EventType.getEventType(a.toString()).get.order < EventType.getEventType(b.toString()).get.order => true
+      case (a: JsString, b: JsString) if EventType.getEventType(a.value).get.order < EventType.getEventType(b.value).get.order => true
       case _ => false
     }
 
