@@ -18,7 +18,7 @@ package connectors
 
 import com.google.inject.Inject
 import config.AppConfig
-import models.enumeration.ApiType.Api1832
+import models.enumeration.ApiType.{Api1832, Api1834}
 import models.enumeration.{ApiType, EventType}
 import models.enumeration.EventType.getApiTypeByEventType
 import models.{EROverview, ERVersion}
@@ -28,6 +28,7 @@ import play.api.libs.json._
 import uk.gov.hmrc.http.{HttpClient, _}
 import utils.HttpResponseHelper
 
+import scala.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
 class EventReportConnector @Inject()(
@@ -133,53 +134,42 @@ class EventReportConnector @Inject()(
       }
     }
   }
-
-  def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
+  
+  def getEvent(pstr: String, startDate: String, version: String, eventType: Option[EventType] = None)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsValue]] = {
-    getApiTypeByEventType(eventType) match {
-      case Some(apiType) =>
-        val apiToCall = apiType.toString
-        val apiUrl: String = s"${config.getApiUrlByApiNum(apiToCall).format(pstr)}"
 
-        val eventTypeParam = if (apiType == Api1832) Seq("eventType" -> s"Event${eventType.toString}") else Seq.empty
-        val fullHeaders = integrationFrameworkHeader ++
-          eventTypeParam ++
-          Seq(
-            "reportStartDate" -> startDate,
-            "reportVersionNumber" -> version
-          )
-
-        logger.debug(s"Get $apiToCall (IF) called - URL: $apiUrl with headers: $fullHeaders")
-
-        implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
-        http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
-          response.status match {
-            case OK => Some(response.json)
-            case _ => handleErrorResponse("GET", apiUrl)(response)
-          }
-        }
-      case _ => Future.successful(None)
-    }
-  }
-
-  def getEventSummaryForApi(pstr: String, version: String, startDate: String, apiType: ApiType)
-                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-
-    val fullHeaders = integrationFrameworkHeader ++
+    val headers = integrationFrameworkHeader ++
       Seq(
         "reportStartDate" -> startDate,
         "reportVersionNumber" -> version
       )
 
-    val url = s"${config.getApiUrlByApiNum(apiType.toString).format(pstr)}"
+    def getForApi(headers: Seq[(String, String)], api: ApiType): Future[Some[JsValue]] = {
 
-      implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = fullHeaders: _*)
-      http.GET[HttpResponse](url)(implicitly, hc, implicitly).map { response =>
+      if (api != Api1834) headers ++ Seq("eventType" -> s"Event${eventType.toString}")
+      val apiUrl: String = s"${config.getApiUrlByApiNum(api.toString).format(pstr)}"
+
+      implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = headers: _*)
+      logger.debug(s"Get $api.toString (IF) called - URL: $apiUrl with headers: $headers")
+
+      http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
         response.status match {
-          case OK => response.json
-          case _ => handleErrorResponse("GET", url)(response)
+          case OK => Some(response.json)
+          case _ => handleErrorResponse("GET", apiUrl)(response)
         }
       }
+    }
+
+    eventType match {
+      case Some(et) =>
+        getApiTypeByEventType(et) match {
+          case Some(api) =>
+            getForApi(headers, api)
+          case None =>
+            Future.successful(None)
+        }
+      case _ => getForApi(headers, Api1834)
+    }
   }
 
   def submitEventDeclarationReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {

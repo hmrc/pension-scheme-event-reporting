@@ -112,28 +112,35 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsValue]] = {
-    eventReportConnector.getEvent(pstr, startDate, version, eventType)
+    eventReportConnector.getEvent(pstr, startDate, version, Some(eventType))
   }
 
   def getEventSummary(pstr: String, version: String, startDate: String)
-                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
+                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray]= {
 
     val transformedFutures = for {
-      apiReadPairs <- Map(Api1832 -> rdsFor1832, Api1834 -> rdsFor1834)
+      eventTypeReadPairs <-
+        Map(
+          Some(EventType.Event22) /* Change to list for 1832*/ -> rdsFor1832, // TODO: Consider making all Some(Ev) for the same API183X come from a list or something.
+          Some(EventType.Event23) /* Change to list for 1832*/ -> rdsFor1832,
+          None -> rdsFor1834
+      )
     } yield {
-      val futureJsValue = eventReportConnector.getEventSummaryForApi(pstr, startDate, version, apiReadPairs._1)
-      futureJsValue.map { etmpJson =>
-        etmpJson.transform(apiReadPairs._2) match {
-          case JsSuccess(seqOfEventTypes, _) =>
-            seqOfEventTypes
-          case JsError(errors) =>
-            throw JsResultException(errors)
+      val futureOptJsValue = eventReportConnector.getEvent(pstr, startDate, version, eventTypeReadPairs._1)
+      futureOptJsValue.map { optEtmpJson =>
+        optEtmpJson.map { etmpJson =>
+          etmpJson.transform(eventTypeReadPairs._2) match {
+            case JsSuccess(seqOfEventTypes, _) =>
+              seqOfEventTypes
+            case JsError(errors) =>
+              throw JsResultException(errors)
+          }
         }
       }
     }
 
     Future.sequence(transformedFutures).map { listOfJsArrays =>
-      val combinedJsArray = listOfJsArrays.reduce((jsArrayA, jsArrayB) => jsArrayA ++ jsArrayB)
+      val combinedJsArray = listOfJsArrays.flatten.reduce((jsArrayA, jsArrayB) => jsArrayA ++ jsArrayB)
       JsArray(combinedJsArray.value.sortWith(sortEventTypes))
     }
   }
