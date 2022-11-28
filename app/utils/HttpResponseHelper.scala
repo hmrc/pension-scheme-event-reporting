@@ -17,8 +17,8 @@
 package utils
 
 import play.api.Logger
-import uk.gov.hmrc.http._
 import play.api.http.Status._
+import uk.gov.hmrc.http._
 
 trait HttpResponseHelper extends HttpErrorFunctions {
 

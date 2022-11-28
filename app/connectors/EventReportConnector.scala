@@ -18,9 +18,9 @@ package connectors
 
 import com.google.inject.Inject
 import config.AppConfig
-import models.enumeration.ApiType.{Api1832, Api1834}
-import models.enumeration.{ApiType, EventType}
+import models.enumeration.ApiType.Api1834
 import models.enumeration.EventType.getApiTypeByEventType
+import models.enumeration.{ApiType, EventType}
 import models.{EROverview, ERVersion}
 import play.api.Logging
 import play.api.http.Status._
@@ -28,7 +28,6 @@ import play.api.libs.json._
 import uk.gov.hmrc.http.{HttpClient, _}
 import utils.HttpResponseHelper
 
-import scala.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
 class EventReportConnector @Inject()(
@@ -134,7 +133,7 @@ class EventReportConnector @Inject()(
       }
     }
   }
-  
+
   def getEvent(pstr: String, startDate: String, version: String, eventType: Option[EventType] = None)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsValue]] = {
 
