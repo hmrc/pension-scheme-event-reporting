@@ -21,6 +21,8 @@ import models.enumeration.EventType._
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 
+import scala.language.implicitConversions
+
 
 object EventSummary {
 
@@ -52,9 +54,9 @@ object EventSummary {
     }
   }
 
-  implicit val rdsFor1832: Reads[JsArray] = {
+  implicit def rdsFor1832(eventType: EventType): Reads[JsArray] = {
     (JsPath \ "eventReportDetails" \ "eventType").readNullable[String] map {
-      case Some(c) => JsArray(Seq(JsString(c)))
+      case Some(c) => JsArray(Seq(JsString(eventType.toString)))
       case _ => JsArray(Seq.empty)
     }
   }

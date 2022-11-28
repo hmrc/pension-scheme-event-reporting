@@ -121,8 +121,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     val transformedFutures = for {
       eventTypeReadPairs <-
         Map(
-          Some(EventType.Event22) -> rdsFor1832,
-          Some(EventType.Event23) -> rdsFor1832,
+          Some(EventType.Event22) -> rdsFor1832(EventType.Event22),
+          Some(EventType.Event23) -> rdsFor1832(EventType.Event23),
           None -> rdsFor1834
         )
     } yield {

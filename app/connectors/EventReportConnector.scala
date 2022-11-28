@@ -136,38 +136,38 @@ class EventReportConnector @Inject()(
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: Option[EventType] = None)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsValue]] = {
-
     val headers = integrationFrameworkHeader ++
       Seq(
         "reportStartDate" -> startDate,
         "reportVersionNumber" -> version
       )
 
-    def getForApi(headers: Seq[(String, String)], api: ApiType): Future[Some[JsValue]] = {
-
-      val finalHeaders = if (api != Api1834) headers ++ Seq("eventType" -> s"Event${eventType.get.toString}") else headers
-      val apiUrl: String = s"${config.getApiUrlByApiNum(api.toString).format(pstr)}"
-
-      implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = finalHeaders: _*)
-      logger.debug(s"Get $api.toString (IF) called - URL: $apiUrl with headers: $finalHeaders")
-
-      http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
-        response.status match {
-          case OK => Some(response.json)
-          case _ => handleErrorResponse("GET", apiUrl)(response)
-        }
-      }
-    }
-
     eventType match {
       case Some(et) =>
         getApiTypeByEventType(et) match {
           case Some(api) =>
-            getForApi(headers, api)
+            val finalHeaders: Seq[(String, String)] = headers ++ Seq("eventType" -> s"Event${et.toString}")
+            getForApi(finalHeaders, pstr, startDate, version, api)
           case None =>
             Future.successful(None)
         }
-      case _ => getForApi(headers, Api1834)
+      case _ => getForApi(headers, pstr, startDate, version, Api1834)
+    }
+  }
+
+  private def getForApi(headers: Seq[(String, String)], pstr: String, startDate: String, version: String, api: ApiType)
+                       (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Some[JsValue]] = {
+
+    val apiUrl: String = s"${config.getApiUrlByApiNum(api.toString).format(pstr)}"
+
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = headers: _*)
+    logger.debug(s"Get $api.toString (IF) called - URL: $apiUrl with headers: $headers")
+
+    http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
+      response.status match {
+        case OK => Some(response.json)
+        case _ => handleErrorResponse("GET", apiUrl)(response)
+      }
     }
   }
 
