@@ -21,12 +21,10 @@ import models.enumeration.EventType._
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 
+
 object EventSummary {
 
   private val fieldNameRecordVersion = "recordVersion"
-  private val eventTypeListForReads1832 = List(
-    "Event2", "Event3", "Event4", "Event5", "Event6", "Event7",
-    "Event8", "Event8A", "Event22", "Event23", "Event24")
 
   private val readsIsEventTypePresentFromSeq: Reads[Boolean] = {
     Reads {
@@ -54,54 +52,11 @@ object EventSummary {
     }
   }
 
-  private val readsFor1832: Reads[Boolean] = {
-    Reads {
-      case JsArray(eventDetails) =>
-        JsSuccess(
-          eventDetails.exists {
-            item =>
-              item \ "memberDetails" \ "eventType" match {
-                case JsDefined(JsString(x)) => eventTypeListForReads1832.contains(x)
-                case _ => false
-              }
-          }
-        )
-      case e =>
-        JsError(s"Invalid json $e")
-    }
-  }
-
   implicit val rdsFor1832: Reads[JsArray] = {
-
-    (
-      (JsPath \ "success" \ "eventDetails").readNullable[Boolean](readsFor1832) and
-        (JsPath \ "success" \ "eventDetails").readNullable[Boolean](readsFor1832) and
-        (JsPath \ "success" \ "eventDetails").readNullable[Boolean](readsFor1832) and
-        (JsPath \ "success" \ "eventDetails").readNullable[Boolean](readsFor1832) and
-        (JsPath \ "success" \ "eventDetails").readNullable[Boolean](readsFor1832) and
-        (JsPath \ "success" \ "eventDetails").readNullable[Boolean](readsFor1832) and
-        (JsPath \ "success" \ "eventDetails").readNullable[Boolean](readsFor1832) and
-        (JsPath \ "success" \ "eventDetails").readNullable[Boolean](readsFor1832) and
-        (JsPath \ "success" \ "eventDetails").readNullable[Boolean](readsFor1832) and
-        (JsPath \ "success" \ "eventDetails").readNullable[Boolean](readsFor1832) and
-        (JsPath \ "success" \ "eventDetails").readNullable[Boolean](readsFor1832)
-      ) (
-      (event2, event3, event4, event5, event6, event7, event8, event8A, event22, event23, event24) => {
-        val seqJsString =
-          booleanToValue(event2, Event2) ++
-            booleanToValue(event3, Event3) ++
-            booleanToValue(event4, Event4) ++
-            booleanToValue(event5, Event5) ++
-            booleanToValue(event6, Event6) ++
-            booleanToValue(event7, Event7) ++
-            booleanToValue(event8, Event8) ++
-            booleanToValue(event8A, Event8A) ++
-            booleanToValue(event22, Event22) ++
-            booleanToValue(event23, Event23) ++
-            booleanToValue(event24, Event24)
-        JsArray(seqJsString.map(JsString))
-      }
-    )
+    (JsPath \ "eventReportDetails" \ "eventType").readNullable[String] map {
+      case Some(c) => JsArray(Seq(JsString(c)))
+      case _ => JsArray(Seq.empty)
+    }
   }
 
   implicit val rdsFor1834: Reads[JsArray] = {

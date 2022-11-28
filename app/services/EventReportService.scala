@@ -116,15 +116,15 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   }
 
   def getEventSummary(pstr: String, version: String, startDate: String)
-                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray]= {
+                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
     val transformedFutures = for {
       eventTypeReadPairs <-
         Map(
-          Some(EventType.Event22) /* Change to list for 1832*/ -> rdsFor1832, // TODO: Consider making all Some(Ev) for the same API183X come from a list or something.
-          Some(EventType.Event23) /* Change to list for 1832*/ -> rdsFor1832,
+          Some(EventType.Event22) -> rdsFor1832,
+          Some(EventType.Event23) -> rdsFor1832,
           None -> rdsFor1834
-      )
+        )
     } yield {
       val futureOptJsValue = eventReportConnector.getEvent(pstr, startDate, version, eventTypeReadPairs._1)
       futureOptJsValue.map { optEtmpJson =>

@@ -145,11 +145,11 @@ class EventReportConnector @Inject()(
 
     def getForApi(headers: Seq[(String, String)], api: ApiType): Future[Some[JsValue]] = {
 
-      if (api != Api1834) headers ++ Seq("eventType" -> s"Event${eventType.toString}")
+      val finalHeaders = if (api != Api1834) headers ++ Seq("eventType" -> s"Event${eventType.toString}") else headers
       val apiUrl: String = s"${config.getApiUrlByApiNum(api.toString).format(pstr)}"
 
-      implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = headers: _*)
-      logger.debug(s"Get $api.toString (IF) called - URL: $apiUrl with headers: $headers")
+      implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = finalHeaders: _*)
+      logger.debug(s"Get $api.toString (IF) called - URL: $apiUrl with headers: $finalHeaders")
 
       http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
         response.status match {
