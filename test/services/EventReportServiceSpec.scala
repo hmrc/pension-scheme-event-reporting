@@ -284,11 +284,11 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
   "getEventSummary" must {
     "return the payload from the connector for Api1834" in {
-      val responseJson = JsArray()
-      when(mockEventReportConnector.getEventSummary(any(), any(), any())(any(), any()))
+      val responseJson = Some(JsArray())
+      when(mockEventReportConnector.getEvent(any(), any(), any(), any())(any(), any()))
         .thenReturn(Future.successful(responseJson))
       eventReportService.getEventSummary(pstr, version, startDate).map { result =>
-        result mustBe responseJson
+        result mustBe responseJson.get
       }
     }
   }
