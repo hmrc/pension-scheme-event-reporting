@@ -111,12 +111,11 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
     val transformedFutures = for {
-      eventTypeReadPairs <-
-        Map(
-          Some(EventType.Event22) -> rdsFor1832(EventType.Event22),
-          Some(EventType.Event23) -> rdsFor1832(EventType.Event23),
-          None -> rdsFor1834
-        )
+      eventTypeReadPairs <- Map(
+        Some(EventType.Event22) -> rdsFor1832(EventType.Event22),
+        Some(EventType.Event23) -> rdsFor1832(EventType.Event23),
+        None -> rdsFor1834
+      )
     } yield {
       eventReportConnector.getEvent(pstr, startDate, version, eventTypeReadPairs._1).map { optEtmpJson =>
         optEtmpJson.map { etmpJson =>
