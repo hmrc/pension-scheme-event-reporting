@@ -46,14 +46,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   private final val SchemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
   private final val SchemaPath1830 = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
 
-  val sortEventTypes: (JsValue, JsValue) => Boolean = (a, b) =>
-    (a, b) match {
-      case (JsString("0"), _) => false
-      case (_, JsString("0")) => true
-      case (a: JsString, b: JsString) if EventType.getEventType(a.value).get.order < EventType.getEventType(b.value).get.order => true
-      case _ => false
-    }
-
   private case class APIProcessingInfo(apiType: ApiType,
                                        readsForTransformation: Reads[Option[JsObject]],
                                        schemaPath: String,
@@ -126,8 +118,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           None -> rdsFor1834
         )
     } yield {
-      val futureOptJsValue = eventReportConnector.getEvent(pstr, startDate, version, eventTypeReadPairs._1)
-      futureOptJsValue.map { optEtmpJson =>
+      eventReportConnector.getEvent(pstr, startDate, version, eventTypeReadPairs._1).map { optEtmpJson =>
         optEtmpJson.map { etmpJson =>
           etmpJson.transform(eventTypeReadPairs._2) match {
             case JsSuccess(seqOfEventTypes, _) =>
@@ -185,4 +176,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
     eventReportConnector.submitEvent20ADeclarationReport(pstr, data).map(_.json)
   }
+
+  private val sortEventTypes: (JsValue, JsValue) => Boolean = (a, b) =>
+    (a, b) match {
+      case (JsString("0"), _) => false
+      case (_, JsString("0")) => true
+      case (a: JsString, b: JsString) if EventType.getEventType(a.value).get.order < EventType.getEventType(b.value).get.order => true
+      case _ => false
+    }
 }
