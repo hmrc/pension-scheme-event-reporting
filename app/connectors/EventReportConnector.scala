@@ -156,7 +156,7 @@ class EventReportConnector @Inject()(
   }
 
   private def getForApi(headers: Seq[(String, String)], pstr: String, api: ApiType)
-                       (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Some[JsValue]] = {
+                       (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsValue]] = {
 
     val apiUrl: String = s"${config.getApiUrlByApiNum(api.toString).format(pstr)}"
 

@@ -31,7 +31,7 @@ import org.scalatest.wordspec.AsyncWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status.NO_CONTENT
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
-import play.api.libs.json.{JsArray, JsObject, Json}
+import play.api.libs.json._
 import play.api.test.Helpers._
 import play.api.{Application, inject}
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
@@ -243,13 +243,13 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
   "getEventSummary" must {
     "return the payload from the connector for API1832(Event22, Event23) and API1834" in {
-      val responseJson = Some(JsArray())
+      val responseJson = Some(JsArray(Seq("10", "11", "12", "13", "14", "18", "19", "20", "22", "23", "0").map(JsString)))
       when(mockEventReportConnector.getEvent(pstr, startDate, version, Some(EventType.Event22))(implicitly, implicitly))
-        .thenReturn(Future.successful(responseJson))
+        .thenReturn(Future.successful(responseJsonForAPI1832Event22))
       when(mockEventReportConnector.getEvent(pstr, startDate, version, Some(EventType.Event23))(implicitly, implicitly))
-        .thenReturn(Future.successful(responseJson))
+        .thenReturn(Future.successful(responseJsonForAPI1832Event23))
       when(mockEventReportConnector.getEvent(pstr, startDate, version, None)(implicitly, implicitly))
-        .thenReturn(Future.successful(responseJson))
+        .thenReturn(Future.successful(responseJsonForAPI1834))
       eventReportService.getEventSummary(pstr, version, startDate).map { result =>
         verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, version, Some(EventType.Event22))(implicitly, implicitly)
         verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, version, Some(EventType.Event23))(implicitly, implicitly)
@@ -269,7 +269,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Future.successful((): Unit))
       eventReportService.saveUserAnswers(pstr, EventType.Event3, payload)(implicitly).map { result =>
         verify(mockEventReportCacheRepository, times(1)).upsert(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(Api1830), any())(any())
-        result mustBe ()
+        result mustBe()
       }
     }
   }
@@ -410,6 +410,219 @@ object EventReportServiceSpec {
   private val submitEvent20ADeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345670811")
 
+  private val responseJsonForAPI1832Event22: Option[JsValue] = Some(Json.parse(
+    """
+      |{
+      |    "processingDate": "2023-12-15T12:30:46Z",
+      |    "schemeDetails": {
+      |        "pSTR": "87219363YN",
+      |        "schemeName": "Abc Ltd"
+      |    },
+      |    "eventReportDetails": {
+      |        "reportStartDate": "2021-04-06",
+      |        "reportEndDate": "2022-04-05",
+      |        "reportStatus": "Compiled",
+      |        "reportVersionNumber": "001",
+      |        "reportSubmittedDateAndTime": "2023-12-13T12:12:12Z",
+      |        "eventType": "Event22"
+      |    },
+      |    "eventDetails": [
+      |        {
+      |            "memberDetail": {
+      |                "memberStatus": "New",
+      |                "event": {
+      |                    "eventType": "Event22",
+      |                    "individualDetails": {
+      |                        "title": "Mr",
+      |                        "firstName": "John",
+      |                        "middleName": "A",
+      |                        "lastName": "Smith",
+      |                        "nino": "AA345678B"
+      |                    },
+      |                    "paymentDetails": {
+      |                        "monetaryAmount": 123.99,
+      |                        "taxYearEndingDate": "2021-05-30"
+      |                    }
+      |                }
+      |            }
+      |        }
+      |    ]
+      |}
+      |""".stripMargin))
+  private val responseJsonForAPI1832Event23: Option[JsValue] = Some(Json.parse(
+    """
+      |{
+      |    "processingDate": "2023-12-15T12:30:46Z",
+      |    "schemeDetails": {
+      |        "pSTR": "87219363YN",
+      |        "schemeName": "Abc Ltd"
+      |    },
+      |    "eventReportDetails": {
+      |        "reportStartDate": "2021-04-06",
+      |        "reportEndDate": "2022-04-05",
+      |        "reportStatus": "Compiled",
+      |        "reportVersionNumber": "001",
+      |        "reportSubmittedDateAndTime": "2023-12-13T12:12:12Z",
+      |        "eventType": "Event23"
+      |    },
+      |    "eventDetails": [
+      |        {
+      |            "memberDetail": {
+      |                "memberStatus": "New",
+      |                "event": {
+      |                    "eventType": "Event23",
+      |                    "individualDetails": {
+      |                        "title": "Mr",
+      |                        "firstName": "Xavier",
+      |                        "middleName": "Y",
+      |                        "lastName": "Ziegler",
+      |                        "nino": "AA345678B"
+      |                    },
+      |                    "paymentDetails": {
+      |                        "monetaryAmount": 17.38,
+      |                        "taxYearEndingDate": "2021-05-30"
+      |                    }
+      |                }
+      |            }
+      |        }
+      |    ]
+      |}
+      |""".stripMargin))
+  private val responseJsonForAPI1834: Option[JsValue] = Some(Json.parse(
+    """
+      |{
+      |    "schemeDetails": {
+      |        "pSTR": "87219363YN",
+      |        "schemeName": "Abc Ltd"
+      |    },
+      |    "eventReportDetails": {
+      |        "reportFormBundleNumber": "123456789012",
+      |        "reportStartDate": "2021-04-06",
+      |        "reportEndDate": "2022-04-05",
+      |        "reportStatus": "Compiled",
+      |        "reportVersionNumber": "001",
+      |        "reportSubmittedDateAndTime": "2023-12-13T12:12:12Z"
+      |    },
+      |    "eventDetails": {
+      |        "event10": [
+      |            {
+      |                "recordVersion": "001",
+      |                "invRegScheme": {
+      |                    "startDateDetails": {
+      |                        "startDateOfInvReg": "2022-01-31",
+      |                        "contractsOrPolicies": "Yes"
+      |                    }
+      |                }
+      |            }
+      |        ],
+      |        "event11": {
+      |            "recordVersion": "001",
+      |            "unauthorisedPmtsDate": "2022-01-31",
+      |            "contractsOrPoliciesDate": "2022-01-10"
+      |        },
+      |        "event12": {
+      |            "recordVersion": "001",
+      |            "twoOrMoreSchemesDate": "2022-01-02"
+      |        },
+      |        "event13": [
+      |            {
+      |                "recordVersion": "001",
+      |                "schemeStructure": "A single trust under which all of the assets are held for the benefit of all members of the scheme",
+      |                "dateOfChange": "2022-01-02"
+      |            }
+      |        ],
+      |        "event14": {
+      |            "recordVersion": "001",
+      |            "schemeMembers": "12 to 50"
+      |        },
+      |        "event18": {
+      |            "recordVersion": "001",
+      |            "chargeablePmt": "Yes"
+      |        },
+      |        "event19": [
+      |            {
+      |                "recordVersion": "001",
+      |                "countryCode": "GB",
+      |                "dateOfChange": "2022-01-14"
+      |            }
+      |        ],
+      |        "event20": [
+      |            {
+      |                "recordVersion": "001",
+      |                "occSchemeDetails": {
+      |                    "startDateOfOccScheme": "2022-01-27"
+      |                }
+      |            }
+      |        ],
+      |        "eventWindUp": {
+      |            "recordVersion": "001",
+      |            "dateOfWindUp": "2022-01-28"
+      |        }
+      |    },
+      |    "memberEventsSummary": {
+      |        "event2": {
+      |            "recordVersion": "001",
+      |            "numberOfMembers": 150000
+      |        },
+      |        "event3": {
+      |            "recordVersion": "002",
+      |            "numberOfMembers": 1000
+      |        },
+      |        "event4": {
+      |            "recordVersion": "001",
+      |            "numberOfMembers": 1000
+      |        },
+      |        "event5": {
+      |            "recordVersion": "004",
+      |            "numberOfMembers": 50000
+      |        },
+      |        "event6": {
+      |            "recordVersion": "007",
+      |            "numberOfMembers": 10000
+      |        },
+      |        "event7": {
+      |            "recordVersion": "002",
+      |            "numberOfMembers": 150000
+      |        },
+      |        "event8": {
+      |            "recordVersion": "004",
+      |            "numberOfMembers": 1500
+      |        },
+      |        "event8A": {
+      |            "recordVersion": "003",
+      |            "numberOfMembers": 150000
+      |        },
+      |        "event22": {
+      |            "recordVersion": "004",
+      |            "numberOfMembers": 10000
+      |        },
+      |        "event23": {
+      |            "recordVersion": "003",
+      |            "numberOfMembers": 150000
+      |        },
+      |        "event24": {
+      |            "recordVersion": "001",
+      |            "numberOfMembers": 150000
+      |        }
+      |    },
+      |    "event1ChargeDetails": {
+      |        "recordVersion": "002",
+      |        "numberOfMembers": 1000,
+      |        "sscCharge": {
+      |            "totalCharge": 10000.66,
+      |            "previousPostedCharge": 67000,
+      |            "deltaCharge": 8099.78,
+      |            "chargeReference": "0123456789012345"
+      |        },
+      |        "fcmtCharge": {
+      |            "totalCharge": 107889.66,
+      |            "previousPostedCharge": 123456,
+      |            "deltaCharge": 1299.78,
+      |            "chargeReference": "0123456789012677"
+      |        }
+      |    }
+      |}
+      |""".stripMargin))
 }
 
 
