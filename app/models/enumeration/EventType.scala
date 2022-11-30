@@ -110,6 +110,10 @@ object EventType extends Enumerable.Implicits {
     override val order = 20
   }
 
+  case object DummyForTest extends WithName("DummyForTest") with EventType {
+    override val order = -1
+  }
+
   private val values: List[EventType] = List(WindUp, Event1, Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A,
     Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, Event20A, Event22, Event23, Event24)
 
