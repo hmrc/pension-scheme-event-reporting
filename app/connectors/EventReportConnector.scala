@@ -147,15 +147,15 @@ class EventReportConnector @Inject()(
         getApiTypeByEventType(et) match {
           case Some(api) =>
             val finalHeaders: Seq[(String, String)] = headers ++ Seq("eventType" -> s"Event${et.toString}")
-            getForApi(finalHeaders, pstr, startDate, version, api)
+            getForApi(finalHeaders, pstr, api)
           case None =>
             Future.successful(None)
         }
-      case _ => getForApi(headers, pstr, startDate, version, Api1834)
+      case _ => getForApi(headers, pstr, Api1834)
     }
   }
 
-  private def getForApi(headers: Seq[(String, String)], pstr: String, startDate: String, version: String, api: ApiType)
+  private def getForApi(headers: Seq[(String, String)], pstr: String, api: ApiType)
                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Some[JsValue]] = {
 
     val apiUrl: String = s"${config.getApiUrlByApiNum(api.toString).format(pstr)}"
