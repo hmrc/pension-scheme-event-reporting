@@ -89,7 +89,7 @@ class EventReportController @Inject()(
       withAuthAndGetEventParameters { (pstr, startDate, version, eventType) =>
         EventType.getEventType(eventType) match {
           case Some(et) =>
-            eventReportService.getEvent(pstr, startDate, version, et).map{
+            eventReportService.getEvent(pstr, startDate, version, et).map {
               case Some(ee) => Ok(ee)
               case _ => NotFound
             }

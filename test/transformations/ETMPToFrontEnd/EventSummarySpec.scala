@@ -16,20 +16,21 @@
 
 package transformations.ETMPToFrontEnd
 
+import models.enumeration.EventType
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
-import play.api.libs.json.{JsArray, JsObject, JsString, Json}
-import utils.{GeneratorAPI1834, JsonFileReader}
+import play.api.libs.json._
+import utils.{GeneratorAPI1832, GeneratorAPI1834, JsonFileReader}
 
 class EventSummarySpec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader
-  with GeneratorAPI1834 with ScalaCheckPropertyChecks {
+  with GeneratorAPI1834 with GeneratorAPI1832 with ScalaCheckPropertyChecks {
 
   "Reads" - {
-    "transform a valid payload correctly when read from sample file" in {
+    "transform a valid payload correctly when read from sample file from API 1834" in {
       val json = readJsonFromFile("/api-1834-valid-example.json")
-      val result = json.validate(EventSummary.rds).asOpt
+      val result = json.validate(EventSummary.rdsFor1834).asOpt
 
       val expectedResult = Some(
         Json.arr("10", "11", "12", "13", "14", "19", "20", "0")
@@ -38,11 +39,31 @@ class EventSummarySpec extends AnyFreeSpec with Matchers with MockitoSugar with 
       result mustBe expectedResult
     }
 
-    "transform a randomly generated valid payload correctly" in {
-      forAll(generateGETResponseAndUserAnswers) {
+    "transform a valid payload correctly when read from sample file from API 1832" in {
+      val json = readJsonFromFile("/api-1832-valid-example.json")
+      val result = json.validate(EventSummary.rdsFor1832(EventType.Event22)).asOpt
+
+      val expectedResult = Some(
+        Json.arr("22")
+      )
+
+      result mustBe expectedResult
+    }
+
+    "transform a randomly generated API 1834 events valid payload correctly" in {
+      forAll(generateGET1834ResponseAndUserAnswers) {
         case (json: JsObject, eventTypes: Seq[String]) =>
-          val result = json.validate(EventSummary.rds).asOpt
+          val result = json.validate(EventSummary.rdsFor1834).asOpt
           val expectedResult = Some(JsArray(eventTypes.map(JsString)))
+          result mustBe expectedResult
+      }
+    }
+
+    "transform a randomly generated API 1832 event valid payload correctly" in {
+      forAll(generateGET1832ResponseAndUserAnswers) {
+        case (json: JsValue, eventType: EventType) =>
+          val result = json.validate(EventSummary.rdsFor1832(eventType)).asOpt
+          val expectedResult = Some(JsArray(Seq(JsString(eventType.toString))))
           result mustBe expectedResult
       }
     }

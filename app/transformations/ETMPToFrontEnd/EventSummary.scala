@@ -21,9 +21,12 @@ import models.enumeration.EventType._
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 
+import scala.language.implicitConversions
+
+
 object EventSummary {
 
-  private val FieldNameRecordVersion = "recordVersion"
+  private val fieldNameRecordVersion = "recordVersion"
 
   private val readsIsEventTypePresentFromSeq: Reads[Boolean] = {
     Reads {
@@ -31,7 +34,7 @@ object EventSummary {
         JsSuccess(
           eventDetails.exists {
             item =>
-              item \ FieldNameRecordVersion match {
+              item \ fieldNameRecordVersion match {
                 case JsDefined(JsString("001")) => true
                 case _ => false
               }
@@ -50,40 +53,44 @@ object EventSummary {
         JsSuccess(false)
     }
   }
-  implicit val rds: Reads[JsArray] = {
-    val sortEventTypes: (String, String) => Boolean = (a, b) =>
-      (a, b) match {
-        case ("0", _) => false
-        case (_, "0") => true
-        case (a, b) if a < b => true
-        case _ => false
-      }
 
-    def booleanToValue(b: Option[Boolean], v: EventType): Seq[String] = if (b.getOrElse(false)) Seq(v.toString) else Nil
+  implicit def rdsFor1832(eventType: EventType): Reads[JsArray] = {
+    (JsPath \ "eventReportDetails" \ "eventType").readNullable[String] map {
+      case Some(_) => JsArray(Seq(JsString(eventType.toString)))
+      case _ => JsArray(Seq.empty)
+    }
+  }
+
+  implicit val rdsFor1834: Reads[JsArray] = {
+
     (
       (JsPath \ "eventDetails" \ "event10").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
-      (JsPath \ "eventDetails" \ "event11" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) and
-      (JsPath \ "eventDetails" \ "event12" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) and
-      (JsPath \ "eventDetails" \ "event13").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
-      (JsPath \ "eventDetails" \ "event14" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) and
-      (JsPath \ "eventDetails" \ "event18" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) and
-      (JsPath \ "eventDetails" \ "event19").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
-      (JsPath \ "eventDetails" \ "event20").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
-      (JsPath \ "eventDetails" \ "eventWindUp" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent)
+        (JsPath \ "eventDetails" \ "event11" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event12" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event13").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
+        (JsPath \ "eventDetails" \ "event14" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event18" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event19").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
+        (JsPath \ "eventDetails" \ "event20").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
+        (JsPath \ "eventDetails" \ "eventWindUp" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent)
       ) (
       (event10, event11, event12, event13, event14, event18, event19, event20, eventWindUp) => {
-        val seqJsString = booleanToValue(event10, Event10) ++
-          booleanToValue(event11, Event11) ++
-          booleanToValue(event12, Event12) ++
-          booleanToValue(event13, Event13) ++
-          booleanToValue(event14, Event14) ++
-          booleanToValue(event18, Event18) ++
-          booleanToValue(event19, Event19) ++
-          booleanToValue(event20, Event20) ++
-          booleanToValue(eventWindUp, WindUp)
-        JsArray(seqJsString.sortWith(sortEventTypes).map(JsString))
+        val seqString =
+          booleanToValue(event10, Event10) ++
+            booleanToValue(event11, Event11) ++
+            booleanToValue(event12, Event12) ++
+            booleanToValue(event13, Event13) ++
+            booleanToValue(event14, Event14) ++
+            booleanToValue(event18, Event18) ++
+            booleanToValue(event19, Event19) ++
+            booleanToValue(event20, Event20) ++
+            booleanToValue(eventWindUp, WindUp)
+        JsArray(seqString.map(JsString))
       }
     )
   }
+
+  def booleanToValue(b: Option[Boolean], v: EventType): Seq[String] = if (b.getOrElse(false)) Seq(v.toString) else Nil
+
 }
 
