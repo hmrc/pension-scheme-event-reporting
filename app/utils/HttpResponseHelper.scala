@@ -17,14 +17,12 @@
 package utils
 
 import play.api.Logger
-import uk.gov.hmrc.http._
 import play.api.http.Status._
+import uk.gov.hmrc.http._
 
 trait HttpResponseHelper extends HttpErrorFunctions {
 
-  implicit val httpResponseReads: HttpReads[HttpResponse] = new HttpReads[HttpResponse] {
-    override def read(method: String, url: String, response: HttpResponse): HttpResponse = response
-  }
+  implicit val httpResponseReads: HttpReads[HttpResponse] = (method: String, url: String, response: HttpResponse) => response
 
   private val logger = Logger(classOf[HttpResponseHelper])
 

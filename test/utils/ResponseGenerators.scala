@@ -51,7 +51,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
     )
   }
 
-  def nonEmptyString: Gen[String] = Gen.alphaStr.suchThat(!_.isEmpty)
+  def nonEmptyString: Gen[String] = Gen.alphaStr.suchThat(_.nonEmpty)
 
   protected def toYesNo(b: Boolean): String = if (b) "Yes" else "No"
 

@@ -16,10 +16,10 @@
 
 package models
 
-import java.time.{LocalDate, LocalDateTime}
-
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, JsPath, Json, Reads}
+
+import java.time.{LocalDate, LocalDateTime}
 
 case class ERVersion(reportVersion: Int, date: LocalDate, reportStatus: String)
 

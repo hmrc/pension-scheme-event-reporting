@@ -22,7 +22,7 @@ import org.scalatest.matchers.must.Matchers
 import play.api.libs.json.{JsObject, Json}
 
 trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerators {
-  def generateGETResponseAndUserAnswers: Gen[Tuple2[JsObject, Seq[String]]] = {
+  def generateGET1834ResponseAndUserAnswers: Gen[Tuple2[JsObject, Seq[String]]] = {
     val sortEventTypes: (String, String) => Boolean = (a, b) => {
       (a, b) match {
         case ("0", _) => false
