@@ -74,7 +74,15 @@ class API1826Spec extends AnyFreeSpec with Matchers
         Json.obj()
       }
       val result = userAnswers.validate(API1826.transformToETMPData)
-      result.asOpt.flatten mustBe None
+      val expected: JsObject = {
+        Json.obj(
+          "eventReportDetails" -> Json.obj(
+            "reportStartDate" -> "2020-09-01",
+            "reportEndDate" -> "2020-09-01"
+          )
+        )
+      }
+      result.asOpt.flatten mustBe Some(expected)
     }
   }
 }

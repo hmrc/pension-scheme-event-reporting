@@ -93,7 +93,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               response.status match {
                 case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
                 case NOT_FOUND => NotFound(s"Not found - event type $eventType")
-                case _ => NoContent
+                case _ =>
+                  NoContent
               }
             }
           case _ => Future.successful(NotFound)

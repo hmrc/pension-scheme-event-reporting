@@ -22,16 +22,18 @@ import transformations.Transformer
 object API1826 extends Transformer {
   val transformToETMPData: Reads[Option[JsObject]] = {
 
-    def eventReportDetailsNode(events: JsObject) = Json.obj(
-      "eventReportDetails" -> Json.obj(
+    def eventReportDetailsNode(events: JsObject) = {
+      val header = Json.obj("eventReportDetails" -> Json.obj(
         "reportStartDate" -> "2020-09-01",
         "reportEndDate" -> "2020-09-01"
-      )
-    )
+      ))
+      header ++ events
+    }
 
     def eventTypeNodes(events: Seq[JsObject]):  Option[JsObject] = {
-      val eventTypeNodes = events.foldLeft(Json.obj("eventDetails" -> events))((a,b) => a ++ b)
-      Some(eventReportDetailsNode(eventTypeNodes))
+      val eventDetailNodes = events.foldLeft(Json.obj())((a,b) => a ++ b)
+      val eventJsObj = if (events.isEmpty) Json.obj() else Json.obj("eventDetails" -> eventDetailNodes)
+      Some(eventReportDetailsNode(eventJsObj))
     }
 
     val schemeWindUp = (__ \ "schemeWindUpDate").readNullable[String].map {
@@ -54,10 +56,6 @@ object API1826 extends Transformer {
               "chargeablePmt" -> yes
             )
           )
-        )
-      case Some(false) =>
-        Some(
-          Json.obj()
         )
       case _ => None
     }
