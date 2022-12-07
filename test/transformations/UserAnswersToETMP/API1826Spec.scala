@@ -26,13 +26,63 @@ class API1826Spec extends AnyFreeSpec with Matchers
   with JsonFileReader with GeneratorAPI1826 with ScalaCheckPropertyChecks {
 
   "transformToETMPData" - {
-    "must transform a randomly generated valid payload correctly" in {
-      forAll(generateUserAnswersAndPOSTBody) {
+    "must transform a randomly generated valid payload correctly for Wind Up" in {
+      forAll(generateUserAnswersAndPOSTBodyWindUp) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
           val result = userAnswers.validate(API1826.transformToETMPData)
           val expectedResult = JsSuccess(Some(expectedResponse), __ \ "schemeWindUpDate")
           result mustBe expectedResult
       }
+    }
+    "must transform a randomly generated valid payload correctly for Event 18" in {
+      forAll(generateUserAnswersAndPOSTBodyEvent18) {
+        case (userAnswers: JsObject, expectedResponse: Option[JsObject]) =>
+          val result = userAnswers.validate(API1826.transformToETMPData)
+          result.asOpt.flatten mustBe expectedResponse
+      }
+    }
+
+    "must transform all events when present" in {
+      val userAnswers: JsObject = {
+        Json.obj(
+          "event18Confirmation" -> true,
+          "schemeWindUpDate" -> "1991-11-22"
+        )
+      }
+      val expected: JsObject = {
+        Json.obj(
+          "eventReportDetails" -> Json.obj(
+            "reportStartDate" -> "2020-09-01",
+            "reportEndDate" -> "2020-09-01"
+          ),
+          "eventDetails" -> Json.obj(
+            "eventWindUp" -> Json.obj(
+              "dateOfWindUp" -> "1991-11-22"
+            ),
+            "event18" -> Json.obj(
+              "chargeablePmt"->"Yes"
+            )
+          )
+        )
+      }
+      val result = userAnswers.validate(API1826.transformToETMPData)
+      result.asOpt.flatten mustBe Some(expected.as[JsObject])
+    }
+
+    "must not transform an event that is not present" in {
+      val userAnswers: JsObject = {
+        Json.obj()
+      }
+      val result = userAnswers.validate(API1826.transformToETMPData)
+      val expected: JsObject = {
+        Json.obj(
+          "eventReportDetails" -> Json.obj(
+            "reportStartDate" -> "2020-09-01",
+            "reportEndDate" -> "2020-09-01"
+          )
+        )
+      }
+      result.asOpt.flatten mustBe Some(expected)
     }
   }
 }

@@ -21,23 +21,50 @@ import transformations.Transformer
 
 object API1826 extends Transformer {
   val transformToETMPData: Reads[Option[JsObject]] = {
-    (__ \ "schemeWindUpDate").readNullable[String].map {
+
+    def eventReportDetailsNode(events: JsObject) = {
+      val header = Json.obj("eventReportDetails" -> Json.obj(
+        "reportStartDate" -> "2020-09-01",
+        "reportEndDate" -> "2020-09-01"
+      ))
+      header ++ events
+    }
+
+    def eventTypeNodes(events: Seq[JsObject]):  Option[JsObject] = {
+      val eventDetailNodes = events.foldLeft(Json.obj())((a,b) => a ++ b)
+      val eventJsObj = if (events.isEmpty) Json.obj() else Json.obj("eventDetails" -> eventDetailNodes)
+      Some(eventReportDetailsNode(eventJsObj))
+    }
+
+    val schemeWindUp = (__ \ "schemeWindUpDate").readNullable[String].map {
       case Some(date) =>
         Some(
           Json.obj(
-            "eventDetails" ->
-              Json.obj(
-                "eventWindUp" -> Json.obj(
-                  "dateOfWindUp" -> date
-                )
-              ),
-            "eventReportDetails" -> Json.obj(
-              "reportStartDate" -> "2020-09-01",
-              "reportEndDate" -> "2020-09-01"
+            "eventWindUp" -> Json.obj(
+              "dateOfWindUp" -> date
             )
           )
         )
       case _ => None
+    }
+
+    val event18 = (__ \ "event18Confirmation").readNullable[Boolean].map {
+      case Some(true) =>
+        Some(
+          Json.obj(
+            "event18" -> Json.obj(
+              "chargeablePmt" -> yes
+            )
+          )
+        )
+      case _ => None
+    }
+
+    for {
+      ev18 <- event18
+      schWindUp <- schemeWindUp
+    } yield {
+     eventTypeNodes((ev18 ++ schWindUp).toSeq)
     }
   }
 }

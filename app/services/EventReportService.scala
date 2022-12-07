@@ -22,6 +22,7 @@ import connectors.EventReportConnector
 import models.ERVersion
 import models.enumeration.ApiType._
 import models.enumeration.{ApiType, EventType}
+import play.api.Logging
 import play.api.http.Status.{NOT_FOUND, NOT_IMPLEMENTED}
 import play.api.libs.json.JsResult.toTry
 import play.api.libs.json._
@@ -41,7 +42,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    eventReportCacheRepository: EventReportCacheRepository,
                                    jsonPayloadSchemaValidator: JSONSchemaValidator,
                                    overviewCacheRepository: OverviewCacheRepository
-                                  ) {
+                                  ) extends Logging {
   private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private final val SchemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
   private final val SchemaPath1830 = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
@@ -93,7 +94,9 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               response.status match {
                 case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
                 case NOT_FOUND => NotFound(s"Not found - event type $eventType")
-                case _ => NoContent
+                case _ =>
+                  logger.debug(s"SUCCESSFUL SUBMISSION TO COMPILE API $apiType: $optionTransformedData")
+                  NoContent
               }
             }
           case _ => Future.successful(NotFound)

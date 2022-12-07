@@ -16,13 +16,14 @@
 
 package utils
 
+import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
 import play.api.libs.json.{JsObject, Json}
 
 trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerators {
-  def generateUserAnswersAndPOSTBody: Gen[(JsObject, JsObject)] = {
+  def generateUserAnswersAndPOSTBodyWindUp: Gen[(JsObject, JsObject)] = {
     for {
       schemeWindUpDate <- dateGenerator
     } yield {
@@ -40,6 +41,41 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
           )
         )
       )
+      Tuple2(fullUA, fullExpectedResult)
+    }
+  }
+
+  def generateUserAnswersAndPOSTBodyEvent18: Gen[(JsObject, Option[JsObject])] = {
+    for {
+      event18Confirmation <- arbitrary[Option[Boolean]]
+    } yield {
+      val fullUA = event18Confirmation match {
+        case Some(value) => Json.obj(
+          "event18Confirmation" -> value
+        )
+        case None => Json.obj()
+      }
+
+      val fullExpectedResult =
+        event18Confirmation match {
+          case Some(true) => Some(Json.obj(
+            "eventReportDetails" -> Json.obj(
+              "reportStartDate" -> "2020-09-01",
+              "reportEndDate" -> "2020-09-01"
+            ),
+            "eventDetails" -> Json.obj("event18" -> Json.obj(
+              "chargeablePmt" -> "Yes"
+            )
+            )
+          ))
+          case _ => Some(Json.obj(
+            "eventReportDetails" -> Json.obj(
+              "reportStartDate" -> "2020-09-01",
+              "reportEndDate" -> "2020-09-01"
+            )
+          ))
+        }
+
       Tuple2(fullUA, fullExpectedResult)
     }
   }
