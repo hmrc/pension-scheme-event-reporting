@@ -28,7 +28,7 @@ import play.api.libs.json._
 import play.api.mvc.Result
 import play.api.mvc.Results._
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
-import transformations.ETMPToFrontEnd.EventSummary
+import transformations.ETMPToFrontEnd.EventSummary.{rdsFor1832, rdsFor1834}
 import transformations.UserAnswersToETMP.{API1826, API1827, API1830}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
@@ -93,7 +93,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               response.status match {
                 case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
                 case NOT_FOUND => NotFound(s"Not found - event type $eventType")
-                case _ => NoContent
+                case _ =>
+                  NoContent
               }
             }
           case _ => Future.successful(NotFound)
@@ -104,20 +105,34 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsValue]] = {
-    eventReportConnector.getEvent(pstr, startDate, version, eventType)
+    eventReportConnector.getEvent(pstr, startDate, version, Some(eventType))
   }
 
   def getEventSummary(pstr: String, version: String, startDate: String)
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
-    for {
-      etmpJson <- eventReportConnector.getEventSummary(pstr, startDate, version)
+
+    val transformedFutures = for {
+      eventTypeReadPairs <- Map(
+        Some(EventType.Event22) -> rdsFor1832(EventType.Event22),
+        Some(EventType.Event23) -> rdsFor1832(EventType.Event23),
+        None -> rdsFor1834
+      )
     } yield {
-      etmpJson.transform(EventSummary.rds) match {
-        case JsSuccess(seqOfEventTypes, _) =>
-          seqOfEventTypes
-        case JsError(errors) =>
-          throw JsResultException(errors)
+      eventReportConnector.getEvent(pstr, startDate, version, eventTypeReadPairs._1).map { optEtmpJson =>
+        optEtmpJson.map { etmpJson =>
+          etmpJson.transform(eventTypeReadPairs._2) match {
+            case JsSuccess(seqOfEventTypes, _) =>
+              seqOfEventTypes
+            case JsError(errors) =>
+              throw JsResultException(errors)
+          }
+        }
       }
+    }
+
+    Future.sequence(transformedFutures).map { listOfJsArrays =>
+      val combinedJsArray = listOfJsArrays.flatten.reduce((jsArrayA, jsArrayB) => jsArrayA ++ jsArrayB)
+      JsArray(combinedJsArray.value.sortWith(sortEventTypes))
     }
   }
 
@@ -161,4 +176,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
     eventReportConnector.submitEvent20ADeclarationReport(pstr, data).map(_.json)
   }
+
+  private val sortEventTypes: (JsValue, JsValue) => Boolean = (a, b) =>
+    (a, b) match {
+      case (JsString("0"), _) => false
+      case (_, JsString("0")) => true
+      case (a: JsString, b: JsString) if EventType.getEventType(a.value).get.order < EventType.getEventType(b.value).get.order => true
+      case _ => false
+    }
 }

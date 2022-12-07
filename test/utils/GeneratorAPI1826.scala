@@ -68,7 +68,12 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
             )
             )
           ))
-          case _ => None
+          case _ => Some(Json.obj(
+            "eventReportDetails" -> Json.obj(
+              "reportStartDate" -> "2020-09-01",
+              "reportEndDate" -> "2020-09-01"
+            )
+          ))
         }
 
       Tuple2(fullUA, fullExpectedResult)
