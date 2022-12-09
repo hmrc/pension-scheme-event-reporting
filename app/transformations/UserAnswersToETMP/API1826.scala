@@ -20,7 +20,7 @@ import play.api.libs.json._
 import transformations.Transformer
 
 object API1826 extends Transformer {
-  val transformToETMPData: Reads[Option[JsObject]] = {
+  val transformToETMPData: Reads[JsObject] = {
 
     def eventReportDetailsNode(events: JsObject) = {
       val header = Json.obj("eventReportDetails" -> Json.obj(
@@ -30,10 +30,10 @@ object API1826 extends Transformer {
       header ++ events
     }
 
-    def eventTypeNodes(events: Seq[JsObject]):  Option[JsObject] = {
-      val eventDetailNodes = events.foldLeft(Json.obj())((a,b) => a ++ b)
+    def eventTypeNodes(events: Seq[JsObject]): JsObject = {
+      val eventDetailNodes = events.foldLeft(Json.obj())((a, b) => a ++ b)
       val eventJsObj = if (events.isEmpty) Json.obj() else Json.obj("eventDetails" -> eventDetailNodes)
-      Some(eventReportDetailsNode(eventJsObj))
+      eventReportDetailsNode(eventJsObj)
     }
 
     val schemeWindUp = (__ \ "schemeWindUpDate").readNullable[String].map {
@@ -64,7 +64,7 @@ object API1826 extends Transformer {
       ev18 <- event18
       schWindUp <- schemeWindUp
     } yield {
-     eventTypeNodes((ev18 ++ schWindUp).toSeq)
+      eventTypeNodes((ev18 ++ schWindUp).toSeq)
     }
   }
 }

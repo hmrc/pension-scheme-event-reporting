@@ -45,7 +45,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
-  def generateUserAnswersAndPOSTBodyEvent18: Gen[(JsObject, Option[JsObject])] = {
+  def generateUserAnswersAndPOSTBodyEvent18: Gen[(JsObject, JsObject)] = {
     for {
       event18Confirmation <- arbitrary[Option[Boolean]]
     } yield {
@@ -58,7 +58,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
 
       val fullExpectedResult =
         event18Confirmation match {
-          case Some(true) => Some(Json.obj(
+          case Some(true) => Json.obj(
             "eventReportDetails" -> Json.obj(
               "reportStartDate" -> "2020-09-01",
               "reportEndDate" -> "2020-09-01"
@@ -67,13 +67,13 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
               "chargeablePmt" -> "Yes"
             )
             )
-          ))
-          case _ => Some(Json.obj(
+          )
+          case _ => Json.obj(
             "eventReportDetails" -> Json.obj(
               "reportStartDate" -> "2020-09-01",
               "reportEndDate" -> "2020-09-01"
             )
-          ))
+          )
         }
 
       Tuple2(fullUA, fullExpectedResult)

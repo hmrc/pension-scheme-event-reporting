@@ -23,7 +23,7 @@ import models.ERVersion
 import models.enumeration.ApiType._
 import models.enumeration.{ApiType, EventType}
 import play.api.Logging
-import play.api.http.Status.{NOT_FOUND, NOT_IMPLEMENTED}
+import play.api.http.Status.NOT_IMPLEMENTED
 import play.api.libs.json.JsResult.toTry
 import play.api.libs.json._
 import play.api.mvc.Result
@@ -48,35 +48,22 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   private final val SchemaPath1830 = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
 
   private case class APIProcessingInfo(apiType: ApiType,
-                                       readsForTransformation: Reads[Option[JsObject]],
+                                       readsForTransformation: Reads[JsObject],
                                        schemaPath: String,
-                                       connectToAPI: (String, Option[JsValue]) => Future[HttpResponse]
+                                       connectToAPI: (String, JsValue) => Future[HttpResponse]
                                       )
-
-  private def connectToAPI(connectFunctionForAPI: (String, JsValue) => Future[HttpResponse]): (String, Option[JsValue]) => Future[HttpResponse] =
-    (pstr, optionJsValue) => optionJsValue match {
-      case None => Future.successful(HttpResponse(NOT_FOUND, "No data to submit"))
-      case Some(jsValue) => connectFunctionForAPI(pstr, jsValue)
-    }
 
   private def apiProcessingInfo(eventType: EventType, pstr: String)
                                (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Option[APIProcessingInfo] = {
     EventType.postApiTypeByEventType(eventType) flatMap {
       case Api1826 =>
-        Some(APIProcessingInfo(Api1826, API1826.transformToETMPData, SchemaPath1826, connectToAPI(eventReportConnector.compileEventReportSummary _)))
+        Some(APIProcessingInfo(Api1826, API1826.transformToETMPData, SchemaPath1826, eventReportConnector.compileEventReportSummary))
       case Api1827 =>
-        Some(APIProcessingInfo(Api1827, API1827.transformToETMPData, SchemaPath1827, connectToAPI(eventReportConnector.compileEventOneReport _)))
+        Some(APIProcessingInfo(Api1827, API1827.transformToETMPData, SchemaPath1827, eventReportConnector.compileEventOneReport))
       case Api1830 =>
         Some(APIProcessingInfo(Api1830, API1830.transformToETMPData(eventType, pstr), SchemaPath1830,
-          connectToAPI(eventReportConnector.compileMemberEventReport _)))
+          eventReportConnector.compileMemberEventReport))
       case _ => None
-    }
-  }
-
-  private def validatePayloadAgainstSchema(optionTransformedData: Option[JsObject], schemaPath: String, apiType: String): Future[Unit] = {
-    optionTransformedData match {
-      case None => Future.successful(())
-      case Some(transformedData) => Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, schemaPath, apiType))
     }
   }
 
@@ -87,15 +74,14 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString)).flatMap {
           case Some(data) =>
             for {
-              optionTransformedData <- Future.fromTry(toTry(data.validate(reads)))
-              _ <- validatePayloadAgainstSchema(optionTransformedData, schemaPath, apiType.toString)
-              response <- connectToAPI(pstr, optionTransformedData)
+              transformedData <- Future.fromTry(toTry(data.validate(reads)))
+              _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, schemaPath, apiType.toString))
+              response <- connectToAPI(pstr, transformedData)
             } yield {
               response.status match {
                 case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
-                case NOT_FOUND => NotFound(s"Not found - event type $eventType")
                 case _ =>
-                  logger.debug(s"SUCCESSFUL SUBMISSION TO COMPILE API $apiType: $optionTransformedData")
+                  logger.debug(s"SUCCESSFUL SUBMISSION TO COMPILE API $apiType: $transformedData")
                   NoContent
               }
             }
