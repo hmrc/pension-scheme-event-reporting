@@ -1013,7 +1013,7 @@ object EventReportConnectorSpec {
   private val toDt = "2022-04-05"
   private val testCorrelationId = "testCorrelationId"
   private val eventReportSummaryUrl = s"/pension-online/event-reports/pods/$pstr"
-  private val compileEventOneReportUrl = s"/pension-online/event1-report/pods/$pstr"
+  private val compileEventOneReportUrl = s"/pension-online/event1-reports/pods/$pstr"
   private val compileMemberEventReportUrl = s"/pension-online/member-event-reports/$pstr"
   private val submitEvent20ADeclarationReportUrl = s"/pension-online/event20a-declaration-reports/$pstr"
 
