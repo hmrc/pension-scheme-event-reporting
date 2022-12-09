@@ -41,12 +41,12 @@ object API1830 extends Transformer {
         (pathPaymentDetails \ Symbol("monetaryAmount")).json.copyFrom((__ \ Symbol("totalPensionAmounts")).json.pick)).reduce
   }
 
-  def transformToETMPData(eventType: EventType, pstr: String): Reads[Option[JsObject]] = {
+  def transformToETMPData(eventType: EventType, pstr: String): Reads[JsObject] = {
     (__ \ Symbol(s"event${eventType.toString}") \ Symbol("members")).readNullable[JsArray](__.read(Reads.seq(
       readsIndividualMemberDetailsByEventType(eventType)))
       .map(JsArray(_))).map { optionJsArray =>
       val jsonArray = optionJsArray.getOrElse(Json.arr())
-      Some(Json.obj("memberEventsDetails" -> Json.obj(
+      Json.obj("memberEventsDetails" -> Json.obj(
         "eventReportDetails" -> Json.obj(
           "reportStartDate" -> "2020-09-01",
           "reportEndDate" -> "2020-09-01",
@@ -54,7 +54,7 @@ object API1830 extends Transformer {
           "eventType" -> s"Event${eventType.toString}"
         ),
         "eventDetails" -> jsonArray
-      )))
+      ))
     }
   }
 }

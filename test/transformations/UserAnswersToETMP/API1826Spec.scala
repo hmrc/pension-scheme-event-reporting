@@ -30,15 +30,15 @@ class API1826Spec extends AnyFreeSpec with Matchers
       forAll(generateUserAnswersAndPOSTBodyWindUp) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
           val result = userAnswers.validate(API1826.transformToETMPData)
-          val expectedResult = JsSuccess(Some(expectedResponse), __ \ "schemeWindUpDate")
+          val expectedResult = JsSuccess(expectedResponse, __ \ "schemeWindUpDate")
           result mustBe expectedResult
       }
     }
     "must transform a randomly generated valid payload correctly for Event 18" in {
       forAll(generateUserAnswersAndPOSTBodyEvent18) {
-        case (userAnswers: JsObject, expectedResponse: Option[JsObject]) =>
+        case (userAnswers: JsObject, expectedResponse: JsObject) =>
           val result = userAnswers.validate(API1826.transformToETMPData)
-          result.asOpt.flatten mustBe expectedResponse
+          result.asOpt mustBe Some(expectedResponse)
       }
     }
 
@@ -60,13 +60,13 @@ class API1826Spec extends AnyFreeSpec with Matchers
               "dateOfWindUp" -> "1991-11-22"
             ),
             "event18" -> Json.obj(
-              "chargeablePmt"->"Yes"
+              "chargeablePmt" -> "Yes"
             )
           )
         )
       }
       val result = userAnswers.validate(API1826.transformToETMPData)
-      result.asOpt.flatten mustBe Some(expected.as[JsObject])
+      result.asOpt mustBe Some(expected)
     }
 
     "must not transform an event that is not present" in {
@@ -82,7 +82,7 @@ class API1826Spec extends AnyFreeSpec with Matchers
           )
         )
       }
-      result.asOpt.flatten mustBe Some(expected)
+      result.asOpt mustBe Some(expected)
     }
   }
 }

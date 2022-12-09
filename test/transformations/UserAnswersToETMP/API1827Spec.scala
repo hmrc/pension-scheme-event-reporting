@@ -30,7 +30,7 @@ class API1827Spec extends AnyFreeSpec with Matchers
       forAll(generateUserAnswersAndPOSTBody) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
           val result = userAnswers.validate(API1827.transformToETMPData)
-          val expectedResult = JsSuccess(Some(expectedResponse), __ \ Symbol("event1") \ Symbol("membersOrEmployers"))
+          val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event1") \ Symbol("membersOrEmployers"))
           result mustBe expectedResult
       }
     }

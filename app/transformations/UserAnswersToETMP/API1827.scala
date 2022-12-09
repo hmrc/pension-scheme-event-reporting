@@ -243,12 +243,11 @@ object API1827 extends Transformer {
     }).flatMap[JsObject](identity)
   }
 
-  val transformToETMPData: Reads[Option[JsObject]] = {
+  val transformToETMPData: Reads[JsObject] = {
     (__ \ Symbol("event1") \ Symbol("membersOrEmployers")).readNullable[JsArray](__.read(Reads.seq(readsMember))
       .map(JsArray(_))).map { optionJsArray =>
       val jsonArray = optionJsArray.getOrElse(Json.arr())
-      // TODO: Insert correct report start date and end date once we implement the relevant ticket
-      Some(Json.obj(
+      Json.obj(
         "eventReportDetails" -> Json.obj(
           "reportStartDate" -> "2020-09-01",
           "reportEndDate" -> "2020-09-01"
@@ -256,7 +255,6 @@ object API1827 extends Transformer {
         "event1Details" -> Json.obj(
           "event1Details" -> jsonArray
         )
-      )
       )
     }
   }
