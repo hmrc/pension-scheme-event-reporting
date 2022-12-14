@@ -146,7 +146,7 @@ class EventReportConnector @Inject()(
       case Some(et) =>
         getApiTypeByEventType(et) match {
           case Some(api) =>
-            val headersWithEventType: Seq[(String, String)] = headers ++ Seq("eventType" -> s"Event${et.toString}")
+            val headersWithEventType: Seq[(String, String)] = if(ApiType.Api1832 == api) headers ++ Seq("eventType" -> s"Event${et.toString}") else headers
             getForApi(headersWithEventType, pstr, api)
           case None =>
             Future.successful(None)
