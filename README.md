@@ -14,7 +14,7 @@ Anything that's not done automatically by the development environment:
 - ```sm2 --start PODS_ER```
 
 ### Running the test suite
-
+ 
 ```
 sbt clean
 sbt compile
