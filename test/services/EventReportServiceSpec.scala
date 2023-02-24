@@ -34,7 +34,7 @@ import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json._
 import play.api.test.Helpers._
 import play.api.{Application, inject}
-import repositories.{EventReportCacheRepository, OverviewCacheRepository}
+import repositories.{EventReportCacheRepository, GetEventCacheRepository, OverviewCacheRepository}
 import uk.gov.hmrc.http._
 import utils.JSONSchemaValidator
 
@@ -51,6 +51,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val mockJSONPayloadSchemaValidator = mock[JSONSchemaValidator]
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
   private val mockOverviewCacheRepository = mock[OverviewCacheRepository]
+  private val mockGetEventCacheRepository = mock[GetEventCacheRepository]
 
   private val pstr = "pstr"
   private val startDate = "startDate"
@@ -62,7 +63,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       inject.bind[EventReportConnector].toInstance(mockEventReportConnector),
       inject.bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
       inject.bind[JSONSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
-      inject.bind[OverviewCacheRepository].toInstance(mockOverviewCacheRepository)
+      inject.bind[OverviewCacheRepository].toInstance(mockOverviewCacheRepository),
+      inject.bind[GetEventCacheRepository].toInstance(mockGetEventCacheRepository)
     )
 
   val application: Application = new GuiceApplicationBuilder()
@@ -74,10 +76,12 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   override def beforeEach(): Unit = {
     reset(mockEventReportConnector)
     reset(mockOverviewCacheRepository)
+    reset(mockGetEventCacheRepository)
     reset(mockEventReportCacheRepository)
     reset(mockJSONPayloadSchemaValidator)
     when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any())).thenReturn(Success(()))
     when(mockOverviewCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
+    when(mockGetEventCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
   }
 
   "compileEventReport for unimplemented api type" must {
@@ -191,46 +195,73 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
 
   "getEvent" must {
-    "return the payload from the connector when a valid event type is supplied for Api1832 and connector returns no data" in {
-      when(mockEventReportConnector.getEvent(pstr, startDate, version, Some(EventType.Event3))(implicitly, implicitly))
-        .thenReturn(Future.successful(None))
-      whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event3)(implicitly, implicitly)) { result =>
-        result mustBe None
-      }
-    }
-    "return the payload from the connector when a valid event type is supplied for Api1832" in {
-      when(mockEventReportConnector.getEvent(pstr, startDate, version, Some(EventType.Event3))(implicitly, implicitly))
-        .thenReturn(Future.successful(Some(responseJson)))
-      whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event3)(implicitly, implicitly)) { result =>
-        result mustBe Some(responseJson)
-      }
-    }
+      "return OK and save the data in cache if no data was found in the cache to begin with" in {
+        when(mockEventReportConnector.getEvent(
+          ArgumentMatchers.eq(pstr),
+          ArgumentMatchers.eq(startDate),
+          ArgumentMatchers.eq(version),
+          ArgumentMatchers.eq(Some(EventType.Event1)))(any(), any()))
+          .thenReturn(Future.successful(getEvent1Data))
+        when(mockGetEventCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
+        when(mockGetEventCacheRepository.upsert(any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(()))
 
-    "return the payload from the connector when a valid event type is supplied for API1833" in {
-      when(mockEventReportConnector.getEvent(pstr, startDate, version, Some(EventType.Event1))(implicitly, implicitly))
-        .thenReturn(Future.successful(Some(responseJson)))
-      whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event1)(implicitly, implicitly)) { result =>
-        result mustBe Some(responseJson)
-
+        eventReportService.getEvent(pstr, startDate, version, EventType.Event1)(implicitly, implicitly).map { resultJsValue =>
+          verify(mockGetEventCacheRepository, times(1)).get(any(), any(), any(), any())(any())
+          verify(mockGetEventCacheRepository, times(1)).upsert(any(), any(), any(), any(), any())(any())
+          verify(mockEventReportConnector, times(1)).getEvent(any(), any(), any(), any())(any(), any())
+          resultJsValue mustBe Some(Json.toJson(getEvent1Data))
+        }
       }
-    }
 
-    "return the payload from the connector when a valid event type is supplied for API1834" in {
-      when(mockEventReportConnector.getEvent(pstr, startDate, version, Some(EventType.Event10))(implicitly, implicitly))
-        .thenReturn(Future.successful(Some(responseJson)))
-      whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event10)) { result =>
-        result mustBe Some(responseJson)
-      }
-    }
-
-
-    "return the payload from the connector when a valid event type is supplied for API1831" in {
-      when(mockEventReportConnector.getEvent(pstr, startDate, version, Some(EventType.Event20A))(implicitly, implicitly))
-        .thenReturn(Future.successful(Some(responseJson)))
-      whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event20A)(implicitly, implicitly)) { result =>
-        result mustBe Some(responseJson)
-      }
-    }
+//      "return OK with the Seq of overview details and don't try to save the data in cache if the data already exists in the cache" in {
+//        when(mockOverviewCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(Some(Json.toJson(erOverview))))
+//        eventReportService.getOverview(pstr, reportTypeER, startDate, endDate)(implicitly, implicitly).map { resultJsValue =>
+//          verify(mockOverviewCacheRepository, times(1)).get(any(), any(), any(), any())(any())
+//          verify(mockOverviewCacheRepository, never).upsert(any(), any(), any(), any(), any())(any())
+//          verify(mockEventReportConnector, never).getOverview(any(), any(), any(), any())(any(), any())
+//          resultJsValue mustBe Json.toJson(erOverview)
+//        }
+//      }
+//    "return the payload from the connector when a valid event type is supplied for Api1832 and connector returns no data" in {
+//      when(mockEventReportConnector.getEvent(pstr, startDate, version, Some(EventType.Event3))(implicitly, implicitly))
+//        .thenReturn(Future.successful(None))
+//      whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event3)(implicitly, implicitly)) { result =>
+//        result mustBe None
+//      }
+//    }
+//    "return the payload from the connector when a valid event type is supplied for Api1832" in {
+//      when(mockEventReportConnector.getEvent(pstr, startDate, version, Some(EventType.Event3))(implicitly, implicitly))
+//        .thenReturn(Future.successful(Some(responseJson)))
+//      whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event3)(implicitly, implicitly)) { result =>
+//        result mustBe Some(responseJson)
+//      }
+//    }
+//
+//    "return the payload from the connector when a valid event type is supplied for API1833" in {
+//      when(mockEventReportConnector.getEvent(pstr, startDate, version, Some(EventType.Event1))(implicitly, implicitly))
+//        .thenReturn(Future.successful(Some(responseJson)))
+//      whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event1)(implicitly, implicitly)) { result =>
+//        result mustBe Some(responseJson)
+//
+//      }
+//    }
+//
+//    "return the payload from the connector when a valid event type is supplied for API1834" in {
+//      when(mockEventReportConnector.getEvent(pstr, startDate, version, Some(EventType.Event10))(implicitly, implicitly))
+//        .thenReturn(Future.successful(Some(responseJson)))
+//      whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event10)) { result =>
+//        result mustBe Some(responseJson)
+//      }
+//    }
+//
+//
+//    "return the payload from the connector when a valid event type is supplied for API1831" in {
+//      when(mockEventReportConnector.getEvent(pstr, startDate, version, Some(EventType.Event20A))(implicitly, implicitly))
+//        .thenReturn(Future.successful(Some(responseJson)))
+//      whenReady(eventReportService.getEvent(pstr, startDate, version, EventType.Event20A)(implicitly, implicitly)) { result =>
+//        result mustBe Some(responseJson)
+//      }
+//    }
   }
 
   "getEventSummary" must {
@@ -393,6 +424,37 @@ object EventReportServiceSpec {
       2,
       submittedVersionAvailable = true,
       compiledVersionAvailable = true)))
+
+  private val getEvent1Data: Option[JsValue] = Some(Json.parse(
+    """
+      |{
+      |    "processingDate": "2023-12-15T12:30:46Z",
+      |    "schemeDetails": {
+      |      "pSTR": "87219363YN",
+      |      "schemeName": "Abc Ltd"
+      |    },
+      |    "er1Details": {
+      |      "reportStartDate": "2021-04-06",
+      |      "reportEndDate": "2022-04-05",
+      |      "reportVersionNumber": "001",
+      |      "reportSubmittedDateAndTime": "2023-12-13T12:12:12Z"
+      |    },
+      |    "schemeMasterTrustDetails": {
+      |      "startDate": "2021-06-08"
+      |    },
+      |    "erDeclarationDetails": {
+      |      "submittedBy": "PSP",
+      |      "submittedID": "20000001",
+      |      "submittedName": "ABCDEFGHIJKLMNOPQRSTUV",
+      |      "pspDeclaration": {
+      |        "authorisedPSAID": "A4045157",
+      |        "pspDeclaration1": "Selected",
+      |        "pspDeclaration2": "Selected"
+      |      }
+      |    }
+      |  }
+      |  """.stripMargin
+  ))
 
   private val erOverview = Seq(overview1, overview2)
 

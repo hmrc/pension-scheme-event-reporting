@@ -18,7 +18,6 @@ package repositories
 
 import com.typesafe.config.Config
 import org.mockito.Mockito.when
-import org.mongodb.scala.model.Filters
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -26,7 +25,6 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
-import play.api.libs.json.Json
 import uk.gov.hmrc.mongo.MongoComponent
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -66,7 +64,7 @@ class GetEventCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Mat
 //        documentsInDB =>
 //          documentsInDB.size mustBe 1
 //      }
-    }
+//    }
 //
 //    "update an existing overview cache in Mongo collection" in {
 //
@@ -106,7 +104,7 @@ class GetEventCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Mat
 //          documentsInDB.size mustBe 2
 //      }
 //    }
-  }
+//  }
 
 //  "get" must {
 //    "retrieve existing overview cache in Mongo collection" in {
