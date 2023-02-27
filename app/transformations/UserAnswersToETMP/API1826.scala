@@ -19,7 +19,7 @@ package transformations.UserAnswersToETMP
 import play.api.libs.json._
 import transformations.Transformer
 
-object API1826 extends Transformer {
+object API1828Spec extends Transformer {
   val transformToETMPData: Reads[JsObject] = {
 
     def eventReportDetailsNode(events: JsObject) = {

@@ -27,6 +27,18 @@ import java.time.LocalDate
 trait ResponseGenerators extends Matchers with OptionValues {
   val ninoGen: Gen[String] = Gen.oneOf(Seq("AB123456C", "CD123456E"))
 
+  val pstrGen: Gen[String] = for {
+    numbers <- Gen.chooseNum(1000000, 9999999)
+    letters <- Gen.listOfN(2, Gen.alphaChar).map(_.mkString)
+  } yield numbers + letters
+
+  val psaOrPspGen: Gen[String] = Gen.oneOf(Seq("PSA", "PSP"))
+
+  val psaOrPspIdGen: Gen[String] = for {
+    letter <- Gen.alphaChar.map(_.toString)
+    numbers <- Gen.chooseNum(1000000, 9999999)
+  } yield letter + numbers
+
   val dateGenerator: Gen[LocalDate] = for {
     day <- Gen.choose(1, 28)
     month <- Gen.choose(1, 12)
