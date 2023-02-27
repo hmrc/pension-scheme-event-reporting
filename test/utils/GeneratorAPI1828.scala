@@ -22,23 +22,43 @@ import org.scalatest.matchers.must.Matchers
 import play.api.libs.json.{JsObject, Json}
 
 // TODO: Consider relocation of code to different package.
+// scalastyle:off
 trait GeneratorAPI1828 extends Matchers with OptionValues with ResponseGenerators {
   def generateUserAnswersAndPOSTBody: Gen[(JsObject, JsObject)] = {
     for {
       startDate <- dateGenerator
       pstr <- pstrGen
-      // psaOrPsp <- psaOrPspGen // TODO: amend to use psaOrPspGen when that functionality is required.
-      psaOrPspId <- psaOrPspIdGen
+      psaOrPsp <- psaOrPspGen
+      psaId <- psaIdGen
+      pspId <- pspIdGen
     } yield {
       val endDate = startDate.plusDays(1)
-      val psa = "PSA"
       val selected = "Selected"
+      def psaOrPspId(psaOrPsp: String): String = {
+        psaOrPsp match {
+          case "PSA" => psaId
+          case "PSP" => pspId
+        }
+      }
+      def psaOrPspDeclaration(psaOrPsp: String): (String, Json.JsValueWrapper) = {
+        psaOrPsp match {
+          case "PSA" => "psaDeclaration" -> Json.obj(
+            "psaDeclaration1" -> selected,
+            "psaDeclaration2" -> selected
+          )
+          case "PSP" => "pspDeclaration" -> Json.obj(
+            "authorisedPSAID" -> psaId,
+            "pspDeclaration1" -> selected,
+            "pspDeclaration2" -> selected
+          )
+        }
+      }
       val fullUA = Json.obj(
         "pstr" -> pstr,
         "reportStartDate" -> startDate,
         "reportEndDate" -> startDate.plusDays(1),
-        "submittedBy" -> psa, // TODO: amend to use psaOrPspGen when that functionality is required.
-        "submittedID" -> psaOrPspId,
+        "submittedBy" -> psaOrPsp,
+        "submittedID" -> psaOrPspId(psaOrPsp),
         "psaDeclaration1" -> selected,
         "psaDeclaration2" -> selected
       )
@@ -50,37 +70,13 @@ trait GeneratorAPI1828 extends Matchers with OptionValues with ResponseGenerator
             "reportEndDate" -> endDate,
           ),
           "erDeclarationDetails" -> Json.obj(
-            "submittedBy" -> psa,
-            "submittedID" -> psaOrPspId
+            "submittedBy" -> psaOrPsp,
+            "submittedID" -> psaOrPspId(psaOrPsp)
           ),
-          "psaDeclaration" -> Json.obj( // TODO: amend to be psaDec or pspDec when that functionality is required.
-            "psaDeclaration1" -> selected,
-            "psaDeclaration2" -> selected
-          )
+          psaOrPspDeclaration(psaOrPsp)
         )
       )
       Tuple2(fullUA, fullExpectedResult)
     }
   }
 }
-
-/*
-{
-  "declarationDetails": {
-    "erDetails": {
-      "pSTR": "27176941JF",
-      "reportStartDate": "2020-04-06",
-      "reportEndDate": "2021-04-05"
-    },
-    "erDeclarationDetails": {
-      "submittedBy": "PSP",
-      "submittedID": "20345678"
-    },
-    "pspDeclaration": {
-      "authorisedPSAID": "A2345678",
-      "pspDeclaration1": "Selected",
-      "pspDeclaration2": "Selected"
-    }
-  }
-}
- */

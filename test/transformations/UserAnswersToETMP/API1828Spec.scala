@@ -35,6 +35,5 @@ class API1828Spec extends AnyFreeSpec with Matchers
           result mustBe expectedResult
       }
     }
-
   }
 }

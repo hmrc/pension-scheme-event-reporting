@@ -22,15 +22,30 @@ import play.api.libs.json._
 import transformations.Transformer
 
 object API1828 extends Transformer {
+
   val transformToETMPData: Reads[JsObject] = {
-    (
-      (__ \ "declarationDetails" \ "erDetails" \ "pSTR").json.copyFrom((__ \ "pstr").json.pick) and
-        (__ \ "declarationDetails" \ "erDetails" \ "reportStartDate").json.copyFrom((__ \ "reportStartDate").json.pick) and
-        (__ \ "declarationDetails" \ "erDetails" \ "reportEndDate").json.copyFrom((__ \ "reportEndDate").json.pick) and
-        (__ \ "declarationDetails" \ "erDeclarationDetails" \ "submittedBy").json.copyFrom((__ \ "submittedBy").json.pick) and
-        (__ \ "declarationDetails" \ "erDeclarationDetails" \ "submittedID").json.copyFrom((__ \ "submittedID").json.pick) and
-        (__ \ "declarationDetails" \ "psaDeclaration" \ "psaDeclaration1").json.copyFrom((__ \ "psaDeclaration1").json.pick) and
-        (__ \ "declarationDetails" \ "psaDeclaration" \ "psaDeclaration2").json.copyFrom((__ \ "psaDeclaration2").json.pick)
-      ).reduce
+    (__ \ "submittedBy").read[String] match {
+      case "PSA" =>
+        (
+          (__ \ "declarationDetails" \ "erDetails" \ "pSTR").json.copyFrom((__ \ "pstr").json.pick) and
+            (__ \ "declarationDetails" \ "erDetails" \ "reportStartDate").json.copyFrom((__ \ "reportStartDate").json.pick) and
+            (__ \ "declarationDetails" \ "erDetails" \ "reportEndDate").json.copyFrom((__ \ "reportEndDate").json.pick) and
+            (__ \ "declarationDetails" \ "erDeclarationDetails" \ "submittedBy").json.copyFrom((__ \ "submittedBy").json.pick) and
+            (__ \ "declarationDetails" \ "erDeclarationDetails" \ "submittedID").json.copyFrom((__ \ "submittedID").json.pick) and
+            (__ \ "declarationDetails" \ "psaDeclaration" \ "psaDeclaration1").json.copyFrom((__ \ "psaDeclaration1").json.pick) and
+            (__ \ "declarationDetails" \ "psaDeclaration" \ "psaDeclaration2").json.copyFrom((__ \ "psaDeclaration2").json.pick)
+          ).reduce
+      case "PSP" =>
+        (
+          (__ \ "declarationDetails" \ "erDetails" \ "pSTR").json.copyFrom((__ \ "pstr").json.pick) and
+            (__ \ "declarationDetails" \ "erDetails" \ "reportStartDate").json.copyFrom((__ \ "reportStartDate").json.pick) and
+            (__ \ "declarationDetails" \ "erDetails" \ "reportEndDate").json.copyFrom((__ \ "reportEndDate").json.pick) and
+            (__ \ "declarationDetails" \ "erDeclarationDetails" \ "submittedBy").json.copyFrom((__ \ "submittedBy").json.pick) and
+            (__ \ "declarationDetails" \ "erDeclarationDetails" \ "submittedID").json.copyFrom((__ \ "submittedID").json.pick) and
+            (__ \ "declarationDetails" \ "pspDeclaration" \ "pspDeclaration1").json.copyFrom((__ \ "pspDeclaration1").json.pick) and
+            (__ \ "declarationDetails" \ "pspDeclaration" \ "pspDeclaration2").json.copyFrom((__ \ "pspDeclaration2").json.pick) and
+            (__ \ "declarationDetails" \ "pspDeclaration" \ "authorisedPSAID").json.copyFrom((__ \ "authorisedPSAID").json.pick)
+          ).reduce
+    }
   }
 }
