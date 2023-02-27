@@ -19,7 +19,7 @@ package transformations.UserAnswersToETMP
 import play.api.libs.json._
 import transformations.Transformer
 
-object API1826 extends Transformer {
+object API1828 extends Transformer {
   val transformToETMPData: Reads[JsObject] = {
 
     def eventReportDetailsNode(events: JsObject) = {
@@ -48,23 +48,11 @@ object API1826 extends Transformer {
       case _ => None
     }
 
-    val event18 = (__ \ "event18Confirmation").readNullable[Boolean].map {
-      case Some(true) =>
-        Some(
-          Json.obj(
-            "event18" -> Json.obj(
-              "chargeablePmt" -> yes
-            )
-          )
-        )
-      case _ => None
-    }
 
     for {
-      ev18 <- event18
       schWindUp <- schemeWindUp
     } yield {
-      eventTypeNodes((ev18 ++ schWindUp).toSeq)
+      eventTypeNodes((schWindUp).toSeq)
     }
   }
 }

@@ -30,14 +30,14 @@ trait ResponseGenerators extends Matchers with OptionValues {
   val pstrGen: Gen[String] = for {
     numbers <- Gen.chooseNum(1000000, 9999999)
     letters <- Gen.listOfN(2, Gen.alphaChar).map(_.mkString)
-  } yield numbers + letters
+  } yield s"${numbers}${letters}"
 
   val psaOrPspGen: Gen[String] = Gen.oneOf(Seq("PSA", "PSP"))
 
   val psaOrPspIdGen: Gen[String] = for {
     letter <- Gen.alphaChar.map(_.toString)
     numbers <- Gen.chooseNum(1000000, 9999999)
-  } yield letter + numbers
+  } yield s"${letter}${numbers}"
 
   val dateGenerator: Gen[LocalDate] = for {
     day <- Gen.choose(1, 28)
