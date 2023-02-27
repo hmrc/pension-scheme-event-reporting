@@ -23,31 +23,14 @@ import transformations.Transformer
 
 object API1828 extends Transformer {
   val transformToETMPData: Reads[JsObject] = {
-
-    /*
-    val fullExpectedResult = Json.obj(
-      "declarationDetails" -> Json.obj(
-        "erDetails" -> Json.obj(
-          "pSTR" -> pstr,
-          "reportStartDate" -> startDate,
-          "reportEndDate" -> endDate,
-        ),
-        "erDeclarationDetails" -> Json.obj(
-          "submittedBy" -> psa,
-          "submittedID" -> psaOrPspId
-        ),
-        "psaDeclaration" -> Json.obj( // TODO: amend to be psaDec or pspDec when that functionality is required.
-          "psaDeclaration1" -> "Selected",
-          "psaDeclaration2" -> "Selected"
-        )
-      )
-    )
-     */
-
     (
       (__ \ "declarationDetails" \ "erDetails" \ "pSTR").json.copyFrom((__ \ "pstr").json.pick) and
-        (__ \ "declarationDetails" \ "erDetails" \ "reportStartDate").json.copyFrom((__ \ "reportStartDate").json.pick)
+        (__ \ "declarationDetails" \ "erDetails" \ "reportStartDate").json.copyFrom((__ \ "reportStartDate").json.pick) and
+        (__ \ "declarationDetails" \ "erDetails" \ "reportEndDate").json.copyFrom((__ \ "reportEndDate").json.pick) and
+        (__ \ "declarationDetails" \ "erDeclarationDetails" \ "submittedBy").json.copyFrom((__ \ "submittedBy").json.pick) and
+        (__ \ "declarationDetails" \ "erDeclarationDetails" \ "submittedID").json.copyFrom((__ \ "submittedID").json.pick) and
+        (__ \ "declarationDetails" \ "psaDeclaration" \ "psaDeclaration1").json.copyFrom((__ \ "psaDeclaration1").json.pick) and
+        (__ \ "declarationDetails" \ "psaDeclaration" \ "psaDeclaration2").json.copyFrom((__ \ "psaDeclaration2").json.pick)
       ).reduce
-
   }
 }

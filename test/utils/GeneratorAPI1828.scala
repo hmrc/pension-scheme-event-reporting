@@ -27,17 +27,20 @@ trait GeneratorAPI1828 extends Matchers with OptionValues with ResponseGenerator
     for {
       startDate <- dateGenerator
       pstr <- pstrGen
-      psaOrPsp <- psaOrPspGen
+      // psaOrPsp <- psaOrPspGen // TODO: amend to use psaOrPspGen when that functionality is required.
       psaOrPspId <- psaOrPspIdGen
     } yield {
       val endDate = startDate.plusDays(1)
       val psa = "PSA"
+      val selected = "Selected"
       val fullUA = Json.obj(
         "pstr" -> pstr,
         "reportStartDate" -> startDate,
         "reportEndDate" -> startDate.plusDays(1),
         "submittedBy" -> psa, // TODO: amend to use psaOrPspGen when that functionality is required.
-        "submittedID" -> psaOrPspId
+        "submittedID" -> psaOrPspId,
+        "psaDeclaration1" -> selected,
+        "psaDeclaration2" -> selected
       )
       val fullExpectedResult = Json.obj(
         "declarationDetails" -> Json.obj(
@@ -51,8 +54,8 @@ trait GeneratorAPI1828 extends Matchers with OptionValues with ResponseGenerator
             "submittedID" -> psaOrPspId
           ),
           "psaDeclaration" -> Json.obj( // TODO: amend to be psaDec or pspDec when that functionality is required.
-            "psaDeclaration1" -> "Selected",
-            "psaDeclaration2" -> "Selected"
+            "psaDeclaration1" -> selected,
+            "psaDeclaration2" -> selected
           )
         )
       )
