@@ -16,19 +16,38 @@
 
 package transformations.UserAnswersToETMP
 
-import transformations.Transformer
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
+import transformations.Transformer
 
 object API1828 extends Transformer {
   val transformToETMPData: Reads[JsObject] = {
 
-    val submitEventDeclaration = ((__ \ "pSTR").read[String] and
-      (__ \ "reportStartDate").read[String] and
-      (__ \ "reportEndDate").read[String] and
-      (__ \ "submittedBy").read[String] and
-      (__ \ "submittedID").read[String]
-    ).reduce
+    /*
+    val fullExpectedResult = Json.obj(
+      "declarationDetails" -> Json.obj(
+        "erDetails" -> Json.obj(
+          "pSTR" -> pstr,
+          "reportStartDate" -> startDate,
+          "reportEndDate" -> endDate,
+        ),
+        "erDeclarationDetails" -> Json.obj(
+          "submittedBy" -> psa,
+          "submittedID" -> psaOrPspId
+        ),
+        "psaDeclaration" -> Json.obj( // TODO: amend to be psaDec or pspDec when that functionality is required.
+          "psaDeclaration1" -> "Selected",
+          "psaDeclaration2" -> "Selected"
+        )
+      )
+    )
+     */
+
+    (
+      (__ \ "declarationDetails" \ "erDetails" \ "pSTR").json.copyFrom((__ \ "pstr").json.pick) and
+        (__ \ "declarationDetails" \ "erDetails" \ "reportStartDate").json.copyFrom((__ \ "reportStartDate").json.pick)
+      ).reduce
+
   }
 }

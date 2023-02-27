@@ -33,7 +33,7 @@ trait GeneratorAPI1828 extends Matchers with OptionValues with ResponseGenerator
       val endDate = startDate.plusDays(1)
       val psa = "PSA"
       val fullUA = Json.obj(
-        "pSTR" -> pstr,
+        "pstr" -> pstr,
         "reportStartDate" -> startDate,
         "reportEndDate" -> startDate.plusDays(1),
         "submittedBy" -> psa, // TODO: amend to use psaOrPspGen when that functionality is required.
