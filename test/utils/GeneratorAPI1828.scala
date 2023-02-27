@@ -25,22 +25,34 @@ import play.api.libs.json.{JsObject, Json}
 trait GeneratorAPI1828 extends Matchers with OptionValues with ResponseGenerators {
   def generateUserAnswersAndPOSTBody: Gen[(JsObject, JsObject)] = {
     for {
-      date <- dateGenerator
+      startDate <- dateGenerator
       pstr <- pstrGen
       psaOrPsp <- psaOrPspGen
       psaOrPspId <- psaOrPspIdGen
     } yield {
+      val endDate = startDate.plusDays(1)
+      val psa = "PSA"
       val fullUA = Json.obj(
         "pSTR" -> pstr,
-        "reportStartDate" -> date,
-        "reportEndDate" -> date.plusDays(1),
-        "submittedBy" -> psaOrPsp,
+        "reportStartDate" -> startDate,
+        "reportEndDate" -> startDate.plusDays(1),
+        "submittedBy" -> psa, // TODO: amend to use psaOrPspGen when that functionality is required.
         "submittedID" -> psaOrPspId
       )
       val fullExpectedResult = Json.obj(
         "declarationDetails" -> Json.obj(
           "erDetails" -> Json.obj(
-            "pSTR" -> "Hello"
+            "pSTR" -> pstr,
+            "reportStartDate" -> startDate,
+            "reportEndDate" -> endDate,
+          ),
+          "erDeclarationDetails" -> Json.obj(
+            "submittedBy" -> psa,
+            "submittedID" -> psaOrPspId
+          ),
+          "psaDeclaration" -> Json.obj( // TODO: amend to be psaDec or pspDec when that functionality is required.
+            "psaDeclaration1" -> "Selected",
+            "psaDeclaration2" -> "Selected"
           )
         )
       )

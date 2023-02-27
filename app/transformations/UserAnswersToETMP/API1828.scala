@@ -16,44 +16,19 @@
 
 package transformations.UserAnswersToETMP
 
-import play.api.libs.json._
 import transformations.Transformer
+import play.api.libs.functional.syntax._
+import play.api.libs.json.Reads._
+import play.api.libs.json._
 
 object API1828 extends Transformer {
   val transformToETMPData: Reads[JsObject] = {
 
-    def eventReportDetailsNode(events: JsObject) = {
-      val header = Json.obj("eventReportDetails" -> Json.obj(
-        "reportStartDate" -> "2020-09-01",
-        "reportEndDate" -> "2020-09-01"
-      ))
-      header ++ events
-    }
-
-    def eventTypeNodes(events: Seq[JsObject]): JsObject = {
-      val eventDetailNodes = events.foldLeft(Json.obj())((a, b) => a ++ b)
-      val eventJsObj = if (events.isEmpty) Json.obj() else Json.obj("eventDetails" -> eventDetailNodes)
-      eventReportDetailsNode(eventJsObj)
-    }
-
-    val schemeWindUp = (__ \ "schemeWindUpDate").readNullable[String].map {
-      case Some(date) =>
-        Some(
-          Json.obj(
-            "eventWindUp" -> Json.obj(
-              "dateOfWindUp" -> date
-            )
-          )
-        )
-      case _ => None
-    }
-
-
-    for {
-      schWindUp <- schemeWindUp
-    } yield {
-      eventTypeNodes((schWindUp).toSeq)
-    }
+    val submitEventDeclaration = ((__ \ "pSTR").read[String] and
+      (__ \ "reportStartDate").read[String] and
+      (__ \ "reportEndDate").read[String] and
+      (__ \ "submittedBy").read[String] and
+      (__ \ "submittedID").read[String]
+    ).reduce
   }
 }
-
