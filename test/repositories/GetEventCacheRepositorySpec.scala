@@ -18,6 +18,7 @@ package repositories
 
 import com.typesafe.config.Config
 import org.mockito.Mockito.when
+import org.mongodb.scala.model.Filters
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -25,6 +26,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
+import play.api.libs.json.Json
 import uk.gov.hmrc.mongo.MongoComponent
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -40,88 +42,89 @@ class GetEventCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Mat
 
   override def beforeAll(): Unit = {
     when(mockAppConfig.underlying).thenReturn(mockConfig)
-    when(mockConfig.getString("mongodb.overview-cache.name")).thenReturn("get-event-cache")
-    when(mockConfig.getInt("mongodb.overview-cache.timeToLiveInSeconds")).thenReturn(ttlValue)
+    when(mockConfig.getString("mongodb.get-event-cache.name")).thenReturn("get-event-cache")
+    when(mockConfig.getInt("mongodb.get-event-cache.timeToLiveInSeconds")).thenReturn(ttlValue)
 
     initMongoDExecutable()
     startMongoD()
     getEventCacheRepository = buildFromRepository(mongoHost, mongoPort)
   }
 
-//  "upsert" must {
-//    "save a new event cache in Mongo collection when collection is empty" in {
-//      val record = ("pstr-1", "eventType-1", "2022-07-09", "1", Json.parse("""{"data":"1"}"""))
-//      val filters = Filters.and(Filters.eq("pstr", record._1), Filters.eq("eventType", record._2),
-//        Filters.eq("startDate", record._3), Filters.eq("endDate", record._4))
-//
-//      val documentsInDB = for {
-//        _ <- overviewCacheRepository.collection.drop().toFuture()
-//        _ <- overviewCacheRepository.upsert(record._1, record._2, record._3, record._4, record._5)
-//        documentsInDB <- overviewCacheRepository.collection.find[OverviewCacheEntry](filters).toFuture()
-//      } yield documentsInDB
-//
-//      whenReady(documentsInDB) {
-//        documentsInDB =>
-//          documentsInDB.size mustBe 1
-//      }
-//    }
-//
-//    "update an existing overview cache in Mongo collection" in {
-//
-//      val record1 = ("pstr-1", "eventType-1", "2022-07-09", "2023-07-09", Json.parse("""{"data":"1"}"""))
-//      val record2 = ("pstr-1", "eventType-1", "2022-07-09", "2023-07-09", Json.parse("""{"data":"2"}"""))
-//      val filters = Filters.and(Filters.eq("pstr", record1._1), Filters.eq("eventType", record1._2),
-//        Filters.eq("startDate", record1._3), Filters.eq("endDate", record1._4))
-//
-//      val documentsInDB = for {
-//        _ <- overviewCacheRepository.collection.drop().toFuture()
-//        _ <- overviewCacheRepository.upsert(record1._1, record1._2, record1._3, record1._4, record1._5)
-//        _ <- overviewCacheRepository.upsert(record2._1, record2._2, record2._3, record2._4, record2._5)
-//        documentsInDB <- overviewCacheRepository.collection.find[OverviewCacheEntry](filters).toFuture()
-//      } yield documentsInDB
-//
-//      whenReady(documentsInDB) {
-//        documentsInDB =>
-//          documentsInDB.size mustBe 1
-//          documentsInDB.head.data mustBe record2._5
-//      }
-//    }
-//
-//    "save a new overview cache in Mongo collection when one of filter is different" in {
-//
-//      val record1 = ("pstr-1", "eventType-1", "2022-07-09", "2023-07-09", Json.parse("""{"data":"1"}"""))
-//      val record2 = ("pstr-2", "eventType-1", "2022-07-09", "2023-07-09", Json.parse("""{"data":"2"}"""))
-//
-//      val documentsInDB = for {
-//        _ <- overviewCacheRepository.collection.drop().toFuture()
-//        _ <- overviewCacheRepository.upsert(record1._1, record1._2, record1._3, record1._4, record1._5)
-//        _ <- overviewCacheRepository.upsert(record2._1, record2._2, record2._3, record2._4, record2._5)
-//        documentsInDB <- overviewCacheRepository.collection.find[OverviewCacheEntry]().toFuture()
-//      } yield documentsInDB
-//
-//      whenReady(documentsInDB) {
-//        documentsInDB =>
-//          documentsInDB.size mustBe 2
-//      }
-//    }
-//  }
+  "upsert" must {
+    "save a new event cache in Mongo collection when collection is empty" in {
+      val record = ("pstr-1", "eventType-1", "2022-07-09", "1", Json.parse("""{"data":"1"}"""))
+      val filters = Filters.and(Filters.eq("pstr", record._1), Filters.eq("eventType", record._2),
+        Filters.eq("startDate", record._3), Filters.eq("version", record._4))
 
-//  "get" must {
-//    "retrieve existing overview cache in Mongo collection" in {
-//
-//      val record = ("pstr-1", "eventType-1", "2022-07-09", "2023-07-09", Json.parse("""{"data":"1"}"""))
-//
-//      val documentsInDB = for {
-//        _ <- overviewCacheRepository.collection.drop().toFuture()
-//        _ <- overviewCacheRepository.upsert(record._1, record._2, record._3, record._4, record._5)
-//        documentsInDB <- overviewCacheRepository.get(record._1, record._2, record._3, record._4)
-//      } yield documentsInDB
-//
-//      whenReady(documentsInDB) { documentsInDB =>
-//        documentsInDB.isDefined mustBe true
-//      }
-//    }
-//  }
+      val documentsInDB = for {
+        _ <- getEventCacheRepository.collection.drop().toFuture()
+        _ <- getEventCacheRepository.upsert(record._1, record._3, record._4, record._2, record._5)
+        documentsInDB <- getEventCacheRepository.collection.find[GetEventCacheEntry](filters).toFuture()
+      } yield documentsInDB
+
+      whenReady(documentsInDB) {
+        documentsInDB =>
+          documentsInDB.size mustBe 1
+      }
+    }
+    //
+    //    "update an existing overview cache in Mongo collection" in {
+    //
+    //      val record1 = ("pstr-1", "eventType-1", "2022-07-09", "2023-07-09", Json.parse("""{"data":"1"}"""))
+    //      val record2 = ("pstr-1", "eventType-1", "2022-07-09", "2023-07-09", Json.parse("""{"data":"2"}"""))
+    //      val filters = Filters.and(Filters.eq("pstr", record1._1), Filters.eq("eventType", record1._2),
+    //        Filters.eq("startDate", record1._3), Filters.eq("endDate", record1._4))
+    //
+    //      val documentsInDB = for {
+    //        _ <- overviewCacheRepository.collection.drop().toFuture()
+    //        _ <- overviewCacheRepository.upsert(record1._1, record1._2, record1._3, record1._4, record1._5)
+    //        _ <- overviewCacheRepository.upsert(record2._1, record2._2, record2._3, record2._4, record2._5)
+    //        documentsInDB <- overviewCacheRepository.collection.find[OverviewCacheEntry](filters).toFuture()
+    //      } yield documentsInDB
+    //
+    //      whenReady(documentsInDB) {
+    //        documentsInDB =>
+    //          documentsInDB.size mustBe 1
+    //          documentsInDB.head.data mustBe record2._5
+    //      }
+    //    }
+    //
+    //    "save a new overview cache in Mongo collection when one of filter is different" in {
+    //
+    //      val record1 = ("pstr-1", "eventType-1", "2022-07-09", "2023-07-09", Json.parse("""{"data":"1"}"""))
+    //      val record2 = ("pstr-2", "eventType-1", "2022-07-09", "2023-07-09", Json.parse("""{"data":"2"}"""))
+    //
+    //      val documentsInDB = for {
+    //        _ <- overviewCacheRepository.collection.drop().toFuture()
+    //        _ <- overviewCacheRepository.upsert(record1._1, record1._2, record1._3, record1._4, record1._5)
+    //        _ <- overviewCacheRepository.upsert(record2._1, record2._2, record2._3, record2._4, record2._5)
+    //        documentsInDB <- overviewCacheRepository.collection.find[OverviewCacheEntry]().toFuture()
+    //      } yield documentsInDB
+    //
+    //      whenReady(documentsInDB) {
+    //        documentsInDB =>
+    //          documentsInDB.size mustBe 2
+    //      }
+    //    }
+    //  }
+
+    //  "get" must {
+    //    "retrieve existing overview cache in Mongo collection" in {
+    //
+    //      val record = ("pstr-1", "eventType-1", "2022-07-09", "2023-07-09", Json.parse("""{"data":"1"}"""))
+    //
+    //      val documentsInDB = for {
+    //        _ <- overviewCacheRepository.collection.drop().toFuture()
+    //        _ <- overviewCacheRepository.upsert(record._1, record._2, record._3, record._4, record._5)
+    //        documentsInDB <- overviewCacheRepository.get(record._1, record._2, record._3, record._4)
+    //      } yield documentsInDB
+    //
+    //      whenReady(documentsInDB) { documentsInDB =>
+    //        documentsInDB.isDefined mustBe true
+    //      }
+    //    }
+    //  }
+  }
 }
 
 object GetEventCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
