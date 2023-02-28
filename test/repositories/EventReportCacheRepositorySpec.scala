@@ -54,7 +54,7 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
   override def afterAll(): Unit =
     stopMongoD()
 
-  "upsert" must {
+  "upsert with event type" must {
     "save a new event report cache in Mongo collection when collection is empty" in {
 
       val record = ("pstr-1", Api1826, Json.parse("""{"data":"1"}"""))
@@ -101,6 +101,64 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
         _ <- eventReportCacheRepository.collection.drop().toFuture()
         _ <- eventReportCacheRepository.upsert(record1._1, record1._2, record1._3)
         _ <- eventReportCacheRepository.upsert(record2._1, record2._2, record2._3)
+        documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry]().toFuture()
+      } yield documentsInDB
+
+      whenReady(documentsInDB) {
+        documentsInDB =>
+          documentsInDB.size mustBe 2
+      }
+    }
+  }
+
+  "upsert with NO event type" must {
+    val noEventType = "None"
+    "save a new event report cache in Mongo collection when collection is empty" in {
+
+      val record = ("pstr-1", noEventType, Json.parse("""{"data":"1"}"""))
+      val filters = Filters.and(Filters.eq("pstr", record._1), Filters.eq("apiTypes", record._2))
+
+      val documentsInDB = for {
+        _ <- eventReportCacheRepository.collection.drop().toFuture()
+        _ <- eventReportCacheRepository.upsert(record._1, record._3)
+        documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry](filters).toFuture()
+      } yield documentsInDB
+
+      whenReady(documentsInDB) {
+        documentsInDB =>
+          documentsInDB.size mustBe 1
+      }
+    }
+
+    "update an existing event report cache in Mongo collection" in {
+
+      val record1 = ("pstr-1", noEventType, Json.parse("""{"data":"1"}"""))
+      val record2 = ("pstr-1", noEventType, Json.parse("""{"data":"2"}"""))
+      val filters = Filters.and(Filters.eq("pstr", record1._1), Filters.eq("apiTypes", record1._2))
+
+      val documentsInDB = for {
+        _ <- eventReportCacheRepository.collection.drop().toFuture()
+        _ <- eventReportCacheRepository.upsert(record1._1, record1._3)
+        _ <- eventReportCacheRepository.upsert(record2._1, record2._3)
+        documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry](filters).toFuture()
+      } yield documentsInDB
+
+      whenReady(documentsInDB) {
+        documentsInDB =>
+          documentsInDB.size mustBe 1
+          documentsInDB.head.data mustBe record2._3
+      }
+    }
+
+    "save a new event report cache in Mongo collection when one of filter is different" in {
+
+      val record1 = ("pstr-1", noEventType, Json.parse("""{"data":"1"}"""))
+      val record2 = ("pstr-2", noEventType, Json.parse("""{"data":"2"}"""))
+
+      val documentsInDB = for {
+        _ <- eventReportCacheRepository.collection.drop().toFuture()
+        _ <- eventReportCacheRepository.upsert(record1._1, record1._3)
+        _ <- eventReportCacheRepository.upsert(record2._1, record2._3)
         documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry]().toFuture()
       } yield documentsInDB
 

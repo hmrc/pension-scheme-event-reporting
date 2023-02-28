@@ -106,11 +106,12 @@ class EventReportCacheRepository @Inject()(
     val lastUpdated = DateTime.now(DateTimeZone.UTC)
     val modifier = Updates.combine(
       Updates.set(pstrKey, pstr),
+      Updates.set(apiTypesKey, "None"),
       Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
       Updates.set(lastUpdatedKey, Codecs.toBson(lastUpdated)),
       Updates.set(expireAtKey, Codecs.toBson(evaluatedExpireAt))
     )
-    val selector = Filters.equal(pstrKey, pstr)
+    val selector = Filters.and(Filters.equal(pstrKey, pstr), Filters.equal(apiTypesKey, "None"))
 
     collection.findOneAndUpdate(
       filter = selector,

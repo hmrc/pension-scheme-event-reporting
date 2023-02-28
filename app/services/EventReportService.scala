@@ -143,7 +143,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
 
   def getUserAnswers(pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
-        eventReportCacheRepository.getByKeys(Map("pstr" -> pstr))
+        eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> "None"))
           .map(_.map(_.as[JsObject]))
 
 
