@@ -67,27 +67,27 @@ class GetEventCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Mat
           documentsInDB.size mustBe 1
       }
     }
-    //
-    //    "update an existing overview cache in Mongo collection" in {
-    //
-    //      val record1 = ("pstr-1", "eventType-1", "2022-07-09", "2023-07-09", Json.parse("""{"data":"1"}"""))
-    //      val record2 = ("pstr-1", "eventType-1", "2022-07-09", "2023-07-09", Json.parse("""{"data":"2"}"""))
-    //      val filters = Filters.and(Filters.eq("pstr", record1._1), Filters.eq("eventType", record1._2),
-    //        Filters.eq("startDate", record1._3), Filters.eq("endDate", record1._4))
-    //
-    //      val documentsInDB = for {
-    //        _ <- overviewCacheRepository.collection.drop().toFuture()
-    //        _ <- overviewCacheRepository.upsert(record1._1, record1._2, record1._3, record1._4, record1._5)
-    //        _ <- overviewCacheRepository.upsert(record2._1, record2._2, record2._3, record2._4, record2._5)
-    //        documentsInDB <- overviewCacheRepository.collection.find[OverviewCacheEntry](filters).toFuture()
-    //      } yield documentsInDB
-    //
-    //      whenReady(documentsInDB) {
-    //        documentsInDB =>
-    //          documentsInDB.size mustBe 1
-    //          documentsInDB.head.data mustBe record2._5
-    //      }
-    //    }
+
+    "update an existing event cache in Mongo collection" in {
+
+      val record1 = ("pstr-1", "eventType-1", "2022-07-09", "1", Json.parse("""{"data":"1"}"""))
+      val record2 = ("pstr-1", "eventType-1", "2022-07-09", "1", Json.parse("""{"data":"2"}"""))
+      val filters = Filters.and(Filters.eq("pstr", record1._1), Filters.eq("eventType", record1._2),
+        Filters.eq("startDate", record1._3), Filters.eq("version", record1._4))
+
+      val documentsInDB = for {
+        _ <- getEventCacheRepository.collection.drop().toFuture()
+        _ <- getEventCacheRepository.upsert(record1._1, record1._3, record1._4, record1._2, record1._5)
+        _ <- getEventCacheRepository.upsert(record2._1, record2._3, record2._4, record2._2, record2._5)
+        documentsInDB <- getEventCacheRepository.collection.find[GetEventCacheEntry](filters).toFuture()
+      } yield documentsInDB
+
+      whenReady(documentsInDB) {
+        documentsInDB =>
+          documentsInDB.size mustBe 1
+          documentsInDB.head.data mustBe record2._5
+      }
+    }
     //
     //    "save a new overview cache in Mongo collection when one of filter is different" in {
     //
