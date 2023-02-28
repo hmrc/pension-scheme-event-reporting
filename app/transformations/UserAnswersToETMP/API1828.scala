@@ -29,19 +29,23 @@ object API1828 extends Transformer {
     }
 
     def requiredNode(node: String): Reads[Option[JsObject]] = {
-      val nameOfNode = if (node == "pstr") { "pSTR" } else { node }
+      val nameOfNode = if (node == "pstr") {
+        "pSTR"
+      } else {
+        node
+      }
       (__ \ node).readNullable[String].map {
-      case Some(node) =>
-        Some(
-          Json.obj(
-            nameOfNode -> node
+        case Some(node) =>
+          Some(
+            Json.obj(
+              nameOfNode -> node
+            )
           )
-        )
-      case _ => None
-    }
+        case _ => None
+      }
     }
 
-    def optionalNode(optNode: String) = {
+    def optionalNode(optNode: String): Reads[Option[JsObject]] = {
       val nameOfOptNode = optNode
       (__ \ optNode).readNullable[String].map {
         case Some(optNode) =>
@@ -70,13 +74,10 @@ object API1828 extends Transformer {
       val erDeclarationDetailsNodes = nodes((submittedByNode ++ submittedIdNode).toSeq)
       val psaDeclarationKeyAndNodes = ("psaDeclaration", nodes((psaDec1Node ++ psaDec2Node).toSeq))
       val pspDeclarationKeyAndNodes = ("pspDeclaration", nodes((authorisedPsaIdNode ++ pspDec1Node ++ pspDec2Node).toSeq))
-      val psaOrPsp = {
-        if (authorisedPsaIdNode.headOption == None) {
-          psaDeclarationKeyAndNodes
-        }
-        else {
-          pspDeclarationKeyAndNodes
-        }
+      val psaOrPsp = if (authorisedPsaIdNode.nonEmpty) {
+        pspDeclarationKeyAndNodes
+      } else {
+        psaDeclarationKeyAndNodes
       }
       Json.obj(
         "declarationDetails" -> Json.obj(
@@ -88,27 +89,3 @@ object API1828 extends Transformer {
     }
   }
 }
-
-//  private val test: Reads[JsObject] = (__ \ "psaDeclaration").readNullable[String].map {
-//    case Some(_) =>
-//      // PSA only:
-//      (__ \ "declarationDetails" \ "psaDeclaration" \ "psaDeclaration1").json.copyFrom((__ \ "psaDeclaration1").json.pick) and
-//        (__ \ "declarationDetails" \ "psaDeclaration" \ "psaDeclaration2").json.copyFrom((__ \ "psaDeclaration2").json.pick)
-//    case _ =>
-//      // PSP only:
-//    (__ \ "declarationDetails" \ "pspDeclaration" \ "authorisedPSAID").json.copyFrom((__ \ "authorisedPSAID").json.pick) and
-//    (__ \ "declarationDetails" \ "pspDeclaration" \ "pspDeclaration1").json.copyFrom((__ \ "pspDeclaration1").json.pick) and
-//    (__ \ "declarationDetails" \ "pspDeclaration" \ "pspDeclaration2").json.copyFrom((__ \ "pspDeclaration2").json.pick)
-//  }
-
-//  val transformToETMPData: Reads[JsObject] = {
-//    (
-//      // These are all common between PSAs and PSPs.
-//      (__ \ "declarationDetails" \ "erDetails" \ "pSTR").json.copyFrom((__ \ "pstr").json.pick) and
-//        (__ \ "declarationDetails" \ "erDetails" \ "reportStartDate").json.copyFrom((__ \ "reportStartDate").json.pick) and
-//        (__ \ "declarationDetails" \ "erDetails" \ "reportEndDate").json.copyFrom((__ \ "reportEndDate").json.pick) and
-//        (__ \ "declarationDetails" \ "erDeclarationDetails" \ "submittedBy").json.copyFrom((__ \ "submittedBy").json.pick) and
-//        (__ \ "declarationDetails" \ "erDeclarationDetails" \ "submittedID").json.copyFrom((__ \ "submittedID").json.pick)
-//      ).reduce
-//  }
-

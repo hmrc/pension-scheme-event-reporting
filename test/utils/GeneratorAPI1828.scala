@@ -53,15 +53,31 @@ trait GeneratorAPI1828 extends Matchers with OptionValues with ResponseGenerator
           )
         }
       }
-      val fullUA = Json.obj(
-        "pstr" -> pstr,
-        "reportStartDate" -> startDate,
-        "reportEndDate" -> startDate.plusDays(1),
-        "submittedBy" -> psaOrPsp,
-        "submittedID" -> psaOrPspId(psaOrPsp),
-        "psaDeclaration1" -> selected,
-        "psaDeclaration2" -> selected
-      )
+
+      val psaOrPspJson = psaOrPspDeclaration(psaOrPsp)
+
+      def fullUA(psaOrPsp: String) = psaOrPsp match {
+        case "PSA" => Json.obj(
+          "pstr" -> pstr,
+          "reportStartDate" -> startDate,
+          "reportEndDate" -> startDate.plusDays(1),
+          "submittedBy" -> psaOrPsp,
+          "submittedID" -> psaOrPspId(psaOrPsp),
+          "psaDeclaration1" -> selected,
+          "psaDeclaration2" -> selected
+        )
+        case "PSP" => Json.obj(
+          "pstr" -> pstr,
+          "reportStartDate" -> startDate,
+          "reportEndDate" -> startDate.plusDays(1),
+          "submittedBy" -> psaOrPsp,
+          "submittedID" -> psaOrPspId(psaOrPsp),
+          "authorisedPSAID" -> psaId,
+          "pspDeclaration1" -> selected,
+          "pspDeclaration2" -> selected
+        )
+      }
+
       val fullExpectedResult = Json.obj(
         "declarationDetails" -> Json.obj(
           "erDetails" -> Json.obj(
@@ -73,10 +89,10 @@ trait GeneratorAPI1828 extends Matchers with OptionValues with ResponseGenerator
             "submittedBy" -> psaOrPsp,
             "submittedID" -> psaOrPspId(psaOrPsp)
           ),
-          psaOrPspDeclaration(psaOrPsp)
+          psaOrPspJson
         )
       )
-      Tuple2(fullUA, fullExpectedResult)
+      Tuple2(fullUA(psaOrPsp), fullExpectedResult)
     }
   }
 }
