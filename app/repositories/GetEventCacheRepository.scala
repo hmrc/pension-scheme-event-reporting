@@ -102,7 +102,7 @@ class GetEventCacheRepository @Inject()(
   def get(pstr: String, startDate: String, version: String, eventType: String)
          (implicit ec: ExecutionContext): Future[Option[JsValue]] = {
     logger.info(s"Retrieving data from $collectionName cache")
-    collection.find[GetEventCacheEntry](filterByKeys(pstr, startDate, version, eventType))
+    collection.find[GetEventCacheEntry](filterByKeys(pstr, eventType, startDate, version))
       .headOption().map(optCacheEntry => optCacheEntry.map(cacheEntry => cacheEntry.data))
   }
 
