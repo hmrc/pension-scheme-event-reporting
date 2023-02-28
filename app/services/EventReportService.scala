@@ -131,6 +131,9 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
+  def saveUserAnswers(pstr: String, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] =
+      eventReportCacheRepository.upsert(pstr, userAnswersJson)
+
   def getUserAnswers(pstr: String, eventType: EventType)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     EventType.postApiTypeByEventType(eventType) match {
       case Some(apiType) =>
@@ -138,6 +141,11 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           .map(_.map(_.as[JsObject]))
       case _ => Future.successful(None)
     }
+
+  def getUserAnswers(pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
+        eventReportCacheRepository.getByKeys(Map("pstr" -> pstr))
+          .map(_.map(_.as[JsObject]))
+
 
   def getVersions(pstr: String, reportType: String, startDate: String)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[ERVersion]] = {
     eventReportConnector.getVersions(pstr, reportType, startDate)

@@ -102,6 +102,21 @@ class EventReportCacheRepository @Inject()(
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
   }
 
+  def upsert(pstr: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
+    val lastUpdated = DateTime.now(DateTimeZone.UTC)
+    val modifier = Updates.combine(
+      Updates.set(pstrKey, pstr),
+      Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
+      Updates.set(lastUpdatedKey, Codecs.toBson(lastUpdated)),
+      Updates.set(expireAtKey, Codecs.toBson(evaluatedExpireAt))
+    )
+    val selector = Filters.equal(pstrKey, pstr)
+
+    collection.findOneAndUpdate(
+      filter = selector,
+      update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
+  }
+
   def getByKeys(mapOfKeys: Map[String, String])(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
     collection.find[EventReportCacheEntry](filterByKeys(mapOfKeys)).headOption().map {
       _.map {
