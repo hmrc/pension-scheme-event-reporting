@@ -18,8 +18,8 @@ package services
 
 import connectors.EventReportConnector
 import models.enumeration.ApiType._
+import models.enumeration.EventType
 import models.enumeration.EventType.{Event1, Event20A, WindUp}
-import models.enumeration.{ApiType, EventType}
 import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
@@ -90,7 +90,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
   "compileEventReport for event 1" must {
     "return NOT FOUND when no data return from repository" in {
-      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1827.toString))(implicitly))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1827)))(any()))
         .thenReturn(Future.successful(None))
       eventReportService.compileEventReport("pstr", Event1)(implicitly, implicitly).map {
         result => result.header.status mustBe NOT_FOUND
@@ -98,8 +98,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
 
     "return 204 No Content when valid data return from repository - event 1" in {
-
-      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1827.toString))(implicitly))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1827)))(any()))
         .thenReturn(Future.successful(Some(responseJson)))
 
       when(mockEventReportConnector.compileEventOneReport(any(), any())(any(), any()))
@@ -111,7 +110,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
 
     "return 400 when validation errors response for event one report" in {
-      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1827.toString))(implicitly))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1827)))(any()))
         .thenReturn(Future.successful(Some(responseJson)))
       when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(compileEventOneReportSchemaPath), any()))
         .thenReturn(Failure(new Exception("Message")))
@@ -125,7 +124,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
 
     "throw Upstream5XXResponse on Internal Server Error" in {
-      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1827.toString))(implicitly))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1827)))(any()))
         .thenReturn(Future.successful(Some(responseJson)))
 
       when(mockEventReportConnector.compileEventOneReport(any(), any())(any(), any()))
@@ -141,7 +140,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
   "compileEventReport for event windup" must {
     "return Not Found when no data returned from repository" in {
-      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1826.toString))(implicitly))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1826)))(any()))
         .thenReturn(Future.successful(None))
       eventReportService.compileEventReport("pstr", WindUp)(implicitly, implicitly).map {
         result => result.header.status mustBe NOT_FOUND
@@ -149,7 +148,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
 
     "return 204 No Content when valid data return from repository - event 1" in {
-      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1826.toString))(implicitly))
+
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1826)))(any()))
         .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
 
       when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
@@ -161,8 +161,9 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
 
     "return 400 when validation errors response" in {
-      when(mockEventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> Api1826.toString))(implicitly))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1826)))(any()))
         .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
+
       when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(createCompiledEventSummaryReportSchemaPath), any()))
         .thenReturn(Failure(new Exception("Message")))
 
@@ -175,7 +176,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
 
     "throw Upstream5XXResponse on Internal Server Error" in {
-      when(mockEventReportCacheRepository.getByKeys(any())(any()))
+
+      when(mockEventReportCacheRepository.getUserAnswers(any(), any())(any()))
         .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
 
       when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
@@ -269,14 +271,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   "getEventFromMongo" must {
     "return the payload from the connector when valid event type" in {
       val json = Json.obj("test" -> "test")
-
-      val mapOfKeys = Map(
-        "pstr" -> pstr,
-        "apiTypes" -> ApiType.Api1830.toString
-      )
-      when(mockEventReportCacheRepository.getByKeys(
-        ArgumentMatchers.eq(mapOfKeys)
-      )(any())).thenReturn(Future.successful(Some(json)))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1830)))(any()))
+        .thenReturn(Future.successful(Some(json)))
 
       eventReportService.getUserAnswers(pstr, EventType.Event3)(implicitly).map { result =>
         result mustBe Some(json)
