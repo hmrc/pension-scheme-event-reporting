@@ -21,15 +21,6 @@ import transformations.Transformer
 
 object API1826 extends Transformer {
   val transformToETMPData: Reads[JsObject] = {
-//
-//    def eventReportDetailsNode(events: JsObject) = {
-//      val header = Json.obj("eventReportDetails" -> Json.obj(
-//        "reportStartDate" -> "2020-09-01",
-//        "reportEndDate" -> "2020-09-01"
-//      ))
-//      header ++ events
-//    }
-
     def eventTypeNodes(events: Seq[JsObject]): JsObject = {
       val eventDetailNodes = events.foldLeft(Json.obj())((a, b) => a ++ b)
       if (events.isEmpty) Json.obj() else Json.obj("eventDetails" -> eventDetailNodes)
