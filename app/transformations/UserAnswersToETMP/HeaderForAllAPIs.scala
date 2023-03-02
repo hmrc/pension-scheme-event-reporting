@@ -16,25 +16,20 @@
 
 package transformations.UserAnswersToETMP
 
+import play.api.libs.functional.syntax._
+import play.api.libs.json.Reads._
 import play.api.libs.json._
 import transformations.Transformer
 
 object HeaderForAllAPIs extends Transformer {
   val transformToETMPData: Reads[JsObject] = {
-    Json.obj("eventReportDetails" -> Json.obj(
-      "reportStartDate" -> "2020-09-01",
-      "reportEndDate" -> "2020-09-01"
-    ))
-
-
-
-
-//    for {
-//      ev18 <- event18
-//      schWindUp <- schemeWindUp
-//    } yield {
-//      eventTypeNodes((ev18 ++ schWindUp).toSeq)
-//    }
+    (__ \ "taxYear").read[String].flatMap { taxYear =>
+      val endTaxYear = (taxYear.toInt + 1).toString
+      (
+        (__ \ "eventReportDetails" \ "reportStartDate").json.put(JsString(s"$taxYear-04-06")) and
+          (__ \ "eventReportDetails" \ "reportEndDate").json.put(JsString(s"$endTaxYear-04-05"))
+        ).reduce
+    }
   }
 }
 

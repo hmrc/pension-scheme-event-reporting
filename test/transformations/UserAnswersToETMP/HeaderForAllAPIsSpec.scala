@@ -24,18 +24,19 @@ import utils.{GeneratorAPI1826, JsonFileReader}
 
 class HeaderForAllAPIsSpec extends AnyFreeSpec with Matchers
   with JsonFileReader with GeneratorAPI1826 with ScalaCheckPropertyChecks {
-
   "transformToETMPData" - {
     "must transform a the header details correctly" in {
-      val userAnswers = Json.obj(
-        "taxYear" -> "2000"
-      )
-//      forAll(generateUserAnswersAndPOSTBodyWindUp) {
-//        case (userAnswers: JsObject, expectedResponse: JsObject) =>
-//          val result = userAnswers.validate(API1826.transformToETMPData)
-//          val expectedResult = JsSuccess(expectedResponse, __ \ "schemeWindUpDate")
-//          result mustBe expectedResult
-//      }
+      val userAnswers = Json.obj("taxYear" -> "2022")
+
+      val exp = Json.obj("eventReportDetails" -> Json.obj(
+        "reportStartDate" -> "2022-04-06",
+        "reportEndDate" -> "2023-04-05"
+      ))
+
+      val expectedResult = JsSuccess(exp)
+
+      val result = userAnswers.validate(HeaderForAllAPIs.transformToETMPData)
+      result mustBe expectedResult
     }
   }
 }
