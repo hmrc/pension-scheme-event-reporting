@@ -17,12 +17,44 @@
 package utils
 
 import models.enumeration.EventType
+import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 
 trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerators {
+
+  def generateGET1832UserAnswersFromETMP: Gen[(JsObject, JsObject)] = {
+    for {
+      firstName <- Gen.alphaStr
+      lastName <- Gen.alphaStr
+      nino <- Gen.alphaStr
+      pensionAmt <- arbitrary[BigDecimal]
+      taxYrEndDate <- Gen.oneOf("2021-05-30", "2020-03-30", "2019-08-30", "2022-01-30")
+    } yield {
+      val fullPayload = Json.obj(
+        "individualDetails" -> Json.obj(
+        "firstName" -> firstName,
+        "lastName" -> lastName,
+        "nino" -> nino),
+        "paymentDetails" -> Json.obj(
+          "monetaryAmount" -> pensionAmt,
+          "taxYearEndingDate" -> taxYrEndDate
+        ))
+      val fullExpectedResult = Json.obj(
+        "membersDetails" -> Json.obj(
+          "firstName" -> firstName,
+          "lastName" -> lastName,
+          "nino" -> nino
+        ),
+        "chooseTaxYear" -> taxYrEndDate.substring(0,4)
+      )
+      Tuple2(fullPayload, fullExpectedResult)
+    }
+  }
+
+
 
   def generatedPayload(eventType: EventType): JsValue = {
     Json.parse(
