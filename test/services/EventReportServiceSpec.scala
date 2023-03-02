@@ -368,10 +368,11 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
 object EventReportServiceSpec {
 
-  private val responseJson: JsObject = Json.obj("event" -> "mockEvent - test passed")
+  private val responseJson: JsObject = Json.obj("event" -> "mockEvent - test passed", "taxYear" -> "2022")
   private val uaJsonEventWindUp: JsObject =
     Json.obj(
-      "schemeWindUpDate" -> "2020-06-01"
+      "schemeWindUpDate" -> "2020-06-01",
+      "taxYear" -> "2022"
     )
   private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"

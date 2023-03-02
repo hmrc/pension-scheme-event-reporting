@@ -256,7 +256,7 @@ object API1827 extends Transformer {
 
     for {
       jsObject <- reads
-      header <- HeaderForAllAPIs.transformToETMPData
+      header <- HeaderForAllAPIs.transformToETMPData()
     } yield {
       header ++ jsObject
     }

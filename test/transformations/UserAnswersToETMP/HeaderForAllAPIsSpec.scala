@@ -35,7 +35,7 @@ class HeaderForAllAPIsSpec extends AnyFreeSpec with Matchers
 
       val expectedResult = JsSuccess(exp)
 
-      val result = userAnswers.validate(HeaderForAllAPIs.transformToETMPData)
+      val result = userAnswers.validate(HeaderForAllAPIs.transformToETMPData())
       result mustBe expectedResult
     }
   }

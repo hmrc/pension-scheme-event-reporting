@@ -53,7 +53,7 @@ object API1826 extends Transformer {
     for {
       ev18 <- event18
       schWindUp <- schemeWindUp
-      header <- HeaderForAllAPIs.transformToETMPData
+      header <- HeaderForAllAPIs.transformToETMPData()
     } yield {
       header ++ eventTypeNodes((ev18 ++ schWindUp).toSeq)
     }

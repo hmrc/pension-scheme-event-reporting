@@ -22,12 +22,13 @@ import play.api.libs.json._
 import transformations.Transformer
 
 object HeaderForAllAPIs extends Transformer {
-  val transformToETMPData: Reads[JsObject] = {
+  def transformToETMPData(readsJsObject: Reads[JsObject] = Reads.pure(Json.obj())): Reads[JsObject] = {
     (__ \ "taxYear").read[String].flatMap { taxYear =>
       val endTaxYear = (taxYear.toInt + 1).toString
       (
         (__ \ "eventReportDetails" \ "reportStartDate").json.put(JsString(s"$taxYear-04-06")) and
-          (__ \ "eventReportDetails" \ "reportEndDate").json.put(JsString(s"$endTaxYear-04-05"))
+          (__ \ "eventReportDetails" \ "reportEndDate").json.put(JsString(s"$endTaxYear-04-05")) and
+          readsJsObject
         ).reduce
     }
   }
