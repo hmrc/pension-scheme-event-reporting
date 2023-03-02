@@ -29,7 +29,7 @@ import play.api.libs.json._
 import play.api.mvc.Result
 import play.api.mvc.Results._
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
-import transformations.ETMPToFrontEnd.EventSummary.{rdsFor1832, rdsFor1834}
+import transformations.ETMPToFrontEnd.EventSummary.{rdsEventTypeNodeOnly, rdsFor1834}
 import transformations.UserAnswersToETMP.{API1826, API1827, API1830}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
@@ -119,9 +119,13 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
     val transformedFutures = for {
+      /*
+        The reads for 1832 below are only checking whether the node for the eventType in question EXISTS.
+        It is not parsing the whole file. This is so that we know which event types to display on summary page.
+       */
       eventTypeReadPairs <- Map(
-        Some(EventType.Event22) -> rdsFor1832(EventType.Event22),
-        Some(EventType.Event23) -> rdsFor1832(EventType.Event23),
+        Some(EventType.Event22) -> rdsEventTypeNodeOnly(EventType.Event22),
+        Some(EventType.Event23) -> rdsEventTypeNodeOnly(EventType.Event23),
         None -> rdsFor1834
       )
     } yield {
