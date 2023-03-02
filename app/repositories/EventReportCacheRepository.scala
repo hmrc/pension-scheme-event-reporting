@@ -129,7 +129,7 @@ class EventReportCacheRepository @Inject()(
     }
   }
 
-  private[repositories] def getByKeys(mapOfKeys: Map[String, String])(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
+  private def getByKeys(mapOfKeys: Map[String, String])(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
     collection.find[EventReportCacheEntry](filterByKeys(mapOfKeys)).headOption().map {
       _.map {
         dataEntry =>

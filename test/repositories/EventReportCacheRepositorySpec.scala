@@ -17,7 +17,7 @@
 package repositories
 
 import com.typesafe.config.Config
-import models.enumeration.ApiType.Api1826
+import models.enumeration.ApiType.{Api1826, Api1827}
 import org.mockito.Mockito.when
 import org.mongodb.scala.model.Filters
 import org.scalatest.concurrent.ScalaFutures
@@ -169,19 +169,56 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
     }
   }
 
-  "get" must {
-    "retrieve existing event report cache in Mongo collection" in {
-
+  "getUserAnswers" must {
+    "retrieve existing event report cache in Mongo collection when API type specified" in {
       val record = ("pstr-1", Api1826, Json.parse("""{"data":"1"}"""))
-
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
         _ <- eventReportCacheRepository.upsert(record._1, record._2, record._3)
-        documentsInDB <- eventReportCacheRepository.getByKeys(Map("pstr" -> record._1, "apiTypes" -> record._2.toString))
+        documentsInDB <- eventReportCacheRepository.getUserAnswers(record._1, Some(record._2))
       } yield documentsInDB
 
       whenReady(documentsInDB) { documentsInDB =>
         documentsInDB.isDefined mustBe true
+      }
+    }
+
+    "return None when nothing present for API type specified" in {
+      val record = ("pstr-1", Api1826, Json.parse("""{"data":"1"}"""))
+      val documentsInDB = for {
+        _ <- eventReportCacheRepository.collection.drop().toFuture()
+        _ <- eventReportCacheRepository.upsert(record._1, record._2, record._3)
+        documentsInDB <- eventReportCacheRepository.getUserAnswers(record._1, Some(Api1827))
+      } yield documentsInDB
+
+      whenReady(documentsInDB) { documentsInDB =>
+        documentsInDB.isDefined mustBe false
+      }
+    }
+
+    "retrieve existing event report cache in Mongo collection when NO API type specified" in {
+      val record = ("pstr-1", Json.parse("""{"data":"1"}"""))
+      val documentsInDB = for {
+        _ <- eventReportCacheRepository.collection.drop().toFuture()
+        _ <- eventReportCacheRepository.upsert(record._1, record._2)
+        documentsInDB <- eventReportCacheRepository.getUserAnswers(record._1, None)
+      } yield documentsInDB
+
+      whenReady(documentsInDB) { documentsInDB =>
+        documentsInDB.isDefined mustBe true
+      }
+    }
+
+    "return None when nothing present when NO API type specified" in {
+      val record = ("pstr-1", Api1826, Json.parse("""{"data":"1"}"""))
+      val documentsInDB = for {
+        _ <- eventReportCacheRepository.collection.drop().toFuture()
+        _ <- eventReportCacheRepository.upsert(record._1, record._2, record._3)
+        documentsInDB <- eventReportCacheRepository.getUserAnswers(record._1, None)
+      } yield documentsInDB
+
+      whenReady(documentsInDB) { documentsInDB =>
+        documentsInDB.isDefined mustBe false
       }
     }
   }

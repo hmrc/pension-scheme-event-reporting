@@ -268,13 +268,25 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
   }
 
-  "getEventFromMongo" must {
+  "getUserAnswers with event type" must {
     "return the payload from the connector when valid event type" in {
       val json = Json.obj("test" -> "test")
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1830)))(any()))
         .thenReturn(Future.successful(Some(json)))
 
       eventReportService.getUserAnswers(pstr, EventType.Event3)(implicitly).map { result =>
+        result mustBe Some(json)
+      }
+    }
+  }
+
+  "getUserAnswers with NO event type" must {
+    "return the payload from the connector when valid event type" in {
+      val json = Json.obj("test" -> "test")
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(None))(any()))
+        .thenReturn(Future.successful(Some(json)))
+
+      eventReportService.getUserAnswers(pstr)(implicitly).map { result =>
         result mustBe Some(json)
       }
     }
