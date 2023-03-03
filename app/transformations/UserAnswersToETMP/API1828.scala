@@ -29,8 +29,8 @@ object API1828 extends Transformer {
     }
 
     def requiredNode(node: String)(nodeName: String = node): Reads[Option[JsObject]] = {
-      (__ \ node).readNullable[String].map {
-        case Some(node) =>
+      (__ \ node).read[String].map {
+        case node: String =>
           Some(
             Json.obj(
               nodeName -> node
