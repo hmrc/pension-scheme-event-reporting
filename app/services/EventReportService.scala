@@ -92,17 +92,22 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
         eventReportCacheRepository.getUserAnswers(pstr, Some(apiType)).flatMap {
           case Some(data) =>
-            for {
-              transformedData <- Future.fromTry(toTry(data.validate(reads)))
-              _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, schemaPath, apiType.toString))
-              response <- connectToAPI(pstr, transformedData)
-            } yield {
-              response.status match {
-                case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
-                case _ =>
-                  logger.debug(s"SUCCESSFUL SUBMISSION TO COMPILE API $apiType: $transformedData")
-                  NoContent
-              }
+            eventReportCacheRepository.getUserAnswers(pstr, None).flatMap {
+              case Some(header) =>
+                val fullData = header ++ data
+                for {
+                  transformedData <- Future.fromTry(toTry(fullData.validate(reads)))
+                  _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, schemaPath, apiType.toString))
+                  response <- connectToAPI(pstr, transformedData)
+                } yield {
+                  response.status match {
+                    case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
+                    case _ =>
+                      logger.debug(s"SUCCESSFUL SUBMISSION TO COMPILE API $apiType: $transformedData")
+                      NoContent
+                  }
+                }
+              case None => Future.successful(NotFound)
             }
           case _ => Future.successful(NotFound)
         }
