@@ -28,30 +28,24 @@ object API1828 extends Transformer {
       seqOfNodes.foldLeft(Json.obj())((a, b) => a ++ b)
     }
 
-    def requiredNode(node: String): Reads[Option[JsObject]] = {
-      val nameOfNode = if (node == "pstr") {
-        "pSTR"
-      } else {
-        node
-      }
+    def requiredNode(node: String)(nodeName: String = node): Reads[Option[JsObject]] = {
       (__ \ node).readNullable[String].map {
         case Some(node) =>
           Some(
             Json.obj(
-              nameOfNode -> node
+              nodeName -> node
             )
           )
         case _ => None
       }
     }
 
-    def optionalNode(optNode: String): Reads[Option[JsObject]] = {
-      val nameOfOptNode = optNode
-      (__ \ optNode).readNullable[String].map {
-        case Some(optNode) =>
+    def optionalNode(optNode: Option[String])(nodeName: String = optNode.getOrElse("")): Reads[Option[JsObject]] = {
+      (__ \ nodeName).readNullable[String].map {
+        case Some(node) =>
           Some(
             Json.obj(
-              nameOfOptNode -> optNode
+              nodeName -> node
             )
           )
         case _ => None
@@ -59,16 +53,16 @@ object API1828 extends Transformer {
     }
 
     for {
-      pstrNode <- requiredNode("pstr")
-      reportStartDateNode <- requiredNode("reportStartDate")
-      reportEndDateNode <- requiredNode("reportEndDate")
-      submittedByNode <- requiredNode("submittedBy")
-      submittedIdNode <- requiredNode("submittedID")
-      psaDec1Node <- optionalNode("psaDeclaration1")
-      psaDec2Node <- optionalNode("psaDeclaration2")
-      authorisedPsaIdNode <- optionalNode("authorisedPSAID")
-      pspDec1Node <- optionalNode("pspDeclaration1")
-      pspDec2Node <- optionalNode("pspDeclaration2")
+      pstrNode <- requiredNode("pstr")("pSTR")
+      reportStartDateNode <- requiredNode("reportStartDate")()
+      reportEndDateNode <- requiredNode("reportEndDate")()
+      submittedByNode <- requiredNode("submittedBy")()
+      submittedIdNode <- requiredNode("submittedID")()
+      psaDec1Node <- optionalNode(Some("psaDeclaration1"))()
+      psaDec2Node <- optionalNode(Some("psaDeclaration2"))()
+      authorisedPsaIdNode <- optionalNode(Some("authorisedPSAID"))()
+      pspDec1Node <- optionalNode(Some("pspDeclaration1"))()
+      pspDec2Node <- optionalNode(Some("pspDeclaration2"))()
     } yield {
       val erDetailsNodes = nodes((pstrNode ++ reportStartDateNode ++ reportEndDateNode).toSeq)
       val erDeclarationDetailsNodes = nodes((submittedByNode ++ submittedIdNode).toSeq)
