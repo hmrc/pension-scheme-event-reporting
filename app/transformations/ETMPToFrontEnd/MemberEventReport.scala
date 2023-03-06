@@ -16,35 +16,27 @@
 
 package transformations.ETMPToFrontEnd
 
+import transformations.Transformer
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 
-//import scala.language.implicitConversions
+object MemberEventReport extends Transformer {
 
-
-object MemberEventReport {
-
+  private val readsTaxYearEndDate: Reads[JsString] = {
+    (__ \ Symbol("paymentDetails") \ Symbol("taxYearEndingDate")).json.pick.flatMap {
+      case JsString(str) => Reads.pure(JsString((str.toInt - 1).toString))
+      case _ => fail[JsString]
+    }
+  }
 
   implicit val rdsFor1832: Reads[JsObject] = {
    ( (__ \ Symbol("membersDetails") \ Symbol("firstName")).json.copyFrom((__ \ Symbol("individualDetails") \ Symbol("firstName")).json.pick) and
      (__ \ Symbol("membersDetails") \ Symbol("lastName")).json.copyFrom((__ \ Symbol("individualDetails") \ Symbol("lastName")).json.pick) and
-     (__ \ Symbol("membersDetails") \ Symbol("nino")).json.copyFrom((__ \ Symbol("individualDetails") \ Symbol("nino")).json.pick)).reduce
+     (__ \ Symbol("membersDetails") \ Symbol("nino")).json.copyFrom((__ \ Symbol("individualDetails") \ Symbol("nino")).json.pick) and
+     (__ \ Symbol("chooseTaxYear")).json.copyFrom(readsTaxYearEndDate) and
+     (__ \ Symbol("totalPensionAmounts")).json.copyFrom((__ \ Symbol("paymentDetails") \ Symbol("monetaryAmount")).json.pick)).reduce
 
-
-    //    (__ \ Symbol("event1") \ Symbol("membersOrEmployers")).readNullable[JsArray](__.read(Reads.seq(readsMember))
-    //      .map(JsArray(_))).map { optionJsArray =>
-    //      val jsonArray = optionJsArray.getOrElse(Json.arr())
-    //      Json.obj(
-    //        "eventReportDetails" -> Json.obj(
-    //          "reportStartDate" -> "2020-09-01",
-    //          "reportEndDate" -> "2020-09-01"
-    //        ),
-    //        "event1Details" -> Json.obj(
-    //          "event1Details" -> jsonArray
-    //        )
-    //      )
-    //    }
   }
 
 

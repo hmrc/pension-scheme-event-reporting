@@ -51,9 +51,13 @@ class MemberEventReportSpec extends AnyFreeSpec with Matchers with MockitoSugar 
 //
     "transform a randomly generated valid payload from API 1832 correctly" in {
       forAll(generateGET1832UserAnswersFromETMP) {
-        case (userAnswers: JsObject, expectedResponse: JsObject) =>
-          val result = userAnswers.validate(MemberEventReport.rdsFor1832).asOpt
-          result mustBe Some(expectedResponse)
+        case (payload: JsObject, expectedResponse: JsObject) =>
+          val result = payload.validate(MemberEventReport.rdsFor1832)
+          println(s"\n\n\nPL: $payload")
+          println(s"\n\n\nER: $expectedResponse")
+          println(s"\n\n\nres: $result")
+          assert (true)
+          result mustBe JsSuccess(expectedResponse)
 
       }
     }

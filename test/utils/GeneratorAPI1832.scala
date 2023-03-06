@@ -31,7 +31,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
       lastName <- Gen.alphaStr
       nino <- Gen.alphaStr
       pensionAmt <- arbitrary[BigDecimal]
-      taxYrEndDate <- Gen.oneOf("2021-05-30", "2020-03-30", "2019-08-30", "2022-01-30")
+      taxYearEndDate <- Gen.oneOf(2020, 2021, 2022)
     } yield {
       val fullPayload = Json.obj(
         "individualDetails" -> Json.obj(
@@ -40,7 +40,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
         "nino" -> nino),
         "paymentDetails" -> Json.obj(
           "monetaryAmount" -> pensionAmt,
-          "taxYearEndingDate" -> taxYrEndDate
+          "taxYearEndingDate" -> taxYearEndDate.toString
         ))
       val fullExpectedResult = Json.obj(
         "membersDetails" -> Json.obj(
@@ -48,7 +48,8 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
           "lastName" -> lastName,
           "nino" -> nino
         ),
-        "chooseTaxYear" -> taxYrEndDate.substring(0,4)
+        "chooseTaxYear" -> (taxYearEndDate - 1).toString,
+        "totalPensionAmounts" -> pensionAmt
       )
       Tuple2(fullPayload, fullExpectedResult)
     }
