@@ -28,7 +28,7 @@ import play.api.libs.json.JsResult.toTry
 import play.api.libs.json._
 import play.api.mvc.Result
 import play.api.mvc.Results._
-import repositories.{EventReportCacheRepository, OverviewCacheRepository}
+import repositories.{EventReportCacheRepository, GetEventCacheRepository, OverviewCacheRepository}
 import transformations.ETMPToFrontEnd.EventSummary.{rdsEventTypeNodeOnly, rdsFor1834}
 import transformations.UserAnswersToETMP.{API1826, API1827, API1830}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -40,6 +40,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton()
 class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    eventReportCacheRepository: EventReportCacheRepository,
+                                   getEventCacheRepository: GetEventCacheRepository,
                                    jsonPayloadSchemaValidator: JSONSchemaValidator,
                                    overviewCacheRepository: OverviewCacheRepository
                                   ) extends Logging {
@@ -117,7 +118,15 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsValue]] = {
-    eventReportConnector.getEvent(pstr, startDate, version, Some(eventType))
+    getEventCacheRepository.get(pstr, startDate, version, eventType.toString).flatMap {
+      case optData@Some(_) =>  Future.successful(optData)
+      case _ => eventReportConnector.getEvent(pstr, startDate, version, Some(eventType)).flatMap {
+        case Some(data) =>
+          getEventCacheRepository.upsert(pstr, startDate, version, eventType.toString, Json.toJson(data))
+            .map(_ => Some(Json.toJson(data)))
+        case _ => Future.successful(None)
+      }
+    }
   }
 
   def getEventSummary(pstr: String, version: String, startDate: String)
