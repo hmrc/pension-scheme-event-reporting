@@ -42,19 +42,25 @@ object API1830 extends Transformer {
   }
 
   def transformToETMPData(eventType: EventType, pstr: String): Reads[JsObject] = {
-    (__ \ Symbol(s"event${eventType.toString}") \ Symbol("members")).readNullable[JsArray](__.read(Reads.seq(
-      readsIndividualMemberDetailsByEventType(eventType)))
-      .map(JsArray(_))).map { optionJsArray =>
-      val jsonArray = optionJsArray.getOrElse(Json.arr())
-      Json.obj("memberEventsDetails" -> Json.obj(
+    val extraFieldsForHeaderReads = Reads.pure(
+      Json.obj(
         "eventReportDetails" -> Json.obj(
-          "reportStartDate" -> "2020-09-01",
-          "reportEndDate" -> "2020-09-01",
           "pSTR" -> pstr,
           "eventType" -> s"Event${eventType.toString}"
-        ),
-        "eventDetails" -> jsonArray
-      ))
+        )
+      )
+    )
+
+    HeaderForAllAPIs.transformToETMPData(extraFieldsForHeaderReads).flatMap { hdr =>
+      val fullHdr = hdr
+      (__ \ Symbol(s"event${eventType.toString}") \ Symbol("members")).readNullable[JsArray](__.read(Reads.seq(
+        readsIndividualMemberDetailsByEventType(eventType)))
+        .map(JsArray(_))).map { optionJsArray =>
+        val jsonArray = optionJsArray.getOrElse(Json.arr())
+        Json.obj("memberEventsDetails" -> (Json.obj(
+          "eventDetails" -> jsonArray
+        ) ++ fullHdr))
+      }
     }
   }
 }

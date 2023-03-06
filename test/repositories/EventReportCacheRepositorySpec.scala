@@ -17,7 +17,7 @@
 package repositories
 
 import com.typesafe.config.Config
-import models.enumeration.ApiType.Api1826
+import models.enumeration.ApiType.{Api1826, Api1827}
 import org.mockito.Mockito.when
 import org.mongodb.scala.model.Filters
 import org.scalatest.concurrent.ScalaFutures
@@ -54,7 +54,7 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
   override def afterAll(): Unit =
     stopMongoD()
 
-  "upsert" must {
+  "upsert with event type" must {
     "save a new event report cache in Mongo collection when collection is empty" in {
 
       val record = ("pstr-1", Api1826, Json.parse("""{"data":"1"}"""))
@@ -111,19 +111,114 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
     }
   }
 
-  "get" must {
-    "retrieve existing event report cache in Mongo collection" in {
+  "upsert with NO event type" must {
+    val noEventType = "None"
+    "save a new event report cache in Mongo collection when collection is empty" in {
 
-      val record = ("pstr-1", Api1826, Json.parse("""{"data":"1"}"""))
+      val record = ("pstr-1", noEventType, Json.parse("""{"data":"1"}"""))
+      val filters = Filters.and(Filters.eq("pstr", record._1), Filters.eq("apiTypes", record._2))
 
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
+        _ <- eventReportCacheRepository.upsert(record._1, record._3)
+        documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry](filters).toFuture()
+      } yield documentsInDB
+
+      whenReady(documentsInDB) {
+        documentsInDB =>
+          documentsInDB.size mustBe 1
+      }
+    }
+
+    "update an existing event report cache in Mongo collection" in {
+
+      val record1 = ("pstr-1", noEventType, Json.parse("""{"data":"1"}"""))
+      val record2 = ("pstr-1", noEventType, Json.parse("""{"data":"2"}"""))
+      val filters = Filters.and(Filters.eq("pstr", record1._1), Filters.eq("apiTypes", record1._2))
+
+      val documentsInDB = for {
+        _ <- eventReportCacheRepository.collection.drop().toFuture()
+        _ <- eventReportCacheRepository.upsert(record1._1, record1._3)
+        _ <- eventReportCacheRepository.upsert(record2._1, record2._3)
+        documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry](filters).toFuture()
+      } yield documentsInDB
+
+      whenReady(documentsInDB) {
+        documentsInDB =>
+          documentsInDB.size mustBe 1
+          documentsInDB.head.data mustBe record2._3
+      }
+    }
+
+    "save a new event report cache in Mongo collection when one of filter is different" in {
+
+      val record1 = ("pstr-1", noEventType, Json.parse("""{"data":"1"}"""))
+      val record2 = ("pstr-2", noEventType, Json.parse("""{"data":"2"}"""))
+
+      val documentsInDB = for {
+        _ <- eventReportCacheRepository.collection.drop().toFuture()
+        _ <- eventReportCacheRepository.upsert(record1._1, record1._3)
+        _ <- eventReportCacheRepository.upsert(record2._1, record2._3)
+        documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry]().toFuture()
+      } yield documentsInDB
+
+      whenReady(documentsInDB) {
+        documentsInDB =>
+          documentsInDB.size mustBe 2
+      }
+    }
+  }
+
+  "getUserAnswers" must {
+    "retrieve existing event report cache in Mongo collection when API type specified" in {
+      val record = ("pstr-1", Api1826, Json.parse("""{"data":"1"}"""))
+      val documentsInDB = for {
+        _ <- eventReportCacheRepository.collection.drop().toFuture()
         _ <- eventReportCacheRepository.upsert(record._1, record._2, record._3)
-        documentsInDB <- eventReportCacheRepository.getByKeys(Map("pstr" -> record._1, "apiTypes" -> record._2.toString))
+        documentsInDB <- eventReportCacheRepository.getUserAnswers(record._1, Some(record._2))
       } yield documentsInDB
 
       whenReady(documentsInDB) { documentsInDB =>
         documentsInDB.isDefined mustBe true
+      }
+    }
+
+    "return None when nothing present for API type specified" in {
+      val record = ("pstr-1", Api1826, Json.parse("""{"data":"1"}"""))
+      val documentsInDB = for {
+        _ <- eventReportCacheRepository.collection.drop().toFuture()
+        _ <- eventReportCacheRepository.upsert(record._1, record._2, record._3)
+        documentsInDB <- eventReportCacheRepository.getUserAnswers(record._1, Some(Api1827))
+      } yield documentsInDB
+
+      whenReady(documentsInDB) { documentsInDB =>
+        documentsInDB.isDefined mustBe false
+      }
+    }
+
+    "retrieve existing event report cache in Mongo collection when NO API type specified" in {
+      val record = ("pstr-1", Json.parse("""{"data":"1"}"""))
+      val documentsInDB = for {
+        _ <- eventReportCacheRepository.collection.drop().toFuture()
+        _ <- eventReportCacheRepository.upsert(record._1, record._2)
+        documentsInDB <- eventReportCacheRepository.getUserAnswers(record._1, None)
+      } yield documentsInDB
+
+      whenReady(documentsInDB) { documentsInDB =>
+        documentsInDB.isDefined mustBe true
+      }
+    }
+
+    "return None when nothing present when NO API type specified" in {
+      val record = ("pstr-1", Api1826, Json.parse("""{"data":"1"}"""))
+      val documentsInDB = for {
+        _ <- eventReportCacheRepository.collection.drop().toFuture()
+        _ <- eventReportCacheRepository.upsert(record._1, record._2, record._3)
+        documentsInDB <- eventReportCacheRepository.getUserAnswers(record._1, None)
+      } yield documentsInDB
+
+      whenReady(documentsInDB) { documentsInDB =>
+        documentsInDB.isDefined mustBe false
       }
     }
   }

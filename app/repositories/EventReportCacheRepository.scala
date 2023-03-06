@@ -102,7 +102,34 @@ class EventReportCacheRepository @Inject()(
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
   }
 
-  def getByKeys(mapOfKeys: Map[String, String])(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
+  def upsert(pstr: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
+    val lastUpdated = DateTime.now(DateTimeZone.UTC)
+    val modifier = Updates.combine(
+      Updates.set(pstrKey, pstr),
+      Updates.set(apiTypesKey, "None"),
+      Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
+      Updates.set(lastUpdatedKey, Codecs.toBson(lastUpdated)),
+      Updates.set(expireAtKey, Codecs.toBson(evaluatedExpireAt))
+    )
+    val selector = Filters.and(Filters.equal(pstrKey, pstr), Filters.equal(apiTypesKey, "None"))
+
+    collection.findOneAndUpdate(
+      filter = selector,
+      update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
+  }
+
+  def getUserAnswers(pstr: String, optApiType: Option[ApiType])(implicit ec: ExecutionContext): Future[Option[JsObject]] = {
+    optApiType match {
+      case Some(apiType) =>
+        getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString))
+          .map(_.map(_.as[JsObject]))
+      case None =>
+        getByKeys(Map("pstr" -> pstr, "apiTypes" -> "None"))
+          .map(_.map(_.as[JsObject]))
+    }
+  }
+
+  private def getByKeys(mapOfKeys: Map[String, String])(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
     collection.find[EventReportCacheEntry](filterByKeys(mapOfKeys)).headOption().map {
       _.map {
         dataEntry =>

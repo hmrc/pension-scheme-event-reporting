@@ -21,19 +21,9 @@ import transformations.Transformer
 
 object API1826 extends Transformer {
   val transformToETMPData: Reads[JsObject] = {
-
-    def eventReportDetailsNode(events: JsObject) = {
-      val header = Json.obj("eventReportDetails" -> Json.obj(
-        "reportStartDate" -> "2020-09-01",
-        "reportEndDate" -> "2020-09-01"
-      ))
-      header ++ events
-    }
-
     def eventTypeNodes(events: Seq[JsObject]): JsObject = {
       val eventDetailNodes = events.foldLeft(Json.obj())((a, b) => a ++ b)
-      val eventJsObj = if (events.isEmpty) Json.obj() else Json.obj("eventDetails" -> eventDetailNodes)
-      eventReportDetailsNode(eventJsObj)
+      if (events.isEmpty) Json.obj() else Json.obj("eventDetails" -> eventDetailNodes)
     }
 
     val schemeWindUp = (__ \ "schemeWindUpDate").readNullable[String].map {
@@ -63,9 +53,9 @@ object API1826 extends Transformer {
     for {
       ev18 <- event18
       schWindUp <- schemeWindUp
+      header <- HeaderForAllAPIs.transformToETMPData()
     } yield {
-      eventTypeNodes((ev18 ++ schWindUp).toSeq)
+      header ++ eventTypeNodes((ev18 ++ schWindUp).toSeq)
     }
   }
 }
-
