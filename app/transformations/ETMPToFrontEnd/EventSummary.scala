@@ -54,7 +54,7 @@ object EventSummary {
     }
   }
 
-  implicit def rdsFor1832(eventType: EventType): Reads[JsArray] = {
+  implicit def rdsEventTypeNodeOnly(eventType: EventType): Reads[JsArray] = {
     (JsPath \ "eventReportDetails" \ "eventType").readNullable[String] map {
       case Some(_) => JsArray(Seq(JsString(eventType.toString)))
       case _ => JsArray(Seq.empty)

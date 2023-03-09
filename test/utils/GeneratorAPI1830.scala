@@ -32,24 +32,29 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
       nino <- Gen.oneOf(Seq("AB123456C", "CD123456E"))
       monetaryAmount <- arbitrary[BigDecimal]
       taxYearEndDate <- Gen.oneOf(2020, 2021, 2022)
+      taxYear <- taxYearGenerator
     } yield {
-      val ua = Json.obj(s"event${eventType.toString}" -> Json.obj("members" ->
-        Json.arr(
-          Json.obj(
-            "membersDetails" -> Json.obj(
-              "firstName" -> firstName,
-              "lastName" -> lastName,
-              "nino" -> nino),
-            "chooseTaxYear" -> taxYearEndDate.toString,
-            "totalPensionAmounts" -> monetaryAmount
-          ))
-      ))
+      val ua = Json.obj(
+        s"event${eventType.toString}" -> Json.obj("members" ->
+          Json.arr(
+            Json.obj(
+              "membersDetails" -> Json.obj(
+                "firstName" -> firstName,
+                "lastName" -> lastName,
+                "nino" -> nino),
+              "chooseTaxYear" -> taxYearEndDate.toString,
+              "totalPensionAmounts" -> monetaryAmount
+            ))
+        ),
+        "taxYear" -> taxYear
+      )
+      val endTaxYear = (taxYear.toInt + 1).toString
       val expected = Json.obj("memberEventsDetails" -> Json.obj(
         "eventReportDetails" -> Json.obj(
           "pSTR" -> "87219363YN",
           "eventType" -> s"Event${eventType.toString}",
-          "reportStartDate" -> "2020-09-01",
-          "reportEndDate" -> "2020-09-01"
+          "reportStartDate" -> s"$taxYear-04-06",
+          "reportEndDate" -> s"$endTaxYear-04-05"
         ),
         "eventDetails" -> Json.arr(
           Json.obj(

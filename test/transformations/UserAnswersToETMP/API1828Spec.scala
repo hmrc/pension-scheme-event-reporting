@@ -20,18 +20,19 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json._
-import utils.{GeneratorAPI1827, JsonFileReader}
+import utils.{GeneratorAPI1828, JsonFileReader}
 
-class API1827Spec extends AnyFreeSpec with Matchers
-  with JsonFileReader with GeneratorAPI1827 with ScalaCheckPropertyChecks {
+// TODO: Consider relocation of code to different package.
+class API1828Spec extends AnyFreeSpec with Matchers
+  with JsonFileReader with GeneratorAPI1828 with ScalaCheckPropertyChecks {
 
   "transformToETMPData" - {
-    "must transform a randomly generated valid payload correctly" in {
+    "must transform a randomly generated valid payload correctly for Event Report Submit Declaration" in {
       forAll(generateUserAnswersAndPOSTBody) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
-          val result = userAnswers.validate(API1827.transformToETMPData)
+          val result = userAnswers.validate(API1828.transformToETMPData)
           val expectedResult = JsSuccess(expectedResponse)
-          result mustBe expectedResult
+          result.asOpt mustBe expectedResult.asOpt
       }
     }
   }

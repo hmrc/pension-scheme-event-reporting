@@ -26,14 +26,17 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
   def generateUserAnswersAndPOSTBodyWindUp: Gen[(JsObject, JsObject)] = {
     for {
       schemeWindUpDate <- dateGenerator
+      taxYear <- taxYearGenerator
     } yield {
+      val endTaxYear = (taxYear.toInt + 1).toString
       val fullUA = Json.obj(
-        "schemeWindUpDate" -> schemeWindUpDate
+        "schemeWindUpDate" -> schemeWindUpDate,
+        "taxYear" -> taxYear
       )
       val fullExpectedResult = Json.obj(
         "eventReportDetails" -> Json.obj(
-          "reportStartDate" -> "2020-09-01",
-          "reportEndDate" -> "2020-09-01"
+          "reportStartDate" -> s"$taxYear-04-06",
+          "reportEndDate" -> s"$endTaxYear-04-05"
         ),
         "eventDetails" -> Json.obj(
           "eventWindUp" -> Json.obj(
@@ -48,20 +51,25 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
   def generateUserAnswersAndPOSTBodyEvent18: Gen[(JsObject, JsObject)] = {
     for {
       event18Confirmation <- arbitrary[Option[Boolean]]
+      taxYear <- taxYearGenerator
     } yield {
+      val endTaxYear = (taxYear.toInt + 1).toString
       val fullUA = event18Confirmation match {
         case Some(value) => Json.obj(
-          "event18Confirmation" -> value
+          "event18Confirmation" -> value,
+          "taxYear" -> taxYear
         )
-        case None => Json.obj()
+        case None => Json.obj(
+          "taxYear" -> taxYear
+        )
       }
 
       val fullExpectedResult =
         event18Confirmation match {
           case Some(true) => Json.obj(
             "eventReportDetails" -> Json.obj(
-              "reportStartDate" -> "2020-09-01",
-              "reportEndDate" -> "2020-09-01"
+              "reportStartDate" -> s"$taxYear-04-06",
+              "reportEndDate" -> s"$endTaxYear-04-05"
             ),
             "eventDetails" -> Json.obj("event18" -> Json.obj(
               "chargeablePmt" -> "Yes"
@@ -70,9 +78,9 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
           )
           case _ => Json.obj(
             "eventReportDetails" -> Json.obj(
-              "reportStartDate" -> "2020-09-01",
-              "reportEndDate" -> "2020-09-01"
-            )
+              "reportStartDate" -> s"$taxYear-04-06",
+              "reportEndDate" -> s"$endTaxYear-04-05"
+            ),
           )
         }
 

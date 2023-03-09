@@ -28,8 +28,8 @@ import play.api.libs.json.JsResult.toTry
 import play.api.libs.json._
 import play.api.mvc.Result
 import play.api.mvc.Results._
-import repositories.{EventReportCacheRepository, OverviewCacheRepository}
-import transformations.ETMPToFrontEnd.EventSummary.{rdsFor1832, rdsFor1834}
+import repositories.{EventReportCacheRepository, GetEventCacheRepository, OverviewCacheRepository}
+import transformations.ETMPToFrontEnd.EventSummary.{rdsEventTypeNodeOnly, rdsFor1834}
 import transformations.UserAnswersToETMP.{API1826, API1827, API1830}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
@@ -40,6 +40,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton()
 class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    eventReportCacheRepository: EventReportCacheRepository,
+                                   getEventCacheRepository: GetEventCacheRepository,
                                    jsonPayloadSchemaValidator: JSONSchemaValidator,
                                    overviewCacheRepository: OverviewCacheRepository
                                   ) extends Logging {
@@ -67,23 +68,47 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
+  def saveUserAnswers(pstr: String, eventType: EventType, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
+    EventType.postApiTypeByEventType(eventType) match {
+      case Some(apiType) => eventReportCacheRepository.upsert(pstr, apiType, userAnswersJson)
+      case _ => Future.successful(())
+    }
+  }
+
+  def saveUserAnswers(pstr: String, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] =
+    eventReportCacheRepository.upsert(pstr, userAnswersJson)
+
+  def getUserAnswers(pstr: String, eventType: EventType)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
+    EventType.postApiTypeByEventType(eventType) match {
+      case Some(apiType) => eventReportCacheRepository.getUserAnswers(pstr, Some(apiType))
+      case _ => Future.successful(None)
+    }
+
+  def getUserAnswers(pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
+    eventReportCacheRepository.getUserAnswers(pstr, None)
+
   def compileEventReport(pstr: String, eventType: EventType)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
-        eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString)).flatMap {
+        eventReportCacheRepository.getUserAnswers(pstr, Some(apiType)).flatMap {
           case Some(data) =>
-            for {
-              transformedData <- Future.fromTry(toTry(data.validate(reads)))
-              _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, schemaPath, apiType.toString))
-              response <- connectToAPI(pstr, transformedData)
-            } yield {
-              response.status match {
-                case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
-                case _ =>
-                  logger.debug(s"SUCCESSFUL SUBMISSION TO COMPILE API $apiType: $transformedData")
-                  NoContent
-              }
+            eventReportCacheRepository.getUserAnswers(pstr, None).flatMap {
+              case Some(header) =>
+                val fullData = header ++ data
+                for {
+                  transformedData <- Future.fromTry(toTry(fullData.validate(reads)))
+                  _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, schemaPath, apiType.toString))
+                  response <- connectToAPI(pstr, transformedData)
+                } yield {
+                  response.status match {
+                    case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
+                    case _ =>
+                      logger.debug(s"SUCCESSFUL SUBMISSION TO COMPILE API $apiType: $transformedData")
+                      NoContent
+                  }
+                }
+              case None => Future.successful(NotFound)
             }
           case _ => Future.successful(NotFound)
         }
@@ -93,16 +118,28 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsValue]] = {
-    eventReportConnector.getEvent(pstr, startDate, version, Some(eventType))
+    getEventCacheRepository.get(pstr, startDate, version, eventType.toString).flatMap {
+      case optData@Some(_) =>  Future.successful(optData)
+      case _ => eventReportConnector.getEvent(pstr, startDate, version, Some(eventType)).flatMap {
+        case Some(data) =>
+          getEventCacheRepository.upsert(pstr, startDate, version, eventType.toString, Json.toJson(data))
+            .map(_ => Some(Json.toJson(data)))
+        case _ => Future.successful(None)
+      }
+    }
   }
 
   def getEventSummary(pstr: String, version: String, startDate: String)
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
     val transformedFutures = for {
+      /*
+        The reads for 1832 below are only checking whether the node for the eventType in question EXISTS.
+        It is not parsing the whole file. This is so that we know which event types to display on summary page.
+       */
       eventTypeReadPairs <- Map(
-        Some(EventType.Event22) -> rdsFor1832(EventType.Event22),
-        Some(EventType.Event23) -> rdsFor1832(EventType.Event23),
+        Some(EventType.Event22) -> rdsEventTypeNodeOnly(EventType.Event22),
+        Some(EventType.Event23) -> rdsEventTypeNodeOnly(EventType.Event23),
         None -> rdsFor1834
       )
     } yield {
@@ -123,21 +160,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       JsArray(combinedJsArray.value.sortWith(sortEventTypes))
     }
   }
-
-  def saveUserAnswers(pstr: String, eventType: EventType, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
-    EventType.postApiTypeByEventType(eventType) match {
-      case Some(apiType) => eventReportCacheRepository.upsert(pstr, apiType, userAnswersJson)
-      case _ => Future.successful(())
-    }
-  }
-
-  def getUserAnswers(pstr: String, eventType: EventType)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
-    EventType.postApiTypeByEventType(eventType) match {
-      case Some(apiType) =>
-        eventReportCacheRepository.getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString))
-          .map(_.map(_.as[JsObject]))
-      case _ => Future.successful(None)
-    }
 
   def getVersions(pstr: String, reportType: String, startDate: String)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[ERVersion]] = {
     eventReportConnector.getVersions(pstr, reportType, startDate)
