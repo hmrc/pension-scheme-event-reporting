@@ -33,28 +33,38 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
       pensionAmt <- arbitrary[BigDecimal]
       taxYearEndDate <- Gen.oneOf(2020, 2021, 2022)
     } yield {
-      val fullPayload = Json.obj(
-        "individualDetails" -> Json.obj(
-        "firstName" -> firstName,
-        "lastName" -> lastName,
-        "nino" -> nino),
-        "paymentDetails" -> Json.obj(
-          "monetaryAmount" -> pensionAmt,
-          "taxYearEndingDate" -> taxYearEndDate.toString
+      val fullPayload = Json.obj("eventDetails" -> Json.arr(
+          Json.obj("memberDetail" -> Json.obj(
+            "event" -> Json.obj(
+              "eventType" -> "Event22",
+              "individualDetails" -> Json.obj(
+                "firstName" -> firstName,
+                "lastName" -> lastName,
+                "nino" -> nino),
+              "paymentDetails" -> Json.obj(
+                "monetaryAmount" -> pensionAmt,
+                "taxYearEndingDate" -> s"$taxYearEndDate-04-05"
+              )
+            )
+          ))
         ))
       val fullExpectedResult = Json.obj(
-        "membersDetails" -> Json.obj(
-          "firstName" -> firstName,
-          "lastName" -> lastName,
-          "nino" -> nino
-        ),
-        "chooseTaxYear" -> (taxYearEndDate - 1).toString,
-        "totalPensionAmounts" -> pensionAmt
+        "event22" -> Json.obj(
+          "members" -> Json.arr(Json.obj(
+            "membersDetails" -> Json.obj(
+              "firstName" -> firstName,
+              "lastName" -> lastName,
+              "nino" -> nino
+            ),
+            "chooseTaxYear" -> (taxYearEndDate - 1).toString,
+            "totalPensionAmounts" -> pensionAmt
+          )
+          )
+        )
       )
       Tuple2(fullPayload, fullExpectedResult)
     }
   }
-
 
 
   def generatedPayload(eventType: EventType): JsValue = {

@@ -19,7 +19,7 @@ package services
 import connectors.EventReportConnector
 import models.enumeration.ApiType._
 import models.enumeration.EventType
-import models.enumeration.EventType.{Event1, Event20A, WindUp}
+import models.enumeration.EventType.{Event1, Event20A, Event22, WindUp}
 import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
@@ -209,31 +209,31 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
 
   "getEvent" must {
-      "return OK and save the data in cache if no data was found in the cache to begin with" in {
-        when(mockEventReportConnector.getEvent(
-          ArgumentMatchers.eq(pstr),
-          ArgumentMatchers.eq(startDate),
-          ArgumentMatchers.eq(version),
-          ArgumentMatchers.eq(Some(Event1)))(any(), any()))
-          .thenReturn(Future.successful(getEvent1Data))
-        when(mockGetEventCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
-        when(mockGetEventCacheRepository.upsert(any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(()))
+    "return OK and save the data in cache if no data was found in the cache to begin with" in {
+      when(mockEventReportConnector.getEvent(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(startDate),
+        ArgumentMatchers.eq(version),
+        ArgumentMatchers.eq(Some(Event22)))(any(), any()))
+        .thenReturn(Future.successful(getEvent22PayLoadData))
+      when(mockGetEventCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
+      when(mockGetEventCacheRepository.upsert(any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(()))
 
-        eventReportService.getEvent(pstr, startDate, version, Event1)(implicitly, implicitly).map { resultJsValue =>
-          verify(mockGetEventCacheRepository, times(1)).get(any(), any(), any(), any())(any())
-          verify(mockGetEventCacheRepository, times(1)).upsert(any(), any(), any(), any(), any())(any())
-          verify(mockEventReportConnector, times(1)).getEvent(any(), any(), any(), any())(any(), any())
-          resultJsValue mustBe Some(Json.toJson(getEvent1Data))
-        }
+      eventReportService.getEvent(pstr, startDate, version, Event22)(implicitly, implicitly).map { resultJsValue =>
+        verify(mockGetEventCacheRepository, times(1)).get(any(), any(), any(), any())(any())
+        verify(mockGetEventCacheRepository, times(1)).upsert(any(), any(), any(), any(), any())(any())
+        verify(mockEventReportConnector, times(1)).getEvent(any(), any(), any(), any())(any(), any())
+        resultJsValue mustBe Some(Json.toJson(getEvent22UAData))
       }
+    }
 
     "return OK with the event details and don't try to save the data in cache if the data already exists in the cache" in {
-      when(mockGetEventCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(Some(Json.toJson(getEvent1Data))))
+      when(mockGetEventCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(Some(Json.toJson(getEvent22PayLoadData))))
       eventReportService.getEvent(pstr, startDate, version, Event1)(implicitly, implicitly).map { resultJsValue =>
         verify(mockGetEventCacheRepository, times(1)).get(any(), any(), any(), any())(any())
         verify(mockGetEventCacheRepository, never).upsert(any(), any(), any(), any(), any())(any())
         verify(mockEventReportConnector, never).getOverview(any(), any(), any(), any())(any(), any())
-        resultJsValue mustBe Some(Json.toJson(getEvent1Data))
+        resultJsValue mustBe Some(Json.toJson(getEvent22PayLoadData))
       }
     }
   }
@@ -406,35 +406,49 @@ object EventReportServiceSpec {
       submittedVersionAvailable = true,
       compiledVersionAvailable = true)))
 
-  private val getEvent1Data: Option[JsValue] = Some(Json.parse(
+  private val getEvent22PayLoadData: Option[JsValue] = Some(Json.parse(
+    """
+      |    {
+      |    "eventDetails": [
+      |    {
+      |    "memberDetail": {
+      |        "event": {
+      |          "eventType": "Event22",
+      |          "individualDetails": {
+      |            "title": "Mr",
+      |            "firstName": "John",
+      |            "middleName": "A",
+      |            "lastName": "Smith",
+      |            "nino": "AA345678B"
+      |          },
+      |          "paymentDetails": {
+      |            "monetaryAmount": 123.99,
+      |            "taxYearEndingDate": "2022-05-30"
+      |          }
+      |        }
+      |       }
+      |      }
+      |    ]
+      |} """.stripMargin
+  ))
+
+  private val getEvent22UAData: Option[JsValue] = Some(Json.parse(
     """
       |{
-      |    "processingDate": "2023-12-15T12:30:46Z",
-      |    "schemeDetails": {
-      |      "pSTR": "87219363YN",
-      |      "schemeName": "Abc Ltd"
-      |    },
-      |    "er1Details": {
-      |      "reportStartDate": "2021-04-06",
-      |      "reportEndDate": "2022-04-05",
-      |      "reportVersionNumber": "001",
-      |      "reportSubmittedDateAndTime": "2023-12-13T12:12:12Z"
-      |    },
-      |    "schemeMasterTrustDetails": {
-      |      "startDate": "2021-06-08"
-      |    },
-      |    "erDeclarationDetails": {
-      |      "submittedBy": "PSP",
-      |      "submittedID": "20000001",
-      |      "submittedName": "ABCDEFGHIJKLMNOPQRSTUV",
-      |      "pspDeclaration": {
-      |        "authorisedPSAID": "A4045157",
-      |        "pspDeclaration1": "Selected",
-      |        "pspDeclaration2": "Selected"
-      |      }
+      |    "event22": {
+      |      "members": [
+      |        {
+      |          "membersDetails": {
+      |            "firstName": "John",
+      |            "lastName": "Smith",
+      |            "nino": "AA345678B"
+      |          },
+      |          "chooseTaxYear": "2021",
+      |          "totalPensionAmounts": 123.99
+      |        }
+      |      ]
       |    }
-      |  }
-      |  """.stripMargin
+      |} """.stripMargin
   ))
 
   private val erOverview = Seq(overview1, overview2)

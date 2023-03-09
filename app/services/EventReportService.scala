@@ -30,6 +30,7 @@ import play.api.mvc.Result
 import play.api.mvc.Results._
 import repositories.{EventReportCacheRepository, GetEventCacheRepository, OverviewCacheRepository}
 import transformations.ETMPToFrontEnd.EventSummary.{rdsEventTypeNodeOnly, rdsFor1834}
+import transformations.ETMPToFrontEnd.MemberEventReport
 import transformations.UserAnswersToETMP.{API1826, API1827, API1830}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
@@ -122,8 +123,15 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case optData@Some(_) =>  Future.successful(optData)
       case _ => eventReportConnector.getEvent(pstr, startDate, version, Some(eventType)).flatMap {
         case Some(data) =>
-          getEventCacheRepository.upsert(pstr, startDate, version, eventType.toString, Json.toJson(data))
-            .map(_ => Some(Json.toJson(data)))
+          data.validate(MemberEventReport.rds1832Api) match {
+            case JsSuccess(transformedData, _) =>
+              getEventCacheRepository.upsert(pstr, startDate, version, eventType.toString, Json.toJson(transformedData))
+                .map(_ => Some(Json.toJson(transformedData)))
+            case _ =>
+              //TODO: will change code later to throw an exception
+              Future.successful(None)
+          }
+
         case _ => Future.successful(None)
       }
     }

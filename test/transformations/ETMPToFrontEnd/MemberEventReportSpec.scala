@@ -27,48 +27,37 @@ class MemberEventReportSpec extends AnyFreeSpec with Matchers with MockitoSugar 
   with GeneratorAPI1834 with GeneratorAPI1832 with ScalaCheckPropertyChecks {
 
   "Reads" - {
-//    "transform a valid payload correctly when read from sample file from API 1834" in {
-//      val json = readJsonFromFile("/api-1832-valid-example.json")
-//      val result = json.validate(EventSummary.rdsFor1834).asOpt
-//
-//      val expectedResult = Some(
-//        Json.arr("10", "11", "12", "13", "14", "19", "20", "0")
-//      )
-//
-//      result mustBe expectedResult
-//    }
+    "transform a valid payload correctly when read from sample file from API 1834" in {
+      val json = readJsonFromFile("/api-1832-valid-example.json")
+      val result = json.validate(MemberEventReport.rds1832Api).asOpt
 
-//    "transform a valid payload correctly when read from sample file from API 1832" in {
-//      val json = readJsonFromFile("/api-1832-valid-example.json")
-//      val result = json.validate(EventSummary.rdsFor1832(EventType.Event22)).asOpt
-//
-//      val expectedResult = Some(
-//        Json.arr("22")
-//      )
-//
-//      result mustBe expectedResult
-//    }
-//
+      val expectedResult =
+        Json.obj(
+          "event22" -> Json.obj(
+            "members" -> Json.arr(
+              Json.obj(
+                "membersDetails"-> Json.obj(
+                  "lastName" -> "Smith",
+                  "firstName" -> "John",
+                  "nino" -> "AA345678B"
+                ),
+                "chooseTaxYear" -> "2020",
+                "totalPensionAmounts" -> 123.99
+              )
+            )
+          )
+        )
+
+      result mustBe Some(expectedResult)
+    }
+
     "transform a randomly generated valid payload from API 1832 correctly" in {
       forAll(generateGET1832UserAnswersFromETMP) {
         case (payload: JsObject, expectedResponse: JsObject) =>
-          val result = payload.validate(MemberEventReport.rdsFor1832)
-          println(s"\n\n\nPL: $payload")
-          println(s"\n\n\nER: $expectedResponse")
-          println(s"\n\n\nres: $result")
-          assert (true)
-          result mustBe JsSuccess(expectedResponse)
+          val result = payload.validate(MemberEventReport.rds1832Api).asOpt
+          result mustBe Some(expectedResponse)
 
       }
     }
-//
-//    "transform a randomly generated API 1832 event valid payload correctly" in {
-//      forAll(generateGET1832ResponseAndUserAnswers) {
-//        case (json: JsValue, eventType: EventType) =>
-//          val result = json.validate(EventSummary.rdsFor1832(eventType)).asOpt
-//          val expectedResult = Some(JsArray(Seq(JsString(eventType.toString))))
-//          result mustBe expectedResult
-//      }
-//    }
   }
 }
