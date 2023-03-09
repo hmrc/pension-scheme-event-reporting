@@ -434,7 +434,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
     }
 
-    "throw a OK when eventType missing" in {
+    "return OK when eventType missing" in {
 
       when(mockEventReportService.getUserAnswers(
         ArgumentMatchers.eq(pstr)
