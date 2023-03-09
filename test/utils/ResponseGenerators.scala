@@ -43,6 +43,8 @@ trait ResponseGenerators extends Matchers with OptionValues {
     numbers <- Gen.chooseNum(10000000, 99999999)
   } yield s"${numbers}"
 
+  val taxYearGenerator: Gen[String] = Gen.oneOf(Seq("2022", "2023", "2024"))
+
   val dateGenerator: Gen[LocalDate] = for {
     day <- Gen.choose(1, 28)
     month <- Gen.choose(1, 12)

@@ -20,19 +20,23 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json._
-import utils.{GeneratorAPI1827, JsonFileReader}
+import utils.{GeneratorAPI1826, JsonFileReader}
 
-class API1827Spec extends AnyFreeSpec with Matchers
-  with JsonFileReader with GeneratorAPI1827 with ScalaCheckPropertyChecks {
-
+class HeaderForAllAPIsSpec extends AnyFreeSpec with Matchers
+  with JsonFileReader with GeneratorAPI1826 with ScalaCheckPropertyChecks {
   "transformToETMPData" - {
-    "must transform a randomly generated valid payload correctly" in {
-      forAll(generateUserAnswersAndPOSTBody) {
-        case (userAnswers: JsObject, expectedResponse: JsObject) =>
-          val result = userAnswers.validate(API1827.transformToETMPData)
-          val expectedResult = JsSuccess(expectedResponse)
-          result mustBe expectedResult
-      }
+    "must transform a the header details correctly" in {
+      val userAnswers = Json.obj("taxYear" -> "2022")
+
+      val exp = Json.obj("eventReportDetails" -> Json.obj(
+        "reportStartDate" -> "2022-04-06",
+        "reportEndDate" -> "2023-04-05"
+      ))
+
+      val expectedResult = JsSuccess(exp)
+
+      val result = userAnswers.validate(HeaderForAllAPIs.transformToETMPData())
+      result mustBe expectedResult
     }
   }
 }

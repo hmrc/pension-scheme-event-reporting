@@ -30,7 +30,7 @@ class API1826Spec extends AnyFreeSpec with Matchers
       forAll(generateUserAnswersAndPOSTBodyWindUp) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
           val result = userAnswers.validate(API1826.transformToETMPData)
-          val expectedResult = JsSuccess(expectedResponse, __ \ "schemeWindUpDate")
+          val expectedResult = JsSuccess(expectedResponse)
           result mustBe expectedResult
       }
     }
@@ -46,14 +46,15 @@ class API1826Spec extends AnyFreeSpec with Matchers
       val userAnswers: JsObject = {
         Json.obj(
           "event18Confirmation" -> true,
-          "schemeWindUpDate" -> "1991-11-22"
+          "schemeWindUpDate" -> "1991-11-22",
+          "taxYear" -> "2020"
         )
       }
       val expected: JsObject = {
         Json.obj(
           "eventReportDetails" -> Json.obj(
-            "reportStartDate" -> "2020-09-01",
-            "reportEndDate" -> "2020-09-01"
+            "reportStartDate" -> "2020-04-06",
+            "reportEndDate" -> "2021-04-05"
           ),
           "eventDetails" -> Json.obj(
             "eventWindUp" -> Json.obj(
@@ -70,15 +71,15 @@ class API1826Spec extends AnyFreeSpec with Matchers
     }
 
     "must not transform an event that is not present" in {
-      val userAnswers: JsObject = {
-        Json.obj()
-      }
+      val userAnswers: JsObject =
+        Json.obj("taxYear" -> "2020")
+
       val result = userAnswers.validate(API1826.transformToETMPData)
       val expected: JsObject = {
         Json.obj(
           "eventReportDetails" -> Json.obj(
-            "reportStartDate" -> "2020-09-01",
-            "reportEndDate" -> "2020-09-01"
+            "reportStartDate" -> "2020-04-06",
+            "reportEndDate" -> "2021-04-05"
           )
         )
       }

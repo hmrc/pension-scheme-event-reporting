@@ -244,19 +244,23 @@ object API1827 extends Transformer {
   }
 
   val transformToETMPData: Reads[JsObject] = {
-    (__ \ Symbol("event1") \ Symbol("membersOrEmployers")).readNullable[JsArray](__.read(Reads.seq(readsMember))
+    val reads = (__ \ Symbol("event1") \ Symbol("membersOrEmployers")).readNullable[JsArray](__.read(Reads.seq(readsMember))
       .map(JsArray(_))).map { optionJsArray =>
       val jsonArray = optionJsArray.getOrElse(Json.arr())
       Json.obj(
-        "eventReportDetails" -> Json.obj(
-          "reportStartDate" -> "2020-09-01",
-          "reportEndDate" -> "2020-09-01"
-        ),
         "event1Details" -> Json.obj(
           "event1Details" -> jsonArray
         )
       )
     }
+
+    for {
+      jsObject <- reads
+      header <- HeaderForAllAPIs.transformToETMPData()
+    } yield {
+      header ++ jsObject
+    }
+
   }
 }
 

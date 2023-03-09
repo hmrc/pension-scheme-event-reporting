@@ -434,15 +434,17 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
     }
 
-    "throw a 400 Bad Request Exception when eventType missing" in {
+    "return OK when eventType missing" in {
 
-      recoverToExceptionIf[BadRequestException] {
-        controller.getUserAnswers(fakeRequest.withHeaders(
-          newHeaders = "pstr" -> pstr))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-        response.message must include("Bad Request without pstr (Some(pstr)) or eventType (None)")
-      }
+      when(mockEventReportService.getUserAnswers(
+        ArgumentMatchers.eq(pstr)
+      )(any()))
+        .thenReturn(Future.successful(Some(json)))
+
+      val result = controller.getUserAnswers(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr))
+
+      status(result) mustBe OK
     }
 
     "throw a 401 Unauthorised Exception if auth fails" in {
@@ -486,14 +488,17 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       }
     }
 
-    "throw a 400 Bad Request Exception when eventType missing" in {
-      recoverToExceptionIf[BadRequestException] {
-        controller.saveUserAnswers()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr).withJsonBody(saveUserAnswersToCacheSuccessResponse))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-        response.message must include(
-          s"Bad Request without pstr (Some($pstr)) or eventType (None) or request body (Some($saveUserAnswersToCacheSuccessResponse))")
-      }
+    "return OK when eventType missing" in {
+      when(mockEventReportService.saveUserAnswers(
+        ArgumentMatchers.eq(pstr),
+        any()
+      )(any()))
+        .thenReturn(Future.successful(()))
+
+      val result = controller.saveUserAnswers(fakeRequest.withJsonBody(saveUserAnswersToCacheSuccessResponse).withHeaders(
+        newHeaders = "pstr" -> pstr))
+
+      status(result) mustBe OK
     }
 
     "throw a 401 Unauthorised Exception if auth fails" in {

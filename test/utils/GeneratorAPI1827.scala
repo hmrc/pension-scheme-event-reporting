@@ -314,38 +314,47 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
       whoReceivedUnauthorisedPaymentMember -> "Individual",
       whoReceivedUnauthorisedPaymentEmployer -> "Employer",
     )
-    Gen.oneOf(whoReceivedUnauthorisedPaymentMember, whoReceivedUnauthorisedPaymentEmployer)
-      .flatMap { whoReceivedUnauthorisedPayment =>
-        (whoReceivedUnauthorisedPayment match {
-          case `whoReceivedUnauthorisedPaymentMember` => generateMember
-          case _ => generateEmployer
-        }).map { case (generatedUA, generatedExpectedResult) =>
-          val fullUA = Json.obj(
-            "event1" ->
-              Json.obj(
-                "membersOrEmployers" ->
-                  Json.arr(
-                    generatedUA ++ Json.obj("whoReceivedUnauthPayment" -> whoReceivedUnauthorisedPayment)
-                  )
-              )
-          )
-          val fullExpectedResult = Json.obj(
-            "eventReportDetails" -> Json.obj(
-              "reportStartDate" -> "2020-09-01",
-              "reportEndDate" -> "2020-09-01"
-            ),
-            "event1Details" -> Json.obj(
-              "event1Details" -> Json.arr(
-                generatedExpectedResult ++ Json.obj(
-                  "memberType" -> whoReceivedUnauthorisedPaymentMap(whoReceivedUnauthorisedPayment)
-                ) ++ Json.obj(
-                  "memberStatus" -> "New"
+
+     val result = for {
+      taxYear <- taxYearGenerator
+      whoReceivedUnauthorisedPayment <- Gen.oneOf(whoReceivedUnauthorisedPaymentMember, whoReceivedUnauthorisedPaymentEmployer)
+    } yield {
+      (whoReceivedUnauthorisedPayment match {
+        case `whoReceivedUnauthorisedPaymentMember` => generateMember
+        case _ => generateEmployer
+      }).map { case (generatedUA, generatedExpectedResult) =>
+        val fullUA = Json.obj(
+          "event1" ->
+            Json.obj(
+              "membersOrEmployers" ->
+                Json.arr(
+                  generatedUA ++ Json.obj("whoReceivedUnauthPayment" -> whoReceivedUnauthorisedPayment)
                 )
+            ),
+          "taxYear" -> taxYear
+        )
+        val endTaxYear = (taxYear.toInt + 1).toString
+        val fullExpectedResult = Json.obj(
+          "eventReportDetails" -> Json.obj(
+            "reportStartDate" -> s"$taxYear-04-06",
+            "reportEndDate" -> s"$endTaxYear-04-05"
+          ),
+          "event1Details" -> Json.obj(
+            "event1Details" -> Json.arr(
+              generatedExpectedResult ++ Json.obj(
+                "memberType" -> whoReceivedUnauthorisedPaymentMap(whoReceivedUnauthorisedPayment)
+              ) ++ Json.obj(
+                "memberStatus" -> "New"
               )
             )
           )
-          Tuple2(fullUA, fullExpectedResult)
-        }
+        )
+        Tuple2(fullUA, fullExpectedResult)
       }
+
+    }
+
+    result.flatMap(identity)
+
   }
 }
