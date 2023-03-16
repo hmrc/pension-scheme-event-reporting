@@ -17,6 +17,7 @@
 package transformations.UserAnswersToETMP
 
 import models.enumeration.EventType
+import models.enumeration.EventType.Event6
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
@@ -25,6 +26,7 @@ import transformations.Transformer
 object API1830 extends Transformer {
   private val pathIndividualMemberDetails = __ \ Symbol("individualDetails")
   private val pathPaymentDetails = __ \ Symbol("paymentDetails")
+  private val pathAmountCrystallisedAndDateDetails = __ \ Symbol("AmountCrystallisedAndDate")
 
   private val readsTaxYearEndDate: Reads[JsString] = (__ \ Symbol("chooseTaxYear")).json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString((str.toInt + 1).toString))
@@ -32,6 +34,13 @@ object API1830 extends Transformer {
   }
 
   private def readsIndividualMemberDetailsByEventType(eventType: EventType): Reads[JsObject] = {
+    eventType match {
+      case Event6 => readsIndividualMemberDetailsEvent6(Event6)
+      case _ => readsIndividualMemberDetailsEvent22and23and24(eventType)
+    }
+  }
+
+  private def readsIndividualMemberDetailsEvent22and23and24(eventType: EventType): Reads[JsObject] = {
     (
       (pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick) and
         (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("lastName")).json.pick) and
@@ -39,6 +48,18 @@ object API1830 extends Transformer {
         (__ \ Symbol("eventType")).json.put(JsString(s"Event${eventType}")) and
         (pathPaymentDetails \ Symbol("taxYearEndingDate")).json.copyFrom(readsTaxYearEndDate) and
         (pathPaymentDetails \ Symbol("monetaryAmount")).json.copyFrom((__ \ Symbol("totalPensionAmounts")).json.pick)).reduce
+  }
+
+  private def readsIndividualMemberDetailsEvent6(eventType: EventType): Reads[JsObject] = {
+    (
+      (pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick) and
+        (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("lastName")).json.pick) and
+        (pathIndividualMemberDetails \ Symbol("nino")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("nino")).json.pick) and
+        (__ \ Symbol("eventType")).json.put(JsString(s"Event${eventType}")) and
+        (__ \ Symbol("typeOfProtection")).json.copyFrom((__ \ Symbol("typeOfProtection")).json.pick) and
+        (__ \ Symbol("inputProtectionType")).json.copyFrom((__ \ Symbol("inputProtectionType")).json.pick) and
+        (pathAmountCrystallisedAndDateDetails \ Symbol("amountCrystallised")).json.copyFrom((pathAmountCrystallisedAndDateDetails \ Symbol("amountCrystallised")).json.pick) and
+        (pathAmountCrystallisedAndDateDetails \ Symbol("crystallisedDate")).json.copyFrom((pathAmountCrystallisedAndDateDetails \ Symbol("crystallisedDate")).json.pick)).reduce
   }
 
   def transformToETMPData(eventType: EventType, pstr: String): Reads[JsObject] = {
