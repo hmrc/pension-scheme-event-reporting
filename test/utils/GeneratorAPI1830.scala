@@ -18,7 +18,6 @@ package utils
 
 import models.enumeration.EventType
 import models.enumeration.EventType.Event6
-import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
@@ -26,17 +25,9 @@ import play.api.libs.json.{JsObject, Json}
 
 trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerators {
 
-  private val typesOfProtection = Seq(
-    "enhancedLifetimeAllowance",
-    "enhancedProtection",
-    "fixedProtection",
-    "fixedProtection2014",
-    "fixedProtection2016",
-    "individualProtection2014",
-    "individualProtection2016"
-  )
+  import GeneratorAPI1830._
 
-  def generateUserAnswersAndPOSTBodyNew(eventType: EventType): Gen[Tuple2[JsObject, JsObject]] = {
+  def generateUserAnswersAndPOSTBodyByEvent(eventType: EventType): Gen[Tuple2[JsObject, JsObject]] = {
     eventType match {
       case Event6 => generateUserAnswersAndPOSTBodyEvent6(Event6)
       case _ => generateUserAnswersAndPOSTBodyEvent22And23(eventType)
@@ -45,54 +36,47 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
 
   def generateUserAnswersAndPOSTBodyEvent6(eventType: EventType): Gen[Tuple2[JsObject, JsObject]] = {
     for {
-      firstName <- Gen.oneOf(Seq("Alice", "Bob", "Charlie"))
-      lastName <- Gen.oneOf(Seq("Xavier", "Yilmaz", "Zimmer"))
-      nino <- Gen.oneOf(Seq("AB123456C", "CD123456E"))
-      typeOfProtection <- Gen.oneOf(typesOfProtection)
-      inputProtectionType <- Gen.chooseNum(10000000, 99999999)
-      amountCrystallised <- Gen.chooseNum(1, 1000)
-      taxYear <- taxYearGenerator
+      map <- randomValues()
     } yield {
       val ua = Json.obj(
         s"event${eventType.toString}" -> Json.obj("members" ->
           Json.arr(
             Json.obj(
               "membersDetails" -> Json.obj(
-                "firstName" -> firstName,
-                "lastName" -> lastName,
-                "nino" -> nino),
-              "typeOfProtection" -> typeOfProtection,
-              "inputProtectionType" -> inputProtectionType,
+                "firstName" -> map("firstName"),
+                "lastName" -> map("lastName"),
+                "nino" -> map("nino")),
+              "typeOfProtection" -> map("typeOfProtection"),
+              "inputProtectionType" -> map("inputProtectionType"),
               "AmountCrystallisedAndDate" -> Json.obj(
-                "amountCrystallised" -> amountCrystallised,
-                "crystallisedDate" -> s"$taxYear-04-25"
+                "amountCrystallised" -> map("amountCrystallised"),
+                "crystallisedDate" -> s"${map("taxYear")}-04-25"
               )
             )
           )
         ),
-        "taxYear" -> taxYear
+        "taxYear" -> map("taxYear")
       )
-      val endTaxYear = (taxYear.toInt + 1).toString
       val expected = Json.obj("memberEventsDetails" -> Json.obj(
         "eventReportDetails" -> Json.obj(
           "pSTR" -> "87219363YN",
           "eventType" -> s"Event${eventType.toString}",
-          "reportStartDate" -> s"$taxYear-04-06",
-          "reportEndDate" -> s"$endTaxYear-04-05"
+          "reportStartDate" -> s"${map("taxYear")}-04-06",
+          "reportEndDate" -> s"${map("endTaxYear")}-04-05"
         ),
         "eventDetails" -> Json.arr(
           Json.obj(
             "eventType" -> s"Event${eventType.toString}",
             "individualDetails" -> Json.obj(
-              "firstName" -> firstName,
-              "lastName" -> lastName,
-              "nino" -> nino
+              "firstName" -> map("firstName"),
+              "lastName" -> map("lastName"),
+              "nino" -> map("nino")
             ),
             "paymentDetails" -> Json.obj(
-              "amountCrystalised" -> amountCrystallised,
-              "typeOfProtection" -> typeOfProtection,
-              "eventDate" -> s"$taxYear-04-25",
-              "freeText" -> inputProtectionType
+              "amountCrystalised" -> map("amountCrystallised"),
+              "typeOfProtection" -> map("typeOfProtection"),
+              "eventDate" -> s"${map("taxYear")}-04-25",
+              "freeText" -> map("inputProtectionType")
             )
           )
         )
@@ -104,46 +88,40 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
 
   def generateUserAnswersAndPOSTBodyEvent22And23(eventType: EventType): Gen[Tuple2[JsObject, JsObject]] = {
     for {
-      firstName <- Gen.alphaStr
-      lastName <- Gen.alphaStr
-      nino <- Gen.oneOf(Seq("AB123456C", "CD123456E"))
-      monetaryAmount <- arbitrary[BigDecimal]
-      taxYearEndDate <- Gen.oneOf(2020, 2021, 2022)
-      taxYear <- taxYearGenerator
+      map <- randomValues()
     } yield {
       val ua = Json.obj(
         s"event${eventType.toString}" -> Json.obj("members" ->
           Json.arr(
             Json.obj(
               "membersDetails" -> Json.obj(
-                "firstName" -> firstName,
-                "lastName" -> lastName,
-                "nino" -> nino),
-              "chooseTaxYear" -> taxYearEndDate.toString,
-              "totalPensionAmounts" -> monetaryAmount
+                "firstName" -> map("firstName"),
+                "lastName" -> map("lastName"),
+                "nino" -> map("nino")),
+              "chooseTaxYear" -> map("taxYear"),
+              "totalPensionAmounts" -> map("monetaryAmount")
             ))
         ),
-        "taxYear" -> taxYear
+        "taxYear" -> map("taxYear")
       )
-      val endTaxYear = (taxYear.toInt + 1).toString
       val expected = Json.obj("memberEventsDetails" -> Json.obj(
         "eventReportDetails" -> Json.obj(
           "pSTR" -> "87219363YN",
           "eventType" -> s"Event${eventType.toString}",
-          "reportStartDate" -> s"$taxYear-04-06",
-          "reportEndDate" -> s"$endTaxYear-04-05"
+          "reportStartDate" -> s"${map("taxYear")}-04-06",
+          "reportEndDate" -> s"${map("endTaxYear")}-04-05"
         ),
         "eventDetails" -> Json.arr(
           Json.obj(
             "eventType" -> s"Event${eventType.toString}",
             "individualDetails" -> Json.obj(
-              "firstName" -> firstName,
-              "lastName" -> lastName,
-              "nino" -> nino
+              "firstName" -> map("firstName"),
+              "lastName" -> map("lastName"),
+              "nino" -> map("nino")
             ),
             "paymentDetails" -> Json.obj(
-              "monetaryAmount" -> monetaryAmount,
-              "taxYearEndingDate" -> (taxYearEndDate + 1).toString
+              "monetaryAmount" -> map("monetaryAmount"),
+              "taxYearEndingDate" -> map("endTaxYear")
             )
           )
         )
@@ -151,5 +129,47 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
       )
       Tuple2(ua, expected)
     }
+  }
+}
+/*
+ */
+
+object GeneratorAPI1830 {
+  private val typesOfProtection = Seq(
+    "enhancedLifetimeAllowance",
+    "enhancedProtection",
+    "fixedProtection",
+    "fixedProtection2014",
+    "fixedProtection2016",
+    "individualProtection2014",
+    "individualProtection2016"
+  )
+
+  private def randomValues(): Gen[Map[String, String]] = {
+    for {
+    firstName <- Gen.oneOf(Seq("Alice", "Bob", "Charlie"))
+    lastName <- Gen.oneOf(Seq("Xavier", "Yilmaz", "Zimmer"))
+    nino <- Gen.oneOf(Seq("AB123456C", "CD123456E"))
+    typeOfProtection <- Gen.oneOf(typesOfProtection)
+    inputProtectionType <- Gen.chooseNum(10000000, 99999999)
+    amountCrystallised <- Gen.chooseNum(1, 1000)
+    taxYear <- Gen.oneOf(Seq("2022", "2023", "2024"))
+    endTaxYear = (taxYear.toInt + 1)
+    monetaryAmount <- Gen.chooseNum(1, 1000)
+    taxYearEndDate <- Gen.oneOf(2020, 2021, 2022)
+  } yield {
+      Map(
+        "firstName" -> firstName,
+        "lastName" -> lastName,
+        "nino" -> nino,
+        "typeOfProtection" -> typeOfProtection,
+        "inputProtectionType" -> inputProtectionType.toString,
+        "amountCrystallised" -> amountCrystallised.toString,
+        "taxYear" -> taxYear,
+        "endTaxYear" -> endTaxYear.toString,
+        "monetaryAmount" -> monetaryAmount.toString,
+        "taxYearEndDate" -> taxYearEndDate.toString
+      )
+      }
   }
 }

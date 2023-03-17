@@ -36,11 +36,11 @@ object API1830 extends Transformer {
   private def readsIndividualMemberDetailsByEventType(eventType: EventType): Reads[JsObject] = {
     eventType match {
       case Event6 => readsIndividualMemberDetailsEvent6(Event6)
-      case _ => readsIndividualMemberDetailsEvent22and23and24(eventType)
+      case _ => readsIndividualMemberDetailsEvent22And23(eventType)
     }
   }
 
-  private def readsIndividualMemberDetailsEvent22and23and24(eventType: EventType): Reads[JsObject] = {
+  private def readsIndividualMemberDetailsEvent22And23(eventType: EventType): Reads[JsObject] = {
     (
       (pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick) and
         (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("lastName")).json.pick) and
@@ -50,7 +50,7 @@ object API1830 extends Transformer {
         (pathPaymentDetails \ Symbol("monetaryAmount")).json.copyFrom((__ \ Symbol("totalPensionAmounts")).json.pick)).reduce
   }
 
-  private def readsIndividualMemberDetailsEvent6(eventType: EventType = Event6): Reads[JsObject] = {
+  private def readsIndividualMemberDetailsEvent6(eventType: EventType): Reads[JsObject] = {
     (
       (pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick) and
         (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("lastName")).json.pick) and
