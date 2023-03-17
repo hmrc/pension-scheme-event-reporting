@@ -131,8 +131,6 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 }
-/*
- */
 
 object GeneratorAPI1830 {
   private val typesOfProtection = Seq(
