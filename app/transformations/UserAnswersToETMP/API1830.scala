@@ -50,16 +50,16 @@ object API1830 extends Transformer {
         (pathPaymentDetails \ Symbol("monetaryAmount")).json.copyFrom((__ \ Symbol("totalPensionAmounts")).json.pick)).reduce
   }
 
-  private def readsIndividualMemberDetailsEvent6(eventType: EventType): Reads[JsObject] = {
+  private def readsIndividualMemberDetailsEvent6(eventType: EventType = Event6): Reads[JsObject] = {
     (
       (pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick) and
         (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("lastName")).json.pick) and
         (pathIndividualMemberDetails \ Symbol("nino")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("nino")).json.pick) and
         (__ \ Symbol("eventType")).json.put(JsString(s"Event${eventType}")) and
-        (__ \ Symbol("typeOfProtection")).json.copyFrom((__ \ Symbol("typeOfProtection")).json.pick) and
-        (__ \ Symbol("inputProtectionType")).json.copyFrom((__ \ Symbol("inputProtectionType")).json.pick) and
-        (pathAmountCrystallisedAndDateDetails \ Symbol("amountCrystallised")).json.copyFrom((pathAmountCrystallisedAndDateDetails \ Symbol("amountCrystallised")).json.pick) and
-        (pathAmountCrystallisedAndDateDetails \ Symbol("crystallisedDate")).json.copyFrom((pathAmountCrystallisedAndDateDetails \ Symbol("crystallisedDate")).json.pick)).reduce
+        (pathPaymentDetails \ Symbol("amountCrystalised")).json.copyFrom((pathAmountCrystallisedAndDateDetails \ Symbol("amountCrystallised")).json.pick) and
+        (pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom((__ \ Symbol("typeOfProtection")).json.pick) and
+        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathAmountCrystallisedAndDateDetails \ Symbol("crystallisedDate")).json.pick) and
+        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom((__ \ Symbol("inputProtectionType")).json.pick)).reduce
   }
 
   def transformToETMPData(eventType: EventType, pstr: String): Reads[JsObject] = {
