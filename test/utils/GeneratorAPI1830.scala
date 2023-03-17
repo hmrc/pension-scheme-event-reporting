@@ -24,8 +24,6 @@ import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
 import play.api.libs.json.{JsObject, Json}
 
-import scala.util.Random
-
 trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerators {
 
   private val typesOfProtection = Seq(
