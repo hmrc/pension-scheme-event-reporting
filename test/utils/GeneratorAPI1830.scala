@@ -74,7 +74,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
             ),
             "paymentDetails" -> Json.obj(
               "amountCrystalised" -> map("amountCrystallised"),
-              "typeOfProtection" -> map("typeOfProtection"),
+              "typeOfProtection" -> typeOfProtectionETMP(map("typeOfProtection")),
               "eventDate" -> s"${map("taxYear")}-04-25",
               "freeText" -> map("inputProtectionType")
             )
@@ -133,7 +133,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
 }
 
 object GeneratorAPI1830 {
-  private val typesOfProtection = Seq(
+  private val typesOfProtectionUA = Seq(
     "enhancedLifetimeAllowance",
     "enhancedProtection",
     "fixedProtection",
@@ -142,13 +142,22 @@ object GeneratorAPI1830 {
     "individualProtection2014",
     "individualProtection2016"
   )
+  private def typeOfProtectionETMP(tOP: String): String = tOP match {
+    case "enhancedLifetimeAllowance" => "Enhanced life time allowance"
+    case "enhancedProtection" => "Enhanced protection"
+    case "fixedProtection" => "Fixed protection"
+    case "fixedProtection2014" => "Fixed protection 2014"
+    case "fixedProtection2016" => "Fixed protection 2016"
+    case "individualProtection2014" => "Individual protection 2014"
+    case "individualProtection2016" => "Individual protection 2016"
+  }
 
   private def randomValues(): Gen[Map[String, String]] = {
     for {
     firstName <- Gen.oneOf(Seq("Alice", "Bob", "Charlie"))
     lastName <- Gen.oneOf(Seq("Xavier", "Yilmaz", "Zimmer"))
     nino <- Gen.oneOf(Seq("AB123456C", "CD123456E"))
-    typeOfProtection <- Gen.oneOf(typesOfProtection)
+    typeOfProtection <- Gen.oneOf(typesOfProtectionUA)
     inputProtectionType <- Gen.chooseNum(10000000, 99999999)
     amountCrystallised <- Gen.chooseNum(1, 1000)
     taxYear <- Gen.oneOf(Seq("2022", "2023", "2024"))
