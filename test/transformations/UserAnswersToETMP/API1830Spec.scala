@@ -37,6 +37,15 @@ class API1830Spec extends AnyFreeSpec with Matchers
       }
     }
 
+    "must transform a randomly generated valid payload correctly in event 8" in {
+      forAll(generateUserAnswersAndPOSTBodyEvent8(Event8)) {
+        case (userAnswers: JsObject, expectedResponse: JsObject) =>
+          val result = userAnswers.validate(API1830.transformToETMPData(Event8, "87219363YN"))
+          val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event8") \ Symbol("members"))
+          result mustBe expectedResult
+      }
+    }
+
     "must transform a randomly generated valid payload correctly in event 22" in {
       forAll(generateUserAnswersAndPOSTBodyEvent22And23(Event22)) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
