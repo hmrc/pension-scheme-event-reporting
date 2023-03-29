@@ -56,7 +56,7 @@ object API1830 extends Transformer {
 
   private val readsTypeOfProtectionReferenceEvent8A: Reads[JsString] = (__ \ Symbol("typeOfProtectionReference")).json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString(str))
-    case _ => Reads.pure(JsString("N/A"))
+    case _ => fail[JsString]
   }
 
   private def event6TypeOfProtectionConversion(tOP: String): String = tOP match {
@@ -137,10 +137,10 @@ object API1830 extends Transformer {
         (pathIndividualMemberDetails \ Symbol("nino")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("nino")).json.pick) and
         (__ \ Symbol("eventType")).json.put(JsString(s"Event$eventType")) and
         (pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.copyFrom(readsPaymentTypeEvent8A) and
-        (pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionEvent8A) and
+        (pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionEvent8A.orElse((Reads.pure(JsString("N/A"))))) and
         (pathPaymentDetails \ Symbol("amountLumpSum")).json.copyFrom((pathLumpSumAmountAndDateDetails \ Symbol("lumpSumAmount")).json.pick) and
         (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathLumpSumAmountAndDateDetails \ Symbol("lumpSumDate")).json.pick) and
-        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom(readsTypeOfProtectionReferenceEvent8A)).reduce
+        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom(readsTypeOfProtectionReferenceEvent8A.orElse(Reads.pure(JsString("N/A"))))).reduce
   }
 
   def transformToETMPData(eventType: EventType, pstr: String): Reads[JsObject] = {
