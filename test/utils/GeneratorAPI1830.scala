@@ -145,12 +145,6 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
     for {
       map <- randomValues()
     } yield {
-      val uaTypeOfProtection = { // if (map("paymentTypeEvent8A") == "paymentOfAStandAloneLumpSum")
-        (
-          "typeOfProtection" -> JsString(map("typeOfProtectionEvent8")),
-          "typeOfProtectionReference" -> JsString(map("typeOfProtectionReference"))
-        )
-      }
       val ua = Json.obj(
         s"event${eventType.toString}" -> Json.obj("members" ->
           Json.arr(
@@ -160,7 +154,8 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
                 "lastName" -> map("lastName"),
                 "nino" -> map("nino")),
               "paymentType" -> map("paymentTypeEvent8A"),
-              uaTypeOfProtection.,
+              "typeOfProtection" -> JsString(map("typeOfProtectionEvent8")),
+              "typeOfProtectionReference" -> JsString(map("typeOfProtectionReference")),
               "lumpSumAmountAndDate" -> Json.obj(
                 "lumpSumAmount" -> map("lumpSumAmount"),
                 "lumpSumDate" -> s"${map("taxYear")}-04-25"
