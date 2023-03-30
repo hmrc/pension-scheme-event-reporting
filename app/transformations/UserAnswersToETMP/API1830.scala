@@ -132,9 +132,7 @@ object API1830 extends Transformer {
 
   private def readsIndividualMemberDetailsEvent8A(eventType: EventType): Reads[JsObject] = {
     (
-      (pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick) and
-        (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("lastName")).json.pick) and
-        (pathIndividualMemberDetails \ Symbol("nino")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("nino")).json.pick) and
+      readsIndividualMemberDetails and
         (__ \ Symbol("eventType")).json.put(JsString(s"Event$eventType")) and
         (pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.copyFrom(readsPaymentTypeEvent8A) and
         (pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionEvent8A.orElse((Reads.pure(JsString("N/A"))))) and
