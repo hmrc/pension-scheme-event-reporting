@@ -17,7 +17,7 @@
 package utils
 
 import models.enumeration.EventType
-import models.enumeration.EventType.Event6
+import models.enumeration.EventType.{Event6, Event8, Event8A}
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
@@ -27,20 +27,21 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
 
   import GeneratorAPI1830._
 
-  // TODO: Use this in Spec instead of individual methods.
   def generateUserAnswersAndPOSTBodyByEvent(eventType: EventType): Gen[Tuple2[JsObject, JsObject]] = {
     eventType match {
-      case Event6 => generateUserAnswersAndPOSTBodyEvent6(Event6)
+      case Event6 => generateUserAnswersAndPOSTBodyEvent6
+      case Event8 => generateUserAnswersAndPOSTBodyEvent8
+      case Event8A => generateUserAnswersAndPOSTBodyEvent8A
       case _ => generateUserAnswersAndPOSTBodyEvent22And23(eventType)
     }
   }
 
-  def generateUserAnswersAndPOSTBodyEvent6(eventType: EventType): Gen[Tuple2[JsObject, JsObject]] = {
+  def generateUserAnswersAndPOSTBodyEvent6: Gen[Tuple2[JsObject, JsObject]] = {
     for {
       map <- randomValues()
     } yield {
       val ua = Json.obj(
-        s"event${eventType.toString}" -> Json.obj("members" ->
+        s"event${Event6.toString}" -> Json.obj("members" ->
           Json.arr(
             Json.obj(
               "membersDetails" -> Json.obj(
@@ -61,13 +62,13 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
       val expected = Json.obj("memberEventsDetails" -> Json.obj(
         "eventReportDetails" -> Json.obj(
           "pSTR" -> "87219363YN",
-          "eventType" -> s"Event${eventType.toString}",
+          "eventType" -> s"Event${Event6.toString}",
           "reportStartDate" -> s"${map("taxYear")}-04-06",
           "reportEndDate" -> s"${map("endTaxYear")}-04-05"
         ),
         "eventDetails" -> Json.arr(
           Json.obj(
-            "eventType" -> s"Event${eventType.toString}",
+            "eventType" -> s"Event${Event6.toString}",
             "individualDetails" -> Json.obj(
               "firstName" -> map("firstName"),
               "lastName" -> map("lastName"),
@@ -87,12 +88,12 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
-  def generateUserAnswersAndPOSTBodyEvent8(eventType: EventType): Gen[Tuple2[JsObject, JsObject]] = {
+  def generateUserAnswersAndPOSTBodyEvent8: Gen[Tuple2[JsObject, JsObject]] = {
     for {
       map <- randomValues()
     } yield {
       val ua = Json.obj(
-        s"event${eventType.toString}" -> Json.obj("members" ->
+        s"event${Event8.toString}" -> Json.obj("members" ->
           Json.arr(
             Json.obj(
               "membersDetails" -> Json.obj(
@@ -113,13 +114,13 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
       val expected = Json.obj("memberEventsDetails" -> Json.obj(
         "eventReportDetails" -> Json.obj(
           "pSTR" -> "87219363YN",
-          "eventType" -> s"Event${eventType.toString}",
+          "eventType" -> s"Event${Event8.toString}",
           "reportStartDate" -> s"${map("taxYear")}-04-06",
           "reportEndDate" -> s"${map("endTaxYear")}-04-05"
         ),
         "eventDetails" -> Json.arr(
           Json.obj(
-            "eventType" -> s"Event${eventType.toString}",
+            "eventType" -> s"Event${Event8.toString}",
             "individualDetails" -> Json.obj(
               "firstName" -> map("firstName"),
               "lastName" -> map("lastName"),
@@ -140,7 +141,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
   }
 
   //noinspection ScalaStyle
-  def generateUserAnswersAndPOSTBodyEvent8A(eventType: EventType): Gen[(JsObject, JsObject)] = for {
+  def generateUserAnswersAndPOSTBodyEvent8A: Gen[(JsObject, JsObject)] = for {
     map <- randomValues()
   } yield {
     val optionalKeysAndValuesUA: Option[JsObject] = if (map("paymentTypeEvent8A") == "paymentOfAStandAloneLumpSum") {
@@ -152,7 +153,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
     } else { Some(JsObject.empty) }
 
     val ua = Json.obj(
-      s"event${eventType.toString}" -> Json.obj("members" ->
+      s"event${Event8A.toString}" -> Json.obj("members" ->
         Json.arr(
           Json.obj(
             "membersDetails" -> Json.obj(
@@ -182,13 +183,13 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
     val expected = Json.obj("memberEventsDetails" -> Json.obj(
       "eventReportDetails" -> Json.obj(
         "pSTR" -> "87219363YN",
-        "eventType" -> s"Event${eventType.toString}",
+        "eventType" -> s"Event${Event8A.toString}",
         "reportStartDate" -> s"${map("taxYear")}-04-06",
         "reportEndDate" -> s"${map("endTaxYear")}-04-05"
       ),
       "eventDetails" -> Json.arr(
         Json.obj(
-          "eventType" -> s"Event${eventType.toString}",
+          "eventType" -> s"Event${Event8A.toString}",
           "individualDetails" -> Json.obj(
             "firstName" -> map("firstName"),
             "lastName" -> map("lastName"),

@@ -29,7 +29,7 @@ class API1830Spec extends AnyFreeSpec with Matchers
   "transformToETMPData" - {
 
     "must transform a randomly generated valid payload correctly in event 6" in {
-      forAll(generateUserAnswersAndPOSTBodyEvent6(Event6)) {
+      forAll(generateUserAnswersAndPOSTBodyByEvent(Event6)) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
           val result = userAnswers.validate(API1830.transformToETMPData(Event6, "87219363YN"))
           val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event6") \ Symbol("members"))
@@ -38,7 +38,7 @@ class API1830Spec extends AnyFreeSpec with Matchers
     }
 
     "must transform a randomly generated valid payload correctly in event 8" in {
-      forAll(generateUserAnswersAndPOSTBodyEvent8(Event8)) {
+      forAll(generateUserAnswersAndPOSTBodyByEvent(Event8)) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
           val result = userAnswers.validate(API1830.transformToETMPData(Event8, "87219363YN"))
           val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event8") \ Symbol("members"))
@@ -47,7 +47,7 @@ class API1830Spec extends AnyFreeSpec with Matchers
     }
 
     "must transform a randomly generated valid payload correctly in event 8A" in {
-    forAll(generateUserAnswersAndPOSTBodyEvent8A(Event8A)) {
+    forAll(generateUserAnswersAndPOSTBodyByEvent(Event8A)) {
       case (userAnswers: JsObject, expectedResponse: JsObject) =>
         val result = userAnswers.validate(API1830.transformToETMPData(Event8A, "87219363YN"))
         val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event8A") \ Symbol("members"))
@@ -56,7 +56,7 @@ class API1830Spec extends AnyFreeSpec with Matchers
   }
 
     "must transform a randomly generated valid payload correctly in event 22" in {
-      forAll(generateUserAnswersAndPOSTBodyEvent22And23(Event22)) {
+      forAll(generateUserAnswersAndPOSTBodyByEvent(Event22)) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
           val result = userAnswers.validate(API1830.transformToETMPData(Event22, "87219363YN"))
           val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event22") \ Symbol("members"))
@@ -65,7 +65,7 @@ class API1830Spec extends AnyFreeSpec with Matchers
     }
 
     "must transform a randomly generated valid payload correctly in event 23" in {
-      forAll(generateUserAnswersAndPOSTBodyEvent22And23(Event23)) {
+      forAll(generateUserAnswersAndPOSTBodyByEvent(Event23)) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
           val result = userAnswers.validate(API1830.transformToETMPData(Event23, "87219363YN"))
           val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event23") \ Symbol("members"))
