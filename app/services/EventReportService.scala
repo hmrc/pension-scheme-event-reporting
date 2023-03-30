@@ -153,6 +153,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         It is not parsing the whole file. This is so that we know which event types to display on summary page.
        */
       eventTypeReadPairs <- Map(
+        Some(EventType.Event6) -> rdsEventTypeNodeOnly(EventType.Event6),
         Some(EventType.Event22) -> rdsEventTypeNodeOnly(EventType.Event22),
         Some(EventType.Event23) -> rdsEventTypeNodeOnly(EventType.Event23),
         None -> rdsFor1834

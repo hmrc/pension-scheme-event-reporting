@@ -239,8 +239,10 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   }
 
   "getEventSummary" must {
-    "return the payload from the connector for API1832(Event22, Event23) and API1834" in {
-      val responseJson = Some(JsArray(Seq("10", "11", "12", "13", "14", "18", "19", "20", "22", "23", "0").map(JsString)))
+    "return the payload from the connector for API1832(Event6, Event22, Event23) and API1834" in {
+      val responseJson = Some(JsArray(Seq("6", "10", "11", "12", "13", "14", "18", "19", "20", "22", "23", "0").map(JsString)))
+      when(mockEventReportConnector.getEvent(pstr, startDate, version, Some(EventType.Event6))(implicitly, implicitly))
+        .thenReturn(Future.successful(responseJsonForAPI1832Event6))
       when(mockEventReportConnector.getEvent(pstr, startDate, version, Some(EventType.Event22))(implicitly, implicitly))
         .thenReturn(Future.successful(responseJsonForAPI1832Event22))
       when(mockEventReportConnector.getEvent(pstr, startDate, version, Some(EventType.Event23))(implicitly, implicitly))
@@ -248,6 +250,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportConnector.getEvent(pstr, startDate, version, None)(implicitly, implicitly))
         .thenReturn(Future.successful(responseJsonForAPI1834))
       eventReportService.getEventSummary(pstr, version, startDate).map { result =>
+        verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, version, Some(EventType.Event6))(implicitly, implicitly)
         verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, version, Some(EventType.Event22))(implicitly, implicitly)
         verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, version, Some(EventType.Event23))(implicitly, implicitly)
         verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, version, None)(implicitly, implicitly)
@@ -458,6 +461,43 @@ object EventReportServiceSpec {
 
   private val submitEvent20ADeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345670811")
+
+  private val responseJsonForAPI1832Event6: Option[JsValue] = Some(Json.parse(
+    """{
+      |  "processingDate": "2023-12-15T12:30:46Z",
+      |  "schemeDetails": {
+      |    "pSTR": "87219363YN",
+      |    "schemeName": "Abc Ltd"
+      |  },
+      |  "eventReportDetails": {
+      |    "reportStartDate": "2021-04-06",
+      |    "reportEndDate": "2022-04-05",
+      |    "reportStatus": "Compiled",
+      |    "reportVersionNumber": "001",
+      |    "reportSubmittedDateAndTime": "2023-12-13T12:12:12Z",
+      |    "eventType": "Event6"
+      |  },
+      |  "eventDetails": [
+      |    {
+      |      "event": {
+      |        "eventType": "Event6",
+      |        "individualDetails": {
+      |          "title": "Mrs",
+      |          "firstName": "Sarah",
+      |          "middleName": "T",
+      |          "lastName": "Urqhart",
+      |          "nino": "AA345678C"
+      |        },
+      |        "paymentDetails": {
+      |          "amountCrystalised": 600.67,
+      |          "typeOfProtection": "Enhanced life time allowance",
+      |          "eventDate": "2021-05-30",
+      |          "freeText": "Sample text"
+      |        }
+      |      }
+      |    }
+      |  ]
+      |}""".stripMargin))
 
   private val responseJsonForAPI1832Event22: Option[JsValue] = Some(Json.parse(
     """
