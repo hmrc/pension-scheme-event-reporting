@@ -17,7 +17,7 @@
 package transformations.UserAnswersToETMP
 
 import models.enumeration.EventType
-import models.enumeration.EventType.{Event6, Event8}
+import models.enumeration.EventType.{Event6, Event8, Event8A}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
@@ -44,6 +44,21 @@ object API1830 extends Transformer {
     case _ => fail[JsString]
   }
 
+  private val readsTypeOfProtectionEvent8A: Reads[JsString] = (__ \ Symbol("typeOfProtection")).json.pick.flatMap {
+    case JsString(str) => Reads.pure(JsString(event8ATypeOfProtectionConversion(str)))
+    case _ => fail[JsString]
+  }
+
+  private val readsPaymentTypeEvent8A: Reads[JsString] = (__ \ Symbol("paymentType")).json.pick.flatMap {
+    case JsString(str) => Reads.pure(JsString(event8APaymentTypeConversion(str)))
+    case _ => fail[JsString]
+  }
+
+  private val readsTypeOfProtectionReferenceEvent8A: Reads[JsString] = (__ \ Symbol("typeOfProtectionReference")).json.pick.flatMap {
+    case JsString(str) => Reads.pure(JsString(str))
+    case _ => fail[JsString]
+  }
+
   private def event6TypeOfProtectionConversion(tOP: String): String = tOP match {
     case "enhancedLifetimeAllowance" => "Enhanced life time allowance"
     case "enhancedProtection" => "Enhanced protection"
@@ -59,10 +74,24 @@ object API1830 extends Transformer {
     case "enhancedProtection" => "Enhanced protection"
   }
 
+  private def event8ATypeOfProtectionConversion(tOP: String): String = tOP match {
+    case "primaryProtection" => "Primary Protection"
+    case "enhancedProtection" => "Enhanced"
+  }
+
+  //noinspection ScalaStyle
+  private def event8APaymentTypeConversion(pT: String): String = pT match {
+    case "paymentOfAStandAloneLumpSum" =>
+      "Member where payment of a stand-alone lump sum (100 per lump sum) and the member had protected lump sum rights of more than £375,000 with either primary protection or enhanced protection"
+    case "paymentOfASchemeSpecificLumpSum" =>
+      "Member where payment of a scheme specific lump sum protection and the lump sum is more than 7.5 per of the lifetime allowance"
+  }
+
   private def readsIndividualMemberDetailsByEventType(eventType: EventType): Reads[JsObject] = {
     eventType match {
       case Event6 => readsIndividualMemberDetailsEvent6(Event6)
       case Event8 => readsIndividualMemberDetailsEvent8(Event8)
+      case Event8A => readsIndividualMemberDetailsEvent8A(Event8A)
       case _ => readsIndividualMemberDetailsEvent22And23(eventType)
     }
   }
@@ -99,6 +128,17 @@ object API1830 extends Transformer {
         (pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionEvent8) and
         (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathLumpSumAmountAndDateDetails \ Symbol("lumpSumDate")).json.pick) and
         (pathPaymentDetails \ Symbol("freeText")).json.copyFrom((__ \ Symbol("typeOfProtectionReference")).json.pick)).reduce
+  }
+
+  private def readsIndividualMemberDetailsEvent8A(eventType: EventType): Reads[JsObject] = {
+    (
+      readsIndividualMemberDetails and
+        (__ \ Symbol("eventType")).json.put(JsString(s"Event$eventType")) and
+        (pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.copyFrom(readsPaymentTypeEvent8A) and
+        (pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionEvent8A.orElse((Reads.pure(JsString("N/A"))))) and
+        (pathPaymentDetails \ Symbol("amountLumpSum")).json.copyFrom((pathLumpSumAmountAndDateDetails \ Symbol("lumpSumAmount")).json.pick) and
+        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathLumpSumAmountAndDateDetails \ Symbol("lumpSumDate")).json.pick) and
+        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom(readsTypeOfProtectionReferenceEvent8A.orElse(Reads.pure(JsString("N/A"))))).reduce
   }
 
   def transformToETMPData(eventType: EventType, pstr: String): Reads[JsObject] = {
