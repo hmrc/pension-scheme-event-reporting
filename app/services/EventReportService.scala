@@ -48,7 +48,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                   ) extends Logging {
   private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private final val SchemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
-  private final val SchemaPath1830 = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
+  private final val SchemaPath1830 = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.7.json"
 
   private case class APIProcessingInfo(apiType: ApiType,
                                        readsForTransformation: Reads[JsObject],
@@ -131,7 +131,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsValue]] = {
     getEventCacheRepository.get(pstr, startDate, version, eventType.toString).flatMap {
-      case optData@Some(_) =>  Future.successful(optData)
+      case optData@Some(_) => Future.successful(optData)
       case _ => eventReportConnector.getEvent(pstr, startDate, version, Some(eventType)).flatMap {
         case Some(data) =>
           val jsDataOpt = validationCheck(data, eventType)
