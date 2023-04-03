@@ -63,6 +63,12 @@ object API1830 extends Transformer {
     case JsString(str) => Reads.pure(JsString(str))
     case _ => fail[JsString]
   }
+
+  private val readsFreeTextEvent3: Reads[JsString] = (pathPaymentDetails \ Symbol("freeText")).json.pick.flatMap {
+    case JsString(str) => Reads.pure(JsString(str))
+    case _ => fail[JsString]
+  }
+
   private val readsIndividualMemberDetails: Reads[JsObject] = {
     ((pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick) and
       (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("lastName")).json.pick) and
@@ -120,7 +126,6 @@ object API1830 extends Transformer {
       ).reduce
   }
 
-  // TODO: add N/A read for freeText
   private def readsIndividualMemberDetailsEvent3: Reads[JsObject] = {
     (
       readsIndividualMemberDetails and
@@ -128,7 +133,7 @@ object API1830 extends Transformer {
         (pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.copyFrom((pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.pick) and
         (pathPaymentDetails \ Symbol("amountBenefit")).json.copyFrom((pathPaymentDetails \ Symbol("amountBenefit")).json.pick) and
         (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathPaymentDetails \ Symbol("eventDate")).json.pick) and
-        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom((pathPaymentDetails \ Symbol("freeText")).json.pick)).reduce
+        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom(readsFreeTextEvent3.orElse(Reads.pure(JsString("N/A"))))).reduce
   }
 
   private def readsIndividualMemberDetailsEvent4: Reads[JsObject] = {
