@@ -17,7 +17,7 @@
 package transformations.UserAnswersToETMP
 
 import models.enumeration.EventType
-import models.enumeration.EventType.{Event6, Event7, Event8, Event8A}
+import models.enumeration.EventType.{Event2, Event6, Event7, Event8, Event8A}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
@@ -29,6 +29,10 @@ object API1830 extends Transformer {
   private val pathAmountCrystallisedAndDateDetails = __ \ Symbol("AmountCrystallisedAndDate")
   private val pathLumpSumAmountAndDateDetails = __ \ Symbol("lumpSumAmountAndDate")
   private val pathCrystallisedAmount = __ \ Symbol("crystallisedAmount")
+
+  private val pathPersonReceivedThePayment = __ \ Symbol("personReceivedThePayment")
+  private val pathDeceasedMemberDetails = __ \ Symbol("deceasedMembersDetails")
+  private val pathBeneficiaryMemberDetails = __ \ Symbol("beneficiaryDetails")
 
   private val readsTaxYearEndDate: Reads[JsString] = (__ \ Symbol("chooseTaxYear")).json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString((str.toInt + 1).toString))
@@ -90,6 +94,7 @@ object API1830 extends Transformer {
 
   private def readsIndividualMemberDetailsByEventType(eventType: EventType): Reads[JsObject] = {
     eventType match {
+      case Event2 => readsDeceasedAndBeneficiaryMemberDetailsEvent2
       case Event6 => readsIndividualMemberDetailsEvent6
       case Event7 => readsIndividualMemberDetailsEvent7
       case Event8 => readsIndividualMemberDetailsEvent8
@@ -102,6 +107,20 @@ object API1830 extends Transformer {
     ((pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick) and
       (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("lastName")).json.pick) and
       (pathIndividualMemberDetails \ Symbol("nino")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("nino")).json.pick)).reduce
+  }
+
+  private def readsDeceasedAndBeneficiaryMemberDetailsEvent2: Reads[JsObject] = {
+    (
+      (__ \ Symbol("eventType")).json.put(JsString(s"Event$Event2")) and
+        (pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((pathDeceasedMemberDetails \ Symbol("firstName")).json.pick) and
+        (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((pathDeceasedMemberDetails \ Symbol("lastName")).json.pick) and
+        (pathIndividualMemberDetails \ Symbol("nino")).json.copyFrom((pathDeceasedMemberDetails \ Symbol("nino")).json.pick) and
+        (pathPersonReceivedThePayment \ Symbol("firstName")).json.copyFrom((pathBeneficiaryMemberDetails \ Symbol("firstName")).json.pick) and
+        (pathPersonReceivedThePayment \ Symbol("lastName")).json.copyFrom((pathPersonReceivedThePayment \ Symbol("lastName")).json.pick) and
+        (pathPersonReceivedThePayment \ Symbol("nino")).json.copyFrom((pathPersonReceivedThePayment \ Symbol("nino")).json.pick) and
+        (pathPaymentDetails \ Symbol("amountPaid")).json.copyFrom((__ \ Symbol("amountPaid")).json.pick) and
+        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((__ \ Symbol("datePaid")).json.pick)
+      ).reduce
   }
 
   private def readsIndividualMemberDetailsEvent22And23(eventType: EventType): Reads[JsObject] = {
