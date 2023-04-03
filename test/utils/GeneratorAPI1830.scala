@@ -17,7 +17,7 @@
 package utils
 
 import models.enumeration.EventType
-import models.enumeration.EventType.{Event2, Event6, Event7, Event8, Event8A}
+import models.enumeration.EventType.{Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
@@ -31,6 +31,9 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
   def generateUserAnswersAndPOSTBodyByEvent(eventType: EventType): Gen[(JsObject, JsObject)] = {
     eventType match {
       case Event2 => generateUserAnswersAndPOSTBodyEvent2
+      case Event3 => generateUserAnswersAndPOSTBodyEvent3
+      case Event4 => generateUserAnswersAndPOSTBodyEvent3
+      case Event5 => generateUserAnswersAndPOSTBodyEvent3
       case Event6 => generateUserAnswersAndPOSTBodyEvent6
       case Event7 => generateUserAnswersAndPOSTBodyEvent7
       case Event8 => generateUserAnswersAndPOSTBodyEvent8
@@ -87,6 +90,57 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
             "paymentDetails" -> Json.obj(
               "amountPaid" -> map("monetaryAmount"),
               "eventDate" -> s"${map("taxYear")}-04-06"
+            )
+          )
+        )
+      )
+      )
+      Tuple2(ua, expected)
+    }
+  }
+  def generateUserAnswersAndPOSTBodyEvent3: Gen[(JsObject, JsObject)] = {
+    for {
+      map <- randomValues()
+    } yield {
+      val ua = Json.obj(
+        s"event${Event3.toString}" -> Json.obj("members" ->
+          Json.arr(
+            Json.obj(
+              "membersDetails" -> Json.obj(
+                "firstName" -> map("firstName"),
+                "lastName" -> map("lastName"),
+                "nino" -> map("nino")),
+              "paymentDetails" -> Json.obj(
+                "reasonBenefitTaken" -> map("reasonBenefitTakenEvent3"),
+                "amountBenefit" -> map("monetaryAmount"),
+                "eventDate" -> s"${map("taxYear")}-04-25",
+                "freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3"))
+              ),
+            )
+          )
+        ),
+        "taxYear" -> map("taxYear")
+      )
+      val expected = Json.obj("memberEventsDetails" -> Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "pSTR" -> "87219363YN",
+          "eventType" -> s"Event${Event3.toString}",
+          "reportStartDate" -> s"${map("taxYear")}-04-06",
+          "reportEndDate" -> s"${map("endTaxYear")}-04-05"
+        ),
+        "eventDetails" -> Json.arr(
+          Json.obj(
+            "eventType" -> s"Event${Event3.toString}",
+            "individualDetails" -> Json.obj(
+              "firstName" -> map("firstName"),
+              "lastName" -> map("lastName"),
+              "nino" -> map("nino")
+            ),
+            "paymentDetails" -> Json.obj(
+              "reasonBenefitTaken" -> map("reasonBenefitTakenEvent3"),
+              "amountBenefit" -> map("monetaryAmount"),
+              "eventDate" -> s"${map("taxYear")}-04-25",
+              "freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3"))
             )
           )
         )
@@ -415,6 +469,8 @@ object GeneratorAPI1830 {
       "Member where payment of a scheme specific lump sum protection and the lump sum is more than 7.5 per of the lifetime allowance"
   }
 
+  private def freeTextEvent3(rBT: String): String = if(rBT != "Other") "N/A" else "Example brief description"
+
   private def randomValues(): Gen[Map[String, String]] = {
     for {
       firstName <- Gen.oneOf(Seq("Alice", "Bob", "Charlie"))
@@ -434,6 +490,7 @@ object GeneratorAPI1830 {
       deceasedFirstName <- Gen.oneOf(Seq("Daniel", "Emma", "Fred"))
       deceasedLastName <- Gen.oneOf(Seq("Urqhart", "Vanderbilt", "Wilson"))
       deceasedNino <- Gen.oneOf(Seq("AB654321C", "CD654321E"))
+      reasonBenefitTakenEvent3 <- Gen.oneOf(Seq("Ill Health", "Protected Pension Age", "Other"))
     } yield {
       Map(
         "firstName" -> firstName,
@@ -452,7 +509,8 @@ object GeneratorAPI1830 {
         "paymentTypeEvent8A" -> paymentTypeEvent8A,
         "deceasedFirstName" -> deceasedFirstName,
         "deceasedLastName" -> deceasedLastName,
-        "deceasedNino" -> deceasedNino
+        "deceasedNino" -> deceasedNino,
+        "reasonBenefitTakenEvent3" -> reasonBenefitTakenEvent3
       )
     }
   }
