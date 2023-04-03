@@ -24,56 +24,6 @@ import play.api.libs.json._
 import transformations.Transformer
 
 object API1830 extends Transformer {
-  private val pathIndividualMemberDetails = __ \ Symbol("individualDetails")
-  private val pathPaymentDetails = __ \ Symbol("paymentDetails")
-  private val pathAmountCrystallisedAndDateDetails = __ \ Symbol("AmountCrystallisedAndDate")
-  private val pathLumpSumAmountAndDateDetails = __ \ Symbol("lumpSumAmountAndDate")
-  private val pathCrystallisedAmount = __ \ Symbol("crystallisedAmount")
-
-  private val pathPersonReceivedThePayment = __ \ Symbol("personReceivedThePayment")
-  private val pathDeceasedMemberDetails = __ \ Symbol("deceasedMembersDetails")
-  private val pathBeneficiaryMemberDetails = __ \ Symbol("beneficiaryDetails")
-
-  private val readsTaxYearEndDate: Reads[JsString] = (__ \ Symbol("chooseTaxYear")).json.pick.flatMap {
-    case JsString(str) => Reads.pure(JsString((str.toInt + 1).toString))
-    case _ => fail[JsString]
-  }
-
-  private val readsTypeOfProtectionEvent6: Reads[JsString] = (__ \ Symbol("typeOfProtection")).json.pick.flatMap {
-    case JsString(str) => Reads.pure(JsString(event6TypeOfProtectionConversion(str)))
-    case _ => fail[JsString]
-  }
-
-  private val readsTypeOfProtectionEvent8: Reads[JsString] = (__ \ Symbol("typeOfProtection")).json.pick.flatMap {
-    case JsString(str) => Reads.pure(JsString(event8TypeOfProtectionConversion(str)))
-    case _ => fail[JsString]
-  }
-
-  private val readsTypeOfProtectionEvent8A: Reads[JsString] = (__ \ Symbol("typeOfProtection")).json.pick.flatMap {
-    case JsString(str) => Reads.pure(JsString(event8ATypeOfProtectionConversion(str)))
-    case _ => fail[JsString]
-  }
-
-  private val readsPaymentTypeEvent8A: Reads[JsString] = (__ \ Symbol("paymentType")).json.pick.flatMap {
-    case JsString(str) => Reads.pure(JsString(event8APaymentTypeConversion(str)))
-    case _ => fail[JsString]
-  }
-
-  private val readsTypeOfProtectionReferenceEvent8A: Reads[JsString] = (__ \ Symbol("typeOfProtectionReference")).json.pick.flatMap {
-    case JsString(str) => Reads.pure(JsString(str))
-    case _ => fail[JsString]
-  }
-
-  private val readsFreeTextEvent3: Reads[JsString] = (pathPaymentDetails \ Symbol("freeText")).json.pick.flatMap {
-    case JsString(str) => Reads.pure(JsString(str))
-    case _ => fail[JsString]
-  }
-
-  private val readsIndividualMemberDetails: Reads[JsObject] = {
-    ((pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick) and
-      (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("lastName")).json.pick) and
-      (pathIndividualMemberDetails \ Symbol("nino")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("nino")).json.pick)).reduce
-  }
 
   def transformToETMPData(eventType: EventType, pstr: String): Reads[JsObject] = {
     val extraFieldsForHeaderReads = Reads.pure(
@@ -128,8 +78,8 @@ object API1830 extends Transformer {
 
   private def readsIndividualMemberDetailsEvent3: Reads[JsObject] = {
     (
-      readsIndividualMemberDetails and
-        (__ \ Symbol("eventType")).json.put(JsString(s"Event$Event3")) and
+      (__ \ Symbol("eventType")).json.put(JsString(s"Event$Event3")) and
+        readsIndividualMemberDetails and
         (pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.copyFrom((pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.pick) and
         (pathPaymentDetails \ Symbol("amountBenefit")).json.copyFrom((pathPaymentDetails \ Symbol("amountBenefit")).json.pick) and
         (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathPaymentDetails \ Symbol("eventDate")).json.pick) and
@@ -156,8 +106,8 @@ object API1830 extends Transformer {
 
   private def readsIndividualMemberDetailsEvent6: Reads[JsObject] = {
     (
-      readsIndividualMemberDetails and
-        (__ \ Symbol("eventType")).json.put(JsString(s"Event$Event6")) and
+      (__ \ Symbol("eventType")).json.put(JsString(s"Event$Event6")) and
+        readsIndividualMemberDetails and
         (pathPaymentDetails \ Symbol("amountCrystalised")).json.copyFrom((pathAmountCrystallisedAndDateDetails \ Symbol("amountCrystallised")).json.pick) and
         (pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionEvent6) and
         (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathAmountCrystallisedAndDateDetails \ Symbol("crystallisedDate")).json.pick) and
@@ -166,8 +116,8 @@ object API1830 extends Transformer {
 
   private def readsIndividualMemberDetailsEvent7: Reads[JsObject] = {
     (
-      readsIndividualMemberDetails and
-        (__ \ Symbol("eventType")).json.put(JsString(s"Event$Event7")) and
+      (__ \ Symbol("eventType")).json.put(JsString(s"Event$Event7")) and
+        readsIndividualMemberDetails and
         (pathPaymentDetails \ Symbol("amountLumpSum")).json.copyFrom((__ \ Symbol("lumpSumAmount")).json.pick) and
         (pathPaymentDetails \ Symbol("amountCrystalised")).json.copyFrom((__ \ Symbol("crystallisedAmount")).json.pick) and
         (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((__ \ Symbol("paymentDate") \ Symbol("date")).json.pick)).reduce
@@ -175,8 +125,8 @@ object API1830 extends Transformer {
 
   private def readsIndividualMemberDetailsEvent8: Reads[JsObject] = {
     (
-      readsIndividualMemberDetails and
-        (__ \ Symbol("eventType")).json.put(JsString(s"Event$Event8")) and
+      (__ \ Symbol("eventType")).json.put(JsString(s"Event$Event8")) and
+        readsIndividualMemberDetails and
         (pathPaymentDetails \ Symbol("amountLumpSum")).json.copyFrom((pathLumpSumAmountAndDateDetails \ Symbol("lumpSumAmount")).json.pick) and
         (pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionEvent8) and
         (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathLumpSumAmountAndDateDetails \ Symbol("lumpSumDate")).json.pick) and
@@ -185,8 +135,8 @@ object API1830 extends Transformer {
 
   private def readsIndividualMemberDetailsEvent8A: Reads[JsObject] = {
     (
-      readsIndividualMemberDetails and
-        (__ \ Symbol("eventType")).json.put(JsString(s"Event$Event8A")) and
+      (__ \ Symbol("eventType")).json.put(JsString(s"Event$Event8A")) and
+        readsIndividualMemberDetails and
         (pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.copyFrom(readsPaymentTypeEvent8A) and
         (pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionEvent8A.orElse((Reads.pure(JsString("N/A"))))) and
         (pathPaymentDetails \ Symbol("amountLumpSum")).json.copyFrom((pathLumpSumAmountAndDateDetails \ Symbol("lumpSumAmount")).json.pick) and
@@ -196,11 +146,64 @@ object API1830 extends Transformer {
 
   private def readsIndividualMemberDetailsEvent22And23(eventType: EventType): Reads[JsObject] = {
     (
-      readsIndividualMemberDetails and
-        (__ \ Symbol("eventType")).json.put(JsString(s"Event${eventType}")) and
+      (__ \ Symbol("eventType")).json.put(JsString(s"Event${eventType}")) and
+        readsIndividualMemberDetails and
         (pathPaymentDetails \ Symbol("taxYearEndingDate")).json.copyFrom(readsTaxYearEndDate) and
         (pathPaymentDetails \ Symbol("monetaryAmount")).json.copyFrom((__ \ Symbol("totalPensionAmounts")).json.pick)).reduce
   }
+
+  private val readsIndividualMemberDetails: Reads[JsObject] = {
+    (
+      (pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick) and
+        (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("lastName")).json.pick) and
+        (pathIndividualMemberDetails \ Symbol("nino")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("nino")).json.pick)
+      ).reduce
+  }
+
+  private lazy val pathIndividualMemberDetails = __ \ Symbol("individualDetails")
+  private val pathPaymentDetails = __ \ Symbol("paymentDetails")
+  private val pathAmountCrystallisedAndDateDetails = __ \ Symbol("AmountCrystallisedAndDate")
+  private val pathLumpSumAmountAndDateDetails = __ \ Symbol("lumpSumAmountAndDate")
+
+  private val pathPersonReceivedThePayment = __ \ Symbol("personReceivedThePayment")
+  private val pathDeceasedMemberDetails = __ \ Symbol("deceasedMembersDetails")
+  private val pathBeneficiaryMemberDetails = __ \ Symbol("beneficiaryDetails")
+
+  private val readsTaxYearEndDate: Reads[JsString] = (__ \ Symbol("chooseTaxYear")).json.pick.flatMap {
+    case JsString(str) => Reads.pure(JsString((str.toInt + 1).toString))
+    case _ => fail[JsString]
+  }
+
+  private val readsTypeOfProtectionEvent6: Reads[JsString] = (__ \ Symbol("typeOfProtection")).json.pick.flatMap {
+    case JsString(str) => Reads.pure(JsString(event6TypeOfProtectionConversion(str)))
+    case _ => fail[JsString]
+  }
+
+  private val readsTypeOfProtectionEvent8: Reads[JsString] = (__ \ Symbol("typeOfProtection")).json.pick.flatMap {
+    case JsString(str) => Reads.pure(JsString(event8TypeOfProtectionConversion(str)))
+    case _ => fail[JsString]
+  }
+
+  private val readsTypeOfProtectionEvent8A: Reads[JsString] = (__ \ Symbol("typeOfProtection")).json.pick.flatMap {
+    case JsString(str) => Reads.pure(JsString(event8ATypeOfProtectionConversion(str)))
+    case _ => fail[JsString]
+  }
+
+  private val readsPaymentTypeEvent8A: Reads[JsString] = (__ \ Symbol("paymentType")).json.pick.flatMap {
+    case JsString(str) => Reads.pure(JsString(event8APaymentTypeConversion(str)))
+    case _ => fail[JsString]
+  }
+
+  private val readsTypeOfProtectionReferenceEvent8A: Reads[JsString] = (__ \ Symbol("typeOfProtectionReference")).json.pick.flatMap {
+    case JsString(str) => Reads.pure(JsString(str))
+    case _ => fail[JsString]
+  }
+
+  private val readsFreeTextEvent3: Reads[JsString] = (pathPaymentDetails \ Symbol("freeText")).json.pick.flatMap {
+    case JsString(str) => Reads.pure(JsString(str))
+    case _ => fail[JsString]
+  }
+
 
   private def event6TypeOfProtectionConversion(tOP: String): String = tOP match {
     case "enhancedLifetimeAllowance" => "Enhanced life time allowance"
