@@ -38,6 +38,8 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
       case _ => generateUserAnswersAndPOSTBodyEvent22And23(eventType)
     }
   }
+  /*
+   */
 
   def generateUserAnswersAndPOSTBodyEvent2: Gen[(JsObject, JsObject)] = {
     for {
@@ -65,7 +67,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
       val expected = Json.obj("memberEventsDetails" -> Json.obj(
         "eventReportDetails" -> Json.obj(
           "pSTR" -> "87219363YN",
-          "eventType" -> s"Event${Event6.toString}",
+          "eventType" -> s"Event${Event2.toString}",
           "reportStartDate" -> s"${map("taxYear")}-04-06",
           "reportEndDate" -> s"${map("endTaxYear")}-04-05"
         ),
@@ -73,18 +75,18 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
           Json.obj(
             "eventType" -> s"Event${Event2.toString}",
             "individualDetails" -> Json.obj(
-              "firstName" -> map("firstName"),
-              "lastName" -> map("lastName"),
-              "nino" -> map("nino")
-            ),
-            "personReceivedThePayment" -> Json.obj(
               "firstName" -> map("deceasedFirstName"),
               "lastName" -> map("deceasedLastName"),
               "nino" -> map("deceasedNino")
             ),
+            "personReceivedThePayment" -> Json.obj(
+              "firstName" -> map("firstName"),
+              "lastName" -> map("lastName"),
+              "nino" -> map("nino")
+            ),
             "paymentDetails" -> Json.obj(
               "amountPaid" -> map("monetaryAmount"),
-              "eventDate" -> s"${map("taxYear")}-04-25"
+              "eventDate" -> s"${map("taxYear")}-04-06"
             )
           )
         )

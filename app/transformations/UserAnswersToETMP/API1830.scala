@@ -108,6 +108,8 @@ object API1830 extends Transformer {
       (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("lastName")).json.pick) and
       (pathIndividualMemberDetails \ Symbol("nino")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("nino")).json.pick)).reduce
   }
+  /*
+   */
 
   private def readsDeceasedAndBeneficiaryMemberDetailsEvent2: Reads[JsObject] = {
     (
@@ -116,8 +118,8 @@ object API1830 extends Transformer {
         (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((pathDeceasedMemberDetails \ Symbol("lastName")).json.pick) and
         (pathIndividualMemberDetails \ Symbol("nino")).json.copyFrom((pathDeceasedMemberDetails \ Symbol("nino")).json.pick) and
         (pathPersonReceivedThePayment \ Symbol("firstName")).json.copyFrom((pathBeneficiaryMemberDetails \ Symbol("firstName")).json.pick) and
-        (pathPersonReceivedThePayment \ Symbol("lastName")).json.copyFrom((pathPersonReceivedThePayment \ Symbol("lastName")).json.pick) and
-        (pathPersonReceivedThePayment \ Symbol("nino")).json.copyFrom((pathPersonReceivedThePayment \ Symbol("nino")).json.pick) and
+        (pathPersonReceivedThePayment \ Symbol("lastName")).json.copyFrom((pathBeneficiaryMemberDetails \ Symbol("lastName")).json.pick) and
+        (pathPersonReceivedThePayment \ Symbol("nino")).json.copyFrom((pathBeneficiaryMemberDetails \ Symbol("nino")).json.pick) and
         (pathPaymentDetails \ Symbol("amountPaid")).json.copyFrom((__ \ Symbol("amountPaid")).json.pick) and
         (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((__ \ Symbol("datePaid")).json.pick)
       ).reduce
