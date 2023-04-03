@@ -17,7 +17,7 @@
 package transformations.UserAnswersToETMP
 
 import models.enumeration.EventType
-import models.enumeration.EventType.{Event2, Event3, Event6, Event7, Event8, Event8A}
+import models.enumeration.EventType.{Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
@@ -63,51 +63,47 @@ object API1830 extends Transformer {
     case JsString(str) => Reads.pure(JsString(str))
     case _ => fail[JsString]
   }
-
-  private def event6TypeOfProtectionConversion(tOP: String): String = tOP match {
-    case "enhancedLifetimeAllowance" => "Enhanced life time allowance"
-    case "enhancedProtection" => "Enhanced protection"
-    case "fixedProtection" => "Fixed protection"
-    case "fixedProtection2014" => "Fixed protection 2014"
-    case "fixedProtection2016" => "Fixed protection 2016"
-    case "individualProtection2014" => "Individual protection 2014"
-    case "individualProtection2016" => "Individual protection 2016"
+  private val readsIndividualMemberDetails: Reads[JsObject] = {
+    ((pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick) and
+      (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("lastName")).json.pick) and
+      (pathIndividualMemberDetails \ Symbol("nino")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("nino")).json.pick)).reduce
   }
 
-  private def event8TypeOfProtectionConversion(tOP: String): String = tOP match {
-    case "primaryProtection" => "Primary Protection"
-    case "enhancedProtection" => "Enhanced protection"
-  }
+  def transformToETMPData(eventType: EventType, pstr: String): Reads[JsObject] = {
+    val extraFieldsForHeaderReads = Reads.pure(
+      Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "pSTR" -> pstr,
+          "eventType" -> s"Event${eventType.toString}"
+        )
+      )
+    )
 
-  private def event8ATypeOfProtectionConversion(tOP: String): String = tOP match {
-    case "primaryProtection" => "Primary Protection"
-    case "enhancedProtection" => "Enhanced"
-  }
-
-  //noinspection ScalaStyle
-  private def event8APaymentTypeConversion(pT: String): String = pT match {
-    case "paymentOfAStandAloneLumpSum" =>
-      "Member where payment of a stand-alone lump sum (100 per lump sum) and the member had protected lump sum rights of more than £375,000 with either primary protection or enhanced protection"
-    case "paymentOfASchemeSpecificLumpSum" =>
-      "Member where payment of a scheme specific lump sum protection and the lump sum is more than 7.5 per of the lifetime allowance"
+    HeaderForAllAPIs.transformToETMPData(extraFieldsForHeaderReads).flatMap { hdr =>
+      val fullHdr = hdr
+      (__ \ Symbol(s"event${eventType.toString}") \ Symbol("members")).readNullable[JsArray](__.read(Reads.seq(
+        readsIndividualMemberDetailsByEventType(eventType)))
+        .map(JsArray(_))).map { optionJsArray =>
+        val jsonArray = optionJsArray.getOrElse(Json.arr())
+        Json.obj("memberEventsDetails" -> (Json.obj(
+          "eventDetails" -> jsonArray
+        ) ++ fullHdr))
+      }
+    }
   }
 
   private def readsIndividualMemberDetailsByEventType(eventType: EventType): Reads[JsObject] = {
     eventType match {
       case Event2 => readsDeceasedAndBeneficiaryMemberDetailsEvent2
       case Event3 => readsIndividualMemberDetailsEvent3
+      case Event4 => readsIndividualMemberDetailsEvent4
+      case Event5 => readsIndividualMemberDetailsEvent5
       case Event6 => readsIndividualMemberDetailsEvent6
       case Event7 => readsIndividualMemberDetailsEvent7
       case Event8 => readsIndividualMemberDetailsEvent8
       case Event8A => readsIndividualMemberDetailsEvent8A
       case _ => readsIndividualMemberDetailsEvent22And23(eventType)
     }
-  }
-
-  private val readsIndividualMemberDetails: Reads[JsObject] = {
-    ((pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick) and
-      (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("lastName")).json.pick) and
-      (pathIndividualMemberDetails \ Symbol("nino")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("nino")).json.pick)).reduce
   }
 
   private def readsDeceasedAndBeneficiaryMemberDetailsEvent2: Reads[JsObject] = {
@@ -124,6 +120,7 @@ object API1830 extends Transformer {
       ).reduce
   }
 
+  // TODO: add N/A read for freeText
   private def readsIndividualMemberDetailsEvent3: Reads[JsObject] = {
     (
       readsIndividualMemberDetails and
@@ -134,12 +131,22 @@ object API1830 extends Transformer {
         (pathPaymentDetails \ Symbol("freeText")).json.copyFrom((pathPaymentDetails \ Symbol("freeText")).json.pick)).reduce
   }
 
-  private def readsIndividualMemberDetailsEvent22And23(eventType: EventType): Reads[JsObject] = {
+  private def readsIndividualMemberDetailsEvent4: Reads[JsObject] = {
     (
-      readsIndividualMemberDetails and
-        (__ \ Symbol("eventType")).json.put(JsString(s"Event${eventType}")) and
-        (pathPaymentDetails \ Symbol("taxYearEndingDate")).json.copyFrom(readsTaxYearEndDate) and
-        (pathPaymentDetails \ Symbol("monetaryAmount")).json.copyFrom((__ \ Symbol("totalPensionAmounts")).json.pick)).reduce
+      (__ \ Symbol("eventType")).json.put(JsString(s"Event$Event4")) and
+        readsIndividualMemberDetails and
+        (pathPaymentDetails \ Symbol("amountPaid")).json.copyFrom((pathPaymentDetails \ Symbol("amountPaid")).json.pick) and
+        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathPaymentDetails \ Symbol("eventDate")).json.pick)
+      ).reduce
+  }
+
+  private def readsIndividualMemberDetailsEvent5: Reads[JsObject] = {
+    (
+      (__ \ Symbol("eventType")).json.put(JsString(s"Event$Event5")) and
+        readsIndividualMemberDetails and
+        (pathPaymentDetails \ Symbol("annualRate")).json.copyFrom((pathPaymentDetails \ Symbol("annualRate")).json.pick) and
+        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathPaymentDetails \ Symbol("eventDate")).json.pick)
+      ).reduce
   }
 
   private def readsIndividualMemberDetailsEvent6: Reads[JsObject] = {
@@ -182,27 +189,40 @@ object API1830 extends Transformer {
         (pathPaymentDetails \ Symbol("freeText")).json.copyFrom(readsTypeOfProtectionReferenceEvent8A.orElse(Reads.pure(JsString("N/A"))))).reduce
   }
 
-  def transformToETMPData(eventType: EventType, pstr: String): Reads[JsObject] = {
-    val extraFieldsForHeaderReads = Reads.pure(
-      Json.obj(
-        "eventReportDetails" -> Json.obj(
-          "pSTR" -> pstr,
-          "eventType" -> s"Event${eventType.toString}"
-        )
-      )
-    )
+  private def readsIndividualMemberDetailsEvent22And23(eventType: EventType): Reads[JsObject] = {
+    (
+      readsIndividualMemberDetails and
+        (__ \ Symbol("eventType")).json.put(JsString(s"Event${eventType}")) and
+        (pathPaymentDetails \ Symbol("taxYearEndingDate")).json.copyFrom(readsTaxYearEndDate) and
+        (pathPaymentDetails \ Symbol("monetaryAmount")).json.copyFrom((__ \ Symbol("totalPensionAmounts")).json.pick)).reduce
+  }
 
-    HeaderForAllAPIs.transformToETMPData(extraFieldsForHeaderReads).flatMap { hdr =>
-      val fullHdr = hdr
-      (__ \ Symbol(s"event${eventType.toString}") \ Symbol("members")).readNullable[JsArray](__.read(Reads.seq(
-        readsIndividualMemberDetailsByEventType(eventType)))
-        .map(JsArray(_))).map { optionJsArray =>
-        val jsonArray = optionJsArray.getOrElse(Json.arr())
-        Json.obj("memberEventsDetails" -> (Json.obj(
-          "eventDetails" -> jsonArray
-        ) ++ fullHdr))
-      }
-    }
+  private def event6TypeOfProtectionConversion(tOP: String): String = tOP match {
+    case "enhancedLifetimeAllowance" => "Enhanced life time allowance"
+    case "enhancedProtection" => "Enhanced protection"
+    case "fixedProtection" => "Fixed protection"
+    case "fixedProtection2014" => "Fixed protection 2014"
+    case "fixedProtection2016" => "Fixed protection 2016"
+    case "individualProtection2014" => "Individual protection 2014"
+    case "individualProtection2016" => "Individual protection 2016"
+  }
+
+  private def event8TypeOfProtectionConversion(tOP: String): String = tOP match {
+    case "primaryProtection" => "Primary Protection"
+    case "enhancedProtection" => "Enhanced protection"
+  }
+
+  private def event8ATypeOfProtectionConversion(tOP: String): String = tOP match {
+    case "primaryProtection" => "Primary Protection"
+    case "enhancedProtection" => "Enhanced"
+  }
+
+  //noinspection ScalaStyle
+  private def event8APaymentTypeConversion(pT: String): String = pT match {
+    case "paymentOfAStandAloneLumpSum" =>
+      "Member where payment of a stand-alone lump sum (100 per lump sum) and the member had protected lump sum rights of more than £375,000 with either primary protection or enhanced protection"
+    case "paymentOfASchemeSpecificLumpSum" =>
+      "Member where payment of a scheme specific lump sum protection and the lump sum is more than 7.5 per of the lifetime allowance"
   }
 }
 

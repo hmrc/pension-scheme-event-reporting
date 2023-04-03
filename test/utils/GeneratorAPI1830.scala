@@ -32,8 +32,8 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
     eventType match {
       case Event2 => generateUserAnswersAndPOSTBodyEvent2
       case Event3 => generateUserAnswersAndPOSTBodyEvent3
-      case Event4 => generateUserAnswersAndPOSTBodyEvent3
-      case Event5 => generateUserAnswersAndPOSTBodyEvent3
+      case Event4 => generateUserAnswersAndPOSTBodyEvent4
+      case Event5 => generateUserAnswersAndPOSTBodyEvent5
       case Event6 => generateUserAnswersAndPOSTBodyEvent6
       case Event7 => generateUserAnswersAndPOSTBodyEvent7
       case Event8 => generateUserAnswersAndPOSTBodyEvent8
@@ -41,8 +41,6 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
       case _ => generateUserAnswersAndPOSTBodyEvent22And23(eventType)
     }
   }
-  /*
-   */
 
   def generateUserAnswersAndPOSTBodyEvent2: Gen[(JsObject, JsObject)] = {
     for {
@@ -141,6 +139,102 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
               "amountBenefit" -> map("monetaryAmount"),
               "eventDate" -> s"${map("taxYear")}-04-25",
               "freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3"))
+            )
+          )
+        )
+      )
+      )
+      Tuple2(ua, expected)
+    }
+  }
+
+  def generateUserAnswersAndPOSTBodyEvent4: Gen[(JsObject, JsObject)] = {
+    for {
+      map <- randomValues()
+    } yield {
+      val ua = Json.obj(
+        s"event${Event4.toString}" -> Json.obj("members" ->
+          Json.arr(
+            Json.obj(
+              "membersDetails" -> Json.obj(
+                "firstName" -> map("firstName"),
+                "lastName" -> map("lastName"),
+                "nino" -> map("nino")),
+              "paymentDetails" -> Json.obj(
+                "amountPaid" -> map("monetaryAmount"),
+                "eventDate" -> s"${map("taxYear")}-04-25",
+              ),
+            )
+          )
+        ),
+        "taxYear" -> map("taxYear")
+      )
+      val expected = Json.obj("memberEventsDetails" -> Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "pSTR" -> "87219363YN",
+          "eventType" -> s"Event${Event4.toString}",
+          "reportStartDate" -> s"${map("taxYear")}-04-06",
+          "reportEndDate" -> s"${map("endTaxYear")}-04-05"
+        ),
+        "eventDetails" -> Json.arr(
+          Json.obj(
+            "eventType" -> s"Event${Event4.toString}",
+            "individualDetails" -> Json.obj(
+              "firstName" -> map("firstName"),
+              "lastName" -> map("lastName"),
+              "nino" -> map("nino")
+            ),
+            "paymentDetails" -> Json.obj(
+              "amountPaid" -> map("monetaryAmount"),
+              "eventDate" -> s"${map("taxYear")}-04-25"
+            )
+          )
+        )
+      )
+      )
+      Tuple2(ua, expected)
+    }
+  }
+
+  def generateUserAnswersAndPOSTBodyEvent5: Gen[(JsObject, JsObject)] = {
+    for {
+      map <- randomValues()
+    } yield {
+      val ua = Json.obj(
+        s"event${Event5.toString}" -> Json.obj("members" ->
+          Json.arr(
+            Json.obj(
+              "membersDetails" -> Json.obj(
+                "firstName" -> map("firstName"),
+                "lastName" -> map("lastName"),
+                "nino" -> map("nino")),
+              "paymentDetails" -> Json.obj(
+                "annualRate" -> map("monetaryAmount"),
+                "eventDate" -> s"${map("taxYear")}-04-25",
+              ),
+            )
+          )
+        ),
+        "taxYear" -> map("taxYear")
+      )
+      val expected = Json.obj("memberEventsDetails" -> Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "pSTR" -> "87219363YN",
+          "eventType" -> s"Event${Event5.toString}",
+          "reportStartDate" -> s"${map("taxYear")}-04-06",
+          "reportEndDate" -> s"${map("endTaxYear")}-04-05"
+        ),
+        "eventDetails" -> Json.arr(
+          Json.obj(
+            "eventType" -> s"Event${Event5.toString}",
+            "individualDetails" -> Json.obj(
+              "firstName" -> map("firstName"),
+              "lastName" -> map("lastName"),
+              "nino" -> map("nino")
+            ),
+            "paymentDetails" -> Json.obj(
+              "annualRate" -> map("monetaryAmount"),
+              "eventDate" -> s"${map("taxYear")}-04-25"
             )
           )
         )
