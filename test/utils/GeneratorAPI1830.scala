@@ -17,18 +17,20 @@
 package utils
 
 import models.enumeration.EventType
-import models.enumeration.EventType.{Event6, Event7, Event8, Event8A}
+import models.enumeration.EventType.{Event2, Event6, Event7, Event8, Event8A}
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
 import play.api.libs.json.{JsObject, JsString, Json}
 
+//noinspection ScalaStyle
 trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerators {
 
   import GeneratorAPI1830._
 
-  def generateUserAnswersAndPOSTBodyByEvent(eventType: EventType): Gen[Tuple2[JsObject, JsObject]] = {
+  def generateUserAnswersAndPOSTBodyByEvent(eventType: EventType): Gen[(JsObject, JsObject)] = {
     eventType match {
+      case Event2 => generateUserAnswersAndPOSTBodyEvent2
       case Event6 => generateUserAnswersAndPOSTBodyEvent6
       case Event7 => generateUserAnswersAndPOSTBodyEvent7
       case Event8 => generateUserAnswersAndPOSTBodyEvent8
@@ -37,7 +39,62 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
-  def generateUserAnswersAndPOSTBodyEvent6: Gen[Tuple2[JsObject, JsObject]] = {
+  def generateUserAnswersAndPOSTBodyEvent2: Gen[(JsObject, JsObject)] = {
+    for {
+      map <- randomValues()
+    } yield {
+      val ua = Json.obj(
+        s"event${Event2.toString}" -> Json.obj("members" ->
+          Json.arr(
+            Json.obj(
+              "deceasedMembersDetails" -> Json.obj(
+                "firstName" -> map("deceasedFirstName"),
+                "lastName" -> map("deceasedLastName"),
+                "nino" -> map("deceasedNino")),
+              "beneficiaryDetails" -> Json.obj(
+                "firstName" -> map("firstName"),
+                "lastName" -> map("lastName"),
+                "nino" -> map("nino")),
+              "amountPaid" -> map("monetaryAmount"),
+              "datePaid" -> s"${map("taxYear")}-04-06",
+            )
+          )
+        ),
+        "taxYear" -> map("taxYear")
+      )
+      val expected = Json.obj("memberEventsDetails" -> Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "pSTR" -> "87219363YN",
+          "eventType" -> s"Event${Event6.toString}",
+          "reportStartDate" -> s"${map("taxYear")}-04-06",
+          "reportEndDate" -> s"${map("endTaxYear")}-04-05"
+        ),
+        "eventDetails" -> Json.arr(
+          Json.obj(
+            "eventType" -> s"Event${Event2.toString}",
+            "individualDetails" -> Json.obj(
+              "firstName" -> map("firstName"),
+              "lastName" -> map("lastName"),
+              "nino" -> map("nino")
+            ),
+            "personReceivedThePayment" -> Json.obj(
+              "firstName" -> map("deceasedFirstName"),
+              "lastName" -> map("deceasedLastName"),
+              "nino" -> map("deceasedNino")
+            ),
+            "paymentDetails" -> Json.obj(
+              "amountPaid" -> map("monetaryAmount"),
+              "eventDate" -> s"${map("taxYear")}-04-25"
+            )
+          )
+        )
+      )
+      )
+      Tuple2(ua, expected)
+    }
+  }
+
+  def generateUserAnswersAndPOSTBodyEvent6: Gen[(JsObject, JsObject)] = {
     for {
       map <- randomValues()
     } yield {
@@ -89,7 +146,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
-  def generateUserAnswersAndPOSTBodyEvent7: Gen[Tuple2[JsObject, JsObject]] = {
+  def generateUserAnswersAndPOSTBodyEvent7: Gen[(JsObject, JsObject)] = {
     for {
       map <- randomValues()
     } yield {
@@ -139,7 +196,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
-  def generateUserAnswersAndPOSTBodyEvent8: Gen[Tuple2[JsObject, JsObject]] = {
+  def generateUserAnswersAndPOSTBodyEvent8: Gen[(JsObject, JsObject)] = {
     for {
       map <- randomValues()
     } yield {
@@ -191,7 +248,6 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
-  //noinspection ScalaStyle
   def generateUserAnswersAndPOSTBodyEvent8A: Gen[(JsObject, JsObject)] = for {
     map <- randomValues()
   } yield {
@@ -262,7 +318,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
     Tuple2(ua, expected)
   }
 
-  def generateUserAnswersAndPOSTBodyEvent22And23(eventType: EventType): Gen[Tuple2[JsObject, JsObject]] = {
+  def generateUserAnswersAndPOSTBodyEvent22And23(eventType: EventType): Gen[(JsObject, JsObject)] = {
     for {
       map <- randomValues()
     } yield {
@@ -308,6 +364,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
   }
 }
 
+//noinspection ScalaStyle
 object GeneratorAPI1830 {
   private val typesOfProtectionUAEvent6 = Seq(
     "enhancedLifetimeAllowance",
@@ -349,7 +406,6 @@ object GeneratorAPI1830 {
     case "enhancedProtection" => "Enhanced"
   }
 
-  //noinspection ScalaStyle
   private def paymentTypeETMPEvent8A(pT: String): String = pT match {
     case "paymentOfAStandAloneLumpSum" =>
       "Member where payment of a stand-alone lump sum (100 per lump sum) and the member had protected lump sum rights of more than £375,000 with either primary protection or enhanced protection"
@@ -373,6 +429,9 @@ object GeneratorAPI1830 {
       monetaryAmount <- Gen.chooseNum(1, 1000)
       taxYearEndDate <- Gen.oneOf(2020, 2021, 2022)
       paymentTypeEvent8A <- Gen.oneOf(paymentTypesUAEvent8A)
+      deceasedFirstName <- Gen.oneOf(Seq("Daniel", "Emma", "Fred"))
+      deceasedLastName <- Gen.oneOf(Seq("Urqhart", "Vanderbilt", "Wilson"))
+      deceasedNino <- Gen.oneOf(Seq("AB654321C", "CD654321E"))
     } yield {
       Map(
         "firstName" -> firstName,
@@ -388,7 +447,10 @@ object GeneratorAPI1830 {
         "endTaxYear" -> endTaxYear.toString,
         "monetaryAmount" -> monetaryAmount.toString,
         "taxYearEndDate" -> taxYearEndDate.toString,
-        "paymentTypeEvent8A" -> paymentTypeEvent8A
+        "paymentTypeEvent8A" -> paymentTypeEvent8A,
+        "deceasedFirstName" -> deceasedFirstName,
+        "deceasedLastName" -> deceasedLastName,
+        "deceasedNino" -> deceasedNino
       )
     }
   }
