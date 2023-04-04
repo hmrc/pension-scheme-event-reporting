@@ -381,7 +381,7 @@ object EventReportServiceSpec {
       "schemeWindUpDate" -> "2020-06-01"
     )
   private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
-  private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
+  private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.4.json"
 
   private val endDate = "2023-04-05"
   private val reportTypeER = "ER"
