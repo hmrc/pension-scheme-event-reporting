@@ -44,7 +44,7 @@ class EventReportController @Inject()(
     with AuthorisedFunctions
     with Logging {
 
-  private val submitEventDeclarationReportSchemaPath = "/resources.schemas/api-1828-submit-event-declaration-report-request-schema-v1.0.0.json"
+  private val submitEventDeclarationReportSchemaPath = "/resources.schemas/api-1828-submit-event-declaration-report-request-schema-v1.0.4.json"
   private val submitEvent20ADeclarationReportSchemaPath = "/resources.schemas/api-1829-submit-event20a-declaration-report-request-schema-v1.0.0.json"
 
   def saveUserAnswers: Action[AnyContent] = Action.async {
