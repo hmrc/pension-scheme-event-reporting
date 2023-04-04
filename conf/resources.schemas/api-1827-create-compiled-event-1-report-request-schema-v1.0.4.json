@@ -130,7 +130,7 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 160,
-                    "pattern": "^[a-zA-Z0-9À-ÿ !#$%&'‘’\"“”«»()*+,./:;=?@\\[\\]|~£€¥\\u005C—–‐_^`-]{1,160}$"
+                    "pattern": "^[a-zA-Z0-9\\s\\\\u00C0-\\\\u00FF!#$%&'‘’\\\\\"“”«»()*+,.\\/:;=?@\\\\\\[\\\\\\]£€¥\\\\u005C\\\\u2014\\\\u2013\\\\u2010\\\\u002d]{1,160}$"
                   },
                   "crnNumber": {
                     "type": "string",
@@ -188,14 +188,14 @@
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 160,
-                    "pattern":"^[a-zA-Z0-9À-ÿ !#$%&'‘’\"“”«»()*+,./:;=?@\\[\\]|~£€¥\\u005C—–‐_^`-]{1,160}$"
+                    "pattern":"^[a-zA-Z0-9\\s\\\\u00C0-\\\\u00FF!#$%&'‘’\\\\\"“”«»()*+,.\\/:;=?@\\\\\\[\\\\\\]£€¥\\\\u005C\\\\u2014\\\\u2013\\\\u2010\\\\u002d]{1,160}$"
                   },
                   "pstrOrReference": {
                     "description": "This field is applicable if Unauthorized Payment Type 1 is one of the following.110 - Transfer to non-registered pensions scheme (Provide PSTR ID or Reference Number)",
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 160,
-                    "pattern":"^[a-zA-Z0-9À-ÿ !#$%&'‘’\"“”«»()*+,./:;=?@\\[\\]|~£€¥\\u005C—–‐_^`-]{1,160}$"
+                    "pattern": "^[a-zA-Z0-9\\s\\\\u00C0-\\\\u00FF!#$%&'‘’\\\\\"“”«»()*+,.\\/:;=?@\\\\\\[\\\\\\]£€¥\\\\u005C\\\\u2014\\\\u2013\\\\u2010\\\\u002d]{1,160}$"
                   },
                   "pmtAmtOrLoanAmt": {
                     "description": "This field is applicable if Unauthorized Payment Type 1 is one of the following; 200 - Loans to or in respect of the employer exceeding 50% of the value of the fund (Provide Loan Amout), 320 - Court Order Payment/Confiscation Order (Provide payment amount)",
