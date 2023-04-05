@@ -30,7 +30,7 @@ object API1830 extends Transformer {
   private val pathLumpSumAmountAndDateDetails = __ \ Symbol("lumpSumAmountAndDate")
 
   private val readsTaxYearEndDate: Reads[JsString] = (__ \ Symbol("chooseTaxYear")).json.pick.flatMap {
-    case JsString(str) => Reads.pure(JsString((str.toInt + 1).toString))
+    case JsString(str) => Reads.pure(JsString(s"${str.toInt + 1}-04-05"))
     case _ => fail[JsString]
   }
 
