@@ -16,7 +16,7 @@
 
 package transformations.UserAnswersToETMP
 
-import models.enumeration.EventType.{Event22, Event23}
+import models.enumeration.EventType._
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
@@ -27,20 +27,48 @@ class API1830Spec extends AnyFreeSpec with Matchers
   with JsonFileReader with GeneratorAPI1830 with ScalaCheckPropertyChecks {
 
   "transformToETMPData" - {
-    "must transform a randomly generated valid payload correctly in event 23" in {
-      forAll(generateUserAnswersAndPOSTBody(Event23)) {
+
+    "must transform a randomly generated valid payload correctly in event 6" in {
+      forAll(generateUserAnswersAndPOSTBodyByEvent(Event6)) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
-          val result = userAnswers.validate(API1830.transformToETMPData(Event23, "87219363YN"))
-          val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event23") \ Symbol("members"))
+          val result = userAnswers.validate(API1830.transformToETMPData(Event6, "87219363YN"))
+          val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event6") \ Symbol("members"))
           result mustBe expectedResult
       }
     }
 
+    "must transform a randomly generated valid payload correctly in event 8" in {
+      forAll(generateUserAnswersAndPOSTBodyByEvent(Event8)) {
+        case (userAnswers: JsObject, expectedResponse: JsObject) =>
+          val result = userAnswers.validate(API1830.transformToETMPData(Event8, "87219363YN"))
+          val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event8") \ Symbol("members"))
+          result mustBe expectedResult
+      }
+    }
+
+    "must transform a randomly generated valid payload correctly in event 8A" in {
+    forAll(generateUserAnswersAndPOSTBodyByEvent(Event8A)) {
+      case (userAnswers: JsObject, expectedResponse: JsObject) =>
+        val result = userAnswers.validate(API1830.transformToETMPData(Event8A, "87219363YN"))
+        val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event8A") \ Symbol("members"))
+        result mustBe expectedResult
+    }
+  }
+
     "must transform a randomly generated valid payload correctly in event 22" in {
-      forAll(generateUserAnswersAndPOSTBody(Event22)) {
+      forAll(generateUserAnswersAndPOSTBodyByEvent(Event22)) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
           val result = userAnswers.validate(API1830.transformToETMPData(Event22, "87219363YN"))
           val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event22") \ Symbol("members"))
+          result mustBe expectedResult
+      }
+    }
+
+    "must transform a randomly generated valid payload correctly in event 23" in {
+      forAll(generateUserAnswersAndPOSTBodyByEvent(Event23)) {
+        case (userAnswers: JsObject, expectedResponse: JsObject) =>
+          val result = userAnswers.validate(API1830.transformToETMPData(Event23, "87219363YN"))
+          val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event23") \ Symbol("members"))
           result mustBe expectedResult
       }
     }

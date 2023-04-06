@@ -19,7 +19,7 @@ package services
 import connectors.EventReportConnector
 import models.enumeration.ApiType._
 import models.enumeration.EventType
-import models.enumeration.EventType.{Event1, Event20A, WindUp}
+import models.enumeration.EventType.{Event1, Event20A, Event22, WindUp}
 import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
@@ -209,38 +209,40 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
 
   "getEvent" must {
-      "return OK and save the data in cache if no data was found in the cache to begin with" in {
-        when(mockEventReportConnector.getEvent(
-          ArgumentMatchers.eq(pstr),
-          ArgumentMatchers.eq(startDate),
-          ArgumentMatchers.eq(version),
-          ArgumentMatchers.eq(Some(Event1)))(any(), any()))
-          .thenReturn(Future.successful(getEvent1Data))
-        when(mockGetEventCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
-        when(mockGetEventCacheRepository.upsert(any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(()))
+    "return OK and save the data in cache if no data was found in the cache to begin with" in {
+      when(mockEventReportConnector.getEvent(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(startDate),
+        ArgumentMatchers.eq(version),
+        ArgumentMatchers.eq(Some(Event22)))(any(), any()))
+        .thenReturn(Future.successful(getEvent22PayLoadData))
+      when(mockGetEventCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
+      when(mockGetEventCacheRepository.upsert(any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(()))
 
-        eventReportService.getEvent(pstr, startDate, version, Event1)(implicitly, implicitly).map { resultJsValue =>
-          verify(mockGetEventCacheRepository, times(1)).get(any(), any(), any(), any())(any())
-          verify(mockGetEventCacheRepository, times(1)).upsert(any(), any(), any(), any(), any())(any())
-          verify(mockEventReportConnector, times(1)).getEvent(any(), any(), any(), any())(any(), any())
-          resultJsValue mustBe Some(Json.toJson(getEvent1Data))
-        }
+      eventReportService.getEvent(pstr, startDate, version, Event22)(implicitly, implicitly).map { resultJsValue =>
+        verify(mockGetEventCacheRepository, times(1)).get(any(), any(), any(), any())(any())
+        verify(mockGetEventCacheRepository, times(1)).upsert(any(), any(), any(), any(), any())(any())
+        verify(mockEventReportConnector, times(1)).getEvent(any(), any(), any(), any())(any(), any())
+        resultJsValue mustBe Some(Json.toJson(getEvent22UAData))
       }
+    }
 
     "return OK with the event details and don't try to save the data in cache if the data already exists in the cache" in {
-      when(mockGetEventCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(Some(Json.toJson(getEvent1Data))))
+      when(mockGetEventCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(Some(Json.toJson(getEvent22PayLoadData))))
       eventReportService.getEvent(pstr, startDate, version, Event1)(implicitly, implicitly).map { resultJsValue =>
         verify(mockGetEventCacheRepository, times(1)).get(any(), any(), any(), any())(any())
         verify(mockGetEventCacheRepository, never).upsert(any(), any(), any(), any(), any())(any())
         verify(mockEventReportConnector, never).getOverview(any(), any(), any(), any())(any(), any())
-        resultJsValue mustBe Some(Json.toJson(getEvent1Data))
+        resultJsValue mustBe Some(Json.toJson(getEvent22PayLoadData))
       }
     }
   }
 
   "getEventSummary" must {
-    "return the payload from the connector for API1832(Event22, Event23) and API1834" in {
-      val responseJson = Some(JsArray(Seq("10", "11", "12", "13", "14", "18", "19", "20", "22", "23", "0").map(JsString)))
+    "return the payload from the connector for API1832(Event6, Event22, Event23) and API1834" in {
+      val responseJson = Some(JsArray(Seq("6", "10", "11", "12", "13", "14", "18", "19", "20", "22", "23", "0").map(JsString)))
+      when(mockEventReportConnector.getEvent(pstr, startDate, version, Some(EventType.Event6))(implicitly, implicitly))
+        .thenReturn(Future.successful(responseJsonForAPI1832Event6))
       when(mockEventReportConnector.getEvent(pstr, startDate, version, Some(EventType.Event22))(implicitly, implicitly))
         .thenReturn(Future.successful(responseJsonForAPI1832Event22))
       when(mockEventReportConnector.getEvent(pstr, startDate, version, Some(EventType.Event23))(implicitly, implicitly))
@@ -248,6 +250,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportConnector.getEvent(pstr, startDate, version, None)(implicitly, implicitly))
         .thenReturn(Future.successful(responseJsonForAPI1834))
       eventReportService.getEventSummary(pstr, version, startDate).map { result =>
+        verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, version, Some(EventType.Event6))(implicitly, implicitly)
         verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, version, Some(EventType.Event22))(implicitly, implicitly)
         verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, version, Some(EventType.Event23))(implicitly, implicitly)
         verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, version, None)(implicitly, implicitly)
@@ -378,7 +381,7 @@ object EventReportServiceSpec {
       "schemeWindUpDate" -> "2020-06-01"
     )
   private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
-  private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
+  private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.4.json"
 
   private val endDate = "2023-04-05"
   private val reportTypeER = "ER"
@@ -406,35 +409,49 @@ object EventReportServiceSpec {
       submittedVersionAvailable = true,
       compiledVersionAvailable = true)))
 
-  private val getEvent1Data: Option[JsValue] = Some(Json.parse(
+  private val getEvent22PayLoadData: Option[JsValue] = Some(Json.parse(
+    """
+      |    {
+      |    "eventDetails": [
+      |    {
+      |    "memberDetail": {
+      |        "event": {
+      |          "eventType": "Event22",
+      |          "individualDetails": {
+      |            "title": "Mr",
+      |            "firstName": "John",
+      |            "middleName": "A",
+      |            "lastName": "Smith",
+      |            "nino": "AA345678B"
+      |          },
+      |          "paymentDetails": {
+      |            "monetaryAmount": 123.99,
+      |            "taxYearEndingDate": "2022-05-30"
+      |          }
+      |        }
+      |       }
+      |      }
+      |    ]
+      |} """.stripMargin
+  ))
+
+  private val getEvent22UAData: Option[JsValue] = Some(Json.parse(
     """
       |{
-      |    "processingDate": "2023-12-15T12:30:46Z",
-      |    "schemeDetails": {
-      |      "pSTR": "87219363YN",
-      |      "schemeName": "Abc Ltd"
-      |    },
-      |    "er1Details": {
-      |      "reportStartDate": "2021-04-06",
-      |      "reportEndDate": "2022-04-05",
-      |      "reportVersionNumber": "001",
-      |      "reportSubmittedDateAndTime": "2023-12-13T12:12:12Z"
-      |    },
-      |    "schemeMasterTrustDetails": {
-      |      "startDate": "2021-06-08"
-      |    },
-      |    "erDeclarationDetails": {
-      |      "submittedBy": "PSP",
-      |      "submittedID": "20000001",
-      |      "submittedName": "ABCDEFGHIJKLMNOPQRSTUV",
-      |      "pspDeclaration": {
-      |        "authorisedPSAID": "A4045157",
-      |        "pspDeclaration1": "Selected",
-      |        "pspDeclaration2": "Selected"
-      |      }
+      |    "event22": {
+      |      "members": [
+      |        {
+      |          "membersDetails": {
+      |            "firstName": "John",
+      |            "lastName": "Smith",
+      |            "nino": "AA345678B"
+      |          },
+      |          "chooseTaxYear": "2021",
+      |          "totalPensionAmounts": 123.99
+      |        }
+      |      ]
       |    }
-      |  }
-      |  """.stripMargin
+      |} """.stripMargin
   ))
 
   private val erOverview = Seq(overview1, overview2)
@@ -444,6 +461,43 @@ object EventReportServiceSpec {
 
   private val submitEvent20ADeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345670811")
+
+  private val responseJsonForAPI1832Event6: Option[JsValue] = Some(Json.parse(
+    """{
+      |  "processingDate": "2023-12-15T12:30:46Z",
+      |  "schemeDetails": {
+      |    "pSTR": "87219363YN",
+      |    "schemeName": "Abc Ltd"
+      |  },
+      |  "eventReportDetails": {
+      |    "reportStartDate": "2021-04-06",
+      |    "reportEndDate": "2022-04-05",
+      |    "reportStatus": "Compiled",
+      |    "reportVersionNumber": "001",
+      |    "reportSubmittedDateAndTime": "2023-12-13T12:12:12Z",
+      |    "eventType": "Event6"
+      |  },
+      |  "eventDetails": [
+      |    {
+      |      "event": {
+      |        "eventType": "Event6",
+      |        "individualDetails": {
+      |          "title": "Mrs",
+      |          "firstName": "Sarah",
+      |          "middleName": "T",
+      |          "lastName": "Urqhart",
+      |          "nino": "AA345678C"
+      |        },
+      |        "paymentDetails": {
+      |          "amountCrystalised": 600.67,
+      |          "typeOfProtection": "Enhanced life time allowance",
+      |          "eventDate": "2021-05-30",
+      |          "freeText": "Sample text"
+      |        }
+      |      }
+      |    }
+      |  ]
+      |}""".stripMargin))
 
   private val responseJsonForAPI1832Event22: Option[JsValue] = Some(Json.parse(
     """
