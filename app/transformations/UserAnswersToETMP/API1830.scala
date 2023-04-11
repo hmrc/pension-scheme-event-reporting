@@ -99,7 +99,7 @@ object API1830 extends Transformer {
     (
       (__ \ Symbol("eventType")).json.put(JsString(s"Event$Event5")) and
         readsIndividualMemberDetails and
-        (pathPaymentDetails \ Symbol("annualRate")).json.copyFrom((pathPaymentDetails \ Symbol("annualRate")).json.pick) and
+        (pathPaymentDetails \ Symbol("annualRate")).json.copyFrom((pathPaymentDetails \ Symbol("amountPaid")).json.pick) and
         (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathPaymentDetails \ Symbol("eventDate")).json.pick)
       ).reduce
   }
