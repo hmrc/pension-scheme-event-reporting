@@ -17,26 +17,234 @@
 package utils
 
 import models.enumeration.EventType
-import models.enumeration.EventType.{Event6, Event8, Event8A}
+import models.enumeration.EventType.{Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
 import play.api.libs.json.{JsObject, JsString, Json}
 
+//noinspection ScalaStyle
 trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerators {
 
   import GeneratorAPI1830._
 
-  def generateUserAnswersAndPOSTBodyByEvent(eventType: EventType): Gen[Tuple2[JsObject, JsObject]] = {
+  def generateUserAnswersAndPOSTBodyByEvent(eventType: EventType): Gen[(JsObject, JsObject)] = {
     eventType match {
+      case Event2 => generateUserAnswersAndPOSTBodyEvent2
+      case Event3 => generateUserAnswersAndPOSTBodyEvent3
+      case Event4 => generateUserAnswersAndPOSTBodyEvent4
+      case Event5 => generateUserAnswersAndPOSTBodyEvent5
       case Event6 => generateUserAnswersAndPOSTBodyEvent6
+      case Event7 => generateUserAnswersAndPOSTBodyEvent7
       case Event8 => generateUserAnswersAndPOSTBodyEvent8
       case Event8A => generateUserAnswersAndPOSTBodyEvent8A
       case _ => generateUserAnswersAndPOSTBodyEvent22And23(eventType)
     }
   }
 
-  def generateUserAnswersAndPOSTBodyEvent6: Gen[Tuple2[JsObject, JsObject]] = {
+  def generateUserAnswersAndPOSTBodyEvent2: Gen[(JsObject, JsObject)] = {
+    for {
+      map <- randomValues()
+    } yield {
+      val ua = Json.obj(
+        s"event${Event2.toString}" -> Json.obj("members" ->
+          Json.arr(
+            Json.obj(
+              "deceasedMembersDetails" -> Json.obj(
+                "firstName" -> map("deceasedFirstName"),
+                "lastName" -> map("deceasedLastName"),
+                "nino" -> map("deceasedNino")),
+              "beneficiaryDetails" -> Json.obj(
+                "firstName" -> map("firstName"),
+                "lastName" -> map("lastName"),
+                "nino" -> map("nino")),
+              "amountPaid" -> map("monetaryAmount"),
+              "datePaid" -> s"${map("taxYear")}-04-06",
+            )
+          )
+        ),
+        "taxYear" -> map("taxYear")
+      )
+      val expected = Json.obj("memberEventsDetails" -> Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "pSTR" -> "87219363YN",
+          "eventType" -> s"Event${Event2.toString}",
+          "reportStartDate" -> s"${map("taxYear")}-04-06",
+          "reportEndDate" -> s"${map("endTaxYear")}-04-05"
+        ),
+        "eventDetails" -> Json.arr(
+          Json.obj(
+            "eventType" -> s"Event${Event2.toString}",
+            "individualDetails" -> Json.obj(
+              "firstName" -> map("deceasedFirstName"),
+              "lastName" -> map("deceasedLastName"),
+              "nino" -> map("deceasedNino")
+            ),
+            "personReceivedThePayment" -> Json.obj(
+              "firstName" -> map("firstName"),
+              "lastName" -> map("lastName"),
+              "nino" -> map("nino")
+            ),
+            "paymentDetails" -> Json.obj(
+              "amountPaid" -> map("monetaryAmount"),
+              "eventDate" -> s"${map("taxYear")}-04-06"
+            )
+          )
+        )
+      )
+      )
+      Tuple2(ua, expected)
+    }
+  }
+  def generateUserAnswersAndPOSTBodyEvent3: Gen[(JsObject, JsObject)] = {
+    for {
+      map <- randomValues()
+    } yield {
+      val ua = Json.obj(
+        s"event${Event3.toString}" -> Json.obj("members" ->
+          Json.arr(
+            Json.obj(
+              "membersDetails" -> Json.obj(
+                "firstName" -> map("firstName"),
+                "lastName" -> map("lastName"),
+                "nino" -> map("nino")),
+              "paymentDetails" -> Json.obj(
+                "reasonBenefitTaken" -> map("reasonBenefitTakenEvent3"),
+                "amountBenefit" -> map("monetaryAmount"),
+                "eventDate" -> s"${map("taxYear")}-04-25",
+                "freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3"))
+              ),
+            )
+          )
+        ),
+        "taxYear" -> map("taxYear")
+      )
+      val expected = Json.obj("memberEventsDetails" -> Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "pSTR" -> "87219363YN",
+          "eventType" -> s"Event${Event3.toString}",
+          "reportStartDate" -> s"${map("taxYear")}-04-06",
+          "reportEndDate" -> s"${map("endTaxYear")}-04-05"
+        ),
+        "eventDetails" -> Json.arr(
+          Json.obj(
+            "eventType" -> s"Event${Event3.toString}",
+            "individualDetails" -> Json.obj(
+              "firstName" -> map("firstName"),
+              "lastName" -> map("lastName"),
+              "nino" -> map("nino")
+            ),
+            "paymentDetails" -> Json.obj(
+              "reasonBenefitTaken" -> map("reasonBenefitTakenEvent3"),
+              "amountBenefit" -> map("monetaryAmount"),
+              "eventDate" -> s"${map("taxYear")}-04-25",
+              "freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3"))
+            )
+          )
+        )
+      )
+      )
+      Tuple2(ua, expected)
+    }
+  }
+
+  def generateUserAnswersAndPOSTBodyEvent4: Gen[(JsObject, JsObject)] = {
+    for {
+      map <- randomValues()
+    } yield {
+      val ua = Json.obj(
+        s"event${Event4.toString}" -> Json.obj("members" ->
+          Json.arr(
+            Json.obj(
+              "membersDetails" -> Json.obj(
+                "firstName" -> map("firstName"),
+                "lastName" -> map("lastName"),
+                "nino" -> map("nino")),
+              "paymentDetails" -> Json.obj(
+                "amountPaid" -> map("monetaryAmount"),
+                "eventDate" -> s"${map("taxYear")}-04-25",
+              ),
+            )
+          )
+        ),
+        "taxYear" -> map("taxYear")
+      )
+      val expected = Json.obj("memberEventsDetails" -> Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "pSTR" -> "87219363YN",
+          "eventType" -> s"Event${Event4.toString}",
+          "reportStartDate" -> s"${map("taxYear")}-04-06",
+          "reportEndDate" -> s"${map("endTaxYear")}-04-05"
+        ),
+        "eventDetails" -> Json.arr(
+          Json.obj(
+            "eventType" -> s"Event${Event4.toString}",
+            "individualDetails" -> Json.obj(
+              "firstName" -> map("firstName"),
+              "lastName" -> map("lastName"),
+              "nino" -> map("nino")
+            ),
+            "paymentDetails" -> Json.obj(
+              "amountPaid" -> map("monetaryAmount"),
+              "eventDate" -> s"${map("taxYear")}-04-25"
+            )
+          )
+        )
+      )
+      )
+      Tuple2(ua, expected)
+    }
+  }
+
+  def generateUserAnswersAndPOSTBodyEvent5: Gen[(JsObject, JsObject)] = {
+    for {
+      map <- randomValues()
+    } yield {
+      val ua = Json.obj(
+        s"event${Event5.toString}" -> Json.obj("members" ->
+          Json.arr(
+            Json.obj(
+              "membersDetails" -> Json.obj(
+                "firstName" -> map("firstName"),
+                "lastName" -> map("lastName"),
+                "nino" -> map("nino")),
+              "paymentDetails" -> Json.obj(
+                "annualRate" -> map("monetaryAmount"),
+                "eventDate" -> s"${map("taxYear")}-04-25",
+              ),
+            )
+          )
+        ),
+        "taxYear" -> map("taxYear")
+      )
+      val expected = Json.obj("memberEventsDetails" -> Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "pSTR" -> "87219363YN",
+          "eventType" -> s"Event${Event5.toString}",
+          "reportStartDate" -> s"${map("taxYear")}-04-06",
+          "reportEndDate" -> s"${map("endTaxYear")}-04-05"
+        ),
+        "eventDetails" -> Json.arr(
+          Json.obj(
+            "eventType" -> s"Event${Event5.toString}",
+            "individualDetails" -> Json.obj(
+              "firstName" -> map("firstName"),
+              "lastName" -> map("lastName"),
+              "nino" -> map("nino")
+            ),
+            "paymentDetails" -> Json.obj(
+              "annualRate" -> map("monetaryAmount"),
+              "eventDate" -> s"${map("taxYear")}-04-25"
+            )
+          )
+        )
+      )
+      )
+      Tuple2(ua, expected)
+    }
+  }
+
+  def generateUserAnswersAndPOSTBodyEvent6: Gen[(JsObject, JsObject)] = {
     for {
       map <- randomValues()
     } yield {
@@ -88,7 +296,57 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
-  def generateUserAnswersAndPOSTBodyEvent8: Gen[Tuple2[JsObject, JsObject]] = {
+  def generateUserAnswersAndPOSTBodyEvent7: Gen[(JsObject, JsObject)] = {
+    for {
+      map <- randomValues()
+    } yield {
+      val ua = Json.obj(
+        s"event${Event7.toString}" -> Json.obj("members" ->
+          Json.arr(
+            Json.obj(
+              "membersDetails" -> Json.obj(
+                "firstName" -> map("firstName"),
+                "lastName" -> map("lastName"),
+                "nino" -> map("nino")),
+              "lumpSumAmount" -> map("lumpSumAmount"),
+              "crystallisedAmount" -> map("amountCrystallised"),
+              "paymentDate" -> Json.obj(
+                "date" -> s"${map("taxYear")}-04-25"
+              )
+            )
+          )
+        ),
+        "taxYear" -> map("taxYear")
+      )
+      val expected = Json.obj("memberEventsDetails" -> Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "pSTR" -> "87219363YN",
+          "eventType" -> s"Event${Event7.toString}",
+          "reportStartDate" -> s"${map("taxYear")}-04-06",
+          "reportEndDate" -> s"${map("endTaxYear")}-04-05"
+        ),
+        "eventDetails" -> Json.arr(
+          Json.obj(
+            "eventType" -> s"Event${Event7.toString}",
+            "individualDetails" -> Json.obj(
+              "firstName" -> map("firstName"),
+              "lastName" -> map("lastName"),
+              "nino" -> map("nino")
+            ),
+            "paymentDetails" -> Json.obj(
+              "amountLumpSum" -> map("lumpSumAmount"),
+              "amountCrystalised" -> map("amountCrystallised"),
+              "eventDate" -> s"${map("taxYear")}-04-25"
+            )
+          )
+        )
+      )
+      )
+      Tuple2(ua, expected)
+    }
+  }
+
+  def generateUserAnswersAndPOSTBodyEvent8: Gen[(JsObject, JsObject)] = {
     for {
       map <- randomValues()
     } yield {
@@ -140,7 +398,6 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
-  //noinspection ScalaStyle
   def generateUserAnswersAndPOSTBodyEvent8A: Gen[(JsObject, JsObject)] = for {
     map <- randomValues()
   } yield {
@@ -150,7 +407,9 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
         "typeOfProtectionReference" -> JsString(map("typeOfProtectionReference"))
       )
       Some(keysAndValues)
-    } else { Some(JsObject.empty) }
+    } else {
+      Some(JsObject.empty)
+    }
 
     val ua = Json.obj(
       s"event${Event8A.toString}" -> Json.obj("members" ->
@@ -170,15 +429,17 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
       ),
       "taxYear" -> map("taxYear")
     )
-    val keysAndValuesETMP: JsObject= if (map("paymentTypeEvent8A") == "paymentOfAStandAloneLumpSum") {
-        Json.obj(
+    val keysAndValuesETMP: JsObject = if (map("paymentTypeEvent8A") == "paymentOfAStandAloneLumpSum") {
+      Json.obj(
         "typeOfProtection" -> typeOfProtectionETMPEvent8A(map("typeOfProtectionEvent8")),
         "freeText" -> map("typeOfProtectionReference")
       )
-    } else { Json.obj(
-      "typeOfProtection" -> "N/A",
-      "freeText" -> "N/A"
-    ) }
+    } else {
+      Json.obj(
+        "typeOfProtection" -> "N/A",
+        "freeText" -> "N/A"
+      )
+    }
 
     val expected = Json.obj("memberEventsDetails" -> Json.obj(
       "eventReportDetails" -> Json.obj(
@@ -206,8 +467,8 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
     )
     Tuple2(ua, expected)
   }
-  
-  def generateUserAnswersAndPOSTBodyEvent22And23(eventType: EventType): Gen[Tuple2[JsObject, JsObject]] = {
+
+  def generateUserAnswersAndPOSTBodyEvent22And23(eventType: EventType): Gen[(JsObject, JsObject)] = {
     for {
       map <- randomValues()
     } yield {
@@ -253,6 +514,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
   }
 }
 
+//noinspection ScalaStyle
 object GeneratorAPI1830 {
   private val typesOfProtectionUAEvent6 = Seq(
     "enhancedLifetimeAllowance",
@@ -294,13 +556,14 @@ object GeneratorAPI1830 {
     case "enhancedProtection" => "Enhanced"
   }
 
-  //noinspection ScalaStyle
   private def paymentTypeETMPEvent8A(pT: String): String = pT match {
     case "paymentOfAStandAloneLumpSum" =>
       "Member where payment of a stand-alone lump sum (100 per lump sum) and the member had protected lump sum rights of more than £375,000 with either primary protection or enhanced protection"
     case "paymentOfASchemeSpecificLumpSum" =>
       "Member where payment of a scheme specific lump sum protection and the lump sum is more than 7.5 per of the lifetime allowance"
   }
+
+  private def freeTextEvent3(rBT: String): String = if(rBT != "Other") "N/A" else "Example brief description"
 
   private def randomValues(): Gen[Map[String, String]] = {
     for {
@@ -318,6 +581,10 @@ object GeneratorAPI1830 {
       monetaryAmount <- Gen.chooseNum(1, 1000)
       taxYearEndDate <- Gen.oneOf(2020, 2021, 2022)
       paymentTypeEvent8A <- Gen.oneOf(paymentTypesUAEvent8A)
+      deceasedFirstName <- Gen.oneOf(Seq("Daniel", "Emma", "Fred"))
+      deceasedLastName <- Gen.oneOf(Seq("Urqhart", "Vanderbilt", "Wilson"))
+      deceasedNino <- Gen.oneOf(Seq("AB654321C", "CD654321E"))
+      reasonBenefitTakenEvent3 <- Gen.oneOf(Seq("Ill Health", "Protected Pension Age", "Other"))
     } yield {
       Map(
         "firstName" -> firstName,
@@ -333,7 +600,11 @@ object GeneratorAPI1830 {
         "endTaxYear" -> endTaxYear.toString,
         "monetaryAmount" -> monetaryAmount.toString,
         "taxYearEndDate" -> taxYearEndDate.toString,
-        "paymentTypeEvent8A" -> paymentTypeEvent8A
+        "paymentTypeEvent8A" -> paymentTypeEvent8A,
+        "deceasedFirstName" -> deceasedFirstName,
+        "deceasedLastName" -> deceasedLastName,
+        "deceasedNino" -> deceasedNino,
+        "reasonBenefitTakenEvent3" -> reasonBenefitTakenEvent3
       )
     }
   }
