@@ -54,7 +54,7 @@ object MemberEventReport {
   }
 }
 
-object Paths {
+private object Paths {
 
   def pathUaEventDetailsForEventType(eventType: EventType): JsPath = __ \ Symbol(s"event${eventType.toString}") \ Symbol("members")
   val pathEtmpEventDetails: JsPath = __ \ Symbol("eventDetails")
@@ -68,7 +68,7 @@ object Paths {
 }
 
 //noinspection ScalaStyle
-object ReadsWithTransform extends Transformer {
+private object ReadsWithTransform extends Transformer {
   import transformations.ETMPToFrontEnd.Paths._
 
   lazy val readsMemberDetails: Reads[JsObject] = {(
