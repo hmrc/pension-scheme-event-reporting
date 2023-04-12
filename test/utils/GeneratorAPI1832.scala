@@ -25,7 +25,7 @@ import play.api.libs.json.{JsObject, JsValue, Json}
 
 trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerators {
 
-  def generateGET1832UserAnswersFromETMP: Gen[(JsObject, JsObject)] = {
+  def generateGET1832UserAnswersFromETMP(eventType: EventType): Gen[(JsObject, JsObject)] = {
     for {
       firstName <- Gen.alphaStr
       lastName <- Gen.alphaStr
@@ -36,7 +36,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
       val fullPayload = Json.obj("eventDetails" -> Json.arr(
           Json.obj("memberDetail" -> Json.obj(
             "event" -> Json.obj(
-              "eventType" -> "Event22",
+              "eventType" -> s"Event${eventType.toString}",
               "individualDetails" -> Json.obj(
                 "firstName" -> firstName,
                 "lastName" -> lastName,
@@ -49,7 +49,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
           ))
         ))
       val fullExpectedResult = Json.obj(
-        "event22" -> Json.obj(
+        s"event${eventType.toString}" -> Json.obj(
           "members" -> Json.arr(Json.obj(
             "membersDetails" -> Json.obj(
               "firstName" -> firstName,
@@ -110,7 +110,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
   }
 
 
-  def generateGET1832ResponseAndUserAnswers: Gen[Tuple2[JsValue, EventType]] = {
+  def generateGET1832ResponseAndUserAnswers: Gen[(JsValue, EventType)] = {
     for {
       chosenEventType <- Gen.oneOf[EventType](Seq(EventType.Event22, EventType.Event23))
     } yield {

@@ -16,6 +16,7 @@
 
 package transformations.ETMPToFrontEnd
 
+import models.enumeration.EventType.{Event22, Event23}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
@@ -27,9 +28,10 @@ class MemberEventReportSpec extends AnyFreeSpec with Matchers with MockitoSugar 
   with GeneratorAPI1834 with GeneratorAPI1832 with ScalaCheckPropertyChecks {
 
   "Reads" - {
+    // TODO: This test doesn't test the correct API. It's out of scope for current ticket but should be addressed in future. -NJ
     "transform a valid payload correctly when read from sample file from API 1834" in {
       val json = readJsonFromFile("/api-1832-valid-example.json")
-      val result = json.validate(MemberEventReport.rds1832Api).asOpt
+      val result = json.validate(MemberEventReport.rds1832Api(Event22)).asOpt
 
       val expectedResult =
         Json.obj(
@@ -51,13 +53,20 @@ class MemberEventReportSpec extends AnyFreeSpec with Matchers with MockitoSugar 
       result mustBe Some(expectedResult)
     }
 
-    "transform a randomly generated valid payload from API 1832 correctly" in {
-      forAll(generateGET1832UserAnswersFromETMP) {
+    "transform a randomly generated valid payload from API 1832 correctly (Event 22)" in {
+      forAll(generateGET1832UserAnswersFromETMP(Event22)) {
         case (payload: JsObject, expectedResponse: JsObject) =>
-          val result = payload.validate(MemberEventReport.rds1832Api).asOpt
+          val result = payload.validate(MemberEventReport.rds1832Api(Event22)).asOpt
           result mustBe Some(expectedResponse)
-
       }
     }
-  }
+
+      "transform a randomly generated valid payload from API 1832 correctly (Event 23)" in {
+        forAll(generateGET1832UserAnswersFromETMP(Event23)) {
+          case (payload: JsObject, expectedResponse: JsObject) =>
+            val result = payload.validate(MemberEventReport.rds1832Api(Event23)).asOpt
+            result mustBe Some(expectedResponse)
+        }
+      }
+    }
 }
