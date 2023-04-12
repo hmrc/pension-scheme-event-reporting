@@ -32,26 +32,6 @@
             }
           }
         }
-      },
-      {
-        "memberDetail": {
-          "memberStatus": "New",
-          "event": {
-            "eventType": "Event7",
-            "individualDetails": {
-              "title": "Mr",
-              "firstName": "John",
-              "middleName": "A",
-              "lastName": "Smith",
-              "nino": "AA345678B"
-            },
-            "paymentDetails": {
-              "amountLumpSum": 123.01,
-              "amountCrystalised": 63.25,
-              "eventDate": "2021-05-30"
-            }
-          }
-        }
       }
     ]
   }
