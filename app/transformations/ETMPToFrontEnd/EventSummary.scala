@@ -47,7 +47,7 @@ object EventSummary {
 
   private val readsIsEventTypePresent: Reads[Boolean] = {
     Reads {
-      case JsString("001") =>
+      case JsString(_) =>
         JsSuccess(true)
       case _ =>
         JsSuccess(false)
@@ -64,6 +64,7 @@ object EventSummary {
   implicit val rdsFor1834: Reads[JsArray] = {
 
     (
+      (JsPath \ "memberEventsSummary" \ "event6").readNullable[Boolean](readsIsEventTypePresent) and
       (JsPath \ "eventDetails" \ "event10").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
         (JsPath \ "eventDetails" \ "event11" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) and
         (JsPath \ "eventDetails" \ "event12" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) and
@@ -74,8 +75,9 @@ object EventSummary {
         (JsPath \ "eventDetails" \ "event20").readNullable[Boolean](readsIsEventTypePresentFromSeq) and
         (JsPath \ "eventDetails" \ "eventWindUp" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent)
       ) (
-      (event10, event11, event12, event13, event14, event18, event19, event20, eventWindUp) => {
-        val seqString =
+      (event6, event10, event11, event12, event13, event14, event18, event19, event20, eventWindUp) => {
+        val seqString = {
+          booleanToValue(event6, Event6) ++
           booleanToValue(event10, Event10) ++
             booleanToValue(event11, Event11) ++
             booleanToValue(event12, Event12) ++
@@ -85,6 +87,7 @@ object EventSummary {
             booleanToValue(event19, Event19) ++
             booleanToValue(event20, Event20) ++
             booleanToValue(eventWindUp, WindUp)
+        }
         JsArray(seqString.map(JsString))
       }
     )

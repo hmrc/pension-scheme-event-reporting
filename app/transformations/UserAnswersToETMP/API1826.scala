@@ -19,35 +19,53 @@ package transformations.UserAnswersToETMP
 import play.api.libs.json._
 import transformations.Transformer
 
-object API1826 extends Transformer {
-
-  private sealed trait SchemeStructure
-  private object SchemeStructure extends Enumeration {
-    val single: Value = Value("A single trust under which all of the assets are held for the benefit of all members of the scheme")
-    val group: Value = Value("A group life / death in service scheme")
-    val corporate: Value = Value("A body corporate")
-    val other: Value = Value("Other")
-    implicit val format: Format[Value] = Json.formatEnum(this)
+object Event13Data {
+  implicit val event13DataFormat: OFormat[Event13Data] = Json.format[Event13Data]
+  def apiReadsSeq: Reads[Option[JsObject]] = (__ \ "event13").readNullable[Seq[Event13Data]].map {
+    case Some(seq) =>
+      val ar = seq.map { data =>
+        if (data.validationErrors.isEmpty) Json.toJsObject(data)
+        else throw new RuntimeException("Event 13 data invalid: " + data.validationErrors)
+      }
+      Some(Json.obj("event13"-> JsArray(ar)))
+    case _ => None
   }
+}
+case class Event13Data(
+                                recordVersion: Option[String],
+                                schemeStructure: String,
+                                schemeStructureOther: Option[String],
+                                dateOfChange: String
+                              ) {
 
-  private implicit val event13DataFormat: OFormat[Event13Data] = Json.format[Event13Data]
-  private case class Event13Data(
-                                  recordVersion: Option[String],
-                                  schemeStructure: SchemeStructure,
-                                  schemeStructureOther: Option[String],
-                                  dateOfChange:String
-                                ) {
-    private val recordVersionPattern = "[0-9]{3}".r
+  private val recordVersionPattern = "[0-9]{3}".r
 
-    private val dateOfChangePattern = "(((19|20)([2468][048]|[13579][26]|0[48])|2000)[-]02[-]29|((19|20)[0-9]{2}[-](0[469]|11)[-](0[1-9]|1[0-9]|2[0-9]|30)|(19|20)[0-9]{2}[-](0[13578]|1[02])[-](0[1-9]|[12][0-9]|3[01])|(19|20)[0-9]{2}[-]02[-](0[1-9]|1[0-9]|2[0-8])))".r
+  private val dateOfChangePattern = "(((19|20)([2468][048]|[13579][26]|0[48])|2000)[-]02[-]29|((19|20)[0-9]{2}[-](0[469]|11)[-](0[1-9]|1[0-9]|2[0-9]|30)|(19|20)[0-9]{2}[-](0[13578]|1[02])[-](0[1-9]|[12][0-9]|3[01])|(19|20)[0-9]{2}[-]02[-](0[1-9]|1[0-9]|2[0-8])))".r
 
-    private val schemeStructureOtherPattern = """[a-zA-Z0-9\s\\u00C0-\\u00FF!#$%&'‘’\\"“”«»()*+,.\/:;=?@\\\[\\\]£€¥\\u005C\\u2014\\u2013\\u2010\\u002d]{1,160}""".r
-    def valid:Boolean = {
-      recordVersion.forall(recordVersionPattern.matches(_)) &&
-        dateOfChangePattern.matches(dateOfChange) &&
-        schemeStructureOther.forall(schemeStructureOtherPattern.matches(_))
+  private val schemeStructureOtherPattern = """[a-zA-Z0-9\s\\u00C0-\\u00FF!#$%&'‘’\\"“”«»()*+,.\/:;=?@\\\[\\\]£€¥\\u005C\\u2014\\u2013\\u2010\\u002d]{1,160}""".r
+
+  private val schemeStructureOptions = Set("A single trust under which all of the assets are held for the benefit of all members of the scheme",
+    "A group life / death in service scheme",
+    "A body corporate",
+    "Other")
+  private def validationErrors: Seq[String] = {
+    def f(isValid: Boolean, errorMsg: String, seq: Seq[String]) = {
+      if (isValid) seq
+      else seq :+ errorMsg
+    }
+
+    Seq(
+      recordVersion.forall(recordVersionPattern.matches(_)) -> s"Record version is incorrect ($recordVersion)",
+      dateOfChangePattern.matches(dateOfChange) -> s"Date of change invalid ($dateOfChange)",
+      schemeStructureOther.forall(schemeStructureOtherPattern.matches(_)) -> s"Scheme structure Other invalid ($schemeStructureOther)",
+      schemeStructureOptions.contains(schemeStructure) -> s"Scheme structure options invalid ($schemeStructure)"
+    ).foldLeft(Seq(): Seq[String]) { case (acc, (isValid, errorMessage)) =>
+      f(isValid, errorMessage, acc)
     }
   }
+}
+
+object API1826 extends Transformer {
 
   val transformToETMPData: Reads[JsObject] = {
 
@@ -68,14 +86,8 @@ object API1826 extends Transformer {
       case _ => None
     }
 
-    val event13 = __.readNullable[Event13Data].map {
-      case Some(data) =>
-        if(data.valid) Some(
-          Json.obj("event13" -> Json.toJsObject(data))
-        )
-        else throw new RuntimeException("Event 13 data invalid")
-      case _ => None
-    }
+
+    val event13 = Event13Data.apiReadsSeq
 
     val event18 = (__ \ "event18Confirmation").readNullable[Boolean].map {
       case Some(true) =>

@@ -41,13 +41,24 @@ class API1826Spec extends AnyFreeSpec with Matchers
           result.asOpt mustBe Some(expectedResponse)
       }
     }
+    val event13Obj = Json.obj(
+        "recordVersion" -> "001",
+        "schemeStructure" -> "A single trust under which all of the assets are held for the benefit of all members of the scheme",
+        "schemeStructureOther" -> "Text",
+        "dateOfChange" -> "2022-03-23"
+      )
+    val event13 = JsArray(Seq(
+      event13Obj,
+      event13Obj
+    ))
 
     "must transform all events when present" in {
       val userAnswers: JsObject = {
         Json.obj(
           "event18Confirmation" -> true,
           "schemeWindUpDate" -> "1991-11-22",
-          "taxYear" -> "2020"
+          "taxYear" -> "2020",
+          "event13" -> event13
         )
       }
       val expected: JsObject = {
@@ -57,11 +68,12 @@ class API1826Spec extends AnyFreeSpec with Matchers
             "reportEndDate" -> "2021-04-05"
           ),
           "eventDetails" -> Json.obj(
-            "eventWindUp" -> Json.obj(
-              "dateOfWindUp" -> "1991-11-22"
-            ),
+            "event13" -> event13,
             "event18" -> Json.obj(
               "chargeablePmt" -> "Yes"
+            ),
+            "eventWindUp" -> Json.obj(
+              "dateOfWindUp" -> "1991-11-22"
             )
           )
         )

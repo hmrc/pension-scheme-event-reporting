@@ -21,6 +21,7 @@ import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
 import models.ERVersion
 import models.enumeration.ApiType._
+import models.enumeration.EventType.Event22
 import models.enumeration.{ApiType, EventType}
 import play.api.Logging
 import play.api.http.Status.NOT_IMPLEMENTED
@@ -30,6 +31,7 @@ import play.api.mvc.Result
 import play.api.mvc.Results._
 import repositories.{EventReportCacheRepository, GetEventCacheRepository, OverviewCacheRepository}
 import transformations.ETMPToFrontEnd.EventSummary.{rdsEventTypeNodeOnly, rdsFor1834}
+import transformations.ETMPToFrontEnd.MemberEventReport
 import transformations.UserAnswersToETMP.{API1826, API1827, API1830}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
@@ -45,8 +47,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    overviewCacheRepository: OverviewCacheRepository
                                   ) extends Logging {
   private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
-  private final val SchemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.1.json"
-  private final val SchemaPath1830 = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.4.json"
+  private final val SchemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.4.json"
+  private final val SchemaPath1830 = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.7.json"
 
   private case class APIProcessingInfo(apiType: ApiType,
                                        readsForTransformation: Reads[JsObject],
@@ -116,15 +118,28 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
+  def validationCheck(data: JsValue, eventType: EventType): Option[JsValue] = {
+    eventType match {
+      case Event22 => data.validate(MemberEventReport.rds1832Api) match {
+        case JsSuccess(transformedData, _) => Some(transformedData)
+        case _ => None
+      }
+      case _ => Some(data)
+    }
+  }
+
   def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsValue]] = {
     getEventCacheRepository.get(pstr, startDate, version, eventType.toString).flatMap {
-      case optData@Some(_) =>  Future.successful(optData)
+      case optData@Some(_) => Future.successful(optData)
       case _ => eventReportConnector.getEvent(pstr, startDate, version, Some(eventType)).flatMap {
         case Some(data) =>
-          getEventCacheRepository.upsert(pstr, startDate, version, eventType.toString, Json.toJson(data))
-            .map(_ => Some(Json.toJson(data)))
-        case _ => Future.successful(None)
+          val jsDataOpt = validationCheck(data, eventType)
+          getEventCacheRepository.upsert(pstr, startDate, version, eventType.toString, Json.toJson(jsDataOpt))
+            .map(_ => Some(Json.toJson(jsDataOpt)))
+        case _ =>
+          //TODO: will change code later to throw an exception
+          Future.successful(None)
       }
     }
   }
@@ -138,6 +153,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         It is not parsing the whole file. This is so that we know which event types to display on summary page.
        */
       eventTypeReadPairs <- Map(
+        Some(EventType.Event6) -> rdsEventTypeNodeOnly(EventType.Event6),
         Some(EventType.Event22) -> rdsEventTypeNodeOnly(EventType.Event22),
         Some(EventType.Event23) -> rdsEventTypeNodeOnly(EventType.Event23),
         None -> rdsFor1834
