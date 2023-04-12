@@ -21,6 +21,47 @@ import transformations.Transformer
 
 object API1826 extends Transformer {
 
+  private lazy val event13Reads = (__ \ "event13").readNullable[JsArray].map { optJsonArray =>
+    optJsonArray.map { jsonArray =>
+      Json.obj(
+        "event13" -> jsonArray.value.map { json =>
+          Json.obj(
+            "recordVersion" -> (json \ "recordVersion").asOpt[String],
+            "schemeStructure" -> (json \ "schemeStructure").as[String],
+            "schemeStructureOther" -> (json \ "schemeStructureOther").asOpt[String],
+            "dateOfChange" -> (json \ "dateOfChange").as[String]
+          )
+        }
+      )
+    }
+  }
+
+  private lazy val event18Reads = (__ \ "event18Confirmation").readNullable[Boolean].map {
+    case Some(true) =>
+      Some(
+        Json.obj(
+          "event18" -> Json.obj(
+            "chargeablePmt" -> yes
+          )
+        )
+      )
+    case _ => None
+  }
+
+  private lazy val schemeWindUpReads = (__ \ "schemeWindUpDate").readNullable[String].map {
+    case Some(date) =>
+      Some(
+        Json.obj(
+          "eventWindUp" -> Json.obj(
+            "dateOfWindUp" -> date
+          )
+        )
+      )
+    case _ => None
+  }
+
+
+
   val transformToETMPData: Reads[JsObject] = {
 
     def eventTypeNodes(events: Seq[JsObject]): JsObject = {
@@ -28,49 +69,10 @@ object API1826 extends Transformer {
       if (events.isEmpty) Json.obj() else Json.obj("eventDetails" -> eventDetailNodes)
     }
 
-    val schemeWindUp = (__ \ "schemeWindUpDate").readNullable[String].map {
-      case Some(date) =>
-        Some(
-          Json.obj(
-            "eventWindUp" -> Json.obj(
-              "dateOfWindUp" -> date
-            )
-          )
-        )
-      case _ => None
-    }
-
-    val event13 = (__ \ "event13").readNullable[JsArray].map { optJsonArray =>
-      optJsonArray.map { jsonArray =>
-        Json.obj(
-          "event13" -> jsonArray.value.map { json =>
-            Json.obj(
-              "recordVersion" -> (json \ "recordVersion").asOpt[String],
-              "schemeStructure" -> (json \ "schemeStructure").as[String],
-              "schemeStructureOther" -> (json \ "schemeStructureOther").asOpt[String],
-              "dateOfChange" -> (json \ "dateOfChange").as[String]
-            )
-          }
-        )
-      }
-    }
-
-    val event18 = (__ \ "event18Confirmation").readNullable[Boolean].map {
-      case Some(true) =>
-        Some(
-          Json.obj(
-            "event18" -> Json.obj(
-              "chargeablePmt" -> yes
-            )
-          )
-        )
-      case _ => None
-    }
-
     for {
-      ev13 <- event13
-      ev18 <- event18
-      schWindUp <- schemeWindUp
+      ev13 <- event13Reads
+      ev18 <- event18Reads
+      schWindUp <- schemeWindUpReads
       header <- HeaderForAllAPIs.transformToETMPData()
     } yield {
       header ++ eventTypeNodes((ev13 ++ ev18 ++ schWindUp).toSeq)
