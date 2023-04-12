@@ -17,39 +17,71 @@
 package transformations.ETMPToFrontEnd
 
 import models.enumeration.EventType
+import models.enumeration.EventType.{Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
 import transformations.Transformer
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 
-//noinspection ScalaStyle
-object MemberEventReport extends Transformer {
 
-  private val rdsTaxYearEndDate: Reads[JsString] = {
-    (__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("taxYearEndingDate")).json.pick.flatMap {
+//noinspection ScalaStyle
+object MemberEventReport {
+
+  import transformations.ETMPToFrontEnd.ReadsWithTransform._
+  import transformations.ETMPToFrontEnd.Paths._
+
+  def rds1832Api(eventType: EventType): Reads[JsObject] = pathUaEventDetailsForEventType(eventType).json.copyFrom(pathEtmpEventDetails.read(readsMembers(eventType)))
+
+  def readsMembers(eventType: EventType): Reads[JsArray] = __.read(Reads.seq(readsMemberDetailsByEventType(eventType))).map(JsArray(_))
+
+  def readsMemberDetailsByEventType(eventType: EventType): Reads[JsObject] = eventType match {
+    case Event2 => ???
+    case Event3 => ???
+    case Event4 => ???
+    case Event5 => ???
+    case Event6 => ???
+    case Event7 => ???
+    case Event8 => ???
+    case Event8A => ???
+    case _ => rdsMemberDetailsEvent22And23
+  }
+
+  implicit val rdsMemberDetailsEvent22And23: Reads[JsObject] = {(
+    readsMemberDetails and
+      pathUaChooseTaxYearEvent22And23.json.copyFrom(readsTaxYearEndDateEvent22And23) and
+     pathUaTotalPensionAmountsEvent22And23.json.copyFrom(pathEtmpMonetaryAmountEvent22And23.json.pick)
+    ).reduce
+  }
+}
+
+object Paths {
+
+  def pathUaEventDetailsForEventType(eventType: EventType): JsPath = __ \ Symbol(s"event${eventType.toString}") \ Symbol("members")
+  val pathEtmpEventDetails: JsPath = __ \ Symbol("eventDetails")
+  val pathUaMembersDetails: JsPath = __ \ Symbol("membersDetails")
+  val pathEtmpIndividualDetails: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("individualDetails")
+
+  val pathUaChooseTaxYearEvent22And23: JsPath = __ \ Symbol("chooseTaxYear")
+  val pathEtmpTaxYearEndingDateEvent22And23: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("taxYearEndingDate")
+  val pathUaTotalPensionAmountsEvent22And23: JsPath = __ \ Symbol("totalPensionAmounts")
+  val pathEtmpMonetaryAmountEvent22And23: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("monetaryAmount")
+}
+
+//noinspection ScalaStyle
+object ReadsWithTransform extends Transformer {
+  import transformations.ETMPToFrontEnd.Paths._
+
+  lazy val readsMemberDetails: Reads[JsObject] = {(
+    (pathUaMembersDetails \ Symbol("firstName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("firstName")).json.pick) and
+      (pathUaMembersDetails \ Symbol("lastName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("lastName")).json.pick) and
+      (pathUaMembersDetails \ Symbol("nino")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("nino")).json.pick)
+    ).reduce
+  }
+
+  lazy val readsTaxYearEndDateEvent22And23: Reads[JsString] = {
+    pathEtmpTaxYearEndingDateEvent22And23.json.pick.flatMap {
       case JsString(str) => Reads.pure(JsString((str.substring(0,4).toInt - 1).toString))
       case _ => fail[JsString]
     }
   }
-
-    private val readsMemberDetails: Reads[JsObject] = {(
-     (__ \ Symbol("membersDetails") \ Symbol("firstName")).json.copyFrom((__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("individualDetails") \ Symbol("firstName")).json.pick) and
-     (__ \ Symbol("membersDetails") \ Symbol("lastName")).json.copyFrom((__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("individualDetails") \ Symbol("lastName")).json.pick) and
-     (__ \ Symbol("membersDetails") \ Symbol("nino")).json.copyFrom((__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("individualDetails") \ Symbol("nino")).json.pick)
-     ).reduce
-  }
-
-
-  implicit val rdsMemberDetailsEvent22And23: Reads[JsObject] = {(
-     readsMemberDetails and
-     (__ \ Symbol("chooseTaxYear")).json.copyFrom(rdsTaxYearEndDate) and
-     (__ \ Symbol("totalPensionAmounts")).json.copyFrom((__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("monetaryAmount")).json.pick)
-    ).reduce
-  }
-
-  def rds1832Api(eventType: EventType): Reads[JsObject] = (__ \ Symbol(s"event${eventType.toString}") \ Symbol("members")).json.copyFrom((__ \ Symbol("eventDetails")).read(readsMembers))
-
-  def readsMembers: Reads[JsArray] = __.read(Reads.seq(rdsMemberDetailsEvent22And23)).map(JsArray(_))
-
 }
-
