@@ -21,30 +21,44 @@ import transformations.Transformer
 
 object API1826 extends Transformer {
 
-  private lazy val event10Reads = (__ \ "event10").readNullable[JsArray].map { optJsonArray =>
-    optJsonArray.map { jsonArray =>
-      Json.obj(
-        "event10" -> jsonArray.value.map { json =>
-          Json.obj(
-            "recordVersion" -> (json \ "recordVersion").asOpt[String],
-            "invRegScheme" -> {
-              val invRegSchemePath = json \ "invRegScheme"
-              Json.obj(
-                "startDateDetails" -> {
-                  val startDateDetailsPath = invRegSchemePath \ "startDateDetails"
-                  Json.obj(
-                    "startDateOfInvReg" ->  (startDateDetailsPath \ "startDateOfInvReg").asOpt[String],
-                    "contractsOrPolicies" -> (startDateDetailsPath \ "contractsOrPolicies").asOpt[String]
-                  )
-                },
-                "ceaseDateDetails" -> Json.obj(
-                  "ceaseDateOfInvReg" -> (invRegSchemePath \ "ceaseDateDetails" \ "ceaseDateOfInvReg").asOpt[String]
-                )
-              )
-            }
-          )
-        }
+  private def optField(fieldName:String, value:Option[String]) = {
+    value.map(fieldName -> JsString(_))
+  }
+
+  private def optObj[T](objName:String, wrapper:String => T, value:Option[String]) = {
+    value.map(objName -> wrapper(_))
+  }
+
+  private lazy val event10Reads = {
+    def invRegScheme(json:JsValue) = {
+      val invRegSchemePath = json \ "invRegScheme"
+      JsObject(
+        Seq(
+          Some("startDateDetails" -> {
+            val startDateDetailsPath = invRegSchemePath \ "startDateDetails"
+            Json.obj(
+              "startDateOfInvReg" -> (startDateDetailsPath \ "startDateOfInvReg").asOpt[String],
+              "contractsOrPolicies" -> (startDateDetailsPath \ "contractsOrPolicies").asOpt[String]
+            )
+          }),
+          optObj("ceaseDateDetails",
+            value => JsObject(Seq("ceaseDateOfInvReg" -> JsString(value))),
+            (invRegSchemePath \ "ceaseDateDetails" \ "ceaseDateOfInvReg").asOpt[String])
+        ).flatten
       )
+    }
+
+    (__ \ "event10").readNullable[JsArray].map { optJsonArray =>
+      optJsonArray.map { jsonArray =>
+        Json.obj(
+          "event10" -> jsonArray.value.map { json =>
+            Json.obj(
+              "recordVersion" -> (json \ "recordVersion").asOpt[String],
+              "invRegScheme" -> invRegScheme(json)
+            )
+          }
+        )
+      }
     }
   }
 
@@ -66,7 +80,7 @@ object API1826 extends Transformer {
       Json.obj(
         "event12" ->
           Json.obj(
-            "versionType" -> (json \ "versionType").asOpt[String],
+            "recordVersion" -> (json \ "recordVersion").asOpt[String],
             "twoOrMoreSchemesDate" -> (json \ "twoOrMoreSchemesDate").as[String],
           )
       )
@@ -91,9 +105,9 @@ object API1826 extends Transformer {
   private lazy val event14Reads = (__ \ "event14").readNullable[JsObject].map { optJson =>
     optJson.map { json =>
       Json.obj(
-        "event12" ->
+        "event14" ->
           Json.obj(
-            "versionType" -> (json \ "versionType").asOpt[String],
+            "recordVersion" -> (json \ "recordVersion").asOpt[String],
             "schemeMembers" -> (json \ "schemeMembers").as[String],
           )
       )
@@ -134,9 +148,11 @@ object API1826 extends Transformer {
             "recordVersion" -> (json \ "recordVersion").asOpt[String],
             "occSchemeDetails" -> {
               val occSchemeDetailsPath = json \ "occSchemeDetails"
-              Json.obj(
-                "startDateOfOccScheme" -> (occSchemeDetailsPath \ "startDateOfOccScheme").asOpt[String],
-                "stopDateOfOccScheme" -> (occSchemeDetailsPath \ "stopDateOfOccScheme").asOpt[String]
+              JsObject(
+                Seq(
+                  optField("startDateOfOccScheme", (occSchemeDetailsPath \ "startDateOfOccScheme").asOpt[String]),
+                  optField("stopDateOfOccScheme", (occSchemeDetailsPath \ "stopDateOfOccScheme").asOpt[String])
+                ).flatten
               )
             }
           )

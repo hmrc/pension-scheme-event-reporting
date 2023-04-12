@@ -41,24 +41,88 @@ class API1826Spec extends AnyFreeSpec with Matchers
           result.asOpt mustBe Some(expectedResponse)
       }
     }
-    val event13Obj = Json.obj(
+
+
+    "must transform all events when present" in {
+
+      val event10Obj = Json.obj(
+        "recordVersion" -> "001",
+        "invRegScheme" -> Json.obj(
+          "startDateDetails" -> Json.obj(
+            "startDateOfInvReg" -> "2022-01-31",
+            "contractsOrPolicies" -> "Yes"
+          )
+        )
+      )
+      val event10 = JsArray(Seq(
+        event10Obj,
+        event10Obj
+      ))
+
+      val event11Obj = Json.parse(
+        """
+          |{
+          |      "recordVersion": "001",
+          |      "unauthorisedPmtsDate": "2022-01-31",
+          |      "contractsOrPoliciesDate": "2022-01-10"
+          |    }
+          |""".stripMargin
+      )
+
+      val event12Obj = Json.parse("""{
+                         |      "recordVersion": "001",
+                         |      "twoOrMoreSchemesDate": "2022-01-02"
+                         |    }""".stripMargin)
+
+      val event13Obj = Json.obj(
         "recordVersion" -> "001",
         "schemeStructure" -> "A single trust under which all of the assets are held for the benefit of all members of the scheme",
         "schemeStructureOther" -> "Text",
         "dateOfChange" -> "2022-03-23"
       )
-    val event13 = JsArray(Seq(
-      event13Obj,
-      event13Obj
-    ))
+      val event13 = JsArray(Seq(
+        event13Obj,
+        event13Obj
+      ))
 
-    "must transform all events when present" in {
+      val event14Obj = Json.parse("""{
+                         |      "recordVersion": "001",
+                         |      "schemeMembers": "12 to 50"
+                         |    }""".stripMargin)
+
+      val event19Obj = Json.parse("""{
+                                    |        "recordVersion": "001",
+                                    |        "countryCode": "GB",
+                                    |        "dateOfChange": "2022-01-14"
+                                    |      }""".stripMargin)
+      val event19 = JsArray(Seq(
+        event19Obj,
+        event19Obj
+      ))
+
+      val event20Obj = Json.parse("""{
+                                    |        "recordVersion": "001",
+                                    |        "occSchemeDetails": {
+                                    |          "startDateOfOccScheme": "2022-01-27"
+                                    |        }
+                                    |      }""".stripMargin)
+      val event20 = JsArray(Seq(
+        event20Obj,
+        event20Obj
+      ))
+
       val userAnswers: JsObject = {
         Json.obj(
           "event18Confirmation" -> true,
           "schemeWindUpDate" -> "1991-11-22",
           "taxYear" -> "2020",
-          "event13" -> event13
+          "event10" -> event10,
+          "event11" -> event11Obj,
+          "event12" -> event12Obj,
+          "event13" -> event13,
+          "event14" -> event14Obj,
+          "event19" -> event19,
+          "event20" -> event20
         )
       }
       val expected: JsObject = {
@@ -68,10 +132,16 @@ class API1826Spec extends AnyFreeSpec with Matchers
             "reportEndDate" -> "2021-04-05"
           ),
           "eventDetails" -> Json.obj(
+            "event10" -> event10,
+            "event11" -> event11Obj,
+            "event12" -> event12Obj,
             "event13" -> event13,
+            "event14" -> event14Obj,
             "event18" -> Json.obj(
               "chargeablePmt" -> "Yes"
             ),
+            "event19" -> event19,
+            "event20" -> event20,
             "eventWindUp" -> Json.obj(
               "dateOfWindUp" -> "1991-11-22"
             )
