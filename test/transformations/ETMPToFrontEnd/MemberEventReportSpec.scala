@@ -38,7 +38,7 @@ class MemberEventReportSpec extends AnyFreeSpec with Matchers with MockitoSugar 
           "event22" -> Json.obj(
             "members" -> Json.arr(
               Json.obj(
-                "membersDetails"-> Json.obj(
+                "membersDetails" -> Json.obj(
                   "lastName" -> "Smith",
                   "firstName" -> "John",
                   "nino" -> "AA345678B"
@@ -53,20 +53,19 @@ class MemberEventReportSpec extends AnyFreeSpec with Matchers with MockitoSugar 
       result mustBe Some(expectedResult)
     }
 
-    "transform a randomly generated valid payload from API 1832 correctly (Event 22)" in {
-      forAll(generateGET1832UserAnswersFromETMP(Event22)) {
-        case (payload: JsObject, expectedResponse: JsObject) =>
-          val result = payload.validate(MemberEventReport.rds1832Api(Event22)).asOpt
-          result mustBe Some(expectedResponse)
-      }
-    }
+    val api1832Events = List(Event22, Event23)
+    /* Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event24 */
 
-      "transform a randomly generated valid payload from API 1832 correctly (Event 23)" in {
-        forAll(generateGET1832UserAnswersFromETMP(Event23)) {
-          case (payload: JsObject, expectedResponse: JsObject) =>
-            val result = payload.validate(MemberEventReport.rds1832Api(Event23)).asOpt
-            result mustBe Some(expectedResponse)
+    api1832Events.foreach(
+      event => {
+        s"transform a randomly generated valid payload from API 1832 correctly (Event ${event.toString})" in {
+          forAll(generateGET1832UserAnswersFromETMP(event)) {
+            case (payload: JsObject, expectedResponse: JsObject) =>
+              val result = payload.validate(MemberEventReport.rds1832Api(event)).asOpt
+              result mustBe Some(expectedResponse)
+          }
         }
       }
-    }
+    )
+  }
 }

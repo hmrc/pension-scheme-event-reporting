@@ -32,9 +32,9 @@ object MemberEventReport {
 
   def rds1832Api(eventType: EventType): Reads[JsObject] = pathUaEventDetailsForEventType(eventType).json.copyFrom(pathEtmpEventDetails.read(readsMembers(eventType)))
 
-  def readsMembers(eventType: EventType): Reads[JsArray] = __.read(Reads.seq(readsMemberDetailsByEventType(eventType))).map(JsArray(_))
+  private def readsMembers(eventType: EventType): Reads[JsArray] = __.read(Reads.seq(readsMemberDetailsByEventType(eventType))).map(JsArray(_))
 
-  def readsMemberDetailsByEventType(eventType: EventType): Reads[JsObject] = eventType match {
+  private def readsMemberDetailsByEventType(eventType: EventType): Reads[JsObject] = eventType match {
     case Event2 => ???
     case Event3 => ???
     case Event4 => ???
