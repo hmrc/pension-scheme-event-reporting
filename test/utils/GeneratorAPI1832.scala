@@ -31,7 +31,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
 
   def generateUserAnswersAndPOSTBodyByEvent(eventType: EventType): Gen[(JsObject, JsObject)] = {
     eventType match {
-      case Event2 => ???
+      case Event2 => generateUAFromETMPDataForEvent2
       case Event3 => ???
       case Event4 => ???
       case Event5 => ???
@@ -47,37 +47,91 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
     for {
       map <- randomValues()
     } yield {
-        val etmpPayload = etmpData(eventType) ++
+      val etmpPayload = etmpData(eventType) ++
+        Json.obj("eventDetails" -> Json.arr(
+          Json.obj("memberDetail" -> Json.obj(
+            "event" -> Json.obj(
+              "eventType" -> s"Event${Event2.toString}",
+              "individualDetails" -> Json.obj(
+                "firstName" -> map("firstName"),
+                "lastName" -> map("lastName"),
+                "nino" -> map("nino")
+              ),
+              "paymentDetails" -> Json.obj(
+                "monetaryAmount" -> map("pensionAmt"),
+                "taxYearEndingDate" -> s"${map("taxYearEndDate")}-04-05"
+              )
+            )
+          )
+          )
+        )
+        )
+
+      val userAnswers = Json.obj(
+        s"event${eventType.toString}" -> Json.obj(
+          "members" -> Json.arr(
+            Json.obj(
+              "membersDetails" -> Json.obj(
+                "firstName" -> map("firstName"),
+                "lastName" -> map("lastName"),
+                "nino" -> map("nino")
+              ),
+              "chooseTaxYear" -> (map("taxYearEndDate").toInt - 1).toString,
+              "totalPensionAmounts" -> map("pensionAmt")
+            )
+          )
+        )
+      )
+
+
+      Tuple2(etmpPayload, userAnswers)
+    }
+  }
+
+  def generateUAFromETMPDataForEvent2: Gen[(JsObject, JsObject)] = {
+    for {
+      map <- randomValues()
+    } yield {
+        val etmpPayload = etmpData(Event2) ++
           Json.obj("eventDetails" -> Json.arr(
             Json.obj("memberDetail" -> Json.obj(
           "event" -> Json.obj(
-            "eventType" -> s"Event${eventType.toString}",
+            "eventType" -> s"Event${Event2.toString}",
                     "individualDetails" -> Json.obj(
                       "firstName" -> map("firstName"),
                       "lastName" -> map("lastName"),
                       "nino" -> map("nino")
                     ),
+                    "personReceivedThePayment" -> Json.obj(
+                      "firstName" -> map("firstName"),
+                      "lastName" -> map("lastName"),
+                      "nino" -> map("nino")
+                    ),
                     "paymentDetails" -> Json.obj(
-              "monetaryAmount" -> map("pensionAmt"),
-                      "taxYearEndingDate" -> s"${map("taxYearEndDate")}-04-05"
+              "amountPaid" -> map("pensionAmt"),
+                      "eventDate" -> s"${map("taxYearEndDate")}-04-05"
                     )
                   )
                 )
               )
             )
           )
-
       val userAnswers = Json.obj(
-        s"event${eventType.toString}" -> Json.obj(
+        s"event${Event2.toString}" -> Json.obj(
           "members" -> Json.arr(
-              Json.obj(
-                "membersDetails" -> Json.obj(
-                  "firstName" -> map("firstName"),
-                          "lastName" -> map("lastName"),
-                          "nino" -> map("nino")
-                ),
-                "chooseTaxYear" -> (map("taxYearEndDate").toInt - 1).toString,
-                "totalPensionAmounts" -> map("pensionAmt")
+            Json.obj(
+              "deceasedMembersDetails" -> Json.obj(
+                "firstName" -> map("firstName"),
+                "lastName" -> map("lastName"),
+                "nino" -> map("nino")
+              ),
+              "beneficiaryDetails" -> Json.obj(
+                "firstName" -> map("firstName"),
+                "lastName" -> map("lastName"),
+                "nino" -> map("nino")
+              ),
+              "datePaid" -> (map("taxYearEndDate").toInt - 1).toString,
+              "amountPaid" -> map("pensionAmt")
             )
           )
         )
@@ -171,10 +225,10 @@ object GeneratorAPI1832 {
 
   private def randomValues(): Gen[Map[String, String]] = {
     for {
-      firstName <- Gen.alphaStr
-      lastName <- Gen.alphaStr
-      nino <- Gen.alphaStr
-      pensionAmt <- arbitrary[BigDecimal]
+      firstName <- Gen.oneOf(Seq("Alice", "Bob", "Charlie"))
+      lastName <- Gen.oneOf(Seq("Xavier", "Yilmaz", "Zimmer"))
+      nino <- Gen.oneOf(Seq("AB123456C", "CD123456E"))
+      pensionAmt <- Gen.chooseNum(1, 1000)
       taxYearEndDate <- Gen.oneOf(2020, 2021, 2022)
     } yield {
       Map(

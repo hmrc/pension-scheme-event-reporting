@@ -35,7 +35,7 @@ object MemberEventReport {
   private def readsMembers(eventType: EventType): Reads[JsArray] = __.read(Reads.seq(readsMemberDetailsByEventType(eventType))).map(JsArray(_))
 
   private def readsMemberDetailsByEventType(eventType: EventType): Reads[JsObject] = eventType match {
-    case Event2 => ???
+    case Event2 => rdsMemberDetailsEvent2
     case Event3 => ???
     case Event4 => ???
     case Event5 => ???
@@ -44,6 +44,19 @@ object MemberEventReport {
     case Event8 => ???
     case Event8A => ???
     case _ => rdsMemberDetailsEvent22And23
+  }
+
+  implicit val rdsMemberDetailsEvent2: Reads[JsObject] = {(
+
+    (pathDeceasedMemberDetails \ Symbol("firstName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("firstName")).json.pick) and
+      (pathDeceasedMemberDetails \ Symbol("lastName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("lastName")).json.pick) and
+      (pathDeceasedMemberDetails \ Symbol("nino")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("nino")).json.pick) and
+      (pathBeneficiaryMemberDetails \ Symbol("firstName")).json.copyFrom((pathPersonReceivedThePayment \ Symbol("firstName")).json.pick) and
+      (pathBeneficiaryMemberDetails \ Symbol("lastName")).json.copyFrom((pathPersonReceivedThePayment \ Symbol("lastName")).json.pick) and
+      (pathBeneficiaryMemberDetails \ Symbol("nino")).json.copyFrom((pathPersonReceivedThePayment \ Symbol("nino")).json.pick) and
+      (__ \ Symbol("amountPaid")).json.copyFrom((pathPaymentDetails \ Symbol("amountPaid")).json.pick) and
+      (__ \ Symbol("datePaid")).json.copyFrom((pathPaymentDetails \ Symbol("eventDate")).json.pick)
+    ).reduce
   }
 
   implicit val rdsMemberDetailsEvent22And23: Reads[JsObject] = {(
@@ -60,6 +73,11 @@ private object Paths {
   val pathEtmpEventDetails: JsPath = __ \ Symbol("eventDetails")
   val pathUaMembersDetails: JsPath = __ \ Symbol("membersDetails")
   val pathEtmpIndividualDetails: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("individualDetails")
+
+  val pathDeceasedMemberDetails: JsPath = __ \ Symbol("deceasedMembersDetails")
+  val pathPersonReceivedThePayment: JsPath = __ \ Symbol("personReceivedThePayment")
+  val pathBeneficiaryMemberDetails: JsPath = __ \ Symbol("beneficiaryDetails")
+  val pathPaymentDetails: JsPath = __ \ Symbol("paymentDetails")
 
   val pathUaChooseTaxYearEvent22And23: JsPath = __ \ Symbol("chooseTaxYear")
   val pathEtmpTaxYearEndingDateEvent22And23: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("taxYearEndingDate")

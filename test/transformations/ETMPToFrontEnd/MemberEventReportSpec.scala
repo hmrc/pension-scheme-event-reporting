@@ -16,7 +16,7 @@
 
 package transformations.ETMPToFrontEnd
 
-import models.enumeration.EventType.{Event22, Event23}
+import models.enumeration.EventType.{Event2, Event22, Event23}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
@@ -53,13 +53,13 @@ class MemberEventReportSpec extends AnyFreeSpec with Matchers with MockitoSugar 
       result mustBe Some(expectedResult)
     }
 
-    val api1832Events = List(Event22, Event23)
-    /* Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event24 */
+    val api1832Events = List(Event2, Event22, Event23)
+    /* Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event24 */
 
     api1832Events.foreach(
       event => {
         s"transform a randomly generated valid payload from API 1832 correctly (Event ${event.toString})" in {
-          forAll(generateUAFromETMPDataForEvent22And23(event)) {
+          forAll(generateUserAnswersAndPOSTBodyByEvent(event)) {
             case (payload: JsObject, expectedResponse: JsObject) =>
               val result = payload.validate(MemberEventReport.rds1832Api(event)).asOpt
               result mustBe Some(expectedResponse)
