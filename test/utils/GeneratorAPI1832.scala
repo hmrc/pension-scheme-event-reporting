@@ -17,6 +17,7 @@
 package utils
 
 import models.enumeration.EventType
+import models.enumeration.EventType.{Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
@@ -24,6 +25,20 @@ import org.scalatest.matchers.must.Matchers
 import play.api.libs.json.{JsObject, JsValue, Json}
 
 trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerators {
+
+  def generateUserAnswersAndPOSTBodyByEvent(eventType: EventType): Gen[(JsObject, JsObject)] = {
+    eventType match {
+      case Event2 => ???
+      case Event3 => ???
+      case Event4 => ???
+      case Event5 => ???
+      case Event6 => ???
+      case Event7 => ???
+      case Event8 => ???
+      case Event8A => ???
+      case _ => generateGET1832UserAnswersFromETMP(eventType)
+    }
+  }
 
   def generateGET1832UserAnswersFromETMP(eventType: EventType): Gen[(JsObject, JsObject)] = {
     for {
