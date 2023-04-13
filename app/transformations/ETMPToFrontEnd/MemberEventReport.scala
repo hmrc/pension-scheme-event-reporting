@@ -37,7 +37,7 @@ object MemberEventReport {
   private def readsMemberDetailsByEventType(eventType: EventType): Reads[JsObject] = eventType match {
     case Event2 => rdsMemberDetailsEvent2
     case Event3 => ???
-    case Event4 => ???
+    case Event4 => rdsMemberDetailsEvent4
     case Event5 => ???
     case Event6 => ???
     case Event7 => ???
@@ -57,6 +57,15 @@ object MemberEventReport {
       (__ \ Symbol("amountPaid")).json.copyFrom((pathPaymentDetails \ Symbol("amountPaid")).json.pick) and
       (__ \ Symbol("datePaid")).json.copyFrom((pathPaymentDetails \ Symbol("eventDate")).json.pick)
     ).reduce
+  }
+
+  implicit val rdsMemberDetailsEvent4: Reads[JsObject] = {
+    ((pathUaMembersDetails \ Symbol("firstName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("firstName")).json.pick) and
+        (pathUaMembersDetails \ Symbol("lastName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("lastName")).json.pick) and
+        (pathUaMembersDetails \ Symbol("nino")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("nino")).json.pick) and
+        (pathPaymentDetails \ Symbol("amountPaid")).json.copyFrom((pathPaymentDetails \ Symbol("amountPaid")).json.pick) and
+        (pathPaymentDetails \ Symbol("datePaid")).json.copyFrom((pathPaymentDetails \ Symbol("eventDate")).json.pick)
+      ).reduce
   }
 
   implicit val rdsMemberDetailsEvent22And23: Reads[JsObject] = {(
