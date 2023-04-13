@@ -21,7 +21,7 @@ import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
 import models.ERVersion
 import models.enumeration.ApiType._
-import models.enumeration.EventType.{Event22, Event23}
+import models.enumeration.EventType.{Event2, Event22, Event23, Event24, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
 import models.enumeration.{ApiType, EventType}
 import play.api.Logging
 import play.api.http.Status.NOT_IMPLEMENTED
@@ -118,16 +118,15 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def validationCheck(data: JsValue, eventType: EventType): Option[JsValue] = {
+  private def validationCheck(data: JsValue, eventType: EventType): Option[JsValue] = {
+
+    val api1832Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
     eventType match {
-      case Event22 => data.validate(MemberEventReport.rds1832Api(Event22)) match {
-        case JsSuccess(transformedData, _) => Some(transformedData)
-        case _ => None
-      }
-      case Event23 => data.validate(MemberEventReport.rds1832Api(Event23)) match {
-        case JsSuccess(transformedData, _) => Some(transformedData)
-        case _ => None
-      }
+      case evType1832 if api1832Events.contains(evType1832) =>
+        data.validate(MemberEventReport.rds1832Api(evType1832)) match {
+          case JsSuccess(transformedData, _) => Some(transformedData)
+          case _ => None
+        }
       case _ => Some(data)
     }
   }
