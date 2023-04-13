@@ -503,7 +503,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
             ),
             "paymentDetails" -> Json.obj(
               "monetaryAmount" -> map("monetaryAmount"),
-              "taxYearEndingDate" -> map("endTaxYear")
+              "taxYearEndingDate" -> s"${map("endTaxYear")}-04-05"
             )
           )
         )
