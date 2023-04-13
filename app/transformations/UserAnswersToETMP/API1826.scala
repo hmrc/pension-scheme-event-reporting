@@ -69,7 +69,7 @@ object API1826 extends Transformer {
           Json.obj(
             "recordVersion" -> (json \ "recordVersion").asOpt[String],
             "unauthorisedPmtsDate" -> (json \ "unauthorisedPmtsDate").asOpt[String],
-            "contractsOrPoliciesDate" -> (json \ "contractsOrPoliciesDate").asOpt[String],
+            "contractsOrPoliciesDate" -> (json \ "contractsOrPoliciesDate").asOpt[String]
           )
       )
     }
@@ -81,7 +81,7 @@ object API1826 extends Transformer {
         "event12" ->
           Json.obj(
             "recordVersion" -> (json \ "recordVersion").asOpt[String],
-            "twoOrMoreSchemesDate" -> (json \ "twoOrMoreSchemesDate").as[String],
+            "twoOrMoreSchemesDate" -> (json \ "twoOrMoreSchemesDate").as[String]
           )
       )
     }
@@ -105,10 +105,9 @@ object API1826 extends Transformer {
   private lazy val event14Reads = (__ \ "event14").readNullable[JsObject].map { optJson =>
     optJson.map { json =>
       Json.obj(
-        "event14" ->
-          Json.obj(
+        "event14" -> Json.obj(
             "recordVersion" -> (json \ "recordVersion").asOpt[String],
-            "schemeMembers" -> (json \ "schemeMembers").as[String],
+            "schemeMembers" -> (json \ "schemeMembers").as[String]
           )
       )
     }
