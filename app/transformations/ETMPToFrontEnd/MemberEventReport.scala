@@ -60,8 +60,8 @@ object MemberEventReport {
 
   implicit val rdsMemberDetailsEvent4And5: Reads[JsObject] = {(
     readsMemberDetails and
-        (pathPaymentDetails \ Symbol("amountPaid")).json.copyFrom((pathEtmpMonetaryAmountEvent4And5).json.pick) and
-        (pathPaymentDetails \ Symbol("datePaid")).json.copyFrom((pathEtmpDateEvent4And5).json.pick)
+        pathUaAmountPaidEvent4And5.json.copyFrom(pathEtmpMonetaryAmountEvent4And5.json.pick) and
+      pathUaDatePaidEvent4And5.json.copyFrom(pathEtmpDateEvent4And5.json.pick)
     ).reduce
   }
 
@@ -96,12 +96,21 @@ object MemberEventReport {
 
 private object Paths {
 
+  // Generic paths
   def pathUaEventDetailsForEventType(eventType: EventType): JsPath = __ \ Symbol(s"event${eventType.toString}") \ Symbol("members")
   val pathEtmpEventDetails: JsPath = __ \ Symbol("eventDetails")
   val pathUaMembersDetails: JsPath = __ \ Symbol("membersDetails")
   val pathEtmpIndividualDetails: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("individualDetails")
   val pathEtmpDeceasedDetails: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("personReceivedThePayment")
 
+  // Event4 and Event5
+  val pathUaAmountPaidEvent4And5: JsPath = __ \ Symbol("paymentDetails") \ Symbol("amountPaid")
+  val pathEtmpMonetaryAmountEvent4And5: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("amountPaid")
+  val pathUaDatePaidEvent4And5: JsPath = __ \ Symbol("paymentDetails") \ Symbol("datePaid")
+  val pathEtmpDateEvent4And5: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("eventDate")
+
+
+  // Event 2
   val pathDeceasedMemberDetails: JsPath = __ \ Symbol("deceasedMembersDetails")
   val pathPersonReceivedThePayment: JsPath = __ \ Symbol("personReceivedThePayment")
   val pathBeneficiaryMemberDetails: JsPath = __ \ Symbol("beneficiaryDetails")
@@ -113,11 +122,10 @@ private object Paths {
   val pathEtmpTaxYearEndingDateEvent22And23: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("taxYearEndingDate")
   val pathUaTotalPensionAmountsEvent22And23: JsPath = __ \ Symbol("totalPensionAmounts")
   val pathEtmpMonetaryAmountEvent22And23: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("monetaryAmount")
-  val pathEtmpMonetaryAmountEvent4And5: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("amountPaid")
   val pathEtmpAmountLumpSumEvent7: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("amountLumpSum")
   val pathEtmpAmountCrystallisedEvent7: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("amountCrystalised")
   val pathEtmpDateEvent7: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("eventDate")
-  val pathEtmpDateEvent4And5: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("eventDate")
+
   val pathEtmpTypeOfProtectionEvent6: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("typeOfProtection")
   val pathEtmpInputProtectionType: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("freeText")
   val pathEtmpAmountCrystallisedEvent6: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("amountCrystalised")

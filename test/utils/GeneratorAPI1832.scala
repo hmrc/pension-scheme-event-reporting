@@ -168,13 +168,13 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
         s"event${eventType.toString}" -> Json.obj("members" ->
           Json.arr(
             Json.obj(
-              "memberDetails" -> Json.obj(
+              "membersDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
                 "nino" -> map("nino")),
               "paymentDetails" -> Json.obj(
                 "amountPaid" -> map("pensionAmt"),
-                "datePaid" -> (map("taxYearEndDate").toInt - 1).toString
+                "datePaid" -> s"${map("taxYearEndDate")}-04-05"
               ),
             )
           )
