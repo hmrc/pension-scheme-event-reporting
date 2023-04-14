@@ -53,8 +53,8 @@ class MemberEventReportSpec extends AnyFreeSpec with Matchers with MockitoSugar 
       result mustBe Some(expectedResult)
     }
 
-    val api1832Events = List(Event4, Event5, Event22, Event23)
-    /* Implement: Event2, Event3, Event6, Event7, Event8, Event8A, Event24 */
+    val api1832Events = List(Event2, Event4, Event5, Event22, Event23)
+    /* Implement: Event3, Event6, Event7, Event8, Event8A, Event24 */
 
     api1832Events.foreach(
       event => {

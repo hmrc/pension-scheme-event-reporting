@@ -46,30 +46,25 @@ object MemberEventReport {
   }
 
   implicit val rdsMemberDetailsEvent2: Reads[JsObject] = {(
-
-    (pathDeceasedMemberDetails \ Symbol("firstName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("firstName")).json.pick) and
-      (pathDeceasedMemberDetails \ Symbol("lastName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("lastName")).json.pick) and
-      (pathDeceasedMemberDetails \ Symbol("nino")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("nino")).json.pick) and
-      (pathBeneficiaryMemberDetails \ Symbol("firstName")).json.copyFrom((pathDeceasedMemberDetails \ Symbol("firstName")).json.pick) and
-      (pathBeneficiaryMemberDetails \ Symbol("lastName")).json.copyFrom((pathDeceasedMemberDetails \ Symbol("lastName")).json.pick) and
-      (pathBeneficiaryMemberDetails \ Symbol("nino")).json.copyFrom((pathDeceasedMemberDetails \ Symbol("nino")).json.pick) and
-      (__ \ Symbol("amountPaid")).json.copyFrom((pathPaymentDetailsEvent2 \ Symbol("amountPaid")).json.pick) and
-      (__ \ Symbol("datePaid")).json.copyFrom((pathPaymentDetailsEvent2 \ Symbol("eventDate")).json.pick)
+    readsDeceasedMemberDetailsEvent2 and
+      readsBeneficiaryDetailsEvent2 and
+    pathUaAmountPaid.json.copyFrom(pathEtmpAmountPaid.json.pick) and
+    pathUaDatePaid.json.copyFrom(pathEtmpEventDate.json.pick)
     ).reduce
   }
 
   implicit val rdsMemberDetailsEvent4And5: Reads[JsObject] = {(
     readsMemberDetails and
-        pathUaAmountPaidEvent4And5.json.copyFrom(pathEtmpMonetaryAmountEvent4And5.json.pick) and
-      pathUaDatePaidEvent4And5.json.copyFrom(pathEtmpDateEvent4And5.json.pick)
+        pathUaAmountPaidEvent4And5.json.copyFrom(pathEtmpAmountPaid.json.pick) and
+      pathUaDatePaidEvent4And5.json.copyFrom(pathEtmpEventDate.json.pick)
     ).reduce
   }
 
   implicit val rdsMemberDetailsEvent6: Reads[JsObject] = {
     (
       readsMemberDetails and
-        (pathPaymentDetails \ Symbol("amountPaid")).json.copyFrom(pathEtmpMonetaryAmountEvent4And5.json.pick) and
-        (pathPaymentDetails \ Symbol("datePaid")).json.copyFrom(pathEtmpDateEvent4And5.json.pick) and
+        (pathPaymentDetails \ Symbol("amountPaid")).json.copyFrom(pathEtmpAmountPaid.json.pick) and
+        (pathPaymentDetails \ Symbol("datePaid")).json.copyFrom(pathEtmpEventDate.json.pick) and
         (__ \ Symbol("typeOfProtection")).json.copyFrom(pathEtmpTypeOfProtectionEvent6.json.pick) and
         (__ \ Symbol("inputProtectionType")).json.copyFrom(pathEtmpInputProtectionType.json.pick) and
         (pathPaymentDetailsEvent6 \ Symbol("amountCrystallised")).json.copyFrom(pathEtmpAmountCrystallisedEvent6.json.pick) and
@@ -96,26 +91,39 @@ object MemberEventReport {
 
 private object Paths {
 
+  // For use while WIP:
+  val dummyPath: JsPath = __ \ Symbol("dummy")
+
+
   // Generic paths
   def pathUaEventDetailsForEventType(eventType: EventType): JsPath = __ \ Symbol(s"event${eventType.toString}") \ Symbol("members")
   val pathEtmpEventDetails: JsPath = __ \ Symbol("eventDetails")
   val pathUaMembersDetails: JsPath = __ \ Symbol("membersDetails")
   val pathEtmpIndividualDetails: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("individualDetails")
   val pathEtmpDeceasedDetails: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("personReceivedThePayment")
-
-  // Event4 and Event5
-  val pathUaAmountPaidEvent4And5: JsPath = __ \ Symbol("paymentDetails") \ Symbol("amountPaid")
-  val pathEtmpMonetaryAmountEvent4And5: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("amountPaid")
-  val pathUaDatePaidEvent4And5: JsPath = __ \ Symbol("paymentDetails") \ Symbol("datePaid")
-  val pathEtmpDateEvent4And5: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("eventDate")
+  val pathUaAmountPaid: JsPath = __ \ Symbol("amountPaid")
+  val pathEtmpAmountPaid: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("amountPaid")
+  val pathUaDatePaid: JsPath = __ \ Symbol("datePaid")
+  val pathEtmpEventDate: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("eventDate")
 
 
   // Event 2
+  val pathUaDeceasedMembersDetailsEvent2: JsPath = __ \ Symbol("deceasedMembersDetails")
+  val pathUaBeneficiaryDetailsEvent2: JsPath = __ \ Symbol("beneficiaryDetails")
+  val pathEtmpPersonReceivedThePaymentEvent2: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("personReceivedThePayment")
+
   val pathDeceasedMemberDetails: JsPath = __ \ Symbol("deceasedMembersDetails")
   val pathPersonReceivedThePayment: JsPath = __ \ Symbol("personReceivedThePayment")
   val pathBeneficiaryMemberDetails: JsPath = __ \ Symbol("beneficiaryDetails")
   val pathPaymentDetails: JsPath = __ \ Symbol("paymentDetails")
   val pathPaymentDetailsEvent2: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails")
+
+  // Event4 and Event5
+  val pathUaAmountPaidEvent4And5: JsPath = __ \ Symbol("paymentDetails") \ Symbol("amountPaid")
+  val pathUaDatePaidEvent4And5: JsPath = __ \ Symbol("paymentDetails") \ Symbol("datePaid")
+
+
+
   val pathPaymentDetailsEvent6: JsPath = __ \ Symbol("AmountCrystallisedAndDate")
 
   val pathUaChooseTaxYearEvent22And23: JsPath = __ \ Symbol("chooseTaxYear")
@@ -133,6 +141,7 @@ private object Paths {
 }
 
 //noinspection ScalaStyle
+// TODO: Think of renaming object? Utility Reads? Will think about. -NJ
 private object ReadsWithTransform extends Transformer {
   import transformations.ETMPToFrontEnd.Paths._
 
@@ -140,6 +149,20 @@ private object ReadsWithTransform extends Transformer {
     (pathUaMembersDetails \ Symbol("firstName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("firstName")).json.pick) and
       (pathUaMembersDetails \ Symbol("lastName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("lastName")).json.pick) and
       (pathUaMembersDetails \ Symbol("nino")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("nino")).json.pick)
+    ).reduce
+  }
+
+  lazy val readsDeceasedMemberDetailsEvent2: Reads[JsObject] = {(
+    (pathUaDeceasedMembersDetailsEvent2 \ Symbol("firstName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("firstName")).json.pick) and
+      (pathUaDeceasedMembersDetailsEvent2 \ Symbol("lastName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("lastName")).json.pick) and
+      (pathUaDeceasedMembersDetailsEvent2 \ Symbol("nino")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("nino")).json.pick)
+    ).reduce
+  }
+
+  lazy val readsBeneficiaryDetailsEvent2: Reads[JsObject] = {(
+    (pathUaBeneficiaryDetailsEvent2 \ Symbol("firstName")).json.copyFrom((pathEtmpPersonReceivedThePaymentEvent2 \ Symbol("firstName")).json.pick) and
+      (pathUaBeneficiaryDetailsEvent2 \ Symbol("lastName")).json.copyFrom((pathEtmpPersonReceivedThePaymentEvent2 \ Symbol("lastName")).json.pick) and
+      (pathUaBeneficiaryDetailsEvent2 \ Symbol("nino")).json.copyFrom((pathEtmpPersonReceivedThePaymentEvent2 \ Symbol("nino")).json.pick)
     ).reduce
   }
 

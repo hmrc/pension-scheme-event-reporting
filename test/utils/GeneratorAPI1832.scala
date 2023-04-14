@@ -24,6 +24,7 @@ import org.scalatest.matchers.must.Matchers
 import play.api.libs.json.{JsObject, JsValue, Json}
 
 
+//noinspection ScalaStyle
 trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerators {
 
   import utils.GeneratorAPI1832._
@@ -52,39 +53,40 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
             "event" -> Json.obj(
               "eventType" -> s"Event${Event2.toString}",
               "individualDetails" -> Json.obj(
-                "firstname" -> "John",
-                "lastName" -> "Smith",
-                "nino" -> "AA123456C"
+                "firstName" -> map("deceasedFirstName"),
+                "lastName" -> map("deceasedLastName"),
+                "nino" -> map("deceasedNino"),
               ),
               "personReceivedThePayment" -> Json.obj(
-                "firstname" -> "Stella",
-                "lastName" -> "Maggy",
-                "nino" -> "AA123456B"
+                "firstName" -> map("firstName"),
+                "lastName" -> map("lastName"),
+                "nino" -> map("nino")
               ),
               "paymentDetails" -> Json.obj(
-                "amountPaid" -> 50.34,
-                "eventDate" -> "2023-04-05"
+                "amountPaid" -> map("pensionAmt"),
+                "eventDate" -> s"${map("taxYearEndDate")}-04-05",
               )
             )
           )
           )
         )
         )
+
       val userAnswers = Json.obj(
         s"event${Event2.toString}" -> Json.obj(
           "members" -> Json.arr(
             Json.obj(
               "deceasedMembersDetails" -> Json.obj(
-                "firstName" -> map("firstName"),
-                "lastName" -> map("lastName"),
-                "nino" -> map("nino")
+                "firstName" -> map("deceasedFirstName"),
+                "lastName" -> map("deceasedLastName"),
+                "nino" -> map("deceasedNino")
               ),
               "beneficiaryDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
                 "nino" -> map("nino")
               ),
-              "datePaid" -> (map("taxYearEndDate").toInt - 1).toString,
+              "datePaid" -> s"${map("taxYearEndDate")}-04-05",
               "amountPaid" -> map("pensionAmt")
             )
           )
@@ -445,6 +447,9 @@ object GeneratorAPI1832 {
       firstName <- Gen.oneOf(Seq("Alice", "Bob", "Charlie"))
       lastName <- Gen.oneOf(Seq("Xavier", "Yilmaz", "Zimmer"))
       nino <- Gen.oneOf(Seq("AB123456C", "CD123456E"))
+      deceasedFirstName <- Gen.oneOf(Seq("Derek", "Emma", "Fred"))
+      deceasedLastName <- Gen.oneOf(Seq("Stevens", "Thomas", "Jones"))
+      deceasedNino <- Gen.oneOf(Seq("ZB123456C", "ZD123456E"))
       reasonBenefitTakenEvent3 <- Gen.oneOf(Seq("Ill Health", "Protected Pension Age", "Other"))
       pensionAmt <- Gen.chooseNum(1, 1000)
       lumpSumAmount <- Gen.chooseNum(1, 1000)
@@ -460,6 +465,9 @@ object GeneratorAPI1832 {
         "firstName" -> firstName,
         "lastName" -> lastName,
         "nino" -> nino,
+        "deceasedFirstName" -> deceasedFirstName,
+        "deceasedLastName" -> deceasedLastName,
+        "deceasedNino" -> deceasedNino,
         "reasonBenefitTakenEvent3" -> reasonBenefitTakenEvent3,
         "pensionAmt" -> pensionAmt.toString,
         "amountCrystallised" -> amountCrystallised.toString,
