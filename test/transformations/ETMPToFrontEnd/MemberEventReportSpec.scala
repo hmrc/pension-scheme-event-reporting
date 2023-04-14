@@ -16,7 +16,7 @@
 
 package transformations.ETMPToFrontEnd
 
-import models.enumeration.EventType.{Event2, Event22, Event23, Event4}
+import models.enumeration.EventType.{Event2, Event22, Event23, Event4, Event5, Event6, Event7}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
