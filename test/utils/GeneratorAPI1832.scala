@@ -100,6 +100,12 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
     for {
       map <- randomValues()
     } yield {
+      val test = if (map("reasonBenefitTakenEvent3") == "Other") {
+        Json.obj("freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3")))
+      } else {
+        JsObject.empty
+      }
+
       val etmpPayload = etmpData(Event3) ++
         Json.obj("eventDetails" -> Json.arr(
           Json.obj("memberDetail" -> Json.obj(
@@ -129,11 +135,13 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
                 "nino" -> map("nino")),
-              "paymentDetails" -> Json.obj(
+              "benefitType" -> Json.obj(
                 "reasonBenefitTaken" -> map("reasonBenefitTakenEvent3"),
+                "freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3"))
+              ),
+              "paymentDetails" -> Json.obj(
                 "amountBenefit" -> map("pensionAmt"),
                 "eventDate" -> (map("taxYearEndDate").toInt - 1).toString,
-                "freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3"))
               ),
             )
           )
@@ -215,15 +223,15 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
         s"event${Event6.toString}" -> Json.obj("members" ->
           Json.arr(
             Json.obj(
-              "memberDetails" -> Json.obj(
+              "membersDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
                 "nino" -> map("nino")),
               "typeOfProtection" -> map("typeOfProtectionEvent6"),
               "inputProtectionType" -> map("inputProtectionType"),
               "AmountCrystallisedAndDate" -> Json.obj(
-                "amountCrystallised" -> map("pensionAmt"),
-                "crystallisedDate" -> (map("taxYearEndDate").toInt - 1).toString
+                "amountCrystallised" -> map("amountCrystallised"),
+                "crystallisedDate" -> s"${map("taxYearEndDate")}-04-05",
               ),
             )
           )
@@ -261,14 +269,14 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
         s"event${Event7.toString}" -> Json.obj("members" ->
           Json.arr(
             Json.obj(
-              "memberDetails" -> Json.obj(
+              "membersDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
                 "nino" -> map("nino")),
               "lumpSumAmount" -> map("lumpSumAmount"),
               "crystallisedAmount" -> map("amountCrystallised"),
               "paymentDate" -> Json.obj(
-                "date" -> (map("taxYearEndDate").toInt - 1).toString
+                "date" -> s"${map("taxYearEndDate")}-04-05"
               ),
             )
           )
@@ -307,7 +315,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
         s"event${Event8.toString}" -> Json.obj("members" ->
           Json.arr(
             Json.obj(
-              "memberDetails" -> Json.obj(
+              "membersDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
                 "nino" -> map("nino")),
@@ -315,7 +323,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
               "typeOfProtectionReference" -> map("typeOfProtectionReference"),
               "lumpSumAmountAndDate" -> Json.obj(
                 "lumpSumAmount" -> map("lumpSumAmount"),
-                "lumpSumDate" -> (map("taxYearEndDate").toInt - 1).toString
+                "lumpSumDate" -> s"${map("taxYearEndDate")}-04-05",
               ),
             )
           )
