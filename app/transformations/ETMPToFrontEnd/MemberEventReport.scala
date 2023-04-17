@@ -18,17 +18,17 @@ package transformations.ETMPToFrontEnd
 
 import models.enumeration.EventType
 import models.enumeration.EventType.{Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
-import transformations.Transformer
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
+import transformations.Transformer
 
 
 //noinspection ScalaStyle
 object MemberEventReport {
 
-  import transformations.ETMPToFrontEnd.ReadsUtilities._
   import transformations.ETMPToFrontEnd.Paths._
+  import transformations.ETMPToFrontEnd.ReadsUtilities._
 
   def rds1832Api(eventType: EventType): Reads[JsObject] = pathUaEventDetailsForEventType(eventType).json.copyFrom(pathEtmpEventDetails.read(readsMembers(eventType)))
 
@@ -67,7 +67,7 @@ private object ReadsUtilities extends Transformer {
   }
 
   lazy val readsEvent3PaymentDetails: Reads[JsObject] = {(
-    pathUaReasonBenefitTaken.json.copyFrom(pathEtmpReasonBenefitTaken.json.pick) and
+    pathUaReasonBenefitTaken.json.copyFrom(readsReasonBenefitTakenEvent3) and
       pathUaFreeText.json.copyFrom(pathEtmpFreeText.json.pick) and
       pathUaEventDate.json.copyFrom(pathEtmpEventDate.json.pick) and
       pathUaAmountBenefit.json.copyFrom(pathEtmpAmountBenefit.json.pick)
@@ -81,7 +81,7 @@ private object ReadsUtilities extends Transformer {
   }
 
   lazy val readsEvent6PaymentDetails: Reads[JsObject] = {(
-    pathUaTypeOfProtection.json.copyFrom(pathEtmpTypeOfProtection.json.pick) and
+    pathUaTypeOfProtection.json.copyFrom(readsTypeOfProtectionEvent6) and
       pathUaInputProtectionType.json.copyFrom(pathEtmpFreeText.json.pick) and
       pathUaAmountCrystallised.json.copyFrom(pathEtmpAmountCrystalised.json.pick) and
       pathUaCrystallisedDate.json.copyFrom(pathEtmpEventDate.json.pick)
@@ -96,7 +96,7 @@ private object ReadsUtilities extends Transformer {
   }
 
   lazy val readsEvent8PaymentDetails: Reads[JsObject] = {(
-    pathUaTypeOfProtection.json.copyFrom(pathEtmpTypeOfProtection.json.pick) and
+    pathUaTypeOfProtection.json.copyFrom(readsTypeOfProtectionEvent8) and
       pathUaTypeOfProtectionReference.json.copyFrom(pathEtmpFreeText.json.pick) and
       pathUaLumpSumAmountNested.json.copyFrom(pathEtmpAmountLumpSum.json.pick) and
       pathUaLumpSumDateNested.json.copyFrom(pathEtmpEventDate.json.pick)
@@ -105,7 +105,7 @@ private object ReadsUtilities extends Transformer {
 
   lazy val readsEvent8APaymentDetails: Reads[JsObject] = {(
     pathUaPaymentType.json.copyFrom(readsPaymentTypeEvent8A) and
-      pathUaTypeOfProtection.json.copyFrom(pathEtmpTypeOfProtection.json.pick) and
+      pathUaTypeOfProtection.json.copyFrom(readsTypeOfProtectionEvent8A) and
       pathUaTypeOfProtectionReference.json.copyFrom(pathEtmpFreeText.json.pick) and
       pathUaLumpSumAmountNested.json.copyFrom(pathEtmpAmountLumpSum.json.pick) and
       pathUaLumpSumDateNested.json.copyFrom(pathEtmpEventDate.json.pick)
@@ -142,25 +142,74 @@ private object ReadsUtilities extends Transformer {
       ).reduce
   }
 
-  lazy val readsPaymentTypeEvent8A: Reads[JsString] = {
+  private lazy val readsTypeOfProtectionEvent6: Reads[JsString] = {
+    pathEtmpTypeOfProtection.json.pick.flatMap {
+      case JsString(str) => Reads.pure(JsString(typeOfProtectionUAEvent6(str)))
+      case _ => fail[JsString]
+    }
+  }
+
+  private lazy val readsPaymentTypeEvent8A: Reads[JsString] = {
     pathEtmpReasonBenefitTaken.json.pick.flatMap {
       case JsString(str) => Reads.pure(JsString(paymentTypeUAEvent8A(str)))
       case _ => fail[JsString]
     }
   }
 
-    private def paymentTypeUAEvent8A(rBT: String): String = rBT match {
+  private lazy val readsTypeOfProtectionEvent8: Reads[JsString] = {
+    pathEtmpTypeOfProtection.json.pick.flatMap {
+      case JsString(str) => Reads.pure(JsString(typeOfProtectionUAEvent8(str)))
+      case _ => fail[JsString]
+    }
+  }
+
+  private lazy val readsTypeOfProtectionEvent8A: Reads[JsString] = {
+    pathEtmpTypeOfProtection.json.pick.flatMap {
+      case JsString(str) => Reads.pure(JsString(typeOfProtectionUAEvent8A(str)))
+      case _ => fail[JsString]
+    }
+  }
+
+  private lazy val readsReasonBenefitTakenEvent3: Reads[JsString] = {
+    pathEtmpReasonBenefitTaken.json.pick.flatMap {
+      case JsString(str) => Reads.pure(JsString(reasonBenefitTakenUAEvent3(str)))
+      case _ => fail[JsString]
+    }
+  }
+
+  private lazy val readsTaxYearEndDateEvent22And23: Reads[JsString] = {
+    pathEtmpTaxYearEndingDate.json.pick.flatMap {
+      case JsString(str) => Reads.pure(JsString((str.substring(0, 4).toInt - 1).toString))
+      case _ => fail[JsString]
+    }
+  }
+  private def typeOfProtectionUAEvent6(tOP: String): String = tOP match {
+    case "Enhanced life time allowance" => "enhancedLifetimeAllowance"
+    case "Enhanced protection" => "enhancedProtection"
+    case "Fixed protection" => "fixedProtection"
+    case "Fixed protection 2014" => "fixedProtection2014"
+    case "Fixed protection 2016" => "fixedProtection2016"
+    case "Individual protection 2014" => "individualProtection2014"
+    case "Individual protection 2016" => "individualProtection2016"
+  }
+  private def paymentTypeUAEvent8A(rBT: String): String = rBT match {
       case "Member where payment of a stand-alone lump sum (100 per lump sum) and the member had protected lump sum rights of more than £375,000 with either primary protection or enhanced protection"
         => "paymentOfAStandAloneLumpSum"
       case "Member where payment of a scheme specific lump sum protection and the lump sum is more than 7.5 per of the lifetime allowance"
         => "paymentOfASchemeSpecificLumpSum"
   }
-  
-  lazy val readsTaxYearEndDateEvent22And23: Reads[JsString] = {
-    pathEtmpTaxYearEndingDate.json.pick.flatMap {
-      case JsString(str) => Reads.pure(JsString((str.substring(0, 4).toInt - 1).toString))
-      case _ => fail[JsString]
-    }
+  private def typeOfProtectionUAEvent8(tOP: String): String = tOP match {
+    case "Primary Protection" => "primaryProtection"
+    case "Enhanced protection" => "enhancedProtection"
+  }
+  private def typeOfProtectionUAEvent8A(tOP: String): String = tOP match {
+    case "Primary Protection" => "primaryProtection"
+    case "Enhanced" => "enhancedProtection"
+  }
+  private def reasonBenefitTakenUAEvent3(rBT: String): String = rBT match {
+    case "Ill Health" => "illHealth"
+    case "Protected Pension Age" => "protectedPensionAge"
+    case "Other" => "other"
   }
 }
 

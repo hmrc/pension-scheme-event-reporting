@@ -118,10 +118,10 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
                 "eventDate" -> s"${map("taxYearEndDate")}-04-05",
                 "freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3")
                 )
+              )
             )
           )
           )
-        )
         ))
       val userAnswers = Json.obj(
         s"event${Event3.toString}" -> Json.obj("members" ->
@@ -132,7 +132,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
                 "lastName" -> map("lastName"),
                 "nino" -> map("nino")),
               "benefitType" -> Json.obj(
-                "reasonBenefitTaken" -> map("reasonBenefitTakenEvent3"),
+                "reasonBenefitTaken" -> reasonBenefitTakenUAEvent3(map("reasonBenefitTakenEvent3")),
                 "freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3"))
               ),
               "paymentDetails" -> Json.obj(
@@ -223,7 +223,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
                 "nino" -> map("nino")),
-              "typeOfProtection" -> map("typeOfProtectionEvent6"),
+              "typeOfProtection" -> typeOfProtectionUAEvent6(map("typeOfProtectionEvent6")),
               "inputProtectionType" -> map("inputProtectionType"),
               "AmountCrystallisedAndDate" -> Json.obj(
                 "amountCrystallised" -> map("amountCrystallised"),
@@ -298,7 +298,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
               ),
               "paymentDetails" -> Json.obj(
                 "amountLumpSum" -> map("lumpSumAmount"),
-                "typeOfProtection" -> map("typeOfProtectionEvent8And8A"),
+                "typeOfProtection" -> map("typeOfProtectionEvent8"),
                 "eventDate" -> s"${map("taxYearEndDate")}-04-05",
                 "freeText" -> map("typeOfProtectionReference")
               )
@@ -315,7 +315,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
                 "nino" -> map("nino")),
-              "typeOfProtection" -> map("typeOfProtectionEvent8And8A"),
+              "typeOfProtection" -> typeOfProtectionUAEvent8(map("typeOfProtectionEvent8")),
               "typeOfProtectionReference" -> map("typeOfProtectionReference"),
               "lumpSumAmountAndDate" -> Json.obj(
                 "lumpSumAmount" -> map("lumpSumAmount"),
@@ -346,7 +346,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
               "paymentDetails" -> Json.obj(
                 "reasonBenefitTaken" -> map("reasonBenefitTakenEvent8A"),
                 "amountLumpSum" -> map("lumpSumAmount"),
-                "typeOfProtection" -> map("typeOfProtectionEvent8And8A"),
+                "typeOfProtection" -> map("typeOfProtectionEvent8A"),
                 "eventDate" -> s"${map("taxYearEndDate")}-04-05",
                 "freeText" -> map("typeOfProtectionReference")
               )
@@ -364,7 +364,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
                 "lastName" -> map("lastName"),
                 "nino" -> map("nino")),
               "paymentType" -> paymentTypeUAEvent8A(map("reasonBenefitTakenEvent8A")),
-              "typeOfProtection" -> map("typeOfProtectionEvent8And8A"),
+              "typeOfProtection" -> typeOfProtectionUAEvent8A(map("typeOfProtectionEvent8A")),
               "typeOfProtectionReference" -> map("typeOfProtectionReference"),
               "lumpSumAmountAndDate" -> Json.obj(
                 "lumpSumAmount" -> map("lumpSumAmount"),
@@ -493,7 +493,33 @@ object GeneratorAPI1832 {
     )
   )
 
+  private def typeOfProtectionUAEvent6(tOP: String): String = tOP match {
+    case "Enhanced life time allowance" => "enhancedLifetimeAllowance"
+    case "Enhanced protection" => "enhancedProtection"
+    case "Fixed protection" => "fixedProtection"
+    case "Fixed protection 2014" => "fixedProtection2014"
+    case "Fixed protection 2016" => "fixedProtection2016"
+    case "Individual protection 2014" => "individualProtection2014"
+    case "Individual protection 2016" => "individualProtection2016"
+  }
+
+  private def typeOfProtectionUAEvent8(tOP: String): String = tOP match {
+    case "Primary Protection" => "primaryProtection"
+    case "Enhanced protection" => "enhancedProtection"
+  }
+
+  private def typeOfProtectionUAEvent8A(tOP: String): String = tOP match {
+    case "Primary Protection" => "primaryProtection"
+    case "Enhanced" => "enhancedProtection"
+  }
+
   private def freeTextEvent3(rBT: String): String = if (rBT != "Other") "N/A" else "Example brief description"
+
+  private def reasonBenefitTakenUAEvent3(rBT: String): String = rBT match {
+    case "Ill Health" => "illHealth"
+    case "Protected Pension Age" => "protectedPensionAge"
+    case "Other" => "other"
+  }
 
   private def paymentTypeUAEvent8A(rBT: String): String = rBT match {
     case "Member where payment of a stand-alone lump sum (100 per lump sum) and the member had protected lump sum rights of more than £375,000 with either primary protection or enhanced protection"
@@ -517,7 +543,8 @@ object GeneratorAPI1832 {
         , "Individual protection 2014", "Individual protection 2016"))
       inputProtectionType <- Gen.chooseNum(10000000, 99999999)
       amountCrystallised <- Gen.chooseNum(1, 1000)
-      typeOfProtectionEvent8And8A <- Gen.oneOf(Seq("Primary Protection", "Enhanced protection"))
+      typeOfProtectionEvent8 <- Gen.oneOf(Seq("Primary Protection", "Enhanced protection"))
+      typeOfProtectionEvent8A <- Gen.oneOf(Seq("Primary Protection", "Enhanced"))
       typeOfProtectionReference <- Gen.chooseNum(10000000, 99999999)
       taxYearEndDate <- Gen.oneOf(2020, 2021, 2022)
       reasonBenefitTakenEvent8A <- Gen.oneOf(
@@ -539,7 +566,8 @@ object GeneratorAPI1832 {
         "taxYearEndDate" -> taxYearEndDate.toString,
         "typeOfProtectionEvent6" -> typeOfProtectionEvent6,
         "inputProtectionType" -> inputProtectionType.toString,
-        "typeOfProtectionEvent8And8A" -> typeOfProtectionEvent8And8A,
+        "typeOfProtectionEvent8" -> typeOfProtectionEvent8,
+        "typeOfProtectionEvent8A" -> typeOfProtectionEvent8A,
         "typeOfProtectionReference" -> typeOfProtectionReference.toString,
         "reasonBenefitTakenEvent8A" -> reasonBenefitTakenEvent8A
       )
