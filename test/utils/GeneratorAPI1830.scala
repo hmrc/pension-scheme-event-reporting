@@ -96,26 +96,31 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
       Tuple2(ua, expected)
     }
   }
+
   def generateUserAnswersAndPOSTBodyEvent3: Gen[(JsObject, JsObject)] = {
     for {
       map <- randomValues()
     } yield {
       val ua = Json.obj(
-        s"event${Event3.toString}" -> Json.obj("members" ->
-          Json.arr(
-            Json.obj(
-              "membersDetails" -> Json.obj(
-                "firstName" -> map("firstName"),
-                "lastName" -> map("lastName"),
-                "nino" -> map("nino")),
-              "paymentDetails" -> Json.obj(
-                "reasonBenefitTaken" -> map("reasonBenefitTakenEvent3"),
-                "amountBenefit" -> map("monetaryAmount"),
-                "eventDate" -> s"${map("taxYear")}-04-25",
-                "freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3"))
-              ),
+        s"event${Event3.toString}" -> Json.obj(
+          "members" ->
+            Json.arr(
+              Json.obj(
+                "membersDetails" -> Json.obj(
+                  "firstName" -> map("firstName"),
+                  "lastName" -> map("lastName"),
+                  "nino" -> map("nino")
+                ),
+                "benefitType" -> Json.obj(
+                  "reasonBenefitTaken" -> map("reasonBenefitTakenEvent3"),
+                  "freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3")),
+                ),
+                "paymentDetails" -> Json.obj(
+                  "amountPaid" -> map("monetaryAmount"),
+                  "eventDate" -> s"${map("taxYear")}-04-25",
+                ),
+              )
             )
-          )
         ),
         "taxYear" -> map("taxYear")
       )
@@ -135,7 +140,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
               "nino" -> map("nino")
             ),
             "paymentDetails" -> Json.obj(
-              "reasonBenefitTaken" -> map("reasonBenefitTakenEvent3"),
+              "reasonBenefitTaken" -> event3TypeOfBenefitConversion(map("reasonBenefitTakenEvent3")),
               "amountBenefit" -> map("monetaryAmount"),
               "eventDate" -> s"${map("taxYear")}-04-25",
               "freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3"))
@@ -563,7 +568,13 @@ object GeneratorAPI1830 {
       "Member where payment of a scheme specific lump sum protection and the lump sum is more than 7.5 per of the lifetime allowance"
   }
 
-  private def freeTextEvent3(rBT: String): String = if(rBT != "Other") "N/A" else "Example brief description"
+  private def freeTextEvent3(rBT: String): String = if (rBT != "other") "N/A" else "Example brief description"
+
+  private def event3TypeOfBenefitConversion(tOB: String): String = tOB match {
+    case "illHealth" => "Ill Health"
+    case "protectedPensionAge" => "Protected Pension Age"
+    case "other" => "Other"
+  }
 
   private def randomValues(): Gen[Map[String, String]] = {
     for {
@@ -584,7 +595,7 @@ object GeneratorAPI1830 {
       deceasedFirstName <- Gen.oneOf(Seq("Daniel", "Emma", "Fred"))
       deceasedLastName <- Gen.oneOf(Seq("Urqhart", "Vanderbilt", "Wilson"))
       deceasedNino <- Gen.oneOf(Seq("AB654321C", "CD654321E"))
-      reasonBenefitTakenEvent3 <- Gen.oneOf(Seq("Ill Health", "Protected Pension Age", "Other"))
+      reasonBenefitTakenEvent3 <- Gen.oneOf(Seq("illHealth", "protectedPensionAge", "other"))
     } yield {
       Map(
         "firstName" -> firstName,
