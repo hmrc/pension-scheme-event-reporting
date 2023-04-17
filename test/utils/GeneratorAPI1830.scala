@@ -209,7 +209,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
                 "lastName" -> map("lastName"),
                 "nino" -> map("nino")),
               "paymentDetails" -> Json.obj(
-                "annualRate" -> map("monetaryAmount"),
+                "amountPaid" -> map("monetaryAmount"),
                 "eventDate" -> s"${map("taxYear")}-04-25",
               ),
             )
