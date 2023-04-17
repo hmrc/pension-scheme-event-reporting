@@ -80,8 +80,8 @@ object API1830 extends Transformer {
     (
       (__ \ Symbol("eventType")).json.put(JsString(s"Event$Event3")) and
         readsIndividualMemberDetails and
-        (pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.copyFrom((pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.pick) and
-        (pathPaymentDetails \ Symbol("amountBenefit")).json.copyFrom((pathPaymentDetails \ Symbol("amountBenefit")).json.pick) and
+        (pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.copyFrom(readsTypeOfBenefitEvent3) and
+        (pathPaymentDetails \ Symbol("amountBenefit")).json.copyFrom((pathPaymentDetails \ Symbol("amountPaid")).json.pick) and
         (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathPaymentDetails \ Symbol("eventDate")).json.pick) and
         (pathPaymentDetails \ Symbol("freeText")).json.copyFrom(readsFreeTextEvent3.orElse(Reads.pure(JsString("N/A"))))).reduce
   }
@@ -99,7 +99,7 @@ object API1830 extends Transformer {
     (
       (__ \ Symbol("eventType")).json.put(JsString(s"Event$Event5")) and
         readsIndividualMemberDetails and
-        (pathPaymentDetails \ Symbol("annualRate")).json.copyFrom((pathPaymentDetails \ Symbol("annualRate")).json.pick) and
+        (pathPaymentDetails \ Symbol("annualRate")).json.copyFrom((pathPaymentDetails \ Symbol("amountPaid")).json.pick) and
         (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathPaymentDetails \ Symbol("eventDate")).json.pick)
       ).reduce
   }
@@ -162,6 +162,7 @@ object API1830 extends Transformer {
 
   private lazy val pathIndividualMemberDetails = __ \ Symbol("individualDetails")
   private val pathPaymentDetails = __ \ Symbol("paymentDetails")
+  private val pathBenefitType = __ \ Symbol("benefitType")
   private val pathAmountCrystallisedAndDateDetails = __ \ Symbol("AmountCrystallisedAndDate")
   private val pathLumpSumAmountAndDateDetails = __ \ Symbol("lumpSumAmountAndDate")
 
@@ -171,6 +172,11 @@ object API1830 extends Transformer {
 
   private val readsTaxYearEndDate: Reads[JsString] = (__ \ Symbol("chooseTaxYear")).json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString(s"${str.toInt + 1}-04-05"))
+    case _ => fail[JsString]
+  }
+
+  private val readsTypeOfBenefitEvent3: Reads[JsString] = (pathBenefitType \ Symbol("reasonBenefitTaken")).json.pick.flatMap {
+    case JsString(str) => Reads.pure(JsString(event3TypeOfBenefitConversion(str)))
     case _ => fail[JsString]
   }
 
@@ -199,11 +205,16 @@ object API1830 extends Transformer {
     case _ => fail[JsString]
   }
 
-  private val readsFreeTextEvent3: Reads[JsString] = (pathPaymentDetails \ Symbol("freeText")).json.pick.flatMap {
+  private val readsFreeTextEvent3: Reads[JsString] = (pathBenefitType \ Symbol("freeText")).json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString(str))
     case _ => fail[JsString]
   }
 
+  private def event3TypeOfBenefitConversion(tOB: String): String = tOB match {
+    case "illHealth" => "Ill Health"
+    case "protectedPensionAge" => "Protected Pension Age"
+    case "other" => "Other"
+  }
 
   private def event6TypeOfProtectionConversion(tOP: String): String = tOP match {
     case "enhancedLifetimeAllowance" => "Enhanced life time allowance"
