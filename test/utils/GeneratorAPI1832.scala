@@ -37,7 +37,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
       case Event6 => generateUAFromETMPDataForEvent6
       case Event7 => generateUAFromETMPDataForEvent7
       case Event8 => generateUAFromETMPDataForEvent8
-      case Event8A => ???
+      case Event8A => generateUAFromETMPDataForEvent8A
       case _ => generateUAFromETMPDataForEvent22And23(eventType)
     }
   }
@@ -100,15 +100,11 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
     for {
       map <- randomValues()
     } yield {
-      val test = if (map("reasonBenefitTakenEvent3") == "Other") {
-        Json.obj("freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3")))
-      } else {
-        JsObject.empty
-      }
 
       val etmpPayload = etmpData(Event3) ++
         Json.obj("eventDetails" -> Json.arr(
           Json.obj("memberDetail" -> Json.obj(
+            "memberStatus" -> "New",
             "event" -> Json.obj(
               "eventType" -> s"Event${Event3.toString}",
               "individualDetails" -> Json.obj(
@@ -120,18 +116,18 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
                 "reasonBenefitTaken" -> map("reasonBenefitTakenEvent3"),
                 "amountBenefit" -> map("pensionAmt"),
                 "eventDate" -> s"${map("taxYearEndDate")}-04-05",
-                "freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3"))
-              )
+                "freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3")
+                )
             )
           )
           )
         )
-        )
+        ))
       val userAnswers = Json.obj(
         s"event${Event3.toString}" -> Json.obj("members" ->
           Json.arr(
             Json.obj(
-              "memberDetails" -> Json.obj(
+              "membersDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
                 "nino" -> map("nino")),
@@ -141,7 +137,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
               ),
               "paymentDetails" -> Json.obj(
                 "amountBenefit" -> map("pensionAmt"),
-                "eventDate" -> (map("taxYearEndDate").toInt - 1).toString,
+                "eventDate" -> s"${map("taxYearEndDate")}-04-05"
               ),
             )
           )
@@ -333,6 +329,55 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
+  def generateUAFromETMPDataForEvent8A: Gen[(JsObject, JsObject)] = {
+    for {
+      map <- randomValues()
+    } yield {
+      val etmpPayload = etmpData(Event8A) ++
+        Json.obj("eventDetails" -> Json.arr(
+          Json.obj("memberDetail" -> Json.obj(
+            "event" -> Json.obj(
+              "eventType" -> s"Event${Event8A.toString}",
+              "individualDetails" -> Json.obj(
+                "firstName" -> map("firstName"),
+                "lastName" -> map("lastName"),
+                "nino" -> map("nino")
+              ),
+              "paymentDetails" -> Json.obj(
+                "reasonBenefitTaken" -> map("reasonBenefitTakenEvent8A"),
+                "amountLumpSum" -> map("lumpSumAmount"),
+                "typeOfProtection" -> map("typeOfProtectionEvent8And8A"),
+                "eventDate" -> s"${map("taxYearEndDate")}-04-05",
+                "freeText" -> map("typeOfProtectionReference")
+              )
+            )
+          )
+          )
+        )
+        )
+      val userAnswers = Json.obj(
+        s"event${Event8A.toString}" -> Json.obj("members" ->
+          Json.arr(
+            Json.obj(
+              "membersDetails" -> Json.obj(
+                "firstName" -> map("firstName"),
+                "lastName" -> map("lastName"),
+                "nino" -> map("nino")),
+              "paymentType" -> paymentTypeUAEvent8A(map("reasonBenefitTakenEvent8A")),
+              "typeOfProtection" -> map("typeOfProtectionEvent8And8A"),
+              "typeOfProtectionReference" -> map("typeOfProtectionReference"),
+              "lumpSumAmountAndDate" -> Json.obj(
+                "lumpSumAmount" -> map("lumpSumAmount"),
+                "lumpSumDate" -> s"${map("taxYearEndDate")}-04-05",
+              ),
+            )
+          )
+        )
+      )
+      Tuple2(etmpPayload, userAnswers)
+    }
+  }
+
   def generateUAFromETMPDataForEvent22And23(eventType: EventType): Gen[(JsObject, JsObject)] = {
     for {
       map <- randomValues()
@@ -450,6 +495,13 @@ object GeneratorAPI1832 {
 
   private def freeTextEvent3(rBT: String): String = if (rBT != "Other") "N/A" else "Example brief description"
 
+  private def paymentTypeUAEvent8A(rBT: String): String = rBT match {
+    case "Member where payment of a stand-alone lump sum (100 per lump sum) and the member had protected lump sum rights of more than £375,000 with either primary protection or enhanced protection"
+    => "paymentOfAStandAloneLumpSum"
+    case "Member where payment of a scheme specific lump sum protection and the lump sum is more than 7.5 per of the lifetime allowance"
+    => "paymentOfASchemeSpecificLumpSum"
+  }
+
   private def randomValues(): Gen[Map[String, String]] = {
     for {
       firstName <- Gen.oneOf(Seq("Alice", "Bob", "Charlie"))
@@ -468,6 +520,10 @@ object GeneratorAPI1832 {
       typeOfProtectionEvent8And8A <- Gen.oneOf(Seq("Primary Protection", "Enhanced protection"))
       typeOfProtectionReference <- Gen.chooseNum(10000000, 99999999)
       taxYearEndDate <- Gen.oneOf(2020, 2021, 2022)
+      reasonBenefitTakenEvent8A <- Gen.oneOf(
+        "Member where payment of a stand-alone lump sum (100 per lump sum) and the member had protected lump sum rights of more than £375,000 with either primary protection or enhanced protection",
+        "Member where payment of a scheme specific lump sum protection and the lump sum is more than 7.5 per of the lifetime allowance"
+      )
     } yield {
       Map(
         "firstName" -> firstName,
@@ -484,7 +540,8 @@ object GeneratorAPI1832 {
         "typeOfProtectionEvent6" -> typeOfProtectionEvent6,
         "inputProtectionType" -> inputProtectionType.toString,
         "typeOfProtectionEvent8And8A" -> typeOfProtectionEvent8And8A,
-        "typeOfProtectionReference" -> typeOfProtectionReference.toString
+        "typeOfProtectionReference" -> typeOfProtectionReference.toString,
+        "reasonBenefitTakenEvent8A" -> reasonBenefitTakenEvent8A
       )
     }
   }

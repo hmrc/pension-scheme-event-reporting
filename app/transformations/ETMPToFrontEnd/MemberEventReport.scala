@@ -41,7 +41,7 @@ object MemberEventReport {
     case Event6 => rdsMemberDetailsEvent6
     case Event7 => rdsMemberDetailsEvent7
     case Event8 => rdsMemberDetailsEvent8
-    case Event8A => ???
+    case Event8A => rdsMemberDetailsEvent8A
     case _ => rdsMemberDetailsEvent22And23
   }
 
@@ -57,10 +57,11 @@ object MemberEventReport {
   implicit val rdsMemberDetailsEvent3: Reads[JsObject] = {
     (
       readsMemberDetails and
-        (__ \ Symbol("benefitType") \ Symbol("reasonBenefitTaken")).json.copyFrom((__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails")).json.pick) and
-        (__ \ Symbol("benefitType") \ Symbol("freeText")).json.copyFrom((__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails")).json.pick) and
-        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("eventDate")).json.pick) and
-        (pathPaymentDetails \ Symbol("amountPaid")).json.copyFrom((__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("amountBenefit")).json.pick)
+        (__ \ Symbol("benefitType") \ Symbol("reasonBenefitTaken")).json.copyFrom((__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("reasonBenefitTaken")).json.pick) and
+        // In the case that reasonBenefitTaken != "Other", freeText will be "N/A". FE will need to deal with that as this is a required field.
+        (__ \ Symbol("benefitType") \ Symbol("freeText")).json.copyFrom((__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("freeText")).json.pick) and
+        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("eventDate")).json.pick) and
+        (pathPaymentDetails \ Symbol("amountBenefit")).json.copyFrom((__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("amountBenefit")).json.pick)
       ).reduce
   }
 
@@ -94,6 +95,17 @@ object MemberEventReport {
   implicit val rdsMemberDetailsEvent8: Reads[JsObject] = {
     (
       readsMemberDetails and
+        (__ \ Symbol("typeOfProtection")).json.copyFrom((__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("typeOfProtection")).json.pick) and
+        (__ \ Symbol("typeOfProtectionReference")).json.copyFrom((__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("freeText")).json.pick) and
+        (__ \ Symbol("lumpSumAmountAndDate") \ Symbol("lumpSumAmount")).json.copyFrom((__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("amountLumpSum")).json.pick) and
+        (__ \ Symbol("lumpSumAmountAndDate") \ Symbol("lumpSumDate")).json.copyFrom((__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("eventDate")).json.pick)
+      ).reduce
+  }
+
+  implicit val rdsMemberDetailsEvent8A: Reads[JsObject] = {
+    (
+      readsMemberDetails and
+        (__ \ Symbol("paymentType")).json.copyFrom(readsPaymentTypeEvent8A) and
         (__ \ Symbol("typeOfProtection")).json.copyFrom((__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("typeOfProtection")).json.pick) and
         (__ \ Symbol("typeOfProtectionReference")).json.copyFrom((__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("freeText")).json.pick) and
         (__ \ Symbol("lumpSumAmountAndDate") \ Symbol("lumpSumAmount")).json.copyFrom((__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("amountLumpSum")).json.pick) and
@@ -190,6 +202,21 @@ private object ReadsWithTransform extends Transformer {
         (pathUaBeneficiaryDetailsEvent2 \ Symbol("nino")).json.copyFrom((pathEtmpPersonReceivedThePaymentEvent2 \ Symbol("nino")).json.pick)
       ).reduce
   }
+
+  lazy val readsPaymentTypeEvent8A: Reads[JsString] = {
+    (__ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails") \ Symbol("reasonBenefitTaken")).json.pick.flatMap {
+      case JsString(str) => Reads.pure(JsString(paymentTypeUAEvent8A(str)))
+      case _ => fail[JsString]
+    }
+  }
+
+    private def paymentTypeUAEvent8A(rBT: String): String = rBT match {
+      case "Member where payment of a stand-alone lump sum (100 per lump sum) and the member had protected lump sum rights of more than £375,000 with either primary protection or enhanced protection"
+        => "paymentOfAStandAloneLumpSum"
+      case "Member where payment of a scheme specific lump sum protection and the lump sum is more than 7.5 per of the lifetime allowance"
+        => "paymentOfASchemeSpecificLumpSum"
+  }
+
 
   lazy val readsTaxYearEndDateEvent22And23: Reads[JsString] = {
     pathEtmpTaxYearEndingDateEvent22And23.json.pick.flatMap {
