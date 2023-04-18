@@ -33,7 +33,8 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
     eventType match {
       case Event2 => generateUAFromETMPDataForEvent2
       case Event3 => generateUAFromETMPDataForEvent3
-      case Event4 | Event5 => generateUAFromETMPDataForEvent4And5(eventType)
+      case Event4 => generateUAFromETMPDataForEvent4
+      case Event5 => generateUAFromETMPDataForEvent5
       case Event6 => generateUAFromETMPDataForEvent6
       case Event7 => generateUAFromETMPDataForEvent7
       case Event8 => generateUAFromETMPDataForEvent8
@@ -147,15 +148,15 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
-  def generateUAFromETMPDataForEvent4And5(eventType: EventType): Gen[(JsObject, JsObject)] = {
+  def generateUAFromETMPDataForEvent4: Gen[(JsObject, JsObject)] = {
     for {
       map <- randomValues()
     } yield {
-      val etmpPayload = etmpData(eventType) ++
+      val etmpPayload = etmpData(Event4) ++
         Json.obj("eventDetails" -> Json.arr(
           Json.obj("memberDetail" -> Json.obj(
             "event" -> Json.obj(
-              "eventType" -> s"Event${eventType.toString}",
+              "eventType" -> s"Event${Event4.toString}",
               "individualDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
@@ -171,7 +172,50 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
         )
         )
       val userAnswers = Json.obj(
-        s"event${eventType.toString}" -> Json.obj("members" ->
+        s"event${Event4.toString}" -> Json.obj("members" ->
+          Json.arr(
+            Json.obj(
+              "membersDetails" -> Json.obj(
+                "firstName" -> map("firstName"),
+                "lastName" -> map("lastName"),
+                "nino" -> map("nino")),
+              "paymentDetails" -> Json.obj(
+                "amountPaid" -> map("pensionAmt"),
+                "datePaid" -> s"${map("taxYearEndDate")}-04-05"
+              ),
+            )
+          )
+        )
+      )
+      Tuple2(etmpPayload, userAnswers)
+    }
+  }
+
+  def generateUAFromETMPDataForEvent5: Gen[(JsObject, JsObject)] = {
+    for {
+      map <- randomValues()
+    } yield {
+      val etmpPayload = etmpData(Event5) ++
+        Json.obj("eventDetails" -> Json.arr(
+          Json.obj("memberDetail" -> Json.obj(
+            "event" -> Json.obj(
+              "eventType" -> s"Event${Event5.toString}",
+              "individualDetails" -> Json.obj(
+                "firstName" -> map("firstName"),
+                "lastName" -> map("lastName"),
+                "nino" -> map("nino")
+              ),
+              "paymentDetails" -> Json.obj(
+                "annualRate" -> map("pensionAmt"),
+                "eventDate" -> s"${map("taxYearEndDate")}-04-05"
+              )
+            )
+          )
+          )
+        )
+        )
+      val userAnswers = Json.obj(
+        s"event${Event5.toString}" -> Json.obj("members" ->
           Json.arr(
             Json.obj(
               "membersDetails" -> Json.obj(

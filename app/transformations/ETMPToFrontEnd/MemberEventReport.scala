@@ -37,7 +37,8 @@ object MemberEventReport {
   private def readsMemberDetailsByEventType(eventType: EventType): Reads[JsObject] = eventType match {
     case Event2 =>          rdsMemberDetailsEvent2
     case Event3 =>          rdsMemberDetailsEvent3
-    case Event4 | Event5 => rdsMemberDetailsEvent4And5
+    case Event4 =>          rdsMemberDetailsEvent4
+    case Event5 =>          rdsMemberDetailsEvent5
     case Event6 =>          rdsMemberDetailsEvent6
     case Event7 =>          rdsMemberDetailsEvent7
     case Event8 =>          rdsMemberDetailsEvent8
@@ -47,7 +48,8 @@ object MemberEventReport {
 
   implicit val rdsMemberDetailsEvent2:        Reads[JsObject] = (readsDeceasedMemberDetails and readsBeneficiaryDetails and readsEvent2PaymentDetails).reduce
   implicit val rdsMemberDetailsEvent3:        Reads[JsObject] = (readsMemberDetails and readsEvent3PaymentDetails).reduce
-  implicit val rdsMemberDetailsEvent4And5:    Reads[JsObject] = (readsMemberDetails and readsEvent4Or5PaymentDetails).reduce
+  implicit val rdsMemberDetailsEvent4:        Reads[JsObject] = (readsMemberDetails and readsEvent4PaymentDetails).reduce
+  implicit val rdsMemberDetailsEvent5:        Reads[JsObject] = (readsMemberDetails and readsEvent5PaymentDetails).reduce
   implicit val rdsMemberDetailsEvent6:        Reads[JsObject] = (readsMemberDetails and readsEvent6PaymentDetails).reduce
   implicit val rdsMemberDetailsEvent7:        Reads[JsObject] = (readsMemberDetails and readsEvent7PaymentDetails).reduce
   implicit val rdsMemberDetailsEvent8:        Reads[JsObject] = (readsMemberDetails and readsEvent8PaymentDetails).reduce
@@ -74,10 +76,16 @@ private object ReadsUtilities extends Transformer {
     ).reduce
   }
 
-  lazy val readsEvent4Or5PaymentDetails: Reads[JsObject] = {(
+  lazy val readsEvent4PaymentDetails: Reads[JsObject] = {(
     pathUaAmountPaidNested.json.copyFrom(pathEtmpAmountPaid.json.pick) and
       pathUaDatePaidNested.json.copyFrom(pathEtmpEventDate.json.pick)
     ).reduce
+  }
+
+  lazy val readsEvent5PaymentDetails: Reads[JsObject] = {(
+      pathUaAmountPaidNested.json.copyFrom(pathEtmpAnnualRate.json.pick) and
+        pathUaDatePaidNested.json.copyFrom(pathEtmpEventDate.json.pick)
+      ).reduce
   }
 
   lazy val readsEvent6PaymentDetails: Reads[JsObject] = {(
@@ -263,6 +271,7 @@ private object Paths {
   val pathEtmpAmountCrystalised:        JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("amountCrystalised")
   val pathEtmpAmountLumpSum:            JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("amountLumpSum")
   val pathEtmpAmountPaid:               JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("amountPaid")
+  val pathEtmpAnnualRate:               JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("annualRate")
   val pathEtmpEventDate:                JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("eventDate")
   val pathEtmpFreeText:                 JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("freeText")
   val pathEtmpMonetaryAmount:           JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("monetaryAmount")
