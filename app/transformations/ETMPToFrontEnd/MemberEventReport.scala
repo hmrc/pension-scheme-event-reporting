@@ -72,7 +72,7 @@ private object ReadsUtilities extends Transformer {
     pathUaReasonBenefitTaken.json.copyFrom(readsReasonBenefitTakenEvent3) and
       pathUaFreeText.json.copyFrom(pathEtmpFreeText.json.pick) and
       pathUaEventDate.json.copyFrom(pathEtmpEventDate.json.pick) and
-      pathUaAmountBenefit.json.copyFrom(pathEtmpAmountBenefit.json.pick)
+      pathUaAmountPaidNested.json.copyFrom(pathEtmpAmountBenefit.json.pick)
     ).reduce
   }
 
@@ -250,7 +250,6 @@ private object Paths {
   val pathUaLumpSumAmountNested:        JsPath = __ \ Symbol("lumpSumAmountAndDate") \ Symbol("lumpSumAmount")
   val pathUaLumpSumDateNested:          JsPath = __ \ Symbol("lumpSumAmountAndDate") \ Symbol("lumpSumDate")
   val pathUaPaymentDate:                JsPath = __ \ Symbol("paymentDate") \ Symbol("date")
-  val pathUaAmountBenefit:              JsPath = __ \ Symbol("paymentDetails") \ Symbol("amountBenefit")
   val pathUaAmountPaidNested:           JsPath = __ \ Symbol("paymentDetails") \ Symbol("amountPaid")
   val pathUaDatePaidNested:             JsPath = __ \ Symbol("paymentDetails") \ Symbol("datePaid")
   val pathUaEventDate:                  JsPath = __ \ Symbol("paymentDetails") \ Symbol("eventDate")

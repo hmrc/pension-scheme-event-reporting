@@ -137,7 +137,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
                 "freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3"))
               ),
               "paymentDetails" -> Json.obj(
-                "amountBenefit" -> map("pensionAmt"),
+                "amountPaid" -> map("pensionAmt"),
                 "eventDate" -> s"${map("taxYearEndDate")}-04-05"
               ),
             )
