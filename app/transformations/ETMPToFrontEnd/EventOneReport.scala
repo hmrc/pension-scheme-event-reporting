@@ -16,8 +16,6 @@
 
 package transformations.ETMPToFrontEnd
 
-import play.api.libs.functional.syntax._
-import play.api.libs.json.Reads._
 import play.api.libs.json._
 import transformations.Transformer
 
@@ -33,11 +31,10 @@ object EventOneReport extends Transformer {
     dummyUAPath.json.copyFrom((__ \ Symbol("event1Details") \ Symbol("individualMemberDetails")  \ Symbol("firstName")).json.pick)
   )}
 
+  implicit val rds1833Api: Reads[JsObject] =
+    dummyUAPath.json.copyFrom((__ \ Symbol("event1Details") \ 0 \ Symbol("individualMemberDetails")  \ Symbol("firstName")).json.pick)
 
-
-  implicit val rds1833Api: Reads[JsObject] = dummyUAPath.json.copyFrom(pathEtmpEventDetails.read(readsMembers))
-
-  def readsMembers: Reads[JsArray] = __.read(Reads.seq(rdsFirstName)).map(JsArray(_))
+  // def readsMembers: Reads[JsArray] = __.read(Reads.seq(rdsFirstName)).map(JsArray(_))
 
 }
 
