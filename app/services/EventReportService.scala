@@ -21,7 +21,7 @@ import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
 import models.ERVersion
 import models.enumeration.ApiType._
-import models.enumeration.EventType.Event22
+import models.enumeration.EventType.{Event1, Event22}
 import models.enumeration.{ApiType, EventType}
 import play.api.Logging
 import play.api.http.Status.NOT_IMPLEMENTED
@@ -31,7 +31,7 @@ import play.api.mvc.Result
 import play.api.mvc.Results._
 import repositories.{EventReportCacheRepository, GetEventCacheRepository, OverviewCacheRepository}
 import transformations.ETMPToFrontEnd.EventSummary.{rdsEventTypeNodeOnly, rdsFor1834}
-import transformations.ETMPToFrontEnd.MemberEventReport
+import transformations.ETMPToFrontEnd.{EventOneReport, MemberEventReport}
 import transformations.UserAnswersToETMP.{API1826, API1827, API1830}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
@@ -120,6 +120,10 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def validationCheck(data: JsValue, eventType: EventType): Option[JsValue] = {
     eventType match {
+      case Event1 => data.validate(EventOneReport.rds1833Api) match {
+        case JsSuccess(transformedData, _) => Some(transformedData)
+        case _ => None
+      }
       case Event22 => data.validate(MemberEventReport.rds1832Api) match {
         case JsSuccess(transformedData, _) => Some(transformedData)
         case _ => None
