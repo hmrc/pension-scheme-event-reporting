@@ -164,7 +164,7 @@ class EventReportController @Inject()(
     implicit request =>
       withPstrAndBody { (pstr, userAnswersJson) =>
         logger.debug(message = s"[Submit Event Declaration Report - Incoming payload]$userAnswersJson")
-        Future.fromTry(jsonSchemaValidator.validatePayload(userAnswersJson, submitEventDeclarationReportSchemaPath, "submitEvent20ADeclarationReport"))
+        Future.fromTry(jsonSchemaValidator.validatePayload(userAnswersJson, submitEventDeclarationReportSchemaPath, "submitEventDeclarationReport"))
           .flatMap { _ =>
             eventReportService.submitEventDeclarationReport(pstr, userAnswersJson).map(Ok(_))
           }
