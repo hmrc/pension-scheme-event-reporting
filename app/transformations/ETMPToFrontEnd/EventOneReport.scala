@@ -22,20 +22,36 @@ import transformations.Transformer
 //noinspection ScalaStyle
 object EventOneReport extends Transformer {
 
-  /* Paths */
-  val dummyUAPath: JsPath = __ \ "dummy"
-  val pathEtmpEventDetails: JsPath = __ \ "event1Details"
-  val pathEtmpIndividualMemberDetailsFirstName: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("firstName")
+  import Paths._
+  import ReadsUtilities._
 
-  // Dummy test reads
-  implicit val rdsFirstName: Reads[JsObject] = {(
-    dummyUAPath.json.copyFrom(pathEtmpIndividualMemberDetailsFirstName.json.pick)
-  )}
-
+  
   implicit val rds1833Api: Reads[JsObject] =
     dummyUAPath.json.copyFrom(pathEtmpEventDetails.read(readsMembers))
 
   private lazy val readsMembers: Reads[JsArray] = __.read(Reads.seq(rdsFirstName).map(JsArray(_)))
 
+}
+
+private object ReadsUtilities extends Transformer {
+
+  import Paths._
+
+  // Dummy test reads
+  implicit val rdsFirstName: Reads[JsObject] = {(
+    dummyUAPath.json.copyFrom(pathEtmpIndividualMemberDetailsFirstName.json.pick)
+    )}
+
+}
+
+private object Paths {
+
+  /* UserAnswers */
+  val dummyUAPath: JsPath = __ \ "dummy"
+
+
+  /* ETMP */
+  val pathEtmpEventDetails: JsPath = __ \ "event1Details"
+  val pathEtmpIndividualMemberDetailsFirstName: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("firstName")
 }
 
