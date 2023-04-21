@@ -36,7 +36,8 @@ class SubmitEventDeclarationAuditServiceSpec extends SpecBase with BeforeAndAfte
   private val mockAuditService = mock[AuditService]
 
   private val pstr = "pstr"
-  private val data = Json.obj("test" -> "test")
+  private val requestData = Json.obj("test" -> "test")
+  private val responseData = Json.obj("responsetest" -> "test")
 
   override def beforeEach(): Unit = {
     reset(mockAuditService)
@@ -45,9 +46,9 @@ class SubmitEventDeclarationAuditServiceSpec extends SpecBase with BeforeAndAfte
   "SubmitEventDeclarationAuditService" must {
     "send the correct audit event for a successful" in {
       val service = new SubmitEventDeclarationAuditService(mockAuditService)
-      val pf = service.sendSubmitEventDeclarationAuditEvent(pstr, data)
-      pf(Success(HttpResponse.apply(200, "")))
-      val expectedAuditEvent = SubmitEventDeclarationAuditEvent(pstr, Status.OK, data, None)
+      val pf = service.sendSubmitEventDeclarationAuditEvent(pstr, requestData)
+      pf(Success(HttpResponse.apply(Status.OK, responseData, Map.empty)))
+      val expectedAuditEvent = SubmitEventDeclarationAuditEvent(pstr, Status.OK, requestData, Some(responseData))
       verify(mockAuditService, times(1)).sendEvent(expectedAuditEvent)(any(), any())
     }
 
