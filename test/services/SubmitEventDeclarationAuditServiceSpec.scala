@@ -46,7 +46,7 @@ class SubmitEventDeclarationAuditServiceSpec extends SpecBase with BeforeAndAfte
     "send the correct audit event for a successful" in {
       val service = new SubmitEventDeclarationAuditService(mockAuditService)
       val pf = service.sendSubmitEventDeclarationAuditEvent(pstr, data)
-      pf.apply(Success(HttpResponse.apply(200, "")))
+      pf(Success(HttpResponse.apply(200, "")))
       val expectedAuditEvent = SubmitEventDeclarationAuditEvent(pstr, Status.OK, data, None)
       verify(mockAuditService, times(1)).sendEvent(expectedAuditEvent)(any(), any())
     }
