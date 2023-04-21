@@ -16,7 +16,6 @@
 
 package services
 
-import audit.AuditEvent
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{times, verify, when}
@@ -24,9 +23,10 @@ import org.scalatest.Inside
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
+import play.api.http.Status
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.Json
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
 import uk.gov.hmrc.play.audit.http.connector.AuditConnector
@@ -41,30 +41,40 @@ class AuditServiceSpec extends AnyWordSpec with Matchers with Inside {
   import AuditServiceSpec._
 
   "AuditServiceImpl" must {
-    "construct and send the correct event" in {
+    "construct and send the correct success event" in {
 
       implicit val request: FakeRequest[AnyContentAsEmpty.type] = fakeRequest()
 
-      val event = TestAuditEvent("test-audit-payload")
+      val requestJson = Json.obj(
+        "requestUrl" -> "http://test"
+      )
+
+      val responseJson = Json.obj(
+        "response" -> "message"
+      )
+
+      val event = SubmitEventDeclarationAuditEvent("test-audit-payload",  Some(Status.OK), requestJson, Some(responseJson), None )
       val templateCaptor = ArgumentCaptor.forClass(classOf[ExtendedDataEvent])
 
       when(mockAuditConnector.sendExtendedEvent(any())(any(), any()))
         .thenReturn(Future.successful(Success))
       auditService().sendEvent(event)
-
       verify(mockAuditConnector, times(1)).sendExtendedEvent(templateCaptor.capture())(any(), any())
       inside(templateCaptor.getValue) {
         case ExtendedDataEvent(auditSource, auditType, _, _, detail, _, _, _) =>
           auditSource mustBe appName
-          auditType mustBe "TestAuditEvent"
+          auditType mustBe event.auditType
+
+          //{"pstr":"test-audit-payload","status":"Some(200)","request":{},"response":null}
           detail mustBe Json.obj(
-            "payload" -> "test-audit-payload"
+            "pstr" -> "test-audit-payload",
+            "request" -> requestJson,
+            "status" -> 200,
+            "response" -> responseJson
           )
       }
     }
-
   }
-
 }
 
 object AuditServiceSpec extends MockitoSugar {
@@ -81,18 +91,5 @@ object AuditServiceSpec extends MockitoSugar {
   def auditService(): AuditService = app.injector.instanceOf[AuditService]
 
   def appName: String = app.configuration.underlying.getString("appName")
-
-}
-
-//noinspection ScalaDeprecation
-
-case class TestAuditEvent(payload: String) extends AuditEvent {
-
-  override def auditType: String = "TestAuditEvent"
-
-  override def details: JsObject =
-    Json.obj(
-      "payload" -> payload
-    )
 
 }

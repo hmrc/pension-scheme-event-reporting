@@ -30,28 +30,56 @@ class SubmitEventDeclarationAuditService @Inject()(auditService: AuditService) {
   def sendSubmitEventDeclarationAuditEvent(pstr: String, data: JsValue)
                                           (implicit ec: ExecutionContext, request: RequestHeader): PartialFunction[Try[HttpResponse], Unit] = {
     case Success(httpResponse) =>
-      auditService.sendEvent(SubmitEventDeclarationAuditEvent(pstr, Status.OK, data, Some(httpResponse.json)))
+      auditService.sendEvent(SubmitEventDeclarationAuditEvent(
+        pstr = pstr,
+        maybeStatus = Some(Status.OK),
+        request = data,
+        response = Some(httpResponse.json),
+        maybeErrorMessage = None))
     case Failure(error: UpstreamErrorResponse) =>
-      auditService.sendEvent(SubmitEventDeclarationAuditEvent(pstr, error.statusCode, data, None))
+      auditService.sendEvent(
+        SubmitEventDeclarationAuditEvent(
+          pstr,
+          Some(error.statusCode),
+          data, None,
+          maybeErrorMessage = None))
     case Failure(error: HttpException) =>
-      auditService.sendEvent(SubmitEventDeclarationAuditEvent(pstr, error.responseCode, data, None))
+      auditService.sendEvent(SubmitEventDeclarationAuditEvent(
+        pstr = pstr,
+        maybeStatus = Some(error.responseCode),
+        request = data,
+        response = None,
+        maybeErrorMessage = None))
+
+    case Failure(error: Throwable) =>
+      auditService.sendEvent(SubmitEventDeclarationAuditEvent(
+        pstr = pstr,
+        None,
+        request = data,
+        response = None,
+        maybeErrorMessage = Some(error.getMessage)
+      ))
   }
 }
 
-case class SubmitEventDeclarationAuditEvent(
-                                             pstr: String,
-                                             status: Int,
-                                             request: JsValue,
-                                             response: Option[JsValue]
+case class SubmitEventDeclarationAuditEvent(pstr: String,
+                                            maybeStatus: Option[Int],
+                                            request: JsValue,
+                                            response: Option[JsValue],
+                                            maybeErrorMessage: Option[String]
                                            ) extends AuditEvent {
   override def auditType: String = "AFTPost"
 
-  override def details: JsObject = Json.obj(
-    "pstr" -> pstr,
-    "status" -> status.toString,
-    "request" -> request,
-    "response" -> response
-  )
+  override def details: JsObject = {
+    val statusJson = maybeStatus.map(v => Json.obj( "status" -> v )).getOrElse(Json.obj())
+    val responseJson = response.map(response => Json.obj( "response" -> response )).getOrElse(Json.obj())
+    val errorMessageJson = maybeErrorMessage.map(errorMessage => Json.obj( "errorMessage" -> errorMessage )).getOrElse(Json.obj())
+
+    Json.obj(
+      "pstr" -> pstr,
+      "request" -> request
+    ) ++ statusJson ++ responseJson ++ errorMessageJson
+  }
 }
 
 object SubmitEventDeclarationAuditEvent {
