@@ -19,7 +19,9 @@ package connectors
 import com.github.tomakehurst.wiremock.client.WireMock._
 import models.enumeration.EventType._
 import models.{EROverview, EROverviewVersion, ERVersion}
-import org.mockito.Mockito.when
+import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.{reset, times, verify, when}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 import org.scalatestplus.mockito.MockitoSugar
@@ -27,12 +29,16 @@ import play.api.http.Status._
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.{JsArray, JsString, Json}
+import play.api.mvc.RequestHeader
+import play.api.test.FakeRequest
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
+import services.SubmitEventDeclarationAuditService
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.test.HttpClientSupport
 import utils.{JsonFileReader, UnrecognisedHttpResponseException, WireMockHelper}
 
 import java.time.LocalDate
+import scala.util.Try
 
 
 class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMockHelper with HttpClientSupport with JsonFileReader with MockitoSugar {
@@ -40,24 +46,38 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
   import EventReportConnectorSpec._
 
   private implicit lazy val hc: HeaderCarrier = HeaderCarrier()
+  private implicit lazy val rh: RequestHeader = FakeRequest("", "")
 
   override protected def portConfigKeys: String = "microservice.services.if-hod.port,microservice.services.des-hod.port"
 
   private val mockHeaderUtils = mock[HeaderUtils]
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
   private val mockOverviewCacheRepository = mock[OverviewCacheRepository]
+  private val mockSubmitEventDeclarationAuditService = mock[SubmitEventDeclarationAuditService]
   private lazy val connector: EventReportConnector = injector.instanceOf[EventReportConnector]
+
 
   override protected def bindings: Seq[GuiceableModule] =
     Seq(
       bind[HttpClient].toInstance(httpClient),
       bind[HeaderUtils].toInstance(mockHeaderUtils),
       bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
-      bind[OverviewCacheRepository].toInstance(mockOverviewCacheRepository)
+      bind[OverviewCacheRepository].toInstance(mockOverviewCacheRepository),
+      bind[SubmitEventDeclarationAuditService].toInstance(mockSubmitEventDeclarationAuditService)
     )
 
+  private val pfSuccess: PartialFunction[Try[HttpResponse], Unit] = new PartialFunction[Try[HttpResponse], Unit] {
+    override def isDefinedAt(x: Try[HttpResponse]): Boolean = true
+    override def apply(v1: Try[HttpResponse]): Unit = ()
+  }
+
+
+
   override def beforeEach(): Unit = {
+    reset(mockSubmitEventDeclarationAuditService)
     when(mockHeaderUtils.getCorrelationId).thenReturn(testCorrelationId)
+    when(mockSubmitEventDeclarationAuditService.sendSubmitEventDeclarationAuditEvent(any(), any())(any(), any()))
+      .thenReturn(pfSuccess)
     super.beforeEach()
   }
 
@@ -647,7 +667,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
   }
 
   "submitEventDeclarationReport" must {
-    "return 200 when ETMP has returned OK" in {
+    "return 200 when ETMP has returned OK & send audit event" in {
       val data = Json.obj(fields = "Id" -> "value")
       server.stubFor(
         post(urlEqualTo(submitEventDeclarationReportUrl))
@@ -657,12 +677,15 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             ok
           )
       )
-      connector.submitEventDeclarationReport(pstr, data) map {
-        _.status mustBe OK
+
+      connector.submitEventDeclarationReport(pstr, data) map { response =>
+        verify(mockSubmitEventDeclarationAuditService, times(1))
+          .sendSubmitEventDeclarationAuditEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data))(any(), any())
+        response.status mustBe OK
       }
     }
 
-    "return Upstream5xxResponse when ETMP has returned Internal Server Error" in {
+    "return Upstream5xxResponse when ETMP has returned Internal Server Error and send audit event" in {
       val data = Json.obj(fields = "Id" -> "value")
       server.stubFor(
         post(urlEqualTo(submitEventDeclarationReportUrl))
@@ -671,8 +694,10 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             serverError()
           )
       )
-      recoverToExceptionIf[UpstreamErrorResponse](connector.submitEventDeclarationReport(pstr, data)) map {
-        _.statusCode mustBe INTERNAL_SERVER_ERROR
+      recoverToExceptionIf[UpstreamErrorResponse](connector.submitEventDeclarationReport(pstr, data)) map { response =>
+        verify(mockSubmitEventDeclarationAuditService, times(1))
+          .sendSubmitEventDeclarationAuditEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data))(any(), any())
+        response.statusCode mustBe INTERNAL_SERVER_ERROR
       }
     }
 
