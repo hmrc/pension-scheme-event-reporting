@@ -17,8 +17,9 @@
 package services
 
 import base.SpecBase
+import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{reset, times, verify}
+import org.mockito.Mockito.{doNothing, reset, times, verify}
 import org.scalatest.BeforeAndAfterEach
 import play.api.http.Status
 import play.api.libs.json.Json
@@ -44,13 +45,13 @@ class SubmitEventDeclarationAuditServiceSpec extends SpecBase with BeforeAndAfte
   }
 
   "SubmitEventDeclarationAuditService" must {
-    "send the correct audit event for a successful" in {
+    "send the correct audit event for a successful response" in {
+      doNothing().when(mockAuditService).sendEvent(any())(any(), any())
       val service = new SubmitEventDeclarationAuditService(mockAuditService)
       val pf = service.sendSubmitEventDeclarationAuditEvent(pstr, requestData)
       pf(Success(HttpResponse.apply(Status.OK, responseData, Map.empty)))
       val expectedAuditEvent = SubmitEventDeclarationAuditEvent(pstr, Status.OK, requestData, Some(responseData))
-      verify(mockAuditService, times(1)).sendEvent(expectedAuditEvent)(any(), any())
+      verify(mockAuditService, times(1)).sendEvent(ArgumentMatchers.eq(expectedAuditEvent))(any(), any())
     }
-
   }
 }
