@@ -24,13 +24,13 @@ import play.api.libs.json._
 import transformations.Transformer
 
 
-//noinspection ScalaStyle
 object MemberEventReport {
 
   import transformations.ETMPToFrontEnd.Paths._
   import transformations.ETMPToFrontEnd.ReadsUtilities._
 
-  def rds1832Api(eventType: EventType): Reads[JsObject] = pathUaEventDetailsForEventType(eventType).json.copyFrom(pathEtmpEventDetails.read(readsMembers(eventType)))
+  def rds1832Api(eventType: EventType): Reads[JsObject] =
+    pathUaEventDetailsForEventType(eventType).json.copyFrom(pathEtmpEventDetails.read(readsMembers(eventType)))
 
   private def readsMembers(eventType: EventType): Reads[JsArray] = __.read(Reads.seq(readsMemberDetailsByEventType(eventType))).map(JsArray(_))
 
@@ -46,18 +46,17 @@ object MemberEventReport {
     case _ =>               rdsMemberDetailsEvent22And23
   }
 
-  implicit val rdsMemberDetailsEvent2:        Reads[JsObject] = (readsDeceasedMemberDetails and readsBeneficiaryDetails and readsEvent2PaymentDetails).reduce
-  implicit val rdsMemberDetailsEvent3:        Reads[JsObject] = (readsMemberDetails and readsEvent3PaymentDetails).reduce
-  implicit val rdsMemberDetailsEvent4:        Reads[JsObject] = (readsMemberDetails and readsEvent4PaymentDetails).reduce
-  implicit val rdsMemberDetailsEvent5:        Reads[JsObject] = (readsMemberDetails and readsEvent5PaymentDetails).reduce
-  implicit val rdsMemberDetailsEvent6:        Reads[JsObject] = (readsMemberDetails and readsEvent6PaymentDetails).reduce
-  implicit val rdsMemberDetailsEvent7:        Reads[JsObject] = (readsMemberDetails and readsEvent7PaymentDetails).reduce
-  implicit val rdsMemberDetailsEvent8:        Reads[JsObject] = (readsMemberDetails and readsEvent8PaymentDetails).reduce
-  implicit val rdsMemberDetailsEvent8A:       Reads[JsObject] = (readsMemberDetails and readsEvent8APaymentDetails).reduce
-  implicit val rdsMemberDetailsEvent22And23:  Reads[JsObject] = (readsMemberDetails and readsEvent22Or23PaymentDetails).reduce
+  private val rdsMemberDetailsEvent2:        Reads[JsObject] = (readsDeceasedMemberDetails and readsBeneficiaryDetails and readsEvent2PaymentDetails).reduce
+  private val rdsMemberDetailsEvent3:        Reads[JsObject] = (readsMemberDetails and readsEvent3PaymentDetails).reduce
+  private val rdsMemberDetailsEvent4:        Reads[JsObject] = (readsMemberDetails and readsEvent4PaymentDetails).reduce
+  private val rdsMemberDetailsEvent5:        Reads[JsObject] = (readsMemberDetails and readsEvent5PaymentDetails).reduce
+  private val rdsMemberDetailsEvent6:        Reads[JsObject] = (readsMemberDetails and readsEvent6PaymentDetails).reduce
+  private val rdsMemberDetailsEvent7:        Reads[JsObject] = (readsMemberDetails and readsEvent7PaymentDetails).reduce
+  private val rdsMemberDetailsEvent8:        Reads[JsObject] = (readsMemberDetails and readsEvent8PaymentDetails).reduce
+  private val rdsMemberDetailsEvent8A:       Reads[JsObject] = (readsMemberDetails and readsEvent8APaymentDetails).reduce
+  private val rdsMemberDetailsEvent22And23:  Reads[JsObject] = (readsMemberDetails and readsEvent22Or23PaymentDetails).reduce
 }
 
-//noinspection ScalaStyle
 private object ReadsUtilities extends Transformer {
 
   import transformations.ETMPToFrontEnd.Paths._

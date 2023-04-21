@@ -43,7 +43,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
-  def generateUAFromETMPDataForEvent2: Gen[(JsObject, JsObject)] = {
+  private def generateUAFromETMPDataForEvent2: Gen[(JsObject, JsObject)] = {
     for {
       map <- randomValues()
     } yield {
@@ -97,7 +97,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
-  def generateUAFromETMPDataForEvent3: Gen[(JsObject, JsObject)] = {
+  private def generateUAFromETMPDataForEvent3: Gen[(JsObject, JsObject)] = {
     for {
       map <- randomValues()
     } yield {
@@ -148,7 +148,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
-  def generateUAFromETMPDataForEvent4: Gen[(JsObject, JsObject)] = {
+  private def generateUAFromETMPDataForEvent4: Gen[(JsObject, JsObject)] = {
     for {
       map <- randomValues()
     } yield {
@@ -191,7 +191,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
-  def generateUAFromETMPDataForEvent5: Gen[(JsObject, JsObject)] = {
+  private def generateUAFromETMPDataForEvent5: Gen[(JsObject, JsObject)] = {
     for {
       map <- randomValues()
     } yield {
@@ -234,7 +234,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
-  def generateUAFromETMPDataForEvent6: Gen[(JsObject, JsObject)] = {
+  private def generateUAFromETMPDataForEvent6: Gen[(JsObject, JsObject)] = {
     for {
       map <- randomValues()
     } yield {
@@ -281,7 +281,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
-  def generateUAFromETMPDataForEvent7: Gen[(JsObject, JsObject)] = {
+  private def generateUAFromETMPDataForEvent7: Gen[(JsObject, JsObject)] = {
     for {
       map <- randomValues()
     } yield {
@@ -326,7 +326,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
-  def generateUAFromETMPDataForEvent8: Gen[(JsObject, JsObject)] = {
+  private def generateUAFromETMPDataForEvent8: Gen[(JsObject, JsObject)] = {
     for {
       map <- randomValues()
     } yield {
@@ -373,7 +373,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
-  def generateUAFromETMPDataForEvent8A: Gen[(JsObject, JsObject)] = {
+  private def generateUAFromETMPDataForEvent8A: Gen[(JsObject, JsObject)] = {
     for {
       map <- randomValues()
     } yield {
@@ -422,7 +422,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
-  def generateUAFromETMPDataForEvent22And23(eventType: EventType): Gen[(JsObject, JsObject)] = {
+  private def generateUAFromETMPDataForEvent22And23(eventType: EventType): Gen[(JsObject, JsObject)] = {
     for {
       map <- randomValues()
     } yield {
@@ -517,8 +517,6 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
   }
 }
 
-
-//noinspection ScalaStyle
 object GeneratorAPI1832 {
 
   private def etmpData(eventType: EventType): JsObject = Json.obj(
@@ -583,8 +581,9 @@ object GeneratorAPI1832 {
       reasonBenefitTakenEvent3 <- Gen.oneOf(Seq("Ill Health", "Protected Pension Age", "Other"))
       pensionAmt <- Gen.chooseNum(1, 1000)
       lumpSumAmount <- Gen.chooseNum(1, 1000)
-      typeOfProtectionEvent6 <- Gen.oneOf(Seq("Enhanced life time allowance", "Enhanced protection", "Fixed protection", "Fixed protection 2014", "Fixed protection 2016"
-        , "Individual protection 2014", "Individual protection 2016"))
+      typeOfProtectionEvent6 <- Gen.oneOf(Seq("Enhanced life time allowance",
+        "Enhanced protection", "Fixed protection", "Fixed protection 2014", "Fixed protection 2016",
+        "Individual protection 2014", "Individual protection 2016"))
       inputProtectionType <- Gen.chooseNum(10000000, 99999999)
       amountCrystallised <- Gen.chooseNum(1, 1000)
       typeOfProtectionEvent8 <- Gen.oneOf(Seq("Primary Protection", "Enhanced protection"))
