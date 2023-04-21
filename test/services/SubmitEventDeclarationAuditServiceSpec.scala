@@ -17,14 +17,18 @@
 package services
 
 import base.SpecBase
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, times, verify}
 import org.scalatest.BeforeAndAfterEach
+import play.api.http.Status
 import play.api.libs.json.Json
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import services.AuditServiceSpec.mock
+import uk.gov.hmrc.http.HttpResponse
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.Success
 class SubmitEventDeclarationAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
 
   private implicit lazy val rh: RequestHeader = FakeRequest("", "")
@@ -39,10 +43,12 @@ class SubmitEventDeclarationAuditServiceSpec extends SpecBase with BeforeAndAfte
   }
 
   "SubmitEventDeclarationAuditService" must {
-    "send the correct audit event" in {
+    "send the correct audit event for a successful" in {
       val service = new SubmitEventDeclarationAuditService(mockAuditService)
-      val result = service.sendSubmitEventDeclarationAuditEvent(pstr, data)
-      verify(mockAuditService, times(1)).sendEvent()
+      val pf = service.sendSubmitEventDeclarationAuditEvent(pstr, data)
+      pf.apply(Success(HttpResponse.apply(200, "")))
+      val expectedAuditEvent = SubmitEventDeclarationAuditEvent(pstr, Status.OK, data, None)
+      verify(mockAuditService, times(1)).sendEvent(expectedAuditEvent)(any(), any())
     }
 
   }
