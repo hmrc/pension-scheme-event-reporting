@@ -27,12 +27,11 @@ object EventOneReport {
   import EventOneReportPaths._
   import EventOneReportReadsUtilities._
 
-  
   implicit val rds1833Api: Reads[JsObject] =
-    dummyPath.json.copyFrom(pathEtmpEvent1Details.read(readsEvent1Details))
+    pathUAEvent1MembersOrEmployers.json.copyFrom(pathEtmpEvent1Details.read(readsEvent1Details))
 
   private lazy val readsEvent1Details: Reads[JsArray] = __.read(Reads.seq((
-    readsMemberType and readsIndividualOrEmployerMemberDetails and readsUnAuthorisedPaymentDetails
+      readsMemberType and readsIndividualOrEmployerMemberDetails and readsUnAuthorisedPaymentDetails
     ).reduce).map(JsArray(_)))
 }
 
@@ -67,34 +66,62 @@ private object EventOneReportReadsUtilities extends Transformer {
     ).reduce
   }
 
-  val readsUnAuthorisedPaymentDetails: Reads[JsObject] = {
-    pathUAUnAuthorisedPaymentDetails.json.copyFrom(pathETMPUnAuthorisedPaymentDetails.json.pick)
+  val readsUnAuthorisedPaymentDetails: Reads[JsObject] = {(
+    // Required
+    pathUAUnAuthorisedPaymentDetailsUnAuthorisedPmtType1.json.copyFrom(pathETMPUnAuthorisedPaymentDetailsUnAuthorisedPmtType1.json.pick) and
+      pathUAUnAuthorisedPaymentDetailsDateOfUnauthorisedPayment.json.copyFrom(pathETMPUnAuthorisedPaymentDetailsDateOfUnauthorisedPayment.json.pick) and
+      pathUAUnAuthorisedPaymentDetailsValueOfUnauthorisedPayment.json.copyFrom(pathETMPUnAuthorisedPaymentDetailsValueOfUnauthorisedPayment.json.pick) and
+      // Optional
+      pathUAUnAuthorisedPaymentDetailsUnAuthorisedPmtType2.json.copyFrom(pathETMPUnAuthorisedPaymentDetailsUnAuthorisedPmtType2.json.pick) and
+      pathUAUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName.json.copyFrom(pathETMPUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName.json.pick) and
+      pathUAUnAuthorisedPaymentDetailsPstrOrReference.json.copyFrom(pathETMPUnAuthorisedPaymentDetailsPstrOrReference.json.pick)
+//      pathUAUnAuthorisedPaymentDetailsPmtAmtOrLoanAmt.json.copyFrom(pathETMPUnAuthorisedPaymentDetailsPmtAmtOrLoanAmt.json.pick) and
+//      pathUAUnAuthorisedPaymentDetailsFundValue.json.copyFrom(pathETMPUnAuthorisedPaymentDetailsFundValue.json.pick) and
+//    pathUAUnAuthorisedPaymentDetailsResidentialPropertyAddress.json.copyFrom(pathUAUnAuthorisedPaymentDetailsResidentialPropertyAddress.json.pick)
+    ).reduce
   }
 }
 
 private object EventOneReportPaths {
 
-  /* UserAnswers */
+  /*
+  UserAnswers
+  */
+  val pathUAEvent1MembersOrEmployers: JsPath = __ \ Symbol("event1") \ Symbol("membersOrEmployers")
   // TODO: these will need to be amended to match the actual UA structure.
-  val dummyPath: JsPath = __ \ Symbol("dummy")
+  // Member type
   val pathUAMemberType: JsPath = __ \ Symbol("memberType")
-
+  // Individual
   val pathUAIndividualMemberDetailsFirstName: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("firstName")
   val pathUAIndividualMemberDetailsLastName: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("lastName")
   val pathUAIndividualMemberDetailsNino: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("lastName")
   val pathUAIndividualMemberDetailsSignedMandate: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("signedMandate")
   val pathUAIndividualMemberDetailsPmtMoreThan25PerFundValue: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("pmtMoreThan25PerFundValue")
   val pathUAIndividualMemberDetailsSchemePayingSurcharge: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("schemePayingSurcharge")
-
-
+  // Employer
   val pathUAEmployerMemberDetailsCompOrOrgName: JsPath = __ \ Symbol("employerMemberDetails") \ Symbol("compOrOrgName")
   val pathUAEmployerMemberDetailsCrnNumber: JsPath = __ \ Symbol("employerMemberDetails") \ Symbol("crnNumber")
   val pathUAEmployerMemberDetailsAddressDetails: JsPath = __ \ Symbol("employerMemberDetails") \ Symbol("addressDetails")
-
+  // Unauthorised payment details
   val pathUAUnAuthorisedPaymentDetails: JsPath = __ \ Symbol("unAuthorisedPaymentDetails")
+  val pathUAUnAuthorisedPaymentDetailsUnAuthorisedPmtType1: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("unAuthorisedPmtType1")
+  val pathUAUnAuthorisedPaymentDetailsUnAuthorisedPmtType2: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("unAuthorisedPmtType2")
+  val pathUAUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("freeTxtOrSchemeOrRecipientName")
+  val pathUAUnAuthorisedPaymentDetailsPstrOrReference: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("pstrOrReference")
+  val pathUAUnAuthorisedPaymentDetailsDateOfUnauthorisedPayment: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("dateOfUnauthorisedPayment")
+  val pathUAUnAuthorisedPaymentDetailsValueOfUnauthorisedPayment: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("valueOfUnauthorisedPayment")
 
-  /* ETMP */
+  val pathUAUnAuthorisedPaymentDetailsPmtAmtOrLoanAmt: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("pmtAmtOrLoanAmt")
+  val pathUAUnAuthorisedPaymentDetailsFundValue: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("fundValue")
+  val pathUAUnAuthorisedPaymentDetailsResidentialPropertyAddress: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("residentialPropertyAddress")
+
+
+
+  /*
+  ETMP
+  */
   val pathEtmpEvent1Details: JsPath = __ \ "event1Details"
+
 
   // ETMP - relative paths from "event1Details"
   val pathEtmpMemberType: JsPath = __ \ Symbol("memberType")
@@ -109,7 +136,17 @@ private object EventOneReportPaths {
   val pathEtmpEmployerMemberDetailsCompOrOrgName: JsPath = __ \ Symbol("employerMemberDetails") \ Symbol("compOrOrgName")
   val pathEtmpEmployerMemberDetailsCrnNumber: JsPath = __ \ Symbol("employerMemberDetails") \ Symbol("crnNumber")
   val pathEtmpEmployerMemberDetailsAddressDetails: JsPath = __ \ Symbol("employerMemberDetails") \ Symbol("addressDetails")
+
   // Unauthorised payment details
   val pathETMPUnAuthorisedPaymentDetails: JsPath = __ \ Symbol("unAuthorisedPaymentDetails")
+  val pathETMPUnAuthorisedPaymentDetailsUnAuthorisedPmtType1: JsPath = pathETMPUnAuthorisedPaymentDetails \ Symbol("unAuthorisedPmtType1")
+  val pathETMPUnAuthorisedPaymentDetailsUnAuthorisedPmtType2: JsPath = pathETMPUnAuthorisedPaymentDetails \ Symbol("unAuthorisedPmtType2")
+  val pathETMPUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName: JsPath = pathETMPUnAuthorisedPaymentDetails \ Symbol("freeTxtOrSchemeOrRecipientName")
+  val pathETMPUnAuthorisedPaymentDetailsPstrOrReference: JsPath = pathETMPUnAuthorisedPaymentDetails \ Symbol("pstrOrReference")
+  val pathETMPUnAuthorisedPaymentDetailsDateOfUnauthorisedPayment: JsPath = pathETMPUnAuthorisedPaymentDetails \ Symbol("dateOfUnauthorisedPayment")
+  val pathETMPUnAuthorisedPaymentDetailsValueOfUnauthorisedPayment: JsPath = pathETMPUnAuthorisedPaymentDetails \ Symbol("valueOfUnauthorisedPayment")
+  val pathETMPUnAuthorisedPaymentDetailsPmtAmtOrLoanAmt: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("pmtAmtOrLoanAmt")
+  val pathETMPUnAuthorisedPaymentDetailsFundValue: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("fundValue")
+  val pathETMPUnAuthorisedPaymentDetailsResidentialPropertyAddress: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("residentialPropertyAddress")
 }
 
