@@ -39,9 +39,31 @@ private object EventOneReportReadsUtilities extends Transformer {
 
   import EventOneReportPaths._
 
-  val readsMemberType: Reads[JsObject] = {
-    pathUAMemberType.json.copyFrom(pathEtmpMemberType.json.pick)
+  lazy val requiredReads: (JsPath, JsPath) => Reads[JsObject] = (uaPath: JsPath, etmpPath: JsPath) => {
+    uaPath.json.copyFrom(etmpPath.json.pick)
   }
+
+  lazy val requiredReadsWithTransform: (JsPath, JsPath, String => String) => Reads[JsObject] =
+    (uaPath: JsPath, etmpPath: JsPath, transform: String => String) => {
+      uaPath.json.copyFrom(etmpPath.json.pick.flatMap {
+        case JsString(str) => Reads.pure(JsString(transform(str)))
+        case _ => fail[JsString]
+    })
+  }
+
+  lazy val optionalReads: (JsPath, JsPath) => Reads[JsObject] = (uaPath: JsPath, etmpPath: JsPath) => {
+    uaPath.json.copyFrom(etmpPath.json.pick).orElse(doNothing)
+  }
+
+  lazy val optionalReadsWithTransform: (JsPath, JsPath, String => String) => Reads[JsObject] =
+    (uaPath: JsPath, etmpPath: JsPath, transform: String => String) => {
+      uaPath.json.copyFrom(etmpPath.json.pick.flatMap {
+        case JsString(str) => Reads.pure(JsString(transform(str)))
+        case _ => fail[JsString]
+      }).orElse(doNothing)
+    }
+
+  val readsMemberType: Reads[JsObject] = requiredReads(pathUAMemberType, pathEtmpMemberType)
 
   val readsIndividualOrEmployerMemberDetails: Reads[JsObject] = pathEtmpMemberType.json.pick.flatMap {
     case JsString("Individual") => readsIndividualMemberDetails
@@ -49,37 +71,33 @@ private object EventOneReportReadsUtilities extends Transformer {
     case _ => fail[JsObject]
   }
 
-  val readsIndividualMemberDetails: Reads[JsObject] = {(
-    pathUAIndividualMemberDetailsFirstName.json.copyFrom(pathEtmpIndividualMemberDetailsFirstName.json.pick) and
-      pathUAIndividualMemberDetailsLastName.json.copyFrom(pathEtmpIndividualMemberDetailsLastName.json.pick) and
-      pathUAIndividualMemberDetailsNino.json.copyFrom(pathEtmpIndividualMemberDetailsNino.json.pick) and
-      pathUAIndividualMemberDetailsSignedMandate.json.copyFrom(pathEtmpIndividualMemberDetailsSignedMandate.json.pick) and
-      pathUAIndividualMemberDetailsPmtMoreThan25PerFundValue.json.copyFrom(pathEtmpIndividualMemberDetailsPmtMoreThan25PerFundValue.json.pick) and
-      pathUAIndividualMemberDetailsSchemePayingSurcharge.json.copyFrom(pathEtmpIndividualMemberDetailsSchemePayingSurcharge.json.pick)
+  val readsIndividualMemberDetails: Reads[JsObject] = (
+    requiredReads(pathUAIndividualMemberDetailsFirstName, pathEtmpIndividualMemberDetailsFirstName) and
+      requiredReads(pathUAIndividualMemberDetailsLastName,pathEtmpIndividualMemberDetailsLastName) and
+      requiredReads(pathUAIndividualMemberDetailsNino, pathEtmpIndividualMemberDetailsNino) and
+      optionalReads(pathUAIndividualMemberDetailsSignedMandate, pathEtmpIndividualMemberDetailsSignedMandate) and
+      optionalReads(pathUAIndividualMemberDetailsPmtMoreThan25PerFundValue, pathEtmpIndividualMemberDetailsPmtMoreThan25PerFundValue) and
+      optionalReads(pathUAIndividualMemberDetailsSchemePayingSurcharge, pathEtmpIndividualMemberDetailsSchemePayingSurcharge)
     ).reduce
-  }
 
-  val readsEmployerMemberDetails: Reads[JsObject] = {(
-    pathUAEmployerMemberDetailsCompOrOrgName.json.copyFrom(pathEtmpEmployerMemberDetailsCompOrOrgName.json.pick) and
-      pathUAEmployerMemberDetailsCrnNumber.json.copyFrom(pathEtmpEmployerMemberDetailsCrnNumber.json.pick) and
-      pathUAEmployerMemberDetailsAddressDetails.json.copyFrom(readsAddress(pathEtmpEmployerMemberDetailsAddressDetails))
+  val readsEmployerMemberDetails: Reads[JsObject] = (
+    requiredReads(pathUAEmployerMemberDetailsCompOrOrgName, pathEtmpEmployerMemberDetailsCompOrOrgName) and
+    requiredReads(pathUAEmployerMemberDetailsCrnNumber, pathEtmpEmployerMemberDetailsCrnNumber) and
+      // TODO: Consider trying to use with defined transform? // val readsAddressFn: JsPath => Reads[JsObject] = readsAddress
+    pathUAEmployerMemberDetailsAddressDetails.json.copyFrom(readsAddress(pathEtmpEmployerMemberDetailsAddressDetails))
     ).reduce
-  }
 
-  val readsUnAuthorisedPaymentDetails: Reads[JsObject] = {(
-    // Required
-    pathUAUnAuthorisedPaymentDetailsUnAuthorisedPmtType1.json.copyFrom(pathETMPUnAuthorisedPaymentDetailsUnAuthorisedPmtType1.json.pick) and
-      pathUAUnAuthorisedPaymentDetailsDateOfUnauthorisedPayment.json.copyFrom(pathETMPUnAuthorisedPaymentDetailsDateOfUnauthorisedPayment.json.pick) and
-      pathUAUnAuthorisedPaymentDetailsValueOfUnauthorisedPayment.json.copyFrom(pathETMPUnAuthorisedPaymentDetailsValueOfUnauthorisedPayment.json.pick) and
-      // Optional
-      pathUAUnAuthorisedPaymentDetailsUnAuthorisedPmtType2.json.copyFrom(pathETMPUnAuthorisedPaymentDetailsUnAuthorisedPmtType2.json.pick) and
-      pathUAUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName.json.copyFrom(pathETMPUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName.json.pick) and
-      pathUAUnAuthorisedPaymentDetailsPstrOrReference.json.copyFrom(pathETMPUnAuthorisedPaymentDetailsPstrOrReference.json.pick)
-//      pathUAUnAuthorisedPaymentDetailsPmtAmtOrLoanAmt.json.copyFrom(pathETMPUnAuthorisedPaymentDetailsPmtAmtOrLoanAmt.json.pick) and
-//      pathUAUnAuthorisedPaymentDetailsFundValue.json.copyFrom(pathETMPUnAuthorisedPaymentDetailsFundValue.json.pick) and
-//    pathUAUnAuthorisedPaymentDetailsResidentialPropertyAddress.json.copyFrom(pathUAUnAuthorisedPaymentDetailsResidentialPropertyAddress.json.pick)
+  val readsUnAuthorisedPaymentDetails: Reads[JsObject] = (
+      requiredReads(pathUAUnAuthorisedPaymentDetailsUnAuthorisedPmtType1, pathETMPUnAuthorisedPaymentDetailsUnAuthorisedPmtType1) and
+      requiredReads(pathUAUnAuthorisedPaymentDetailsDateOfUnauthorisedPayment, pathETMPUnAuthorisedPaymentDetailsDateOfUnauthorisedPayment) and
+      requiredReads(pathUAUnAuthorisedPaymentDetailsValueOfUnauthorisedPayment, pathETMPUnAuthorisedPaymentDetailsValueOfUnauthorisedPayment) and
+      optionalReads(pathUAUnAuthorisedPaymentDetailsUnAuthorisedPmtType2, pathETMPUnAuthorisedPaymentDetailsUnAuthorisedPmtType2) and
+      optionalReads(pathUAUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName, pathETMPUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName) and
+      optionalReads(pathUAUnAuthorisedPaymentDetailsPstrOrReference, pathETMPUnAuthorisedPaymentDetailsPstrOrReference) and
+      optionalReads(pathUAUnAuthorisedPaymentDetailsPmtAmtOrLoanAmt, pathETMPUnAuthorisedPaymentDetailsPmtAmtOrLoanAmt) and
+      optionalReads(pathUAUnAuthorisedPaymentDetailsFundValue, pathETMPUnAuthorisedPaymentDetailsFundValue) and
+      optionalReads(pathUAUnAuthorisedPaymentDetailsResidentialPropertyAddress, pathUAUnAuthorisedPaymentDetailsResidentialPropertyAddress)
     ).reduce
-  }
 }
 
 private object EventOneReportPaths {
