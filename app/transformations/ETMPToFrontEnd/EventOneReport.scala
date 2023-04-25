@@ -30,20 +30,25 @@ object EventOneReport {
   implicit val rds1833Api: Reads[JsObject] =
     pathUAEvent1MembersOrEmployers.json.copyFrom(pathEtmpEvent1Details.read(readsEvent1Details))
 
-  private lazy val readsEvent1Details: Reads[JsArray] = __.read(Reads.seq((
-      readsMemberType and readsIndividualOrEmployerMemberDetails and readsUnAuthorisedPaymentDetails
-    ).reduce).map(JsArray(_)))
+  private lazy val readsEvent1Details: Reads[JsArray] = __.read(
+    Reads.seq(
+      (
+        readsMemberType and
+        readsIndividualOrEmployerMemberDetails and
+        readsUnAuthorisedPaymentDetails
+      ).reduce
+    ).map(JsArray(_)))
 }
 
 private object EventOneReportReadsUtilities extends Transformer {
 
   import EventOneReportPaths._
 
-  lazy val requiredReads: (JsPath, JsPath) => Reads[JsObject] = (uaPath: JsPath, etmpPath: JsPath) => {
-    uaPath.json.copyFrom(etmpPath.json.pick)
-  }
+  lazy val reqReads: (JsPath, JsPath) => Reads[JsObject] = (uaPath: JsPath, etmpPath: JsPath) => uaPath.json.copyFrom(etmpPath.json.pick)
 
-  lazy val requiredReadsWithTransform: (JsPath, JsPath, String => String) => Reads[JsObject] =
+  lazy val optReads: (JsPath, JsPath) => Reads[JsObject] = (uaPath: JsPath, etmpPath: JsPath) => uaPath.json.copyFrom(etmpPath.json.pick).orElse(doNothing)
+
+  lazy val reqReadsWithStringTransform: (JsPath, JsPath, String => String) => Reads[JsObject] =
     (uaPath: JsPath, etmpPath: JsPath, transform: String => String) => {
       uaPath.json.copyFrom(etmpPath.json.pick.flatMap {
         case JsString(str) => Reads.pure(JsString(transform(str)))
@@ -51,11 +56,15 @@ private object EventOneReportReadsUtilities extends Transformer {
     })
   }
 
-  lazy val optionalReads: (JsPath, JsPath) => Reads[JsObject] = (uaPath: JsPath, etmpPath: JsPath) => {
-    uaPath.json.copyFrom(etmpPath.json.pick).orElse(doNothing)
-  }
+  lazy val optReadsWithBooleanTransform: (JsPath, JsPath, String => Boolean) => Reads[JsObject] =
+    (uaPath: JsPath, etmpPath: JsPath, transform: String => Boolean) => {
+      uaPath.json.copyFrom(etmpPath.json.pick.flatMap {
+        case JsString(str) => Reads.pure(JsBoolean(transform(str)))
+        case _ => fail[JsBoolean]
+      }).orElse(doNothing)
+    }
 
-  lazy val optionalReadsWithTransform: (JsPath, JsPath, String => String) => Reads[JsObject] =
+  lazy val optReadsWithStringTransform: (JsPath, JsPath, String => String) => Reads[JsObject] =
     (uaPath: JsPath, etmpPath: JsPath, transform: String => String) => {
       uaPath.json.copyFrom(etmpPath.json.pick.flatMap {
         case JsString(str) => Reads.pure(JsString(transform(str)))
@@ -63,7 +72,7 @@ private object EventOneReportReadsUtilities extends Transformer {
       }).orElse(doNothing)
     }
 
-  val readsMemberType: Reads[JsObject] = requiredReadsWithTransform(pathUAWhoReceivedUnauthPayment, pathEtmpMemberType, memberTypeTransform)
+  val readsMemberType: Reads[JsObject] = reqReadsWithStringTransform(pathUAWhoReceivedUnauthPayment, pathEtmpMemberType, memberTypeTransform)
 
   lazy val memberTypeTransform: String => String = {
     case "Individual" => "member"
@@ -76,32 +85,47 @@ private object EventOneReportReadsUtilities extends Transformer {
     case _ => fail[JsObject]
   }
 
+  lazy val yesNoTransform: String => Boolean = {
+    case "Yes" => true
+    case "No" => false
+  }
+
   val readsIndividualMemberDetails: Reads[JsObject] = (
-    requiredReads(pathUAIndividualMemberDetailsFirstName, pathEtmpIndividualMemberDetailsFirstName) and
-      requiredReads(pathUAIndividualMemberDetailsLastName,pathEtmpIndividualMemberDetailsLastName) and
-      requiredReads(pathUAIndividualMemberDetailsNino, pathEtmpIndividualMemberDetailsNino) and
-      optionalReads(pathUAIndividualMemberDetailsSignedMandate, pathEtmpIndividualMemberDetailsSignedMandate) and
-      optionalReads(pathUAIndividualMemberDetailsPmtMoreThan25PerFundValue, pathEtmpIndividualMemberDetailsPmtMoreThan25PerFundValue) and
-      optionalReads(pathUAIndividualMemberDetailsSchemePayingSurcharge, pathEtmpIndividualMemberDetailsSchemePayingSurcharge)
+    reqReads(pathUAMembersDetailsFirstName, pathEtmpIndividualMemberDetailsFirstName) and
+      reqReads(pathUAMembersDetailsLastName,pathEtmpIndividualMemberDetailsLastName) and
+      reqReads(pathUAMembersDetailsNino, pathEtmpIndividualMemberDetailsNino) and
+      optReadsWithBooleanTransform(pathUADoYouHoldSignedMandate, pathEtmpIndividualMemberDetailsSignedMandate, yesNoTransform) and
+      optReadsWithBooleanTransform(pathUAValueOfUnauthorisedPayment, pathEtmpIndividualMemberDetailsPmtMoreThan25PerFundValue, yesNoTransform) and
+      optReadsWithBooleanTransform(pathUASchemeUnAuthPaySurchargeMember, pathEtmpIndividualMemberDetailsSchemePayingSurcharge, yesNoTransform)
     ).reduce
 
   val readsEmployerMemberDetails: Reads[JsObject] = (
-    requiredReads(pathUAEmployerMemberDetailsCompOrOrgName, pathEtmpEmployerMemberDetailsCompOrOrgName) and
-    requiredReads(pathUAEmployerMemberDetailsCrnNumber, pathEtmpEmployerMemberDetailsCrnNumber) and
+    reqReads(pathUACompanyName, pathEtmpEmployerMemberDetailsCompOrOrgName) and
+    reqReads(pathUACompanyNumber, pathEtmpEmployerMemberDetailsCrnNumber) and
       // TODO: Consider trying to use with defined transform? // val readsAddressFn: JsPath => Reads[JsObject] = readsAddress
-    pathUAEmployerMemberDetailsAddressDetails.json.copyFrom(readsAddress(pathEtmpEmployerMemberDetailsAddressDetails))
+    pathUAEmployerAddress.json.copyFrom(readsAddress(pathEtmpEmployerMemberDetailsAddressDetails))
     ).reduce
 
   val readsUnAuthorisedPaymentDetails: Reads[JsObject] = (
-      requiredReads(pathUAUnAuthorisedPaymentDetailsUnAuthorisedPmtType1, pathETMPUnAuthorisedPaymentDetailsUnAuthorisedPmtType1) and
-      requiredReads(pathUAUnAuthorisedPaymentDetailsDateOfUnauthorisedPayment, pathETMPUnAuthorisedPaymentDetailsDateOfUnauthorisedPayment) and
-      requiredReads(pathUAUnAuthorisedPaymentDetailsValueOfUnauthorisedPayment, pathETMPUnAuthorisedPaymentDetailsValueOfUnauthorisedPayment) and
-      optionalReads(pathUAUnAuthorisedPaymentDetailsUnAuthorisedPmtType2, pathETMPUnAuthorisedPaymentDetailsUnAuthorisedPmtType2) and
-      optionalReads(pathUAUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName, pathETMPUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName) and
-      optionalReads(pathUAUnAuthorisedPaymentDetailsPstrOrReference, pathETMPUnAuthorisedPaymentDetailsPstrOrReference) and
-      optionalReads(pathUAUnAuthorisedPaymentDetailsPmtAmtOrLoanAmt, pathETMPUnAuthorisedPaymentDetailsPmtAmtOrLoanAmt) and
-      optionalReads(pathUAUnAuthorisedPaymentDetailsFundValue, pathETMPUnAuthorisedPaymentDetailsFundValue) and
-      optionalReads(pathUAUnAuthorisedPaymentDetailsResidentialPropertyAddress, pathUAUnAuthorisedPaymentDetailsResidentialPropertyAddress)
+
+      // TODO: dynamic UA path required for pmtType1.
+      pathUAUnAuthorisedPaymentDetailsUnAuthorisedPmtType1.json.copyFrom(pathETMPUnAuthorisedPaymentDetailsUnAuthorisedPmtType1.json.pick) and
+
+      reqReads(pathUAUnAuthorisedPaymentDate, pathETMPUnAuthorisedPaymentDetailsDateOfUnauthorisedPayment) and
+      reqReads(pathUAUnAuthorisedPaymentValue, pathETMPUnAuthorisedPaymentDetailsValueOfUnauthorisedPayment) and
+
+      // TODO: dynamic UA path required for pmtType2.
+      optReads(pathUAUnAuthorisedPaymentDetailsUnAuthorisedPmtType2, pathETMPUnAuthorisedPaymentDetailsUnAuthorisedPmtType2) and
+
+      // TODO: dynamic UA path required for freeTxtOrSchemeOrRecipientName.
+      optReads(pathUAUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName, pathETMPUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName) and
+
+      optReads(pathUAUnAuthorisedPaymentDetailsSchemeDetailsReference, pathETMPUnAuthorisedPaymentDetailsPstrOrReference) and
+      optReads(pathUAUnAuthorisedLoanAmount, pathETMPUnAuthorisedPaymentDetailsPmtAmtOrLoanAmt) and
+      optReads(pathUAUnAuthorisedFundValue, pathETMPUnAuthorisedPaymentDetailsFundValue) and
+
+      // TODO: dynamic UA path required for resPropAdd.
+      optReads(pathUAUnAuthorisedPaymentDetailsResidentialPropertyAddress, pathUAUnAuthorisedPaymentDetailsResidentialPropertyAddress)
     ).reduce
 }
 
@@ -115,27 +139,35 @@ private object EventOneReportPaths {
   // Member type
   val pathUAWhoReceivedUnauthPayment: JsPath = __ \ Symbol("whoReceivedUnauthPayment")
   // Individual
-  val pathUAIndividualMemberDetailsFirstName: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("firstName")
-  val pathUAIndividualMemberDetailsLastName: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("lastName")
-  val pathUAIndividualMemberDetailsNino: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("lastName")
-  val pathUAIndividualMemberDetailsSignedMandate: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("signedMandate")
-  val pathUAIndividualMemberDetailsPmtMoreThan25PerFundValue: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("pmtMoreThan25PerFundValue")
-  val pathUAIndividualMemberDetailsSchemePayingSurcharge: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("schemePayingSurcharge")
+  val pathUAMembersDetailsFirstName: JsPath = __ \ Symbol("membersDetails") \ Symbol("firstName")
+  val pathUAMembersDetailsLastName: JsPath = __ \ Symbol("membersDetails")  \ Symbol("lastName")
+  val pathUAMembersDetailsNino: JsPath = __ \ Symbol("membersDetails")  \ Symbol("nino")
+  val pathUADoYouHoldSignedMandate: JsPath = __ \ Symbol("doYouHoldSignedMandate")
+  val pathUAValueOfUnauthorisedPayment: JsPath = __ \ Symbol("valueOfUnauthorisedPayment")
+  val pathUASchemeUnAuthPaySurchargeMember: JsPath = __ \ Symbol("schemeUnAuthPaySurchargeMember")
   // Employer
-  val pathUAEmployerMemberDetailsCompOrOrgName: JsPath = __ \ Symbol("employerMemberDetails") \ Symbol("compOrOrgName")
-  val pathUAEmployerMemberDetailsCrnNumber: JsPath = __ \ Symbol("employerMemberDetails") \ Symbol("crnNumber")
-  val pathUAEmployerMemberDetailsAddressDetails: JsPath = __ \ Symbol("employerMemberDetails") \ Symbol("addressDetails")
+  // TODO: check this is correct by completing 1 Employer journey and inspecting Mongo, looks odd / too nested in event1 again?
+  val pathUACompanyName: JsPath = __ \ Symbol("event1") \ Symbol("companyDetails") \ Symbol("companyName")
+  val pathUACompanyNumber: JsPath = __ \ Symbol("event1") \ Symbol("companyDetails") \ Symbol("companyNumber")
+  val pathUAEmployerAddress: JsPath = __ \ Symbol("employerAddress")
   // Unauthorised payment details
   val pathUAUnAuthorisedPaymentDetails: JsPath = __ \ Symbol("unAuthorisedPaymentDetails")
+  // TODO: should be dynamic.
   val pathUAUnAuthorisedPaymentDetailsUnAuthorisedPmtType1: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("unAuthorisedPmtType1")
-  val pathUAUnAuthorisedPaymentDetailsUnAuthorisedPmtType2: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("unAuthorisedPmtType2")
-  val pathUAUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("freeTxtOrSchemeOrRecipientName")
-  val pathUAUnAuthorisedPaymentDetailsPstrOrReference: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("pstrOrReference")
-  val pathUAUnAuthorisedPaymentDetailsDateOfUnauthorisedPayment: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("dateOfUnauthorisedPayment")
-  val pathUAUnAuthorisedPaymentDetailsValueOfUnauthorisedPayment: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("valueOfUnauthorisedPayment")
 
-  val pathUAUnAuthorisedPaymentDetailsPmtAmtOrLoanAmt: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("pmtAmtOrLoanAmt")
-  val pathUAUnAuthorisedPaymentDetailsFundValue: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("fundValue")
+  // TODO: should be dynamic.
+  val pathUAUnAuthorisedPaymentDetailsUnAuthorisedPmtType2: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("unAuthorisedPmtType2")
+
+  // TODO: should be dynamic.
+  val pathUAUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("freeTxtOrSchemeOrRecipientName")
+
+  val pathUAUnAuthorisedPaymentDetailsSchemeDetailsReference: JsPath = __ \ Symbol("schemeDetails") \ Symbol("reference")
+  val pathUAUnAuthorisedPaymentValue: JsPath = __ \ Symbol("paymentValueAndDate") \ Symbol("paymentValue")
+  val pathUAUnAuthorisedPaymentDate: JsPath = __ \ Symbol("paymentValueAndDate") \ Symbol("paymentDate")
+  val pathUAUnAuthorisedLoanAmount: JsPath = __ \ Symbol("loanDetails") \ Symbol("loanAmount")
+  val pathUAUnAuthorisedFundValue: JsPath = __ \ Symbol("loanDetails") \ Symbol("fundValue")
+
+  // TODO: should be dynamic.
   val pathUAUnAuthorisedPaymentDetailsResidentialPropertyAddress: JsPath = pathUAUnAuthorisedPaymentDetails \ Symbol("residentialPropertyAddress")
 
 
@@ -144,7 +176,6 @@ private object EventOneReportPaths {
   ETMP
   */
   val pathEtmpEvent1Details: JsPath = __ \ "event1Details"
-
 
   // ETMP - relative paths from "event1Details"
   val pathEtmpMemberType: JsPath = __ \ Symbol("memberType")
