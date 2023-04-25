@@ -63,7 +63,12 @@ private object EventOneReportReadsUtilities extends Transformer {
       }).orElse(doNothing)
     }
 
-  val readsMemberType: Reads[JsObject] = requiredReads(pathUAMemberType, pathEtmpMemberType)
+  val readsMemberType: Reads[JsObject] = requiredReadsWithTransform(pathUAWhoReceivedUnauthPayment, pathEtmpMemberType, memberTypeTransform)
+
+  lazy val memberTypeTransform: String => String = {
+    case "Individual" => "member"
+    case "Employer" => "employer"
+  }
 
   val readsIndividualOrEmployerMemberDetails: Reads[JsObject] = pathEtmpMemberType.json.pick.flatMap {
     case JsString("Individual") => readsIndividualMemberDetails
@@ -108,7 +113,7 @@ private object EventOneReportPaths {
   val pathUAEvent1MembersOrEmployers: JsPath = __ \ Symbol("event1") \ Symbol("membersOrEmployers")
   // TODO: these will need to be amended to match the actual UA structure.
   // Member type
-  val pathUAMemberType: JsPath = __ \ Symbol("memberType")
+  val pathUAWhoReceivedUnauthPayment: JsPath = __ \ Symbol("whoReceivedUnauthPayment")
   // Individual
   val pathUAIndividualMemberDetailsFirstName: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("firstName")
   val pathUAIndividualMemberDetailsLastName: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("lastName")
