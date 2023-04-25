@@ -48,7 +48,7 @@ private object EventOneReportReadsUtilities extends Transformer {
 
   lazy val optReads: (JsPath, JsPath) => Reads[JsObject] = (uaPath: JsPath, etmpPath: JsPath) => uaPath.json.copyFrom(etmpPath.json.pick).orElse(doNothing)
 
-  lazy val reqReadsWithStringTransform: (JsPath, JsPath, String => String) => Reads[JsObject] =
+  lazy val reqReadsStrTransform: (JsPath, JsPath, String => String) => Reads[JsObject] =
     (uaPath: JsPath, etmpPath: JsPath, transform: String => String) => {
       uaPath.json.copyFrom(etmpPath.json.pick.flatMap {
         case JsString(str) => Reads.pure(JsString(transform(str)))
@@ -56,7 +56,15 @@ private object EventOneReportReadsUtilities extends Transformer {
     })
   }
 
-  lazy val optReadsWithBooleanTransform: (JsPath, JsPath, String => Boolean) => Reads[JsObject] =
+  lazy val reqReadsDynamicPathStrTransform: (String => JsPath, JsPath, String => String) => Reads[JsObject] =
+    (dynamicUaPath: String => JsPath, etmpPath: JsPath, transform: String => String) => {
+      etmpPath.json.pick.flatMap {
+        case JsString(str) => dynamicUaPath(str).json.copyFrom(Reads.pure(JsString(transform(str))))
+        case _ => fail[JsObject]
+      }
+    }
+
+  lazy val optReadsBoolTransform: (JsPath, JsPath, String => Boolean) => Reads[JsObject] =
     (uaPath: JsPath, etmpPath: JsPath, transform: String => Boolean) => {
       uaPath.json.copyFrom(etmpPath.json.pick.flatMap {
         case JsString(str) => Reads.pure(JsBoolean(transform(str)))
@@ -64,7 +72,7 @@ private object EventOneReportReadsUtilities extends Transformer {
       }).orElse(doNothing)
     }
 
-  lazy val optReadsWithStringTransform: (JsPath, JsPath, String => String) => Reads[JsObject] =
+  lazy val optReadsStrTransform: (JsPath, JsPath, String => String) => Reads[JsObject] =
     (uaPath: JsPath, etmpPath: JsPath, transform: String => String) => {
       uaPath.json.copyFrom(etmpPath.json.pick.flatMap {
         case JsString(str) => Reads.pure(JsString(transform(str)))
@@ -72,7 +80,7 @@ private object EventOneReportReadsUtilities extends Transformer {
       }).orElse(doNothing)
     }
 
-  val readsMemberType: Reads[JsObject] = reqReadsWithStringTransform(pathUAWhoReceivedUnauthPayment, pathEtmpMemberType, memberTypeTransform)
+  val readsMemberType: Reads[JsObject] = reqReadsStrTransform(pathUAWhoReceivedUnauthPayment, pathEtmpMemberType, memberTypeTransform)
 
   lazy val memberTypeTransform: String => String = {
     case "Individual" => "member"
@@ -94,9 +102,9 @@ private object EventOneReportReadsUtilities extends Transformer {
     reqReads(pathUAMembersDetailsFirstName, pathEtmpIndividualMemberDetailsFirstName) and
       reqReads(pathUAMembersDetailsLastName,pathEtmpIndividualMemberDetailsLastName) and
       reqReads(pathUAMembersDetailsNino, pathEtmpIndividualMemberDetailsNino) and
-      optReadsWithBooleanTransform(pathUADoYouHoldSignedMandate, pathEtmpIndividualMemberDetailsSignedMandate, yesNoTransform) and
-      optReadsWithBooleanTransform(pathUAValueOfUnauthorisedPayment, pathEtmpIndividualMemberDetailsPmtMoreThan25PerFundValue, yesNoTransform) and
-      optReadsWithBooleanTransform(pathUASchemeUnAuthPaySurchargeMember, pathEtmpIndividualMemberDetailsSchemePayingSurcharge, yesNoTransform)
+      optReadsBoolTransform(pathUADoYouHoldSignedMandate, pathEtmpIndividualMemberDetailsSignedMandate, yesNoTransform) and
+      optReadsBoolTransform(pathUAValueOfUnauthorisedPayment, pathEtmpIndividualMemberDetailsPmtMoreThan25PerFundValue, yesNoTransform) and
+      optReadsBoolTransform(pathUASchemeUnAuthPaySurchargeMember, pathEtmpIndividualMemberDetailsSchemePayingSurcharge, yesNoTransform)
     ).reduce
 
   val readsEmployerMemberDetails: Reads[JsObject] = (
@@ -106,10 +114,28 @@ private object EventOneReportReadsUtilities extends Transformer {
     pathUAEmployerAddress.json.copyFrom(readsAddress(pathEtmpEmployerMemberDetailsAddressDetails))
     ).reduce
 
+  val dynamicPathUnAuthorisedPmtType1: String => JsPath = {
+    case "Transfer to non-registered pensions scheme" => __ \ Symbol("testing123")
+  }
+
+
+  val transformUnAuthorisedPmtType1: String => String = {
+    case "Benefit in kind" => "benefitInKind"
+    case "Transfer to non-registered pensions scheme" => "transferToNonRegPensionScheme"
+    case "Error in calculating tax free lump sums" => "xyz"
+    case "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum" => "xyz"
+    case "Refund of contributions" => "xyz"
+    case "Overpayment of pension/written off" => "xyz"
+    case "Loans to or in respect of the employer exceeding 50% of the value of the fund" => "xyz"
+    case "Residential property held directly or indirectly by an investment-regulated pension scheme" => "xyz"
+    case "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme" => "xyz"
+    case "Court Order Payment/Confiscation Order" => "xyz"
+    case "Other" => "xyz"
+  }
+
   val readsUnAuthorisedPaymentDetails: Reads[JsObject] = (
 
-      // TODO: dynamic UA path required for pmtType1.
-      pathUAUnAuthorisedPaymentDetailsUnAuthorisedPmtType1.json.copyFrom(pathETMPUnAuthorisedPaymentDetailsUnAuthorisedPmtType1.json.pick) and
+    reqReadsDynamicPathStrTransform(dynamicPathUnAuthorisedPmtType1, pathETMPUnAuthorisedPaymentDetailsUnAuthorisedPmtType1, transformUnAuthorisedPmtType1) and
 
       reqReads(pathUAUnAuthorisedPaymentDate, pathETMPUnAuthorisedPaymentDetailsDateOfUnauthorisedPayment) and
       reqReads(pathUAUnAuthorisedPaymentValue, pathETMPUnAuthorisedPaymentDetailsValueOfUnauthorisedPayment) and
