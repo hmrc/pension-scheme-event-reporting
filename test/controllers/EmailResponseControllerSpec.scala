@@ -54,7 +54,7 @@ class EmailResponseControllerSpec extends AsyncWordSpec with Matchers with Mocki
       bind[EventReportCacheRepository].toInstance(mock[EventReportCacheRepository]),
       bind[GetEventCacheRepository].toInstance(mock[GetEventCacheRepository]),
       bind[OverviewCacheRepository].toInstance(mock[OverviewCacheRepository]),
-      bind[ToggleDataRepository].toInstance(mock[ToggleDataRepository]),
+      bind[ToggleDataRepository].toInstance(mock[ToggleDataRepository])
     )).build()
 
   private val injector = application.injector
