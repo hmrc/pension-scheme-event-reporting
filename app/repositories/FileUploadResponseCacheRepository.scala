@@ -83,6 +83,8 @@ class FileUploadResponseCacheRepository @Inject()(
 
   private def evaluatedExpireAt: DateTime = DateTime.now(DateTimeZone.UTC).toLocalDate.plusDays(expireInDays + 1).toDateTimeAtStartOfDay()
 
+  private def selector(reference: String) = Filters.equal(referenceKey, reference)
+
   def upsert(reference: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val lastUpdated = DateTime.now(DateTimeZone.UTC)
     val modifier = Updates.combine(
@@ -91,31 +93,19 @@ class FileUploadResponseCacheRepository @Inject()(
       Updates.set(lastUpdatedKey, Codecs.toBson(lastUpdated)),
       Updates.set(expireAtKey, Codecs.toBson(evaluatedExpireAt))
     )
-    val selector = Filters.equal(referenceKey, reference)
+
 
     collection.findOneAndUpdate(
-      filter = selector,
+      filter = selector(reference),
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
   }
 
-//  def get(pstr: String, optApiType: Option[ApiType])(implicit ec: ExecutionContext): Future[Option[JsObject]] = {
-//    optApiType match {
-//      case Some(apiType) =>
-//        getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString))
-//          .map(_.map(_.as[JsObject]))
-//      case None =>
-//        getByKeys(Map("pstr" -> pstr, "apiTypes" -> "None"))
-//          .map(_.map(_.as[JsObject]))
-//    }
-//  }
-
-  private def getByKeys(mapOfKeys: Map[String, String])(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
-    collection.find[FileUploadResponseCacheEntry](filterByKeys(mapOfKeys)).headOption().map {
-      _.map {
-        dataEntry =>
-          dataEntry.data
-      }
-    }
+  def get(reference: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
+   collection.find(
+      filter = selector(reference)
+    ).headOption().map{ a => a.flatMap{ x =>
+     (x.as[JsObject] \ "data").asOpt[JsValue]
+   }}
   }
 
   private def filterByKeys(mapOfKeys: Map[String, String]): Bson = {

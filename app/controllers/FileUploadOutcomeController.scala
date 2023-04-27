@@ -40,7 +40,6 @@ class FileUploadOutcomeController @Inject()(
   def save: Action[AnyContent] = Action.async {
     implicit request =>
       withReferenceId { reference =>
-        println( "\n>>>" + request.body)
         request.body.asText match {
           case Some(s) =>
             val json = Json.parse(s)
@@ -53,29 +52,15 @@ class FileUploadOutcomeController @Inject()(
   }
 
 
-  //  def get: Action[AnyContent] = Action.async {
-  //    implicit request =>
-  //      withPstrAndOptionEventType { (pstr, optEventType) =>
-  //        optEventType match {
-  //          case Some(eventType) =>
-  //            EventType.getEventType(eventType) match {
-  //              case Some(et) =>
-  //                eventReportService.getUserAnswers(pstr, et)
-  //                  .map {
-  //                    case None => NotFound
-  //                    case Some(jsobj) => Ok(jsobj)
-  //                  }
-  //              case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
-  //            }
-  //          case None =>
-  //            eventReportService.getUserAnswers(pstr)
-  //              .map {
-  //                case None => NotFound
-  //                case Some(jsobj) => Ok(jsobj)
-  //              }
-  //        }
-  //      }
-  //  }
+    def get: Action[AnyContent] = Action.async {
+      implicit request =>
+        withReferenceId { reference =>
+          fileUploadResponseCacheRepository.get(reference).map {
+            case Some(value) => Ok(value)
+            case None => NotFound
+          }
+        }
+    }
 
   private def withReferenceId(block: String => Future[Result])
                              (implicit request: Request[AnyContent]): Future[Result] = {
