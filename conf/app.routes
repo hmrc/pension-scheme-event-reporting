@@ -12,3 +12,5 @@ POST       /submit-event20a-declaration-report      controllers.EventReportContr
 
 GET        /user-answers                            controllers.EventReportController.getUserAnswers
 POST       /user-answers                            controllers.EventReportController.saveUserAnswers
+
+POST       /file-upload-response/save               controllers.FileUploadOutcomeController.save

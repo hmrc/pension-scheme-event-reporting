@@ -24,7 +24,7 @@ import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
-import repositories.FileUploadResponseCacheEntry.{apiTypesKey, expireAtKey, pstrKey}
+import repositories.FileUploadResponseCacheEntry.{apiTypesKey, expireAtKey, referenceKey}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
@@ -49,7 +49,7 @@ object FileUploadResponseCacheEntry {
   implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
   implicit val format: Format[FileUploadResponseCacheEntry] = Json.format[FileUploadResponseCacheEntry]
 
-  val pstrKey = "pstr"
+  val referenceKey = "reference"
   val apiTypesKey = "apiTypes"
   val expireAtKey = "expireAt"
   val lastUpdatedKey = "lastUpdated"
@@ -61,18 +61,18 @@ class FileUploadResponseCacheRepository @Inject()(
                                             mongoComponent: MongoComponent,
                                             config: Configuration
                                           )(implicit val ec: ExecutionContext)
-  extends PlayMongoRepository[FileUploadResponseCacheEntry](
-    collectionName = config.underlying.getString("mongodb.event-reporting-data.name"),
+  extends PlayMongoRepository[JsValue](
+    collectionName = config.underlying.getString("mongodb.file-upload-response.name"),
     mongoComponent = mongoComponent,
-    domainFormat = FileUploadResponseCacheEntry.format,
+    domainFormat = implicitly[Format[JsValue]],
     indexes = Seq(
       IndexModel(
         Indexes.ascending(expireAtKey),
         IndexOptions().name("dataExpiry").expireAfter(0, TimeUnit.SECONDS).background(true)
       ),
       IndexModel(
-        Indexes.ascending(pstrKey, apiTypesKey),
-        IndexOptions().name(pstrKey + apiTypesKey).background(true)
+        Indexes.ascending(referenceKey, apiTypesKey),
+        IndexOptions().name(referenceKey).background(true)
       )
     )
   ) with Logging {
@@ -83,51 +83,31 @@ class FileUploadResponseCacheRepository @Inject()(
 
   private def evaluatedExpireAt: DateTime = DateTime.now(DateTimeZone.UTC).toLocalDate.plusDays(expireInDays + 1).toDateTimeAtStartOfDay()
 
-  def upsert(pstr: String, apiType: ApiType, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
-    val record = FileUploadResponseCacheEntry.applyFileUploadResponseCacheEntry(
-      pstr, apiType, Json.toJson(data),
-      expireAt = evaluatedExpireAt)
-
-    val modifier = Updates.combine(
-      Updates.set(pstrKey, record.pstr),
-      Updates.set(apiTypesKey, record.apiTypes),
-      Updates.set(dataKey, Codecs.toBson(record.data)),
-      Updates.set(lastUpdatedKey, Codecs.toBson(record.lastUpdated)),
-      Updates.set(expireAtKey, Codecs.toBson(record.expireAt))
-    )
-    val selector = Filters.and(Filters.equal(pstrKey, record.pstr), Filters.equal(apiTypesKey, record.apiTypes))
-
-    collection.findOneAndUpdate(
-      filter = selector,
-      update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
-  }
-
-  def upsert(pstr: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
+  def upsert(reference: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val lastUpdated = DateTime.now(DateTimeZone.UTC)
     val modifier = Updates.combine(
-      Updates.set(pstrKey, pstr),
-      Updates.set(apiTypesKey, "None"),
+      Updates.set(referenceKey, reference),
       Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
       Updates.set(lastUpdatedKey, Codecs.toBson(lastUpdated)),
       Updates.set(expireAtKey, Codecs.toBson(evaluatedExpireAt))
     )
-    val selector = Filters.and(Filters.equal(pstrKey, pstr), Filters.equal(apiTypesKey, "None"))
+    val selector = Filters.equal(referenceKey, reference)
 
     collection.findOneAndUpdate(
       filter = selector,
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
   }
 
-  def getUserAnswers(pstr: String, optApiType: Option[ApiType])(implicit ec: ExecutionContext): Future[Option[JsObject]] = {
-    optApiType match {
-      case Some(apiType) =>
-        getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString))
-          .map(_.map(_.as[JsObject]))
-      case None =>
-        getByKeys(Map("pstr" -> pstr, "apiTypes" -> "None"))
-          .map(_.map(_.as[JsObject]))
-    }
-  }
+//  def get(pstr: String, optApiType: Option[ApiType])(implicit ec: ExecutionContext): Future[Option[JsObject]] = {
+//    optApiType match {
+//      case Some(apiType) =>
+//        getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString))
+//          .map(_.map(_.as[JsObject]))
+//      case None =>
+//        getByKeys(Map("pstr" -> pstr, "apiTypes" -> "None"))
+//          .map(_.map(_.as[JsObject]))
+//    }
+//  }
 
   private def getByKeys(mapOfKeys: Map[String, String])(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
     collection.find[FileUploadResponseCacheEntry](filterByKeys(mapOfKeys)).headOption().map {
@@ -135,13 +115,6 @@ class FileUploadResponseCacheRepository @Inject()(
         dataEntry =>
           dataEntry.data
       }
-    }
-  }
-
-  def remove(mapOfKeys: Map[String, String])(implicit ec: ExecutionContext): Future[Boolean] = {
-    collection.deleteOne(filterByKeys(mapOfKeys)).toFuture().map { result =>
-      logger.info(s"Removing row from collection $collectionName")
-      result.wasAcknowledged
     }
   }
 

@@ -93,11 +93,16 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
+
+        println(s"\nABOUT TO POST: api type is $apiType and schemapath is $schemaPath")
+
         eventReportCacheRepository.getUserAnswers(pstr, Some(apiType)).flatMap {
           case Some(data) =>
             eventReportCacheRepository.getUserAnswers(pstr, None).flatMap {
               case Some(header) =>
                 val fullData = header ++ data
+                println("\nTransformed data: " + fullData)
+
                 for {
                   transformedData <- Future.fromTry(toTry(fullData.validate(reads)))
                   _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, schemaPath, apiType.toString))
