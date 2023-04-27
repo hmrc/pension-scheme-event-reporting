@@ -1,14 +1,16 @@
 # microservice specific routes
 
-GET        /overview                                controllers.EventReportController.getOverview
-GET        /versions                                controllers.EventReportController.getVersions
+GET        /overview                                                controllers.EventReportController.getOverview
+GET        /versions                                                controllers.EventReportController.getVersions
 
-GET        /event                                   controllers.EventReportController.getEvent
-GET        /event-summary                           controllers.EventReportController.getEventSummary
-POST       /compile                                 controllers.EventReportController.compileEvent
+GET        /event                                                   controllers.EventReportController.getEvent
+GET        /event-summary                                           controllers.EventReportController.getEventSummary
+POST       /compile                                                 controllers.EventReportController.compileEvent
 
-POST       /submit-event-declaration-report         controllers.EventReportController.submitEventDeclarationReport
-POST       /submit-event20a-declaration-report      controllers.EventReportController.submitEvent20ADeclarationReport
+POST       /submit-event-declaration-report                         controllers.EventReportController.submitEventDeclarationReport
+POST       /submit-event20a-declaration-report                      controllers.EventReportController.submitEvent20ADeclarationReport
 
-GET        /user-answers                            controllers.EventReportController.getUserAnswers
-POST       /user-answers                            controllers.EventReportController.saveUserAnswers
+GET        /user-answers                                            controllers.EventReportController.getUserAnswers
+POST       /user-answers                                            controllers.EventReportController.saveUserAnswers
+
+POST       /email-response/:requestId/:email/:psaId                 controllers.EmailResponseController.sendAuditEvents(requestId: String, psaId: String, email: String)
