@@ -29,7 +29,7 @@ class EventOneReportSpec extends AnyFreeSpec with Matchers with MockitoSugar wit
   "Reads" - {
     "transform a randomly generated valid payload from API 1833 correctly" in {
 
-      // TODO: payload/response to be generated as per previous events.
+      // TODO: Create one valid payload for a member and an employer. Alternatively: a full generator.
       val payload = Json.parse("""{
                                  |  "processingDate": "2023-12-15T12:30:46Z",
                                  |  "schemeDetails": {
@@ -68,9 +68,9 @@ class EventOneReportSpec extends AnyFreeSpec with Matchers with MockitoSugar wit
                                  |      }
                                  |    }
                                  |  ]
-                                 |}
-                                 |""".stripMargin)
+                                 |}""".stripMargin)
 
+      // TODO: create valid response for member and employer. Alternatively: a full generator. Tests will fail if you don't change line below.
       val expectedResponse = Json.obj("hello" -> "world")
 
       (payload, expectedResponse) match {
