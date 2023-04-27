@@ -16,6 +16,7 @@
 
 package transformations.ETMPToFrontEnd
 
+import models.enumeration.EventType.{Event2, Event22, Event23, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
@@ -27,16 +28,17 @@ class MemberEventReportSpec extends AnyFreeSpec with Matchers with MockitoSugar 
   with GeneratorAPI1834 with GeneratorAPI1832 with ScalaCheckPropertyChecks {
 
   "Reads" - {
+    // TODO: This test doesn't test the correct API. It's out of scope for current ticket but should be addressed in future. -NJ
     "transform a valid payload correctly when read from sample file from API 1834" in {
       val json = readJsonFromFile("/api-1832-valid-example.json")
-      val result = json.validate(MemberEventReport.rds1832Api).asOpt
+      val result = json.validate(MemberEventReport.rds1832Api(Event22)).asOpt
 
       val expectedResult =
         Json.obj(
           "event22" -> Json.obj(
             "members" -> Json.arr(
               Json.obj(
-                "membersDetails"-> Json.obj(
+                "membersDetails" -> Json.obj(
                   "lastName" -> "Smith",
                   "firstName" -> "John",
                   "nino" -> "AA345678B"
@@ -51,13 +53,18 @@ class MemberEventReportSpec extends AnyFreeSpec with Matchers with MockitoSugar 
       result mustBe Some(expectedResult)
     }
 
-    "transform a randomly generated valid payload from API 1832 correctly" in {
-      forAll(generateGET1832UserAnswersFromETMP) {
-        case (payload: JsObject, expectedResponse: JsObject) =>
-          val result = payload.validate(MemberEventReport.rds1832Api).asOpt
-          result mustBe Some(expectedResponse)
+    val api1832Events = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23)
 
+    api1832Events.foreach(
+      event => {
+        s"transform a randomly generated valid payload from API 1832 correctly (Event ${event.toString})" in {
+          forAll(generateUserAnswersAndPOSTBodyByEvent(event)) {
+            case (payload: JsObject, expectedResponse: JsObject) =>
+              val result = payload.validate(MemberEventReport.rds1832Api(event)).asOpt
+              result mustBe Some(expectedResponse)
+          }
+        }
       }
-    }
+    )
   }
 }
