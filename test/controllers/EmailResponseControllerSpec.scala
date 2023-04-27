@@ -16,14 +16,12 @@
 
 package controllers
 
-import audit.{AuditService, EmailAuditEvent}
+import audit.EmailAuditEvent
 import models._
-import models.enumeration.JourneyType.AFT_SUBMIT_RETURN
-import models.enumeration.SchemeAdministratorType
 import org.joda.time.DateTime
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito.{never, times, verify, when}
-import org.mockito.{ArgumentCaptor, Mockito}
+import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
@@ -34,7 +32,8 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import repository._
+import repositories.{EventReportCacheRepository, GetEventCacheRepository, OverviewCacheRepository, ToggleDataRepository}
+import services.AuditService
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.crypto.{ApplicationCrypto, PlainText}
 
@@ -52,24 +51,20 @@ class EmailResponseControllerSpec extends AsyncWordSpec with Matchers with Mocki
     overrides(Seq(
       bind[AuthConnector].toInstance(mockAuthConnector),
       bind[AuditService].toInstance(mockAuditService),
-      bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
-      bind[AftBatchedDataCacheRepository].toInstance(mock[AftBatchedDataCacheRepository]),
-      bind[AftOverviewCacheRepository].toInstance(mock[AftOverviewCacheRepository]),
-      bind[FileUploadReferenceCacheRepository].toInstance(mock[FileUploadReferenceCacheRepository]),
-      bind[FileUploadOutcomeRepository].toInstance(mock[FileUploadOutcomeRepository]),
-      bind[FinancialInfoCacheRepository].toInstance(mock[FinancialInfoCacheRepository]),
-      bind[FinancialInfoCreditAccessRepository].toInstance(mock[FinancialInfoCreditAccessRepository])
+      bind[EventReportCacheRepository].toInstance(mock[EventReportCacheRepository]),
+      bind[GetEventCacheRepository].toInstance(mock[GetEventCacheRepository]),
+      bind[OverviewCacheRepository].toInstance(mock[OverviewCacheRepository]),
+      bind[ToggleDataRepository].toInstance(mock[ToggleDataRepository]),
     )).build()
 
   private val injector = application.injector
   private val controller = injector.instanceOf[EmailResponseController]
   private val encryptedPsaId = injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(psa)).value
-  private val encryptedPspId = injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(psp)).value
   private val encryptedEmail = injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(email)).value
 
   override def beforeEach(): Unit = {
-    Mockito.reset(mockAuditService)
-    Mockito.reset(mockAuthConnector)
+    reset(mockAuditService)
+    reset(mockAuthConnector)
     when(mockAuthConnector.authorise[Enrolments](any(), any())(any(), any()))
       .thenReturn(Future.successful(enrolments))
   }
@@ -77,26 +72,16 @@ class EmailResponseControllerSpec extends AsyncWordSpec with Matchers with Mocki
   "EmailResponseController" must {
 
     "respond OK when given EmailEvents for PSA" in {
-      val result = controller.sendAuditEvents(
-        requestId, encryptedPsaId, SchemeAdministratorType.PSA, encryptedEmail, AFT_SUBMIT_RETURN)(fakeRequest.withBody(Json.toJson(emailEvents)))
+      val result = controller.sendAuditEvents(requestId, encryptedPsaId, encryptedEmail)(fakeRequest.withBody(Json.toJson(emailEvents)))
 
       status(result) mustBe OK
       verify(mockAuditService, times(4)).sendEvent(eventCaptor.capture())(any(), any())
-      eventCaptor.getValue mustEqual EmailAuditEvent(psa, SchemeAdministratorType.PSA, email, Complained, AFT_SUBMIT_RETURN, requestId)
-    }
-
-    "respond OK when given EmailEvents for PSP" in {
-      val result = controller.sendAuditEvents(
-        requestId, encryptedPspId, SchemeAdministratorType.PSP, encryptedEmail, AFT_SUBMIT_RETURN)(fakeRequest.withBody(Json.toJson(emailEvents)))
-
-      status(result) mustBe OK
-      verify(mockAuditService, times(4)).sendEvent(eventCaptor.capture())(any(), any())
-      eventCaptor.getValue mustEqual EmailAuditEvent(psp, SchemeAdministratorType.PSP, email, Complained, AFT_SUBMIT_RETURN, requestId)
+      eventCaptor.getValue mustEqual EmailAuditEvent(psa, schemeAdministratorType, email, Complained, requestId)
     }
 
     "respond with BAD_REQUEST when not given EmailEvents" in {
       val result = controller.sendAuditEvents(
-        requestId, encryptedPsaId, SchemeAdministratorType.PSA, encryptedEmail, AFT_SUBMIT_RETURN)(fakeRequest.withBody(Json.obj("name" -> "invalid")))
+        requestId, encryptedPsaId, encryptedEmail)(fakeRequest.withBody(Json.obj("name" -> "invalid")))
 
       verify(mockAuditService, never).sendEvent(any())(any(), any())
       status(result) mustBe BAD_REQUEST
@@ -106,7 +91,7 @@ class EmailResponseControllerSpec extends AsyncWordSpec with Matchers with Mocki
 
 object EmailResponseControllerSpec {
   private val psa = "A7654321"
-  private val psp = "21111111"
+  private val schemeAdministratorType = "PSA"
   private val email = "test@test.com"
   private val requestId = "test-request-id"
   private val fakeRequest = FakeRequest("", "")
