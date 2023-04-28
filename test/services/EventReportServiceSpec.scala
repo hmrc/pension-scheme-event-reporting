@@ -32,6 +32,8 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status.NO_CONTENT
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json._
+import play.api.mvc.RequestHeader
+import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
 import repositories.{EventReportCacheRepository, GetEventCacheRepository, OverviewCacheRepository}
@@ -47,6 +49,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   import EventReportServiceSpec._
 
   private implicit val hc: HeaderCarrier = HeaderCarrier()
+  private implicit lazy val rh: RequestHeader = FakeRequest("", "")
+
   private val mockEventReportConnector = mock[EventReportConnector]
   private val mockJSONPayloadSchemaValidator = mock[JSONSchemaValidator]
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
@@ -345,12 +349,12 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     "return valid response" in {
       when(mockEventReportConnector.submitEventDeclarationReport(
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponse))(any(), any()))
+        ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponse))(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse.apply(
           status = OK,
           json = submitEventDeclarationReportSuccessResponse,
           headers = Map.empty)))
-      eventReportService.submitEventDeclarationReport(pstr, submitEventDeclarationReportSuccessResponse)(implicitly, implicitly).map { resultJsValue =>
+      eventReportService.submitEventDeclarationReport(pstr, submitEventDeclarationReportSuccessResponse)(implicitly, implicitly, implicitly).map { resultJsValue =>
         resultJsValue mustBe submitEventDeclarationReportSuccessResponse
       }
     }

@@ -155,7 +155,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
   "submitEventDeclarationReport" must {
     "return OK when valid response" in {
-      when(mockEventReportService.submitEventDeclarationReport(any(), any())(any(), any()))
+      when(mockEventReportService.submitEventDeclarationReport(any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(submitEventDeclarationReportSuccessResponse))
       when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
         .thenReturn(Success(()))

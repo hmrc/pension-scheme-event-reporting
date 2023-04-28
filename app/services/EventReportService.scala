@@ -27,8 +27,8 @@ import play.api.Logging
 import play.api.http.Status.NOT_IMPLEMENTED
 import play.api.libs.json.JsResult.toTry
 import play.api.libs.json._
-import play.api.mvc.Result
 import play.api.mvc.Results._
+import play.api.mvc.{RequestHeader, Result}
 import repositories.{EventReportCacheRepository, GetEventCacheRepository, OverviewCacheRepository}
 import transformations.ETMPToFrontEnd.EventSummary.{rdsEventTypeNodeOnly, rdsFor1834}
 import transformations.ETMPToFrontEnd.MemberEventReport
@@ -197,7 +197,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   }
 
   def submitEventDeclarationReport(pstr: String, userAnswersJson: JsValue)
-                                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
+                                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[JsValue] = {
     eventReportConnector.submitEventDeclarationReport(pstr, userAnswersJson).map(_.json)
   }
 
