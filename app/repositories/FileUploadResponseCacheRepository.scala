@@ -79,9 +79,9 @@ class FileUploadResponseCacheRepository @Inject()(
 
   import FileUploadResponseCacheEntry._
 
-  private val expireInDays = config.get[Int](path = "mongodb.event-reporting-data.timeToLiveInDays")
+  private val expireInSeconds = config.get[Int](path = "mongodb.file-upload-response.timeToLiveInSeconds")
 
-  private def evaluatedExpireAt: DateTime = DateTime.now(DateTimeZone.UTC).toLocalDate.plusDays(expireInDays + 1).toDateTimeAtStartOfDay()
+  private def evaluatedExpireAt: DateTime = DateTime.now(DateTimeZone.UTC).plusSeconds(expireInSeconds + 1).toLocalDateTime.toDateTime()
 
   private def selector(reference: String) = Filters.equal(referenceKey, reference)
 
