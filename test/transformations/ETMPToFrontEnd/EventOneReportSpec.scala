@@ -109,7 +109,7 @@ object EventOneReportSpec {
       |        "membersDetails": {
       |          "lastName": "Smith",
       |          "firstName": "John",
-      |          "nino": "Smith"
+      |          "nino": "AA999999A"
       |        },
       |        "whoWasTheTransferMade": "anEmployerFinanced",
       |        "whoReceivedUnauthPayment": "member",
