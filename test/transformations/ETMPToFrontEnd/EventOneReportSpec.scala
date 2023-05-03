@@ -26,58 +26,178 @@ import utils.{GeneratorAPI1832, GeneratorAPI1834, JsonFileReader}
 class EventOneReportSpec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader
   with GeneratorAPI1834 with GeneratorAPI1832 with ScalaCheckPropertyChecks {
 
+  import EventOneReportSpec._
+
   "Reads" - {
-    "transform a randomly generated valid payload from API 1833 correctly" in {
+    "transform a valid individual payload from API 1833 correctly" in {
 
-      // TODO: Create one valid payload for a member and an employer. Alternatively: a full generator.
-      val payload = Json.parse("""{
-                                 |  "processingDate": "2023-12-15T12:30:46Z",
-                                 |  "schemeDetails": {
-                                 |    "pSTR": "87219363YN",
-                                 |    "schemeName": "Abc Ltd"
-                                 |  },
-                                 |  "eventReportDetails": {
-                                 |    "reportFormBundleNumber": "123456789012",
-                                 |    "reportStartDate": "2021-04-06",
-                                 |    "reportEndDate": "2022-04-05",
-                                 |    "reportStatus": "Compiled",
-                                 |    "reportVersionNumber": "001",
-                                 |    "reportSubmittedDateAndTime": "2023-12-13T12:12:12Z"
-                                 |  },
-                                 |  "event1Details": [
-                                 |    {
-                                 |      "memberStatus": "New",
-                                 |      "memberType": "Individual",
-                                 |      "individualMemberDetails": {
-                                 |        "title": "Mr",
-                                 |        "firstName": "John",
-                                 |        "middleName": "Mac",
-                                 |        "lastName": "Smith",
-                                 |        "nino": "AA999999A",
-                                 |        "signedMandate": "Yes",
-                                 |        "pmtMoreThan25PerFundValue": "No",
-                                 |        "schemePayingSurcharge": "Yes"
-                                 |      },
-                                 |      "unAuthorisedPaymentDetails": {
-                                 |        "unAuthorisedPmtType1": "Transfer to non-registered pensions scheme",
-                                 |        "unAuthorisedPmtType2": "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
-                                 |        "freeTxtOrSchemeOrRecipientName": "ABCDEFGHIJKLMNOPQRSTUV",
-                                 |        "pstrOrReference": "20034565RX",
-                                 |        "dateOfUnauthorisedPayment": "2020-06-30",
-                                 |        "valueOfUnauthorisedPayment": 723
-                                 |      }
-                                 |    }
-                                 |  ]
-                                 |}""".stripMargin)
+      (individualPayload, expectedIndividualResponse) match {
+        case (payload: JsObject, expectedResponse: JsObject) =>
+          val result = payload.validate(EventOneReport.rds1833Api).asOpt
+          result mustBe Some(expectedResponse)
+      }
+    }
 
-      // TODO: create valid response for member and employer. Alternatively: a full generator. Tests will fail if you don't change line below.
-      val expectedResponse = Json.obj("hello" -> "world")
+    "transform a valid employer payload from API 1833 correctly" in {
 
-      (payload, expectedResponse) match {
+      (employerPayload, expectedEmployerResponse) match {
         case (payload: JsObject, expectedResponse: JsObject) =>
           val result = payload.validate(EventOneReport.rds1833Api).asOpt
           result mustBe Some(expectedResponse)
       }
     }
   }
+}
+
+object EventOneReportSpec {
+
+  val individualPayload: JsValue = Json.parse(
+    """
+      |{
+      |  "processingDate": "2023-12-15T12:30:46Z",
+      |  "schemeDetails": {
+      |    "pSTR": "87219363YN",
+      |    "schemeName": "Abc Ltd"
+      |  },
+      |  "eventReportDetails": {
+      |    "reportFormBundleNumber": "123456789012",
+      |    "reportStartDate": "2021-04-06",
+      |    "reportEndDate": "2022-04-05",
+      |    "reportStatus": "Compiled",
+      |    "reportVersionNumber": "001",
+      |    "reportSubmittedDateAndTime": "2023-12-13T12:12:12Z"
+      |  },
+      |  "event1Details": [
+      |    {
+      |      "memberStatus": "New",
+      |      "memberType": "Individual",
+      |      "individualMemberDetails": {
+      |        "title": "Mr",
+      |        "firstName": "John",
+      |        "middleName": "Mac",
+      |        "lastName": "Smith",
+      |        "nino": "AA999999A",
+      |        "signedMandate": "Yes",
+      |        "pmtMoreThan25PerFundValue": "No",
+      |        "schemePayingSurcharge": "Yes"
+      |      },
+      |      "unAuthorisedPaymentDetails": {
+      |        "unAuthorisedPmtType1": "Transfer to non-registered pensions scheme",
+      |        "unAuthorisedPmtType2": "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
+      |        "freeTxtOrSchemeOrRecipientName": "ABCDEFGHIJKLMNOPQRSTUV",
+      |        "pstrOrReference": "20034565RX",
+      |        "dateOfUnauthorisedPayment": "2020-06-30",
+      |        "valueOfUnauthorisedPayment": 723
+      |      }
+      |    }
+      |  ]
+      |}
+      |""".stripMargin)
+
+  val expectedIndividualResponse: JsValue = Json.parse(
+    """
+      |{
+      |  "event1": {
+      |    "membersOrEmployers": [
+      |      {
+      |        "schemeDetails": {
+      |          "reference": "20034565RX",
+      |          "schemeName": "ABCDEFGHIJKLMNOPQRSTUV"
+      |        },
+      |        "doYouHoldSignedMandate": true,
+      |        "schemeUnAuthPaySurchargeMember": true,
+      |        "membersDetails": {
+      |          "lastName": "Smith",
+      |          "firstName": "John",
+      |          "nino": "Smith"
+      |        },
+      |        "whoWasTheTransferMade": "anEmployerFinanced",
+      |        "whoReceivedUnauthPayment": "member",
+      |        "paymentValueAndDate": {
+      |          "paymentValue": 723,
+      |          "paymentDate": "2020-06-30"
+      |        },
+      |        "paymentNatureMember": "transferToNonRegPensionScheme",
+      |        "valueOfUnauthorisedPayment": false
+      |      }
+      |    ]
+      |  }
+      |}
+      |""".stripMargin)
+
+  val employerPayload: JsValue = Json.parse(
+    """
+      |{
+      |  "processingDate": "2023-12-15T12:30:46Z",
+      |  "schemeDetails": {
+      |    "pSTR": "87219363YN",
+      |    "schemeName": "Abc Ltd"
+      |  },
+      |  "eventReportDetails": {
+      |    "reportFormBundleNumber": "123456789012",
+      |    "reportStartDate": "2021-04-06",
+      |    "reportEndDate": "2022-04-05",
+      |    "reportStatus": "Compiled",
+      |    "reportVersionNumber": "001",
+      |    "reportSubmittedDateAndTime": "2023-12-13T12:12:12Z"
+      |  },
+      |  "event1Details": [
+      |    {
+      |      "memberStatus": "New",
+      |      "memberType": "Employer",
+      |      "employerMemberDetails": {
+      |        "compOrOrgName": "The Biz Ltd",
+      |        "crnNumber": "12345679",
+      |        "addressDetails": {
+      |         "addressLine1": "123 Fun Lane",
+      |         "addressLine2": "Cool Crescent",
+      |         "addressLine3": "Slough",
+      |         "addressLine4": "Berkshire",
+      |         "postCode": "ZZ11 1ZZ",
+      |         "countryCode": "GB"
+      |        }
+      |      },
+      |      "unAuthorisedPaymentDetails": {
+      |        "unAuthorisedPmtType1": "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
+      |        "unAuthorisedPmtType2": "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
+      |        "freeTxtOrSchemeOrRecipientName": "Sample description",
+      |        "dateOfUnauthorisedPayment": "2020-06-30",
+      |        "valueOfUnauthorisedPayment": 723
+      |      }
+      |    }
+      |  ]
+      |}
+      |""".stripMargin)
+
+  val expectedEmployerResponse: JsValue = Json.parse(
+    """
+      |{
+      |  "event1": {
+      |    "membersOrEmployers": [
+      |      {
+      |        "employerTangibleMoveableProperty": "Sample description",
+      |        "employerAddress": {
+      |          "addressLine1": "123 Fun Lane",
+      |          "addressLine2": "Cool Crescent",
+      |          "addressLine3": "Slough",
+      |          "addressLine4": "Berkshire",
+      |          "postCode": "ZZ11 1ZZ",
+      |          "countryCode": "GB"
+      |        },
+      |        "companyDetails": {
+      |          "companyNumber": "12345679",
+      |          "companyName": "The Biz Ltd"
+      |        },
+      |        "whoWasTheTransferMade": "anEmployerFinanced",
+      |        "whoReceivedUnauthPayment": "employer",
+      |        "paymentValueAndDate": {
+      |          "paymentValue": 723,
+      |          "paymentDate": "2020-06-30"
+      |        },
+      |        "paymentNatureEmployer": "tangibleMoveableProperty"
+      |      }
+      |    ]
+      |  }
+      |}
+      |""".stripMargin)
 }

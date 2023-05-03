@@ -63,7 +63,7 @@ private object EventOneReportReadsUtilities extends Transformer {
   val readsEmployerMemberDetails: Reads[JsObject] = (
     reqReads(pathUACompanyName, pathEtmpEmployerMemberDetailsCompOrOrgName) and
       reqReads(pathUACompanyNumber, pathEtmpEmployerMemberDetailsCrnNumber) and
-      pathUAEmployerAddress.json.copyFrom(readsAddress(pathEtmpEmployerMemberDetailsAddressDetails))
+      reqReads(pathUAEmployerAddress, pathEtmpEmployerMemberDetailsAddressDetails)
     ).reduce
 
   val readsUnAuthorisedPaymentDetails: Reads[JsObject] = (
@@ -106,9 +106,9 @@ private object EventOneReportReadsUtilities extends Transformer {
   lazy val optReadsDynamicPathStrTransform: (String => JsPath, JsPath, String => String) => Reads[JsObject] =
     (dynamicUaPath: String => JsPath, etmpPath: JsPath, transform: String => String) => {
       etmpPath.json.pick.flatMap {
-        case JsString(str) => dynamicUaPath(transform(str)).json.copyFrom(Reads.pure(JsString(transform(str)))).orElse(doNothing)
+        case JsString(str) => dynamicUaPath(transform(str)).json.copyFrom(Reads.pure(JsString(transform(str))))
         case _ => fail[JsObject]
-      }
+      }.orElse(doNothing)
     }
 
   /**
@@ -162,6 +162,7 @@ private object EventOneReportReadsUtilities extends Transformer {
     case "Death of dependent" => "deathOfDependent"
     case "Dependent no longer qualified for pension" => "dependentNoLongerQualifiedForPension"
     case "Overpayment of pension/written off other" => "other"
+    case _ => ""
   }
 
   val freeTxtOrSchemeOrRecipientNameIndividualTransform: String => String = {
@@ -250,6 +251,8 @@ private object EventOneReportReadsUtilities extends Transformer {
       xyz <- stu // TODO: better way of doing this?
     } yield xyz
   }
+
+
 
   private lazy val readsResPropDetails: Reads[Option[Reads[JsObject]]] = pathEtmpMemberType.readNullable[JsString].map { optJson =>
     optJson.map {
