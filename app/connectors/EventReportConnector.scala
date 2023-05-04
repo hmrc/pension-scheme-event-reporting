@@ -25,6 +25,8 @@ import models.{EROverview, ERVersion}
 import play.api.Logging
 import play.api.http.Status._
 import play.api.libs.json._
+import play.api.mvc.RequestHeader
+import services.SubmitEventDeclarationAuditService
 import uk.gov.hmrc.http.{HttpClient, _}
 import utils.HttpResponseHelper
 
@@ -33,7 +35,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class EventReportConnector @Inject()(
                                       config: AppConfig,
                                       http: HttpClient,
-                                      headerUtils: HeaderUtils
+                                      headerUtils: HeaderUtils,
+                                      submitEventDeclarationAuditService:SubmitEventDeclarationAuditService
                                     )
   extends HttpErrorFunctions
     with HttpResponseHelper
@@ -161,7 +164,7 @@ class EventReportConnector @Inject()(
     val apiUrl: String = s"${config.getApiUrlByApiNum(api.toString).format(pstr)}"
 
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = headers: _*)
-    logger.debug(s"Get $api.toString (IF) called - URL: $apiUrl with headers: $headers")
+    logger.info(s"Get $api.toString (IF) called - URL: $apiUrl with headers: $headers")
 
     http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
       response.status match {
@@ -171,7 +174,8 @@ class EventReportConnector @Inject()(
     }
   }
 
-  def submitEventDeclarationReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
+  def submitEventDeclarationReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier,
+                                                                ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
     val submitEventDeclarationReportUrl = config.submitEventDeclarationReportUrl.format(pstr)
     logger.debug("Submit Event Declaration Report called URL:" + submitEventDeclarationReportUrl)
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
@@ -181,7 +185,7 @@ class EventReportConnector @Inject()(
           case OK => response
           case _ => handleErrorResponse("POST", submitEventDeclarationReportUrl)(response)
         }
-    }
+    } andThen submitEventDeclarationAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data)
   }
 
   def getVersions(pstr: String, reportType: String, startDate: String)
