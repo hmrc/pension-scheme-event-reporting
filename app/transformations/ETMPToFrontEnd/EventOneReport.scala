@@ -52,7 +52,7 @@ private object EventOneReportReadsUtilities extends Transformer {
   }
 
   val readsIndividualMemberDetails: Reads[JsObject] = (
-    reqReads(pathUAMembersDetailsFirstName, pathEtmpIndividualMemberDetailsFirstName) and
+      reqReads(pathUAMembersDetailsFirstName, pathEtmpIndividualMemberDetailsFirstName) and
       reqReads(pathUAMembersDetailsLastName,pathEtmpIndividualMemberDetailsLastName) and
       reqReads(pathUAMembersDetailsNino, pathEtmpIndividualMemberDetailsNino) and
       optReadsBoolTransform(pathUADoYouHoldSignedMandate, pathEtmpIndividualMemberDetailsSignedMandate, yesNoTransform) and
@@ -61,13 +61,13 @@ private object EventOneReportReadsUtilities extends Transformer {
     ).reduce
 
   val readsEmployerMemberDetails: Reads[JsObject] = (
-    reqReads(pathUACompanyName, pathEtmpEmployerMemberDetailsCompOrOrgName) and
+      reqReads(pathUACompanyName, pathEtmpEmployerMemberDetailsCompOrOrgName) and
       reqReads(pathUACompanyNumber, pathEtmpEmployerMemberDetailsCrnNumber) and
       reqReads(pathUAEmployerAddress, pathEtmpEmployerMemberDetailsAddressDetails)
     ).reduce
 
   val readsUnAuthorisedPaymentDetails: Reads[JsObject] = (
-    readsUnAuthorisedPmtType1WithDynamicUAPaths and
+      readsUnAuthorisedPmtType1WithDynamicUAPaths and
       reqReads(pathUAUnAuthorisedPaymentDate, pathEtmpUnAuthorisedPaymentDetailsDateOfUnauthorisedPayment) and
       reqReads(pathUAUnAuthorisedPaymentValue, pathEtmpUnAuthorisedPaymentDetailsValueOfUnauthorisedPayment) and
       optReadsDynamicPathStrTransform(dynamicPathUnAuthorisedPmtType2, pathEtmpUnAuthorisedPaymentDetailsUnAuthorisedPmtType2, unAuthorisedPmtType2Transform) and
@@ -214,20 +214,16 @@ private object EventOneReportReadsUtilities extends Transformer {
    * These are the most complex reads in the file because they require significant changes before being stored in a given uaPath.
    */
 
-  private lazy val readsUnAuthorisedPmtType1IndividualOrEmployer: Reads[Option[Reads[JsObject]]] = pathEtmpMemberType.readNullable[JsString].map { optJson =>
-    optJson.map {
-      case JsString("Individual") =>
-        reqReadsStrTransform(pathUAPaymentNatureMember, pathEtmpUnAuthorisedPaymentDetailsUnAuthorisedPmtType1, unAuthorisedPmtType1IndividualTransform)
-      case JsString("Employer") =>
-        reqReadsStrTransform(pathUAPaymentNatureEmployer, pathEtmpUnAuthorisedPaymentDetailsUnAuthorisedPmtType1, unAuthorisedPmtType1EmployerTransform)
-    }
+  private lazy val readsUnAuthorisedPmtType1IndividualOrEmployer: Reads[Option[Reads[JsObject]]] = pathEtmpMemberType.readNullable[JsString].map {
+    case Some(JsString("Individual")) =>
+      Some(reqReadsStrTransform(pathUAPaymentNatureMember, pathEtmpUnAuthorisedPaymentDetailsUnAuthorisedPmtType1, unAuthorisedPmtType1IndividualTransform))
+    case Some(JsString("Employer")) =>
+      Some(reqReadsStrTransform(pathUAPaymentNatureEmployer, pathEtmpUnAuthorisedPaymentDetailsUnAuthorisedPmtType1, unAuthorisedPmtType1EmployerTransform))
+    case _ => None
   }
 
   lazy val readsUnAuthorisedPmtType1WithDynamicUAPaths: Reads[JsObject] = {
-    for {
-      abc <- readsUnAuthorisedPmtType1IndividualOrEmployer
-      xyz <- abc.get // TODO: better way of doing this?
-    } yield xyz
+    readsUnAuthorisedPmtType1IndividualOrEmployer.flatMap(_.getOrElse(Reads.pure(Json.obj())))
   }
 
   private lazy val readsFreeTxtOrSchemeOrRecipientName: Reads[Option[Reads[Reads[JsObject]]]] = pathEtmpMemberType.readNullable[JsString].map { optJson =>
@@ -245,29 +241,20 @@ private object EventOneReportReadsUtilities extends Transformer {
   }
 
   lazy val readsFreeTxtOrSchemeOrRecipientNameWithDynamicUAPaths: Reads[JsObject] = {
-    for {
-      abc <- readsFreeTxtOrSchemeOrRecipientName
-      stu <- abc.get
-      xyz <- stu // TODO: better way of doing this?
-    } yield xyz
-  }
-
-
-
-  private lazy val readsResPropDetails: Reads[Option[Reads[JsObject]]] = pathEtmpMemberType.readNullable[JsString].map { optJson =>
-    optJson.map {
-      case JsString("Individual") =>
-        optReads(pathUAMemberResidentialAddress, pathEtmpUnAuthorisedPaymentDetailsResidentialPropertyAddress)
-      case JsString("Employer") =>
-        optReads(pathUAEmployerResidentialAddress, pathEtmpUnAuthorisedPaymentDetailsResidentialPropertyAddress)
+    readsFreeTxtOrSchemeOrRecipientName.flatMap {
+      case Some(reads) => reads.flatMap(identity)
+      case None => Reads.pure(Json.obj())
     }
   }
 
+  private lazy val readsResPropDetails: Reads[Option[Reads[JsObject]]] = pathEtmpMemberType.readNullable[JsString].map {
+    case Some(JsString("Individual")) => Some(optReads(pathUAMemberResidentialAddress, pathEtmpUnAuthorisedPaymentDetailsResidentialPropertyAddress))
+    case Some(JsString("Employer")) => Some(optReads(pathUAEmployerResidentialAddress, pathEtmpUnAuthorisedPaymentDetailsResidentialPropertyAddress))
+    case _ => None
+  }
+
   lazy val readsResPropDetailsWithDynamicUAPaths: Reads[JsObject] = {
-    for {
-      abc <- readsResPropDetails
-      xyz <- abc.get // TODO: better way of doing this?
-    } yield xyz
+    readsResPropDetails.flatMap(_.getOrElse(Reads.pure(Json.obj())))
   }
 }
 
