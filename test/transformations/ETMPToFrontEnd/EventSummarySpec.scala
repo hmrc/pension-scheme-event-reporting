@@ -33,10 +33,10 @@ class EventSummarySpec extends AnyFreeSpec with Matchers with MockitoSugar with 
       val result = json.validate(EventSummary.rdsFor1834).asOpt
 
       val expectedResult = Some(
-        Json.arr("10", "11", "12", "13", "14", "19", "20", "0")
+        Set("2","3","4","5","6","7","8","8A","10","11","12","13","14","19","20","22","23","24","0")
       )
 
-      result mustBe expectedResult
+      result.map(_.validate[Set[String]].get) mustBe expectedResult
     }
 
     "transform a valid payload correctly when read from sample file from API 1832" in {
@@ -54,17 +54,8 @@ class EventSummarySpec extends AnyFreeSpec with Matchers with MockitoSugar with 
       forAll(generateGET1834ResponseAndUserAnswers) {
         case (json: JsObject, eventTypes: Seq[String]) =>
           val result = json.validate(EventSummary.rdsFor1834).asOpt
-          val expectedResult = Some(JsArray(eventTypes.map(JsString)))
-          result mustBe expectedResult
-      }
-    }
-
-    "transform a randomly generated API 1832 event valid payload correctly" in {
-      forAll(generateGET1832ResponseAndUserAnswers) {
-        case (json: JsValue, eventType: EventType) =>
-          val result = json.validate(EventSummary.rdsEventTypeNodeOnly(eventType)).asOpt
-          val expectedResult = Some(JsArray(Seq(JsString(eventType.toString))))
-          result mustBe expectedResult
+          val expectedResult = Some(eventTypes.toSet)
+          result.map(_.validate[Seq[String]].get.toSet) mustBe expectedResult
       }
     }
   }

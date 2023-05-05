@@ -35,6 +35,7 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
     for {
       chosenEventTypesWithSeq <- Gen.someOf[String](Seq("10", "13", "19", "20"))
       chosenEventTypesWithoutSeq <- Gen.someOf[String](Seq("11", "12", "14", "0"))
+      chosenMemberEventTypesSeq <- Gen.someOf[String](Seq("2", "3", "4", "5", "6", "7", "8", "8A", "22", "23", "24"))
     } yield {
       val payloadWithSeq = chosenEventTypesWithSeq.foldLeft(Json.obj()) { (acc, s) =>
         acc ++ Json.obj(
@@ -54,8 +55,19 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
         )
       }
 
+      val membersPayloadSeq = chosenMemberEventTypesSeq.foldLeft(Json.obj()) { (acc, s) =>
+        acc ++ Json.obj(
+          s"event$s" -> Json.arr(
+            Json.obj(
+              "recordVersion" -> version
+            )
+          )
+        )
+      }
+
       val generatedPayload = Json.obj(
-        "eventDetails" -> (payloadWithSeq ++ payloadWithoutSeq)
+        "eventDetails" -> (payloadWithSeq ++ payloadWithoutSeq),
+        "memberEventsSummary" -> membersPayloadSeq
       )
 
       val expectedEventTypes = (chosenEventTypesWithSeq ++ chosenEventTypesWithoutSeq)
