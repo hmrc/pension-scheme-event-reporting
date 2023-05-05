@@ -16,7 +16,6 @@
 
 package transformations.ETMPToFrontEnd
 
-import models.enumeration.EventType
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
@@ -39,15 +38,15 @@ class EventSummarySpec extends AnyFreeSpec with Matchers with MockitoSugar with 
       result.map(_.validate[Set[String]].get) mustBe expectedResult
     }
 
-    "transform a valid payload correctly when read from sample file from API 1832" in {
-      val json = readJsonFromFile("/api-1832-valid-example.json")
-      val result = json.validate(EventSummary.rdsEventTypeNodeOnly(EventType.Event22)).asOpt
+    "transform a valid payload correctly when read from sample file from API 1833" in {
+      val json = readJsonFromFile("/api-1833-valid-example.json")
+      val result = json.validate(EventSummary.rdsFor1833).asOpt
 
       val expectedResult = Some(
-        Json.arr("22")
+        Set("1")
       )
 
-      result mustBe expectedResult
+      result.map(_.validate[Set[String]].get) mustBe expectedResult
     }
 
     "transform a randomly generated API 1834 events valid payload correctly" in {

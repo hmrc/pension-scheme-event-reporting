@@ -70,7 +70,7 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
         "memberEventsSummary" -> membersPayloadSeq
       )
 
-      val expectedEventTypes = (chosenEventTypesWithSeq ++ chosenEventTypesWithoutSeq)
+      val expectedEventTypes = (chosenEventTypesWithSeq ++ chosenEventTypesWithoutSeq ++ chosenMemberEventTypesSeq)
         .sortWith(sortEventTypes).toSeq
 
       Tuple2(generatedPayload, expectedEventTypes)
