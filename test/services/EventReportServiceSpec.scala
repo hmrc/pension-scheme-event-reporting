@@ -243,15 +243,11 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   }
 
   "getEventSummary" must {
-    "return the payload from the connector for API1834 and API1833" in {
-      val response = Set("2","3","4","5","6","7","8","8A","22","23","24","10","11","12","13","14","18","19","20","0","1")
-      val responseJsonForAPI1833 = readJsonFromFile("/api-1833-valid-example.json")
+    "return the payload from the connector for API1834" in {
+      val response = Set("1", "2","3","4","5","6","7","8","8A","10","11","12","13","14","18","19","20","22","23","24","0")
       when(mockEventReportConnector.getEvent(pstr, startDate, version, None)(implicitly, implicitly))
         .thenReturn(Future.successful(responseJsonForAPI1834))
-      when(mockEventReportConnector.getEvent(pstr, startDate, version, Some(Event1))(implicitly, implicitly))
-        .thenReturn(Future.successful(Some(responseJsonForAPI1833)))
       eventReportService.getEventSummary(pstr, version, startDate).map { result =>
-        verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, version, Some(EventType.Event1))(implicitly, implicitly)
         verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, version, None)(implicitly, implicitly)
         result.value.map(_.validate[String].get).toSet mustBe response
       }

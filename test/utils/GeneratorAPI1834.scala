@@ -24,9 +24,12 @@ import play.api.libs.json.{JsObject, Json}
 trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerators {
   def generateGET1834ResponseAndUserAnswers: Gen[Tuple2[JsObject, Seq[String]]] = {
     val sortEventTypes: (String, String) => Boolean = (a, b) => {
-      (a, b) match {
-        case ("0", _) => false
-        case (_, "0") => true
+      def toNum(str:String) = str.split("A").take(1)(0).toInt
+      val aNum = toNum(a)
+      val bNum = toNum(b)
+      (aNum, bNum) match {
+        case (0, _) => false
+        case (_, 0) => true
         case (a, b) if a < b => true
         case _ => false
       }
@@ -56,13 +59,7 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
       }
 
       val membersPayloadSeq = chosenMemberEventTypesSeq.foldLeft(Json.obj()) { (acc, s) =>
-        acc ++ Json.obj(
-          s"event$s" -> Json.arr(
-            Json.obj(
-              "recordVersion" -> version
-            )
-          )
-        )
+        acc ++ Json.obj(s"event$s" -> Json.obj("recordVersion" -> version))
       }
 
       val generatedPayload = Json.obj(

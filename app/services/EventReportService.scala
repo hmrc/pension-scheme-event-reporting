@@ -150,25 +150,14 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
     //TODO: Implement for event 20A. I assume API 1831 will need to be used for this. -Pavel Vjalicin
-    val requests = Seq(
-      None -> transformations.ETMPToFrontEnd.EventSummary.rdsFor1834,
-      Some(EventType.Event1) -> transformations.ETMPToFrontEnd.EventSummary.rdsFor1833
-    )
-
-    val responses = requests.map { case (event, reads) =>
-      eventReportConnector.getEvent(pstr, startDate, version, event).map { etmpJsonOpt =>
-        etmpJsonOpt.map { etmpJson =>
-          etmpJson.transform(reads) match {
-            case JsSuccess(seqOfEventTypes, _) => seqOfEventTypes
-            case JsError(errors) => throw JsResultException(errors)
-          }
-        }.getOrElse(JsArray())
-      }
+    eventReportConnector.getEvent(pstr, startDate, version, None).map { etmpJsonOpt =>
+      etmpJsonOpt.map { etmpJson =>
+        etmpJson.transform(transformations.ETMPToFrontEnd.EventSummary.rdsFor1834) match {
+          case JsSuccess(seqOfEventTypes, _) => seqOfEventTypes
+          case JsError(errors) => throw JsResultException(errors)
+        }
+      }.getOrElse(JsArray())
     }
-
-    Future.sequence(responses).map( responses =>
-      responses.foldLeft(JsArray())( (acc, response) => acc ++ response )
-    )
   }
 
   def getVersions(pstr: String, reportType: String, startDate: String)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[ERVersion]] = {
