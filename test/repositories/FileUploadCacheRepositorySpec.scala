@@ -26,7 +26,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.mongo.MongoComponent
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -58,7 +58,7 @@ class FileUploadCacheRepositorySpec extends AnyWordSpec with MockitoSugar with M
       val documentsInDB = for {
         _ <- fileUploadResponseCacheRepository.collection.drop().toFuture()
         _ <- fileUploadResponseCacheRepository.upsert(record._1, record._2)
-        documentsInDB <- fileUploadResponseCacheRepository.collection.find[FileUploadResponseCacheEntry](filters).toFuture()
+        documentsInDB <- fileUploadResponseCacheRepository.collection.find[JsValue](filters).toFuture()
       } yield documentsInDB
 
       // The future returned an exception of type: org.bson.codecs.configuration.CodecConfigurationException, with message: Can't find a codec for class repositories.FileUploadResponseCacheEntry.

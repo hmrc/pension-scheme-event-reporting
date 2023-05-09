@@ -103,8 +103,8 @@ class FileUploadResponseCacheRepository @Inject()(
   def get(reference: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
    collection.find(
       filter = selector(reference)
-    ).headOption().map{ a => a.flatMap{ x =>
-     (x.as[JsObject] \ "data").asOpt[JsValue]
+    ).headOption().map{ a => a.flatMap{ jsValue =>
+     (jsValue.as[JsObject] \ "data").asOpt[JsValue]
    }}
   }
 
