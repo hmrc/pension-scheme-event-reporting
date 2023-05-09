@@ -37,19 +37,6 @@ class FileUploadOutcomeController @Inject()(
     with Results
     with Logging {
 
-//  def save: Action[AnyContent] = Action.async {
-//    implicit request =>
-//      withReferenceId { reference =>
-//        request.body.asText match {
-//          case Some(s) =>
-//            val json = Json.parse(s)
-//            logger.debug(message = s"[Save file upload outcome: Incoming-Payload]$reference")
-//            fileUploadResponseCacheRepository.upsert(reference, json).map(_ => Ok)
-//          case None =>
-//            throw new RuntimeException("No JSON body")
-//        }
-//      }
-//  }
   def save: Action[AnyContent] = Action.async {
     implicit request =>
         request.body.asJson match {
@@ -61,7 +48,6 @@ class FileUploadOutcomeController @Inject()(
             throw new RuntimeException("No JSON body")
         }
   }
-
 
     def get: Action[AnyContent] = Action.async {
       implicit request =>

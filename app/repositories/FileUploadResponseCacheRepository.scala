@@ -88,7 +88,7 @@ class FileUploadResponseCacheRepository @Inject()(
   def upsert(reference: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val lastUpdated = DateTime.now(DateTimeZone.UTC)
     val modifier = Updates.combine(
-      Updates.set(referenceKey, reference),
+      Updates.set(referenceKey, Codecs.toBson(reference)),
       Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
       Updates.set(lastUpdatedKey, Codecs.toBson(lastUpdated)),
       Updates.set(expireAtKey, Codecs.toBson(evaluatedExpireAt))
