@@ -17,7 +17,6 @@
 package controllers
 
 import play.api.Logging
-import play.api.libs.json.Json
 import play.api.mvc._
 import repositories.FileUploadResponseCacheRepository
 import uk.gov.hmrc.http.{Request => _, _}

@@ -31,10 +31,10 @@ import uk.gov.hmrc.mongo.MongoComponent
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class FileUploadCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with EmbeddedMongoDBSupport
+class FileUploadResponseCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with EmbeddedMongoDBSupport
   with BeforeAndAfter with BeforeAndAfterAll with ScalaFutures { // scalastyle:off magic.number
 
-  import FileUploadCacheRepositorySpec._
+  import FileUploadResponseCacheRepositorySpec._
 
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(1, Millis))
 
@@ -88,7 +88,7 @@ class FileUploadCacheRepositorySpec extends AnyWordSpec with MockitoSugar with M
 }
 
 
-object FileUploadCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
+object FileUploadResponseCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
 
   private val mockAppConfig = mock[Configuration]
   private val mockConfig = mock[Config]
