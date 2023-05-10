@@ -21,7 +21,7 @@ import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
 import models.ERVersion
 import models.enumeration.ApiType._
-import models.enumeration.EventType.{Event2, Event22, Event23, Event24, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
+import models.enumeration.EventType.{Event1, Event2, Event22, Event23, Event24, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
 import models.enumeration.{ApiType, EventType}
 import play.api.Logging
 import play.api.http.Status.NOT_IMPLEMENTED
@@ -31,7 +31,7 @@ import play.api.mvc.Results._
 import play.api.mvc.{RequestHeader, Result}
 import repositories.{EventReportCacheRepository, GetEventCacheRepository, OverviewCacheRepository}
 import transformations.ETMPToFrontEnd.EventSummary.{rdsEventTypeNodeOnly, rdsFor1834}
-import transformations.ETMPToFrontEnd.MemberEventReport
+import transformations.ETMPToFrontEnd.{EventOneReport, MemberEventReport}
 import transformations.UserAnswersToETMP.{API1826, API1827, API1830}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
@@ -122,6 +122,10 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
     val api1832Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
     eventType match {
+      case Event1 => data.validate(EventOneReport.rds1833Api) match {
+        case JsSuccess(transformedData, _) => Some(transformedData)
+        case _ => None
+      }
       case evType1832 if api1832Events.contains(evType1832) =>
         data.validate(MemberEventReport.rds1832Api(evType1832)) match {
           case JsSuccess(transformedData, _) => Some(transformedData)
