@@ -32,6 +32,8 @@
 //
 package controllers
 
+import akka.util.ByteString
+import org.apache.commons.lang3.RandomUtils
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, when}
@@ -99,6 +101,7 @@ class FileUploadOutcomeControllerSpec extends AsyncWordSpec with Matchers with M
       an[Exception] must be thrownBy status(result)
     }
   }
+
   "save" must {
     "return OK when data is saved successfully" in {
       when(mockFileUploadResponseCache.upsert(any(), any())(any())) thenReturn Future.successful((): Unit)
@@ -109,9 +112,11 @@ class FileUploadOutcomeControllerSpec extends AsyncWordSpec with Matchers with M
 //    "throw an exception when the request body cannot be parsed" in {
 //      when(mockFileUploadResponseCache.upsert(any(), any())(any())) thenReturn Future.successful(None)
 //      val result = controller.save(fakePostRequest.withRawBody(ByteString(RandomUtils.nextBytes(512001))))
-//      an[Exception] must be thrownBy status(result)
+//      a[RuntimeException] mustBe thrownBy {
+//        println(status(result))
+//        status(result)
+//      }
 //    }
-//
   }
 }
 
