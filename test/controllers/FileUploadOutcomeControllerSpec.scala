@@ -109,14 +109,18 @@ class FileUploadOutcomeControllerSpec extends AsyncWordSpec with Matchers with M
       status(result) mustEqual OK
     }
 
-//    "throw an exception when the request body cannot be parsed" in {
-//      when(mockFileUploadResponseCache.upsert(any(), any())(any())) thenReturn Future.successful(None)
-//      val result = controller.save(fakePostRequest.withRawBody(ByteString(RandomUtils.nextBytes(512001))))
-//      a[RuntimeException] mustBe thrownBy {
-//        println(status(result))
-//        status(result)
-//      }
-//    }
+    "throw an exception when the request body cannot be parsed" in {
+      when(mockFileUploadResponseCache.upsert(any(), any())(any())) thenReturn Future.successful(None)
+
+
+
+      recoverToExceptionIf[RuntimeException] {
+        controller.save(fakePostRequest.withRawBody(ByteString(RandomUtils.nextBytes(512001))))
+      } map { e =>
+        e.getMessage mustEqual "No JSON body"
+      }
+
+    }
   }
 }
 

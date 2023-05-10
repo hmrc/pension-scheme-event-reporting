@@ -44,7 +44,7 @@ class FileUploadOutcomeController @Inject()(
             logger.debug(message = s"[Save file upload outcome: Incoming-Payload]$reference")
             fileUploadResponseCacheRepository.upsert(reference, json).map(_ => Ok)
           case None =>
-            throw new RuntimeException("No JSON body")
+            Future.failed(new RuntimeException("No JSON body"))
         }
   }
 
