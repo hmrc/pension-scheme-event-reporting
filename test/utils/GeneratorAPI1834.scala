@@ -27,7 +27,7 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
       def toNum(str:String) = {
         val splitString = str.split("A")
         if(splitString.length == 1) splitString(0).toDouble
-        else splitString(0).toDouble
+        else splitString(0).toDouble + 0.1D
       }
       val aNum = toNum(a)
       val bNum = toNum(b)
