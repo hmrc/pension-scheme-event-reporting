@@ -26,8 +26,8 @@ import transformations.Transformer
 
 object MemberEventReport {
 
-  import transformations.ETMPToFrontEnd.Paths._
-  import transformations.ETMPToFrontEnd.ReadsUtilities._
+  import transformations.ETMPToFrontEnd.MemberEventReportPaths._
+  import transformations.ETMPToFrontEnd.MemberEventReportReadsUtilities._
 
   def rds1832Api(eventType: EventType): Reads[JsObject] =
     pathUaEventDetailsForEventType(eventType).json.copyFrom(pathEtmpEventDetails.read(readsMembers(eventType)))
@@ -57,9 +57,9 @@ object MemberEventReport {
   private val rdsMemberDetailsEvent22And23:  Reads[JsObject] = (readsMemberDetails and readsEvent22Or23PaymentDetails).reduce
 }
 
-private object ReadsUtilities extends Transformer {
+private object MemberEventReportReadsUtilities extends Transformer {
 
-  import transformations.ETMPToFrontEnd.Paths._
+  import transformations.ETMPToFrontEnd.MemberEventReportPaths._
 
   lazy val readsEvent2PaymentDetails: Reads[JsObject] = {(
     pathUaAmountPaid.json.copyFrom(pathEtmpAmountPaid.json.pick) and
@@ -221,7 +221,7 @@ private object ReadsUtilities extends Transformer {
 }
 
 //noinspection ScalaStyle
-private object Paths {
+private object MemberEventReportPaths {
 
   /* UserAnswers paths in alphabetical order */
   def pathUaEventDetailsForEventType(eventType: EventType): JsPath = __ \ Symbol(s"event${eventType.toString}") \ Symbol("members")
