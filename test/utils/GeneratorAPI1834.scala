@@ -24,7 +24,11 @@ import play.api.libs.json.{JsObject, Json}
 trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerators {
   def generateGET1834ResponseAndUserAnswers: Gen[Tuple2[JsObject, Seq[String]]] = {
     val sortEventTypes: (String, String) => Boolean = (a, b) => {
-      def toNum(str:String) = str.split("A").take(1)(0).toInt
+      def toNum(str:String) = {
+        val splitString = str.split("A")
+        if(splitString.length == 1) splitString(0).toDouble
+        else splitString(0).toDouble
+      }
       val aNum = toNum(a)
       val bNum = toNum(b)
       (aNum, bNum) match {
