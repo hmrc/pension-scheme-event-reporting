@@ -24,9 +24,12 @@ import play.api.libs.json.{JsObject, Json}
 trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerators {
   def generateGET1834ResponseAndUserAnswers: Gen[Tuple2[JsObject, Seq[String]]] = {
     val sortEventTypes: (String, String) => Boolean = (a, b) => {
-      (a, b) match {
-        case ("0", _) => false
-        case (_, "0") => true
+      def toNum(str:String) = str.split("A").take(1)(0).toInt
+      val aNum = toNum(a)
+      val bNum = toNum(b)
+      (aNum, bNum) match {
+        case (0, _) => false
+        case (_, 0) => true
         case (a, b) if a < b => true
         case _ => false
       }
@@ -35,6 +38,7 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
     for {
       chosenEventTypesWithSeq <- Gen.someOf[String](Seq("10", "13", "19", "20"))
       chosenEventTypesWithoutSeq <- Gen.someOf[String](Seq("11", "12", "14", "0"))
+      chosenMemberEventTypesSeq <- Gen.someOf[String](Seq("2", "3", "4", "5", "6", "7", "8", "8A", "22", "23", "24"))
     } yield {
       val payloadWithSeq = chosenEventTypesWithSeq.foldLeft(Json.obj()) { (acc, s) =>
         acc ++ Json.obj(
@@ -54,11 +58,16 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
         )
       }
 
+      val membersPayloadSeq = chosenMemberEventTypesSeq.foldLeft(Json.obj()) { (acc, s) =>
+        acc ++ Json.obj(s"event$s" -> Json.obj("recordVersion" -> version))
+      }
+
       val generatedPayload = Json.obj(
-        "eventDetails" -> (payloadWithSeq ++ payloadWithoutSeq)
+        "eventDetails" -> (payloadWithSeq ++ payloadWithoutSeq),
+        "memberEventsSummary" -> membersPayloadSeq
       )
 
-      val expectedEventTypes = (chosenEventTypesWithSeq ++ chosenEventTypesWithoutSeq)
+      val expectedEventTypes = (chosenEventTypesWithSeq ++ chosenEventTypesWithoutSeq ++ chosenMemberEventTypesSeq)
         .sortWith(sortEventTypes).toSeq
 
       Tuple2(generatedPayload, expectedEventTypes)
