@@ -30,7 +30,6 @@ import play.api.libs.json._
 import play.api.mvc.Results._
 import play.api.mvc.{RequestHeader, Result}
 import repositories.{EventReportCacheRepository, GetEventCacheRepository, OverviewCacheRepository}
-import transformations.ETMPToFrontEnd.EventSummary.{rdsEventTypeNodeOnly, rdsFor1834}
 import transformations.ETMPToFrontEnd.{EventOneReport, MemberEventReport}
 import transformations.UserAnswersToETMP.{API1826, API1827, API1830}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
@@ -154,33 +153,14 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def getEventSummary(pstr: String, version: String, startDate: String)
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
-    val transformedFutures = for {
-      /*
-        The reads for 1832 below are only checking whether the node for the eventType in question EXISTS.
-        It is not parsing the whole file. This is so that we know which event types to display on summary page.
-       */
-      eventTypeReadPairs <- Map(
-        Some(EventType.Event6) -> rdsEventTypeNodeOnly(EventType.Event6),
-        Some(EventType.Event22) -> rdsEventTypeNodeOnly(EventType.Event22),
-        Some(EventType.Event23) -> rdsEventTypeNodeOnly(EventType.Event23),
-        None -> rdsFor1834
-      )
-    } yield {
-      eventReportConnector.getEvent(pstr, startDate, version, eventTypeReadPairs._1).map { optEtmpJson =>
-        optEtmpJson.map { etmpJson =>
-          etmpJson.transform(eventTypeReadPairs._2) match {
-            case JsSuccess(seqOfEventTypes, _) =>
-              seqOfEventTypes
-            case JsError(errors) =>
-              throw JsResultException(errors)
-          }
+    //TODO: Implement for event 20A. I assume API 1831 will need to be used for this. -Pavel Vjalicin
+    eventReportConnector.getEvent(pstr, startDate, version, None).map { etmpJsonOpt =>
+      etmpJsonOpt.map { etmpJson =>
+        etmpJson.transform(transformations.ETMPToFrontEnd.EventSummary.rdsFor1834) match {
+          case JsSuccess(seqOfEventTypes, _) => seqOfEventTypes
+          case JsError(errors) => throw JsResultException(errors)
         }
-      }
-    }
-
-    Future.sequence(transformedFutures).map { listOfJsArrays =>
-      val combinedJsArray = listOfJsArrays.flatten.reduce((jsArrayA, jsArrayB) => jsArrayA ++ jsArrayB)
-      JsArray(combinedJsArray.value.sortWith(sortEventTypes))
+      }.getOrElse(JsArray())
     }
   }
 
