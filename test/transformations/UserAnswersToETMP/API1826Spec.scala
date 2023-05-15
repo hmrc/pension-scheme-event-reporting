@@ -70,10 +70,11 @@ class API1826Spec extends AnyFreeSpec with Matchers
           |""".stripMargin
       )
 
-      val event12Obj = Json.parse("""{
-                         |      "recordVersion": "001",
-                         |      "twoOrMoreSchemesDate": "2022-01-02"
-                         |    }""".stripMargin)
+      val event12Obj = Json.parse(
+        """{
+          |      "recordVersion": "001",
+          |      "twoOrMoreSchemesDate": "2022-01-02"
+          |    }""".stripMargin)
 
       val event13Obj = Json.obj(
         "recordVersion" -> "001",
@@ -86,27 +87,29 @@ class API1826Spec extends AnyFreeSpec with Matchers
         event13Obj
       ))
 
-      val event14Obj = Json.parse("""{
-                         |      "recordVersion": "001",
-                         |      "schemeMembers": "12 to 50"
-                         |    }""".stripMargin)
+      val event14Obj = Json.parse(
+        """{
+          |      "schemeMembers": "12 to 50"
+          |    }""".stripMargin)
 
-      val event19Obj = Json.parse("""{
-                                    |        "recordVersion": "001",
-                                    |        "countryCode": "GB",
-                                    |        "dateOfChange": "2022-01-14"
-                                    |      }""".stripMargin)
+      val event19Obj = Json.parse(
+        """{
+          |        "recordVersion": "001",
+          |        "countryCode": "GB",
+          |        "dateOfChange": "2022-01-14"
+          |      }""".stripMargin)
       val event19 = JsArray(Seq(
         event19Obj,
         event19Obj
       ))
 
-      val event20Obj = Json.parse("""{
-                                    |        "recordVersion": "001",
-                                    |        "occSchemeDetails": {
-                                    |          "startDateOfOccScheme": "2022-01-27"
-                                    |        }
-                                    |      }""".stripMargin)
+      val event20Obj = Json.parse(
+        """{
+          |        "recordVersion": "001",
+          |        "occSchemeDetails": {
+          |          "startDateOfOccScheme": "2022-01-27"
+          |        }
+          |      }""".stripMargin)
       val event20 = JsArray(Seq(
         event20Obj,
         event20Obj

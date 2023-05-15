@@ -106,7 +106,6 @@ object API1826 extends Transformer {
     optJson.map { json =>
       Json.obj(
         "event14" -> Json.obj(
-            "recordVersion" -> (json \ "recordVersion").asOpt[String],
             "schemeMembers" -> (json \ "schemeMembers").as[String]
           )
       )
