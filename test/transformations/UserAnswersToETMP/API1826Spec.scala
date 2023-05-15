@@ -60,6 +60,22 @@ class API1826Spec extends AnyFreeSpec with Matchers
         event10Obj
       ))
 
+      val event11ObjUA = Json.parse(
+        """
+          |{
+          |            "recordVersion": "001",
+          |            "hasSchemeChangedRulesUnAuthPayments" : true,
+          |            "unAuthPaymentsRuleChangeDate" : {
+          |                "date" : "2022-01-31"
+          |            },
+          |            "hasSchemeChangedRulesInvestmentsInAssets" : true,
+          |            "investmentsInAssetsRuleChangeDate" : {
+          |                "date" : "2022-01-10"
+          |            }
+          |        }
+          |""".stripMargin
+      )
+
       val event11Obj = Json.parse(
         """
           |{
@@ -118,7 +134,7 @@ class API1826Spec extends AnyFreeSpec with Matchers
           "schemeWindUpDate" -> "1991-11-22",
           "taxYear" -> "2020",
           "event10" -> event10,
-          "event11" -> event11Obj,
+          "event11" -> event11ObjUA,
           "event12" -> event12Obj,
           "event13" -> event13,
           "event14" -> event14Obj,
