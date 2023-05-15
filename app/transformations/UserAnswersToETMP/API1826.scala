@@ -91,8 +91,7 @@ object API1826 extends Transformer {
       Json.obj(
         "event12" ->
           Json.obj(
-            "recordVersion" -> (json \ "recordVersion").asOpt[String],
-            "twoOrMoreSchemesDate" -> (json \ "twoOrMoreSchemesDate").as[String]
+            "twoOrMoreSchemesDate" -> (json \ "dateOfChange" \ "dateOfChange").as[String]
           )
       )
     }
