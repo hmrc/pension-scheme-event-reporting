@@ -71,16 +71,16 @@ object API1826 extends Transformer {
       val optReadsRecordVersion = (json \ "recordVersion").asOpt[String]
 
       (optReadsUnauthorisedPmtsDate, optReadsContractsOrPoliciesDate) match {
-        case (date1, date2) => Json.obj("event11" -> Json.obj(
-          "recordVersion" -> JsString(optReadsRecordVersion.getOrElse("")),
-          "unauthorisedPmtsDate" -> JsString(date1.getOrElse("")),
-          "contractsOrPoliciesDate" -> JsString(date2.getOrElse(""))))
-        case (date1, None) => Json.obj("event11" -> Json.obj(
-          "recordVersion" -> JsString(optReadsRecordVersion.getOrElse("")),
-          "unauthorisedPmtsDate" -> JsString(date1.getOrElse(""))))
-        case (None, date2) => Json.obj("event11" -> Json.obj(
-            "recordVersion" -> JsString(optReadsRecordVersion.getOrElse("")),
-          "contractsOrPoliciesDate" -> JsString(date2.getOrElse(""))))
+        case (Some(date1), Some(date2)) => Json.obj("event11" -> Json.obj(
+          "recordVersion" -> JsString(optReadsRecordVersion.getOrElse("001")),
+          "unauthorisedPmtsDate" -> JsString(date1),
+          "contractsOrPoliciesDate" -> JsString(date2)))
+        case (Some(date1), None) => Json.obj("event11" -> Json.obj(
+          "recordVersion" -> JsString(optReadsRecordVersion.getOrElse("001")),
+          "unauthorisedPmtsDate" -> JsString(date1)))
+        case (None, Some(date2)) => Json.obj("event11" -> Json.obj(
+            "recordVersion" -> JsString(optReadsRecordVersion.getOrElse("001")),
+          "contractsOrPoliciesDate" -> JsString(date2)))
         case (None, None) => Json.obj() // Note: the FE prevents this option from being compiled.
       }
     }
