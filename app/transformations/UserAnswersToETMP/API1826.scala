@@ -64,14 +64,25 @@ object API1826 extends Transformer {
 
   private lazy val event11Reads = (__ \ "event11").readNullable[JsObject].map { optJson =>
     optJson.map { json =>
-      Json.obj(
-        "event11" ->
-          Json.obj(
-            "recordVersion" -> (json \ "recordVersion").asOpt[String],
-            "unauthorisedPmtsDate" -> (json \ "unauthorisedPmtsDate").asOpt[String],
-            "contractsOrPoliciesDate" -> (json \ "contractsOrPoliciesDate").asOpt[String]
-          )
-      )
+      val optReadsUnauthorisedPmtsDate = if ((json \ "hasSchemeChangedRulesUnAuthPayments").as[Boolean]) {
+        (json \ "unAuthPaymentsRuleChangeDate" \ "date").asOpt[String]} else None
+      val optReadsContractsOrPoliciesDate = if ((json \ "hasSchemeChangedRulesInvestmentsInAssets").as[Boolean]) {
+        (json \ "investmentsInAssetsRuleChangeDate" \ "date").asOpt[String]} else None
+      val optReadsRecordVersion = (json \ "recordVersion").asOpt[String]
+
+      (optReadsUnauthorisedPmtsDate, optReadsContractsOrPoliciesDate) match {
+        case (Some(date1), Some(date2)) => Json.obj("event11" -> Json.obj(
+          "recordVersion" -> JsString(optReadsRecordVersion.getOrElse("001")),
+          "unauthorisedPmtsDate" -> JsString(date1),
+          "contractsOrPoliciesDate" -> JsString(date2)))
+        case (Some(date1), None) => Json.obj("event11" -> Json.obj(
+          "recordVersion" -> JsString(optReadsRecordVersion.getOrElse("001")),
+          "unauthorisedPmtsDate" -> JsString(date1)))
+        case (None, Some(date2)) => Json.obj("event11" -> Json.obj(
+            "recordVersion" -> JsString(optReadsRecordVersion.getOrElse("001")),
+          "contractsOrPoliciesDate" -> JsString(date2)))
+        case (None, None) => Json.obj() // Note: the FE prevents this option from being compiled.
+      }
     }
   }
 
