@@ -110,7 +110,6 @@ class API1826Spec extends AnyFreeSpec with Matchers
 
       val event14Obj = Json.parse(
         """{
-          |      "recordVersion": "001",
           |      "schemeMembers": "12 to 50"
           |    }""".stripMargin)
 
