@@ -30,7 +30,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
 
   def generateUserAnswersAndPOSTBodyByEvent(eventType: EventType): Gen[(JsObject, JsObject)] = {
     eventType match {
-      case Event2 => generateUserAnswersAndPOSTBodyEvent2
+      case Event2 => generateUserAnswersAndPOSTBodyEvent2 // fixed
       case Event3 => generateUserAnswersAndPOSTBodyEvent3
       case Event4 => generateUserAnswersAndPOSTBodyEvent4
       case Event5 => generateUserAnswersAndPOSTBodyEvent5
@@ -65,6 +65,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
         ),
         "taxYear" -> map("taxYear")
       )
+
       val expected = Json.obj("memberEventsDetails" -> Json.obj(
         "eventReportDetails" -> Json.obj(
           "pSTR" -> "87219363YN",
@@ -74,21 +75,27 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
         ),
         "eventDetails" -> Json.arr(
           Json.obj(
-            "eventType" -> s"Event${Event2.toString}",
-            "individualDetails" -> Json.obj(
-              "firstName" -> map("deceasedFirstName"),
-              "lastName" -> map("deceasedLastName"),
-              "nino" -> map("deceasedNino")
-            ),
-            "personReceivedThePayment" -> Json.obj(
-              "firstName" -> map("firstName"),
-              "lastName" -> map("lastName"),
-              "nino" -> map("nino")
-            ),
-            "paymentDetails" -> Json.obj(
-              "amountPaid" -> map("monetaryAmount"),
-              "eventDate" -> s"${map("taxYear")}-04-06"
-            )
+            "memberDetail" ->
+              Json.obj(
+                "event" ->
+                  Json.obj(
+                    "eventType" -> s"Event${Event2.toString}",
+                    "individualDetails" -> Json.obj(
+                      "firstName" -> map("deceasedFirstName"),
+                      "lastName" -> map("deceasedLastName"),
+                      "nino" -> map("deceasedNino")
+                    ),
+                    "personReceivedThePayment" -> Json.obj(
+                      "firstName" -> map("firstName"),
+                      "lastName" -> map("lastName"),
+                      "nino" -> map("nino")
+                    ),
+                    "paymentDetails" -> Json.obj(
+                      "amountPaid" -> map("monetaryAmount"),
+                      "eventDate" -> s"${map("taxYear")}-04-06"
+                    )
+                  )
+              )
           )
         )
       )
@@ -133,18 +140,24 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
         ),
         "eventDetails" -> Json.arr(
           Json.obj(
-            "eventType" -> s"Event${Event3.toString}",
-            "individualDetails" -> Json.obj(
-              "firstName" -> map("firstName"),
-              "lastName" -> map("lastName"),
-              "nino" -> map("nino")
-            ),
-            "paymentDetails" -> Json.obj(
-              "reasonBenefitTaken" -> event3TypeOfBenefitConversion(map("reasonBenefitTakenEvent3")),
-              "amountBenefit" -> map("monetaryAmount"),
-              "eventDate" -> s"${map("taxYear")}-04-25",
-              "freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3"))
-            )
+            "memberDetail" ->
+              Json.obj(
+                "event" ->
+                  Json.obj(
+                    "eventType" -> s"Event${Event3.toString}",
+                    "individualDetails" -> Json.obj(
+                      "firstName" -> map("firstName"),
+                      "lastName" -> map("lastName"),
+                      "nino" -> map("nino")
+                    ),
+                    "paymentDetails" -> Json.obj(
+                      "reasonBenefitTaken" -> event3TypeOfBenefitConversion(map("reasonBenefitTakenEvent3")),
+                      "amountBenefit" -> map("monetaryAmount"),
+                      "eventDate" -> s"${map("taxYear")}-04-25",
+                      "freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3"))
+                    )
+                  )
+              )
           )
         )
       )

@@ -63,8 +63,12 @@ object API1830 extends Transformer {
   }
 
   private def readsDeceasedAndBeneficiaryMemberDetailsEvent2: Reads[JsObject] = {
+    val pathToEvent: JsPath = __ \ Symbol("memberDetail") \ Symbol("event")
+    val pathIndividualMemberDetails: JsPath = pathToEvent \ Symbol("individualDetails")
+    val pathPersonReceivedThePayment = pathToEvent \ Symbol("personReceivedThePayment")
+    val pathPaymentDetails = pathToEvent \ Symbol("paymentDetails")
     (
-      (__ \ Symbol("eventType")).json.put(JsString(s"Event$Event2")) and
+      (pathToEvent \ Symbol("eventType")).json.put(JsString(s"Event$Event2")) and
         (pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((pathDeceasedMemberDetails \ Symbol("firstName")).json.pick) and
         (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((pathDeceasedMemberDetails \ Symbol("lastName")).json.pick) and
         (pathIndividualMemberDetails \ Symbol("nino")).json.copyFrom((pathDeceasedMemberDetails \ Symbol("nino")).json.pick) and
@@ -160,7 +164,7 @@ object API1830 extends Transformer {
       ).reduce
   }
 
-  private lazy val pathIndividualMemberDetails = __ \ Symbol("individualDetails")
+  private lazy val pathIndividualMemberDetails: JsPath = __ \ Symbol("individualDetails")
   private val pathPaymentDetails = __ \ Symbol("paymentDetails")
   private val pathBenefitType = __ \ Symbol("benefitType")
   private val pathAmountCrystallisedAndDateDetails = __ \ Symbol("AmountCrystallisedAndDate")

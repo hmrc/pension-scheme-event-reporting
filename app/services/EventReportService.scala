@@ -90,18 +90,30 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def compileEventReport(pstr: String, eventType: EventType)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
+    println("\n<>>>>HERE1")
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
+
+        println("\n<>>>>HERE2")
+
+
         eventReportCacheRepository.getUserAnswers(pstr, Some(apiType)).flatMap {
           case Some(data) =>
             eventReportCacheRepository.getUserAnswers(pstr, None).flatMap {
               case Some(header) =>
                 val fullData = header ++ data
+
+                println("\n>>before>" + fullData)
+
                 for {
                   transformedData <- Future.fromTry(toTry(fullData.validate(reads)))
                   _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, schemaPath, apiType.toString))
                   response <- connectToAPI(pstr, transformedData)
                 } yield {
+
+                  println("\n>>transf>" + transformedData)
+
+
                   response.status match {
                     case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
                     case _ =>
