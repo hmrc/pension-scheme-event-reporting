@@ -250,16 +250,22 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
         ),
         "eventDetails" -> Json.arr(
           Json.obj(
-            "eventType" -> s"Event${Event5.toString}",
-            "individualDetails" -> Json.obj(
-              "firstName" -> map("firstName"),
-              "lastName" -> map("lastName"),
-              "nino" -> map("nino")
-            ),
-            "paymentDetails" -> Json.obj(
-              "annualRate" -> map("monetaryAmount"),
-              "eventDate" -> s"${map("taxYear")}-04-25"
-            )
+            "memberDetail" ->
+              Json.obj(
+                "event" ->
+                  Json.obj(
+                    "eventType" -> s"Event${Event5.toString}",
+                    "individualDetails" -> Json.obj(
+                      "firstName" -> map("firstName"),
+                      "lastName" -> map("lastName"),
+                      "nino" -> map("nino")
+                    ),
+                    "paymentDetails" -> Json.obj(
+                      "annualRate" -> map("monetaryAmount"),
+                      "eventDate" -> s"${map("taxYear")}-04-25"
+                    )
+                  )
+              )
           )
         )
       )
