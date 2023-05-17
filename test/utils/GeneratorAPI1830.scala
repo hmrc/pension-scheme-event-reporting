@@ -31,7 +31,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
   def generateUserAnswersAndPOSTBodyByEvent(eventType: EventType): Gen[(JsObject, JsObject)] = {
     eventType match {
       case Event2 => generateUserAnswersAndPOSTBodyEvent2 // fixed
-      case Event3 => generateUserAnswersAndPOSTBodyEvent3
+      case Event3 => generateUserAnswersAndPOSTBodyEvent3 // fixed
       case Event4 => generateUserAnswersAndPOSTBodyEvent4
       case Event5 => generateUserAnswersAndPOSTBodyEvent5
       case Event6 => generateUserAnswersAndPOSTBodyEvent6
@@ -196,16 +196,22 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
         ),
         "eventDetails" -> Json.arr(
           Json.obj(
-            "eventType" -> s"Event${Event4.toString}",
-            "individualDetails" -> Json.obj(
-              "firstName" -> map("firstName"),
-              "lastName" -> map("lastName"),
-              "nino" -> map("nino")
-            ),
-            "paymentDetails" -> Json.obj(
-              "amountPaid" -> map("monetaryAmount"),
-              "eventDate" -> s"${map("taxYear")}-04-25"
-            )
+            "memberDetail" ->
+              Json.obj(
+                "event" ->
+                  Json.obj(
+                    "eventType" -> s"Event${Event4.toString}",
+                    "individualDetails" -> Json.obj(
+                      "firstName" -> map("firstName"),
+                      "lastName" -> map("lastName"),
+                      "nino" -> map("nino")
+                    ),
+                    "paymentDetails" -> Json.obj(
+                      "amountPaid" -> map("monetaryAmount"),
+                      "eventDate" -> s"${map("taxYear")}-04-25"
+                    )
+                  )
+              )
           )
         )
       )
