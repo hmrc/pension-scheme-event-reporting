@@ -79,8 +79,16 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
         "event10" -> event10Details,
         "taxYear" -> taxYear
       )
-      val expected = Json.obj(
 
+      val startDateDetailsNode = Json.obj(
+        "startDateOfInvReg" -> s"${taxYear}-04-06",
+      ) ++ contractsOrPoliciesNode(becomeOrCeaseScheme, contractsOrPolicies)
+
+      //startDateDetails node exists only if become is selected and ceaseDateDetails node exists only if ceases is selected.
+      val expected = Json.obj(
+        "invRegScheme" -> Json.obj(
+          "startDateDetails" -> startDateDetailsNode
+        )
       )
       Tuple2(ua, expected)
     }
