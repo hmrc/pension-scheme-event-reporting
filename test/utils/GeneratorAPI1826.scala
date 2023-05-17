@@ -23,6 +23,7 @@ import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
 import play.api.libs.json.{JsObject, Json}
+
 //noinspection ScalaStyle
 trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerators {
   def generateUserAnswersAndPOSTBodyByEvent(eventType: EventType): Gen[(JsObject, JsObject)] = {
@@ -53,8 +54,6 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
    */
 
 
-
-
   def contractsOrPoliciesNode(becomeOrCeaseSchemeValue: String, contractsOrPoliciesValue: Boolean): JsObject = {
     becomeOrCeaseSchemeValue match {
       case "itHasCeasedToBeAnInvestmentRegulatedPensionScheme" => Json.obj(
@@ -63,6 +62,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
       case _ => Json.obj()
     }
   }
+
   def generateUserAnswersAndPOSTBodyEvent10: Gen[(JsObject, JsObject)] = {
     for {
       becomeOrCeaseScheme <- Gen.oneOf(Seq("itBecameAnInvestmentRegulatedPensionScheme", "itHasCeasedToBeAnInvestmentRegulatedPensionScheme"))
@@ -88,6 +88,34 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
       val expected = Json.obj(
         "invRegScheme" -> Json.obj(
           "startDateDetails" -> startDateDetailsNode
+        )
+      )
+      Tuple2(ua, expected)
+    }
+  }
+
+  def generateUserAnswersAndPOSTBodyEvent12: Gen[(JsObject, JsObject)] = {
+    for {
+      taxYear <- Gen.oneOf(Seq("2022", "2023", "2024"))
+    } yield {
+      val ua = Json.obj(
+        "event12" -> Json.obj(
+          "hasSchemeChangedRules" -> true,
+          "dateOfChange" -> Json.obj(
+            "dateOfChange" -> s"${taxYear}-04-06"
+          )
+        ),
+        "taxYear" -> taxYear
+      )
+      val expected = Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "reportStartDate" -> s"$taxYear-04-06",
+          "reportEndDate" -> s"${taxYear.toInt + 1}-04-05"
+        ),
+        "eventDetails" -> Json.obj(
+          "event12" -> Json.obj(
+            "twoOrMoreSchemesDate" -> s"${taxYear}-04-06"
+          )
         )
       )
       Tuple2(ua, expected)
