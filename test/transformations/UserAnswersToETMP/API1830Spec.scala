@@ -37,25 +37,25 @@ class API1830Spec extends AnyFreeSpec with Matchers
       }
     }
 
-//    "must transform a randomly generated valid payload correctly in event 3" in {
-//      forAll(generateUserAnswersAndPOSTBodyByEvent(Event3)) {
-//        case (userAnswers: JsObject, expectedResponse: JsObject) =>
-//          val result = userAnswers.validate(API1830.transformToETMPData(Event3, "87219363YN"))
-//          val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event3") \ Symbol("members"))
-//          println("\nEXP=" + expectedResult)
-//          println("\nact=" + result)
-//          result mustBe expectedResult
-//      }
-//    }
-//
-//    "must transform a randomly generated valid payload correctly in event 4" in {
-//      forAll(generateUserAnswersAndPOSTBodyByEvent(Event4)) {
-//        case (userAnswers: JsObject, expectedResponse: JsObject) =>
-//          val result = userAnswers.validate(API1830.transformToETMPData(Event4, "87219363YN"))
-//          val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event4") \ Symbol("members"))
-//          result mustBe expectedResult
-//      }
-//    }
+    "must transform a randomly generated valid payload correctly in event 3" in {
+      forAll(generateUserAnswersAndPOSTBodyByEvent(Event3)) {
+        case (userAnswers: JsObject, expectedResponse: JsObject) =>
+          val result = userAnswers.validate(API1830.transformToETMPData(Event3, "87219363YN"))
+          val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event3") \ Symbol("members"))
+          result mustBe expectedResult
+      }
+    }
+
+    "must transform a randomly generated valid payload correctly in event 4" in {
+      forAll(generateUserAnswersAndPOSTBodyByEvent(Event4)) {
+        case (userAnswers: JsObject, expectedResponse: JsObject) =>
+          val result = userAnswers.validate(API1830.transformToETMPData(Event4, "87219363YN"))
+          val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event4") \ Symbol("members"))
+          println("\nEXP=" + expectedResult)
+          println("\nact=" + result)
+          result mustBe expectedResult
+      }
+    }
 //
 //    "must transform a randomly generated valid payload correctly in event 5" in {
 //      forAll(generateUserAnswersAndPOSTBodyByEvent(Event5)) {
