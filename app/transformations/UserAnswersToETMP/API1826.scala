@@ -53,7 +53,7 @@ object API1826 extends Transformer {
         Json.obj(
           "event10" -> jsonArray.value.map { json =>
             Json.obj(
-              "recordVersion" -> (json \ "recordVersion").asOpt[String],
+              "recordVersion" -> JsString((json \ "recordVersion").asOpt[String].getOrElse("001")),
               "invRegScheme" -> invRegScheme(json)
             )
           }
@@ -102,7 +102,7 @@ object API1826 extends Transformer {
       Json.obj(
         "event13" -> jsonArray.value.map { json =>
           Json.obj(
-            "recordVersion" -> (json \ "recordVersion").asOpt[String],
+            "recordVersion" -> JsString((json \ "recordVersion").asOpt[String].getOrElse("001")),
             "schemeStructure" -> (json \ "schemeStructure").as[String],
             "schemeStructureOther" -> (json \ "schemeStructureOther").asOpt[String],
             "dateOfChange" -> (json \ "dateOfChange").as[String]
@@ -139,7 +139,7 @@ object API1826 extends Transformer {
       Json.obj(
         "event19" -> jsonArray.value.map { json =>
           Json.obj(
-            "recordVersion" -> (json \ "recordVersion").asOpt[String],
+            "recordVersion" -> JsString((json \ "recordVersion").asOpt[String].getOrElse("001")),
             "countryCode" -> (json \ "countryCode").as[String],
             "dateOfChange" -> (json \ "dateOfChange").as[String]
           )
@@ -153,7 +153,7 @@ object API1826 extends Transformer {
       Json.obj(
         "event20" -> jsonArray.value.map { json =>
           Json.obj(
-            "recordVersion" -> (json \ "recordVersion").asOpt[String],
+            "recordVersion" -> JsString((json \ "recordVersion").asOpt[String].getOrElse("001")),
             "occSchemeDetails" -> {
               val occSchemeDetailsPath = json \ "occSchemeDetails"
               JsObject(
