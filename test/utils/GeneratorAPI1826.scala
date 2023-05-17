@@ -16,13 +16,76 @@
 
 package utils
 
+import models.enumeration.EventType
+import models.enumeration.EventType._
 import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck.Gen
+import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
 import play.api.libs.json.{JsObject, Json}
-
+//noinspection ScalaStyle
 trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerators {
+  def generateUserAnswersAndPOSTBodyByEvent(eventType: EventType): Gen[(JsObject, JsObject)] = {
+    eventType match {
+      case Event10 => generateUserAnswersAndPOSTBodyEvent10
+      case _ => generateUserAnswersAndPOSTBodyWindUp
+    }
+  }
+
+  /*
+  "event10" : {
+              "becomeOrCeaseScheme" : "itBecameAnInvestmentRegulatedPensionScheme",
+              "schemeChangeDate" : {
+                  "schemeChangeDate" : "2023-08-12"
+              }
+          }
+      }
+
+      "taxYear" : "2023",
+          "event10" : {
+              "becomeOrCeaseScheme" : "itHasCeasedToBeAnInvestmentRegulatedPensionScheme",
+              "schemeChangeDate" : {
+                  "schemeChangeDate" : "2023-08-12"
+              },
+              "contractsOrPolicies" : true
+          }
+      }
+   */
+
+
+
+
+  def contractsOrPoliciesNode(becomeOrCeaseSchemeValue: String, contractsOrPoliciesValue: Boolean): JsObject = {
+    becomeOrCeaseSchemeValue match {
+      case "itHasCeasedToBeAnInvestmentRegulatedPensionScheme" => Json.obj(
+        "contractsOrPolicies" -> contractsOrPoliciesValue
+      )
+      case _ => Json.obj()
+    }
+  }
+  def generateUserAnswersAndPOSTBodyEvent10: Gen[(JsObject, JsObject)] = {
+    for {
+      becomeOrCeaseScheme <- Gen.oneOf(Seq("itBecameAnInvestmentRegulatedPensionScheme", "itHasCeasedToBeAnInvestmentRegulatedPensionScheme"))
+      taxYear <- Gen.oneOf(Seq("2022", "2023", "2024"))
+      contractsOrPolicies <- arbitrary[Boolean]
+    } yield {
+      val event10Details = Json.obj("becomeOrCeaseScheme" -> becomeOrCeaseScheme,
+        "schemeChangeDate" -> Json.obj(
+          "schemeChangeDate" -> s"${taxYear}-04-06"
+        )
+      ) ++ contractsOrPoliciesNode(becomeOrCeaseScheme, contractsOrPolicies)
+
+      val ua = Json.obj(
+        "event10" -> event10Details,
+        "taxYear" -> taxYear
+      )
+      val expected = Json.obj(
+
+      )
+      Tuple2(ua, expected)
+    }
+  }
+
   def generateUserAnswersAndPOSTBodyWindUp: Gen[(JsObject, JsObject)] = {
     for {
       schemeWindUpDate <- dateGenerator
