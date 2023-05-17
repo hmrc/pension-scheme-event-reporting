@@ -66,7 +66,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
   def generateUserAnswersAndPOSTBodyEvent10: Gen[(JsObject, JsObject)] = {
     for {
       becomeOrCeaseScheme <- Gen.oneOf(Seq("itBecameAnInvestmentRegulatedPensionScheme", "itHasCeasedToBeAnInvestmentRegulatedPensionScheme"))
-      taxYear <- Gen.oneOf(Seq("2022", "2023", "2024"))
+      taxYear <- taxYearGenerator
       contractsOrPolicies <- arbitrary[Boolean]
     } yield {
       val event10Details = Json.obj("becomeOrCeaseScheme" -> becomeOrCeaseScheme,
@@ -96,7 +96,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
 
   def generateUserAnswersAndPOSTBodyEvent12: Gen[(JsObject, JsObject)] = {
     for {
-      taxYear <- Gen.oneOf(Seq("2022", "2023", "2024"))
+      taxYear <- taxYearGenerator
     } yield {
       val ua = Json.obj(
         "event12" -> Json.obj(
@@ -122,9 +122,69 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
+  /*
+  "taxYear" : "2023",
+          "event13" : {
+              "schemeStructure" : "single",
+              "changeDate" : "2023-08-12"
+          }
+      }
+
+      "taxYear" : "2023",
+          "event13" : {
+              "schemeStructure" : "other",
+              "changeDate" : "2023-08-12",
+              "schemeStructureDescription" : "Testing"
+          }
+      }
+   */
+
+  private def schemeStructureETMPEvent13(schemeStructure: String): String = schemeStructure match {
+    case "single" => "A single trust under which all of the assets are held for the benefit of all members of the scheme"
+    case "group" => "A group life/death in service scheme"
+    case "corporate" => "A body corporate"
+    case "other" => "Other"
+  }
+
+  def generateUserAnswersAndPOSTBodyEvent13: Gen[(JsObject, JsObject)] = {
+    for {
+      taxYear <- taxYearGenerator
+      schemeStructureUA <- Gen.oneOf(Seq("single", "group", "corporate", "other"))
+    } yield {
+      def event13Details(schemeStructure: String): JsObject = {
+        schemeStructureUA match {
+          case "other" => Json.obj(
+            "schemeStructure" -> schemeStructure,
+            "changeDate" -> s"$taxYear-04-06",
+            "schemeStructureDescription" -> "Some text"
+          )
+          case _ => Json.obj(
+            "schemeStructure" -> schemeStructure,
+            "changeDate" -> s"$taxYear-04-06"
+          )
+        }
+      }
+
+      val ua = Json.obj(
+        "event13" -> event13Details(schemeStructureUA),
+        "taxYear" -> taxYear
+      )
+      val expected = Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "reportStartDate" -> s"$taxYear-04-06",
+          "reportEndDate" -> s"${taxYear.toInt + 1}-04-05"
+        ),
+        "eventDetails" -> Json.obj(
+          "event13" -> event13Details(schemeStructureUA)
+        )
+      )
+      Tuple2(ua, expected)
+    }
+  }
+
   def generateUserAnswersAndPOSTBodyEvent14: Gen[(JsObject, JsObject)] = {
     for {
-      taxYear <- Gen.oneOf(Seq("2022", "2023", "2024"))
+      taxYear <- taxYearGenerator
       schemeMembers <- Gen.oneOf(Seq("0", "1", "2 to 11", "12 to 50", "51 to 10,000", "More than 10,000"))
     } yield {
       val ua = Json.obj(
