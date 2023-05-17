@@ -122,6 +122,32 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
+  def generateUserAnswersAndPOSTBodyEvent14: Gen[(JsObject, JsObject)] = {
+    for {
+      taxYear <- Gen.oneOf(Seq("2022", "2023", "2024"))
+      schemeMembers <- Gen.oneOf(Seq("0", "1", "2 to 11", "12 to 50", "51 to 10,000", "More than 10,000"))
+    } yield {
+      val ua = Json.obj(
+        "event14" -> Json.obj(
+          "schemeMembers" -> schemeMembers
+        ),
+        "taxYear" -> taxYear
+      )
+      val expected = Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "reportStartDate" -> s"$taxYear-04-06",
+          "reportEndDate" -> s"${taxYear.toInt + 1}-04-05"
+        ),
+        "eventDetails" -> Json.obj(
+          "event14" -> Json.obj(
+            "schemeMembers" -> schemeMembers
+          )
+        )
+      )
+      Tuple2(ua, expected)
+    }
+  }
+
   def generateUserAnswersAndPOSTBodyWindUp: Gen[(JsObject, JsObject)] = {
     for {
       schemeWindUpDate <- dateGenerator
