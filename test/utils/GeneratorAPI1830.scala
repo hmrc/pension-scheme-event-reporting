@@ -32,8 +32,8 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
     eventType match {
       case Event2 => generateUserAnswersAndPOSTBodyEvent2 // fixed
       case Event3 => generateUserAnswersAndPOSTBodyEvent3 // fixed
-      case Event4 => generateUserAnswersAndPOSTBodyEvent4
-      case Event5 => generateUserAnswersAndPOSTBodyEvent5
+      case Event4 => generateUserAnswersAndPOSTBodyEvent4 // fixed
+      case Event5 => generateUserAnswersAndPOSTBodyEvent5 // fixed
       case Event6 => generateUserAnswersAndPOSTBodyEvent6
       case Event7 => generateUserAnswersAndPOSTBodyEvent7
       case Event8 => generateUserAnswersAndPOSTBodyEvent8
@@ -306,18 +306,24 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
         ),
         "eventDetails" -> Json.arr(
           Json.obj(
-            "eventType" -> s"Event${Event6.toString}",
-            "individualDetails" -> Json.obj(
-              "firstName" -> map("firstName"),
-              "lastName" -> map("lastName"),
-              "nino" -> map("nino")
-            ),
-            "paymentDetails" -> Json.obj(
-              "amountCrystalised" -> map("amountCrystallised"),
-              "typeOfProtection" -> typeOfProtectionETMPEvent6(map("typeOfProtectionEvent6")),
-              "eventDate" -> s"${map("taxYear")}-04-25",
-              "freeText" -> map("inputProtectionType")
-            )
+            "memberDetail" ->
+              Json.obj(
+                "event" ->
+                  Json.obj(
+                    "eventType" -> s"Event${Event6.toString}",
+                    "individualDetails" -> Json.obj(
+                      "firstName" -> map("firstName"),
+                      "lastName" -> map("lastName"),
+                      "nino" -> map("nino")
+                    ),
+                    "paymentDetails" -> Json.obj(
+                      "amountCrystalised" -> map("amountCrystallised"),
+                      "typeOfProtection" -> typeOfProtectionETMPEvent6(map("typeOfProtectionEvent6")),
+                      "eventDate" -> s"${map("taxYear")}-04-25",
+                      "freeText" -> map("inputProtectionType")
+                    )
+                  )
+              )
           )
         )
       )
@@ -357,17 +363,23 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
         ),
         "eventDetails" -> Json.arr(
           Json.obj(
-            "eventType" -> s"Event${Event7.toString}",
-            "individualDetails" -> Json.obj(
-              "firstName" -> map("firstName"),
-              "lastName" -> map("lastName"),
-              "nino" -> map("nino")
-            ),
-            "paymentDetails" -> Json.obj(
-              "amountLumpSum" -> map("lumpSumAmount"),
-              "amountCrystalised" -> map("amountCrystallised"),
-              "eventDate" -> s"${map("taxYear")}-04-25"
-            )
+            "memberDetail" ->
+              Json.obj(
+                "event" ->
+                  Json.obj(
+                    "eventType" -> s"Event${Event7.toString}",
+                    "individualDetails" -> Json.obj(
+                      "firstName" -> map("firstName"),
+                      "lastName" -> map("lastName"),
+                      "nino" -> map("nino")
+                    ),
+                    "paymentDetails" -> Json.obj(
+                      "amountLumpSum" -> map("lumpSumAmount"),
+                      "amountCrystalised" -> map("amountCrystallised"),
+                      "eventDate" -> s"${map("taxYear")}-04-25"
+                    )
+                  )
+              )
           )
         )
       )
@@ -408,18 +420,24 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
         ),
         "eventDetails" -> Json.arr(
           Json.obj(
-            "eventType" -> s"Event${Event8.toString}",
-            "individualDetails" -> Json.obj(
-              "firstName" -> map("firstName"),
-              "lastName" -> map("lastName"),
-              "nino" -> map("nino")
-            ),
-            "paymentDetails" -> Json.obj(
-              "amountLumpSum" -> map("lumpSumAmount"),
-              "typeOfProtection" -> typeOfProtectionETMPEvent8(map("typeOfProtectionEvent8")),
-              "eventDate" -> s"${map("taxYear")}-04-25",
-              "freeText" -> map("typeOfProtectionReference")
-            )
+            "memberDetail" ->
+              Json.obj(
+                "event" ->
+                  Json.obj(
+                    "eventType" -> s"Event${Event8.toString}",
+                    "individualDetails" -> Json.obj(
+                      "firstName" -> map("firstName"),
+                      "lastName" -> map("lastName"),
+                      "nino" -> map("nino")
+                    ),
+                    "paymentDetails" -> Json.obj(
+                      "amountLumpSum" -> map("lumpSumAmount"),
+                      "typeOfProtection" -> typeOfProtectionETMPEvent8(map("typeOfProtectionEvent8")),
+                      "eventDate" -> s"${map("taxYear")}-04-25",
+                      "freeText" -> map("typeOfProtectionReference")
+                    )
+                  )
+              )
           )
         )
       )
@@ -480,17 +498,23 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
       ),
       "eventDetails" -> Json.arr(
         Json.obj(
-          "eventType" -> s"Event${Event8A.toString}",
-          "individualDetails" -> Json.obj(
-            "firstName" -> map("firstName"),
-            "lastName" -> map("lastName"),
-            "nino" -> map("nino")
-          ),
-          "paymentDetails" -> Json.obj(
-            "reasonBenefitTaken" -> paymentTypeETMPEvent8A(map("paymentTypeEvent8A")),
-            "amountLumpSum" -> map("lumpSumAmount"),
-            "eventDate" -> s"${map("taxYear")}-04-25"
-          ).++(keysAndValuesETMP)
+          "memberDetail" ->
+            Json.obj(
+              "event" ->
+                Json.obj(
+                  "eventType" -> s"Event${Event8A.toString}",
+                  "individualDetails" -> Json.obj(
+                    "firstName" -> map("firstName"),
+                    "lastName" -> map("lastName"),
+                    "nino" -> map("nino")
+                  ),
+                  "paymentDetails" -> Json.obj(
+                    "reasonBenefitTaken" -> paymentTypeETMPEvent8A(map("paymentTypeEvent8A")),
+                    "amountLumpSum" -> map("lumpSumAmount"),
+                    "eventDate" -> s"${map("taxYear")}-04-25"
+                  ).++(keysAndValuesETMP)
+                )
+            )
         )
       )
     )
@@ -525,16 +549,22 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
         ),
         "eventDetails" -> Json.arr(
           Json.obj(
-            "eventType" -> s"Event${eventType.toString}",
-            "individualDetails" -> Json.obj(
-              "firstName" -> map("firstName"),
-              "lastName" -> map("lastName"),
-              "nino" -> map("nino")
-            ),
-            "paymentDetails" -> Json.obj(
-              "monetaryAmount" -> map("monetaryAmount"),
-              "taxYearEndingDate" -> s"${map("endTaxYear")}-04-05"
-            )
+            "memberDetail" ->
+              Json.obj(
+                "event" ->
+                  Json.obj(
+                    "eventType" -> s"Event${eventType.toString}",
+                    "individualDetails" -> Json.obj(
+                      "firstName" -> map("firstName"),
+                      "lastName" -> map("lastName"),
+                      "nino" -> map("nino")
+                    ),
+                    "paymentDetails" -> Json.obj(
+                      "monetaryAmount" -> map("monetaryAmount"),
+                      "taxYearEndingDate" -> s"${map("endTaxYear")}-04-05"
+                    )
+                  )
+              )
           )
         )
       )
