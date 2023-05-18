@@ -30,10 +30,10 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
 
   def generateUserAnswersAndPOSTBodyByEvent(eventType: EventType): Gen[(JsObject, JsObject)] = {
     eventType match {
-      case Event2 => generateUserAnswersAndPOSTBodyEvent2 // fixed
-      case Event3 => generateUserAnswersAndPOSTBodyEvent3 // fixed
-      case Event4 => generateUserAnswersAndPOSTBodyEvent4 // fixed
-      case Event5 => generateUserAnswersAndPOSTBodyEvent5 // fixed
+      case Event2 => generateUserAnswersAndPOSTBodyEvent2
+      case Event3 => generateUserAnswersAndPOSTBodyEvent3
+      case Event4 => generateUserAnswersAndPOSTBodyEvent4
+      case Event5 => generateUserAnswersAndPOSTBodyEvent5 
       case Event6 => generateUserAnswersAndPOSTBodyEvent6
       case Event7 => generateUserAnswersAndPOSTBodyEvent7
       case Event8 => generateUserAnswersAndPOSTBodyEvent8
