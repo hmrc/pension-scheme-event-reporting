@@ -134,18 +134,17 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
       hasSchemeChangedRulesUnAuthPayments <- arbitrary[Boolean]
       hasSchemeChangedRulesInvestmentsInAssets <- arbitrary[Boolean]
     } yield {
-      def event11Details(unAuthPayments: Boolean, investmentsInAssets: Boolean): JsObject = {
-
+      def event11DetailsUA(unAuthPayments: Boolean, investmentsInAssets: Boolean): JsObject = {
         (unAuthPayments, investmentsInAssets) match {
           case (true, true) =>
             Json.obj(
               "hasSchemeChangedRulesUnAuthPayments" -> unAuthPayments,
               "unAuthPaymentsRuleChangeDate" -> Json.obj(
-                "date" -> s"$taxYear-04-06"
+                "date" -> s"$taxYear-08-06"
               ),
               "hasSchemeChangedRulesInvestmentsInAssets" -> investmentsInAssets,
               "investmentsInAssetsRuleChangeDate" -> Json.obj(
-                "date" -> s"$taxYear-04-30"
+                "date" -> s"$taxYear-08-30"
               )
             )
           case (false, true) =>
@@ -153,28 +152,44 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
               "hasSchemeChangedRulesUnAuthPayments" -> unAuthPayments,
               "hasSchemeChangedRulesInvestmentsInAssets" -> investmentsInAssets,
               "investmentsInAssetsRuleChangeDate" -> Json.obj(
-                "date" -> s"$taxYear-04-30"
+                "date" -> s"$taxYear-08-30"
               )
             )
-          case (true, false) =>
+          case _ =>
             Json.obj(
               "hasSchemeChangedRulesUnAuthPayments" -> unAuthPayments,
               "unAuthPaymentsRuleChangeDate" -> Json.obj(
-                "date" -> s"$taxYear-04-06"
+                "date" -> s"$taxYear-08-06"
               ),
-              "hasSchemeChangedRulesInvestmentsInAssets" -> investmentsInAssets
-            )
-          case _ => Json.obj()
-            Json.obj(
-              "hasSchemeChangedRulesUnAuthPayments" -> unAuthPayments,
               "hasSchemeChangedRulesInvestmentsInAssets" -> investmentsInAssets
             )
         }
 
       }
 
+      def event11DetailsExpected(unAuthPayments: Boolean, investmentsInAssets: Boolean): JsObject = {
+        (unAuthPayments, investmentsInAssets) match {
+          case (true, true) =>
+            Json.obj(
+              "recordVersion" -> "001",
+              "unauthorisedPmtsDate" -> s"$taxYear-08-06",
+              "contractsOrPoliciesDate" -> s"$taxYear-08-30"
+            )
+          case (false, true) =>
+            Json.obj(
+              "recordVersion" -> "001",
+              "contractsOrPoliciesDate" -> s"$taxYear-08-30"
+            )
+          case _ =>
+            Json.obj(
+              "recordVersion" -> "001",
+              "unauthorisedPmtsDate" -> s"$taxYear-08-06"
+            )
+        }
+      }
+
       val ua = Json.obj(
-        "event11" -> event11Details(hasSchemeChangedRulesUnAuthPayments, hasSchemeChangedRulesInvestmentsInAssets),
+        "event11" -> event11DetailsUA(hasSchemeChangedRulesUnAuthPayments, hasSchemeChangedRulesInvestmentsInAssets),
         "taxYear" -> taxYear
       )
       val expected = Json.obj(
@@ -183,10 +198,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
           "reportEndDate" -> s"${taxYear.toInt + 1}-04-05"
         ),
         "eventDetails" -> Json.obj(
-          "event11" -> Json.obj(
-            "recordVersion" -> "001",
-
-          )
+          "event11" -> event11DetailsExpected(hasSchemeChangedRulesUnAuthPayments, hasSchemeChangedRulesInvestmentsInAssets)
         )
       )
       Tuple2(ua, expected)
@@ -268,13 +280,13 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
           case ("value", "Other") => Json.obj(
             "recordVersion" -> "001",
             "schemeStructure" -> schemeStructureETMPEvent13(schemeStructureUA),
-            "changeDate" -> s"$taxYear-04-06",
+            "dateOfChange" -> s"$taxYear-04-06",
             "schemeStructureDescription" -> schemeStructureDescription
           )
           case _ => Json.obj(
             "recordVersion" -> "001",
             "schemeStructure" -> schemeStructureETMPEvent13(schemeStructureUA),
-            "changeDate" -> s"$taxYear-04-06"
+            "dateOfChange" -> s"$taxYear-04-06"
           )
         }
       }

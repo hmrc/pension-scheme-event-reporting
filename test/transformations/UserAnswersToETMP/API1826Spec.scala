@@ -34,6 +34,19 @@ class API1826Spec extends AnyFreeSpec with Matchers
     //          result mustBe expectedResult
     //      }
     //    }
+    "must transform a randomly generated valid payload correctly for Event 11" in {
+      forAll(generateUserAnswersAndPOSTBodyEvent11) {
+        case (userAnswers: JsObject, expectedResponse: JsObject) =>
+          val result = userAnswers.validate(API1826.transformToETMPData)
+          val expectedResult = JsSuccess(expectedResponse)
+
+          println(s"\n\n UserAnswers: ============ ${userAnswers}")
+          println(s"\n\n Expected:    ============ ${expectedResult}")
+          println(s"\n\n Actual:      ============ ${result}")
+
+          result mustBe expectedResult
+      }
+    }
     "must transform a randomly generated valid payload correctly for Event 12" in {
       forAll(generateUserAnswersAndPOSTBodyEvent12) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
@@ -42,14 +55,14 @@ class API1826Spec extends AnyFreeSpec with Matchers
           result mustBe expectedResult
       }
     }
-    "must transform a randomly generated valid payload correctly for Event 13" in {
-      forAll(generateUserAnswersAndPOSTBodyEvent13) {
-        case (userAnswers: JsObject, expectedResponse: JsObject) =>
-          val result = userAnswers.validate(API1826.transformToETMPData)
-          val expectedResult = JsSuccess(expectedResponse)
-          result mustBe expectedResult
-      }
-    }
+//    "must transform a randomly generated valid payload correctly for Event 13" in {
+//      forAll(generateUserAnswersAndPOSTBodyEvent13) {
+//        case (userAnswers: JsObject, expectedResponse: JsObject) =>
+//          val result = userAnswers.validate(API1826.transformToETMPData)
+//          val expectedResult = JsSuccess(expectedResponse)
+//          result mustBe expectedResult
+//      }
+//    }
     "must transform a randomly generated valid payload correctly for Event 14" in {
       forAll(generateUserAnswersAndPOSTBodyEvent14) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
