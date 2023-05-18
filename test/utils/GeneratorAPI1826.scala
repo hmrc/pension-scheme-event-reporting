@@ -94,6 +94,105 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
+  /*
+  "event11" : {
+              "hasSchemeChangedRulesUnAuthPayments" : true,
+              "unAuthPaymentsRuleChangeDate" : {
+                  "date" : "2023-08-12"
+              },
+              "hasSchemeChangedRulesInvestmentsInAssets" : true,
+              "investmentsInAssetsRuleChangeDate" : {
+                  "date" : "2023-08-23"
+              }
+          }
+      }
+      "event11" : {
+              "hasSchemeChangedRulesUnAuthPayments" : true,
+              "unAuthPaymentsRuleChangeDate" : {
+                  "date" : "2023-08-12"
+              },
+              "hasSchemeChangedRulesInvestmentsInAssets" : false
+          }
+      }
+      "event11" : {
+              "hasSchemeChangedRulesUnAuthPayments" : false,
+              "hasSchemeChangedRulesInvestmentsInAssets" : true,
+              "investmentsInAssetsRuleChangeDate" : {
+                  "date" : "2023-08-23"
+              }
+          }
+      }
+      "event11" : {
+              "hasSchemeChangedRulesUnAuthPayments" : false,
+              "hasSchemeChangedRulesInvestmentsInAssets" : false
+          }
+      }
+   */
+  def generateUserAnswersAndPOSTBodyEvent11: Gen[(JsObject, JsObject)] = {
+    for {
+      taxYear <- taxYearGenerator
+      hasSchemeChangedRulesUnAuthPayments <- arbitrary[Boolean]
+      hasSchemeChangedRulesInvestmentsInAssets <- arbitrary[Boolean]
+    } yield {
+      def event11Details(unAuthPayments: Boolean, investmentsInAssets: Boolean): JsObject = {
+
+        (unAuthPayments, investmentsInAssets) match {
+          case (true, true) =>
+            Json.obj(
+              "hasSchemeChangedRulesUnAuthPayments" -> unAuthPayments,
+              "unAuthPaymentsRuleChangeDate" -> Json.obj(
+                "date" -> s"$taxYear-04-06"
+              ),
+              "hasSchemeChangedRulesInvestmentsInAssets" -> investmentsInAssets,
+              "investmentsInAssetsRuleChangeDate" -> Json.obj(
+                "date" -> s"$taxYear-04-30"
+              )
+            )
+          case (false, true) =>
+            Json.obj(
+              "hasSchemeChangedRulesUnAuthPayments" -> unAuthPayments,
+              "hasSchemeChangedRulesInvestmentsInAssets" -> investmentsInAssets,
+              "investmentsInAssetsRuleChangeDate" -> Json.obj(
+                "date" -> s"$taxYear-04-30"
+              )
+            )
+          case (true, false) =>
+            Json.obj(
+              "hasSchemeChangedRulesUnAuthPayments" -> unAuthPayments,
+              "unAuthPaymentsRuleChangeDate" -> Json.obj(
+                "date" -> s"$taxYear-04-06"
+              ),
+              "hasSchemeChangedRulesInvestmentsInAssets" -> investmentsInAssets
+            )
+          case _ => Json.obj()
+            Json.obj(
+              "hasSchemeChangedRulesUnAuthPayments" -> unAuthPayments,
+              "hasSchemeChangedRulesInvestmentsInAssets" -> investmentsInAssets
+            )
+        }
+
+      }
+
+      val ua = Json.obj(
+        "event11" -> event11Details(hasSchemeChangedRulesUnAuthPayments, hasSchemeChangedRulesInvestmentsInAssets),
+        "taxYear" -> taxYear
+      )
+      val expected = Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "reportStartDate" -> s"$taxYear-04-06",
+          "reportEndDate" -> s"${taxYear.toInt + 1}-04-05"
+        ),
+        "eventDetails" -> Json.obj(
+          "event11" -> Json.obj(
+            "recordVersion" -> "001",
+
+          )
+        )
+      )
+      Tuple2(ua, expected)
+    }
+  }
+
   def generateUserAnswersAndPOSTBodyEvent12: Gen[(JsObject, JsObject)] = {
     for {
       taxYear <- taxYearGenerator
@@ -272,8 +371,8 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
         "eventDetails" -> Json.obj(
           "event18" -> Json.obj(
             "recordVersion" -> "001",
-          "chargeablePmt" -> "Yes"
-        )
+            "chargeablePmt" -> "Yes"
+          )
         )
       )
       Tuple2(fullUA, fullExpectedResult)
