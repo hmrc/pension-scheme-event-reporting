@@ -46,23 +46,23 @@ class API1830Spec extends AnyFreeSpec with Matchers
       }
     }
 
-        "must transform a randomly generated valid payload correctly in event 4" in {
-          forAll(generateUserAnswersAndPOSTBodyByEvent(Event4)) {
-            case (userAnswers: JsObject, expectedResponse: JsObject) =>
-              val result = userAnswers.validate(API1830.transformToETMPData(Event4, "87219363YN"))
-              val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event4") \ Symbol("members"))
-              result mustBe expectedResult
-          }
-        }
+    "must transform a randomly generated valid payload correctly in event 4" in {
+      forAll(generateUserAnswersAndPOSTBodyByEvent(Event4)) {
+        case (userAnswers: JsObject, expectedResponse: JsObject) =>
+          val result = userAnswers.validate(API1830.transformToETMPData(Event4, "87219363YN"))
+          val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event4") \ Symbol("members"))
+          result mustBe expectedResult
+      }
+    }
 
-        "must transform a randomly generated valid payload correctly in event 5" in {
-          forAll(generateUserAnswersAndPOSTBodyByEvent(Event5)) {
-            case (userAnswers: JsObject, expectedResponse: JsObject) =>
-              val result = userAnswers.validate(API1830.transformToETMPData(Event5, "87219363YN"))
-              val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event5") \ Symbol("members"))
-              result mustBe expectedResult
-          }
-        }
+    "must transform a randomly generated valid payload correctly in event 5" in {
+      forAll(generateUserAnswersAndPOSTBodyByEvent(Event5)) {
+        case (userAnswers: JsObject, expectedResponse: JsObject) =>
+          val result = userAnswers.validate(API1830.transformToETMPData(Event5, "87219363YN"))
+          val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event5") \ Symbol("members"))
+          result mustBe expectedResult
+      }
+    }
 
     "must transform a randomly generated valid payload correctly in event 6" in {
       forAll(generateUserAnswersAndPOSTBodyByEvent(Event6)) {
