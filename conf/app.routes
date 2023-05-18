@@ -12,7 +12,7 @@ POST       /submit-event20a-declaration-report                      controllers.
 
 GET        /user-answers                                            controllers.EventReportController.getUserAnswers
 POST       /user-answers                                            controllers.EventReportController.saveUserAnswers
-DELETE     /user-answers                                            controllers.EventReportController.dropUserAnswers
+DELETE     /user-answers                                            controllers.EventReportController.removeUserAnswers
 
 
 POST       /email-response/:requestId/:email/:psaId                 controllers.EmailResponseController.sendAuditEvents(requestId: String, psaId: String, email: String)

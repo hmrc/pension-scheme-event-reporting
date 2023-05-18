@@ -145,9 +145,10 @@ class EventReportCacheRepository @Inject()(
     }
   }
 
-  def dropOnSignOut(pstr: String)(implicit ec: ExecutionContext): Future[Unit] = {
-    collection.drop().toFuture().map { _ =>
-      logger.info(s"$pstr signing out, dropping ER collection")
+  def removeAllOnSignOut(pstr: String)(implicit ec: ExecutionContext): Future[Unit] = {
+    collection.deleteMany(filterByKeys(Map("pstr" -> pstr))).toFuture().map { result =>
+      logger.info(s"Removing all data from collection associated with $pstr")
+      result.wasAcknowledged
     }
   }
 

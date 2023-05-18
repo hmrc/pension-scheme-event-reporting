@@ -47,11 +47,11 @@ class EventReportController @Inject()(
   private val submitEventDeclarationReportSchemaPath = "/resources.schemas/api-1828-submit-event-declaration-report-request-schema-v1.0.4.json"
   private val submitEvent20ADeclarationReportSchemaPath = "/resources.schemas/api-1829-submit-event20a-declaration-report-request-schema-v1.0.0.json"
 
-  def dropUserAnswers: Action[AnyContent] = Action.async {
+  def removeUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
       withPstr { pstr => {
-        eventReportService.dropUserAnswers(pstr)
-        Future.successful(Ok(""))
+        eventReportService.removeUserAnswers(pstr)
+        Future.successful(Ok("")) // TODO: Ok of what? -NJ
       }
     }
   }

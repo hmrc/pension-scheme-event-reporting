@@ -79,8 +79,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def saveUserAnswers(pstr: String, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] =
     eventReportCacheRepository.upsert(pstr, userAnswersJson)
 
-  def dropUserAnswers(pstr: String)(implicit ec: ExecutionContext): Future[Unit] =
-    eventReportCacheRepository.dropOnSignOut(pstr)
+  def removeUserAnswers(pstr: String)(implicit ec: ExecutionContext): Future[Unit] =
+    eventReportCacheRepository.removeAllOnSignOut(pstr)
 
   def getUserAnswers(pstr: String, eventType: EventType)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     EventType.postApiTypeByEventType(eventType) match {
