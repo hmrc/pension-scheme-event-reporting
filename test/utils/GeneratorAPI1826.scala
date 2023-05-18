@@ -19,7 +19,7 @@ package utils
 import models.enumeration.EventType
 import models.enumeration.EventType._
 import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck.{Arbitrary, Gen}
+import org.scalacheck.Gen
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
 import play.api.libs.json.{JsObject, Json}
@@ -114,6 +114,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
         ),
         "eventDetails" -> Json.obj(
           "event12" -> Json.obj(
+            "recordVersion" -> "001",
             "twoOrMoreSchemesDate" -> s"${taxYear}-04-06"
           )
         )
@@ -139,34 +140,48 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
       }
    */
 
-  private def schemeStructureETMPEvent13(schemeStructure: String): String = schemeStructure match {
-    case "single" => "A single trust under which all of the assets are held for the benefit of all members of the scheme"
-    case "group" => "A group life/death in service scheme"
-    case "corporate" => "A body corporate"
-    case "other" => "Other"
+  private val schemeStructureETMPEvent13: Map[String, String] = {
+    Map("single" -> "A single trust under which all of the assets are held for the benefit of all members of the scheme",
+      "group" -> "A group life/death in service scheme",
+      "corporate" -> "A body corporate",
+      "other" -> "Other")
   }
 
   def generateUserAnswersAndPOSTBodyEvent13: Gen[(JsObject, JsObject)] = {
     for {
       taxYear <- taxYearGenerator
-      schemeStructureUA <- Gen.oneOf(Seq("single", "group", "corporate", "other"))
+      schemeStructureUA <- Gen.oneOf(schemeStructureETMPEvent13.keys.toSeq)
+      schemeStructureDescription <- Gen.alphaStr
     } yield {
-      def event13Details(schemeStructure: String): JsObject = {
-        schemeStructureUA match {
-          case "other" => Json.obj(
-            "schemeStructure" -> schemeStructure,
+      def event13Details(keyOrValue: String): JsObject = {
+        (keyOrValue, schemeStructureUA) match {
+          case ("key", "other") => Json.obj(
+            "recordVersion" -> "001",
+            "schemeStructure" -> schemeStructureUA,
             "changeDate" -> s"$taxYear-04-06",
-            "schemeStructureDescription" -> "Some text"
+            "schemeStructureDescription" -> schemeStructureDescription
+          )
+          case ("key", _) => Json.obj(
+            "recordVersion" -> "001",
+            "schemeStructure" -> schemeStructureUA,
+            "changeDate" -> s"$taxYear-04-06"
+          )
+          case ("value", "Other") => Json.obj(
+            "recordVersion" -> "001",
+            "schemeStructure" -> schemeStructureETMPEvent13(schemeStructureUA),
+            "changeDate" -> s"$taxYear-04-06",
+            "schemeStructureDescription" -> schemeStructureDescription
           )
           case _ => Json.obj(
-            "schemeStructure" -> schemeStructure,
+            "recordVersion" -> "001",
+            "schemeStructure" -> schemeStructureETMPEvent13(schemeStructureUA),
             "changeDate" -> s"$taxYear-04-06"
           )
         }
       }
 
       val ua = Json.obj(
-        "event13" -> event13Details(schemeStructureUA),
+        "event13" -> event13Details("key"),
         "taxYear" -> taxYear
       )
       val expected = Json.obj(
@@ -175,7 +190,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
           "reportEndDate" -> s"${taxYear.toInt + 1}-04-05"
         ),
         "eventDetails" -> Json.obj(
-          "event13" -> event13Details(schemeStructureUA)
+          "event13" -> event13Details("value")
         )
       )
       Tuple2(ua, expected)
@@ -200,6 +215,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
         ),
         "eventDetails" -> Json.obj(
           "event14" -> Json.obj(
+            "recordVersion" -> "001",
             "schemeMembers" -> schemeMembers
           )
         )
@@ -215,7 +231,9 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
     } yield {
       val endTaxYear = (taxYear.toInt + 1).toString
       val fullUA = Json.obj(
-        "schemeWindUpDate" -> schemeWindUpDate,
+        "eventWindUp" -> Json.obj(
+          "schemeWindUpDate" -> schemeWindUpDate
+        ),
         "taxYear" -> taxYear
       )
       val fullExpectedResult = Json.obj(
@@ -225,6 +243,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
         ),
         "eventDetails" -> Json.obj(
           "eventWindUp" -> Json.obj(
+            "recordVersion" -> "001",
             "dateOfWindUp" -> schemeWindUpDate
           )
         )
@@ -235,40 +254,28 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
 
   def generateUserAnswersAndPOSTBodyEvent18: Gen[(JsObject, JsObject)] = {
     for {
-      event18Confirmation <- arbitrary[Option[Boolean]]
       taxYear <- taxYearGenerator
     } yield {
       val endTaxYear = (taxYear.toInt + 1).toString
-      val fullUA = event18Confirmation match {
-        case Some(value) => Json.obj(
-          "event18Confirmation" -> value,
-          "taxYear" -> taxYear
-        )
-        case None => Json.obj(
-          "taxYear" -> taxYear
-        )
-      }
+      val fullUA = Json.obj(
+        "event18" -> Json.obj(
+          "event18Confirmation" -> true,
+        ),
+        "taxYear" -> taxYear
+      )
 
-      val fullExpectedResult =
-        event18Confirmation match {
-          case Some(true) => Json.obj(
-            "eventReportDetails" -> Json.obj(
-              "reportStartDate" -> s"$taxYear-04-06",
-              "reportEndDate" -> s"$endTaxYear-04-05"
-            ),
-            "eventDetails" -> Json.obj("event18" -> Json.obj(
-              "chargeablePmt" -> "Yes"
-            )
-            )
-          )
-          case _ => Json.obj(
-            "eventReportDetails" -> Json.obj(
-              "reportStartDate" -> s"$taxYear-04-06",
-              "reportEndDate" -> s"$endTaxYear-04-05"
-            ),
-          )
-        }
-
+      val fullExpectedResult = Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "reportStartDate" -> s"$taxYear-04-06",
+          "reportEndDate" -> s"$endTaxYear-04-05"
+        ),
+        "eventDetails" -> Json.obj(
+          "event18" -> Json.obj(
+            "recordVersion" -> "001",
+          "chargeablePmt" -> "Yes"
+        )
+        )
+      )
       Tuple2(fullUA, fullExpectedResult)
     }
   }
