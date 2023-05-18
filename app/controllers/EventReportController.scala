@@ -47,6 +47,15 @@ class EventReportController @Inject()(
   private val submitEventDeclarationReportSchemaPath = "/resources.schemas/api-1828-submit-event-declaration-report-request-schema-v1.0.4.json"
   private val submitEvent20ADeclarationReportSchemaPath = "/resources.schemas/api-1829-submit-event20a-declaration-report-request-schema-v1.0.0.json"
 
+  def dropUserAnswers: Action[AnyContent] = Action.async {
+    implicit request =>
+      withPstr { pstr => {
+        eventReportService.dropUserAnswers(pstr)
+        Future.successful(Ok(""))
+      }
+    }
+  }
+
   def saveUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
       withPstrOptionEventTypeAndBody { (pstr, optEventType, userAnswersJson) =>
@@ -198,6 +207,23 @@ class EventReportController @Inject()(
           case (pstr, jsValue) =>
             Future.failed(new BadRequestException(
               s"Bad Request without pstr ($pstr) or request body ($jsValue)"))
+        }
+      case _ =>
+        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
+    }
+  }
+
+  private def withPstr(block: (String) => Future[Result])
+                                            (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+
+    logger.debug(message = "Logger message TBC")
+
+    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
+      case Some(_) =>
+
+          request.headers.get("pstr") match {
+          case Some(pstr) =>
+            block(pstr)
         }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))

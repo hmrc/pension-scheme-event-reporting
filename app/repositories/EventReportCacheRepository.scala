@@ -145,6 +145,12 @@ class EventReportCacheRepository @Inject()(
     }
   }
 
+  def dropOnSignOut(pstr: String)(implicit ec: ExecutionContext): Future[Unit] = {
+    collection.drop().toFuture().map { _ =>
+      logger.info(s"$pstr signing out, dropping ER collection")
+    }
+  }
+
   private def filterByKeys(mapOfKeys: Map[String, String]): Bson = {
     val filters = mapOfKeys.map(t => Filters.equal(t._1, t._2)).toList
     Filters.and(filters: _*)
