@@ -38,7 +38,8 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
               "becomeOrCeaseScheme" : "itBecameAnInvestmentRegulatedPensionScheme",
               "schemeChangeDate" : {
                   "schemeChangeDate" : "2023-08-12"
-              }
+              },
+              "contractsOrPolicies" : true
           }
       }
 
@@ -47,8 +48,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
               "becomeOrCeaseScheme" : "itHasCeasedToBeAnInvestmentRegulatedPensionScheme",
               "schemeChangeDate" : {
                   "schemeChangeDate" : "2023-08-12"
-              },
-              "contractsOrPolicies" : true
+              }
           }
       }
    */
@@ -67,15 +67,15 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
               "becomeOrCeaseScheme" -> becomeOrCeaseScheme,
               "schemeChangeDate" -> Json.obj(
                 "schemeChangeDate" -> s"$taxYear-04-06"
-              )
+              ),
+              "contractsOrPolicies" -> contractsOrPolicies.toString
             )
           case _ =>
             Json.obj(
               "becomeOrCeaseScheme" -> becomeOrCeaseScheme,
               "schemeChangeDate" -> Json.obj(
                 "schemeChangeDate" -> s"$taxYear-04-06"
-              ),
-              "contractsOrPolicies" -> contractsOrPolicies.toString
+              )
             )
         }
       }
@@ -109,8 +109,10 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
         ),
         "eventDetails" -> Json.obj(
           "event10" -> Json.arr(
-            "recordVersion" -> "001",
-            "invRegScheme" -> event10DetailsExpected(becomeOrCeaseScheme)
+            Json.obj(
+              "recordVersion" -> "001",
+              "invRegScheme" -> event10DetailsExpected(becomeOrCeaseScheme)
+            )
           )
         )
       )
