@@ -53,46 +53,111 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
       }
    */
 
-
-  def contractsOrPoliciesNode(becomeOrCeaseSchemeValue: String, contractsOrPoliciesValue: Boolean): JsObject = {
-    becomeOrCeaseSchemeValue match {
-      case "itHasCeasedToBeAnInvestmentRegulatedPensionScheme" => Json.obj(
-        "contractsOrPolicies" -> contractsOrPoliciesValue
-      )
-      case _ => Json.obj()
-    }
-  }
-
   def generateUserAnswersAndPOSTBodyEvent10: Gen[(JsObject, JsObject)] = {
     for {
       becomeOrCeaseScheme <- Gen.oneOf(Seq("itBecameAnInvestmentRegulatedPensionScheme", "itHasCeasedToBeAnInvestmentRegulatedPensionScheme"))
       taxYear <- taxYearGenerator
       contractsOrPolicies <- arbitrary[Boolean]
     } yield {
-      val event10Details = Json.obj("becomeOrCeaseScheme" -> becomeOrCeaseScheme,
-        "schemeChangeDate" -> Json.obj(
-          "schemeChangeDate" -> s"${taxYear}-04-06"
-        )
-      ) ++ contractsOrPoliciesNode(becomeOrCeaseScheme, contractsOrPolicies)
+
+      def event10DetailsUA(becomeOrCeaseScheme: String): JsObject = {
+        becomeOrCeaseScheme match {
+          case "itBecameAnInvestmentRegulatedPensionScheme" =>
+            Json.obj(
+              "becomeOrCeaseScheme" -> becomeOrCeaseScheme,
+              "schemeChangeDate" -> Json.obj(
+                "schemeChangeDate" -> s"$taxYear-04-06"
+              )
+            )
+          case _ =>
+            Json.obj(
+              "becomeOrCeaseScheme" -> becomeOrCeaseScheme,
+              "schemeChangeDate" -> Json.obj(
+                "schemeChangeDate" -> s"$taxYear-04-06"
+              ),
+              "contractsOrPolicies" -> contractsOrPolicies.toString
+            )
+        }
+      }
+
+      def event10DetailsExpected(becomeOrCeaseScheme: String): JsObject = {
+        becomeOrCeaseScheme match {
+          case "itBecameAnInvestmentRegulatedPensionScheme" =>
+            Json.obj(
+              "startDateDetails" -> Json.obj(
+                "startDateOfInvReg" -> s"$taxYear-04-06"
+              ),
+              "contractsOrPolicies" -> contractsOrPolicies.toString
+            )
+          case _ =>
+            Json.obj(
+              "ceaseDateDetails" -> Json.obj(
+                "ceaseDateOfInvReg" -> s"$taxYear-04-06"
+              )
+            )
+        }
+      }
 
       val ua = Json.obj(
-        "event10" -> event10Details,
+        "event10" -> event10DetailsUA(becomeOrCeaseScheme),
         "taxYear" -> taxYear
       )
-
-      val startDateDetailsNode = Json.obj(
-        "startDateOfInvReg" -> s"${taxYear}-04-06",
-      ) ++ contractsOrPoliciesNode(becomeOrCeaseScheme, contractsOrPolicies)
-
-      //startDateDetails node exists only if become is selected and ceaseDateDetails node exists only if ceases is selected.
       val expected = Json.obj(
-        "invRegScheme" -> Json.obj(
-          "startDateDetails" -> startDateDetailsNode
+        "eventReportDetails" -> Json.obj(
+          "reportStartDate" -> s"$taxYear-04-06",
+          "reportEndDate" -> s"${taxYear.toInt + 1}-04-05"
+        ),
+        "eventDetails" -> Json.obj(
+          "event10" -> Json.arr(
+            "recordVersion" -> "001",
+            "invRegScheme" -> event10DetailsExpected(becomeOrCeaseScheme)
+          )
         )
       )
       Tuple2(ua, expected)
     }
   }
+
+
+  //  def contractsOrPoliciesNode(becomeOrCeaseSchemeValue: String, contractsOrPoliciesValue: Boolean): JsObject = {
+  //    becomeOrCeaseSchemeValue match {
+  //      case "itHasCeasedToBeAnInvestmentRegulatedPensionScheme" => Json.obj(
+  //        "contractsOrPolicies" -> contractsOrPoliciesValue
+  //      )
+  //      case _ => Json.obj()
+  //    }
+  //  }
+  //
+  //  def generateUserAnswersAndPOSTBodyEvent10: Gen[(JsObject, JsObject)] = {
+  //    for {
+  //      becomeOrCeaseScheme <- Gen.oneOf(Seq("itBecameAnInvestmentRegulatedPensionScheme", "itHasCeasedToBeAnInvestmentRegulatedPensionScheme"))
+  //      taxYear <- taxYearGenerator
+  //      contractsOrPolicies <- arbitrary[Boolean]
+  //    } yield {
+  //      val event10Details = Json.obj("becomeOrCeaseScheme" -> becomeOrCeaseScheme,
+  //        "schemeChangeDate" -> Json.obj(
+  //          "schemeChangeDate" -> s"${taxYear}-04-06"
+  //        )
+  //      ) ++ contractsOrPoliciesNode(becomeOrCeaseScheme, contractsOrPolicies)
+  //
+  //      val ua = Json.obj(
+  //        "event10" -> event10Details,
+  //        "taxYear" -> taxYear
+  //      )
+  //
+  //      val startDateDetailsNode = Json.obj(
+  //        "startDateOfInvReg" -> s"${taxYear}-04-06",
+  //      ) ++ contractsOrPoliciesNode(becomeOrCeaseScheme, contractsOrPolicies)
+  //
+  //      //startDateDetails node exists only if become is selected and ceaseDateDetails node exists only if ceases is selected.
+  //      val expected = Json.obj(
+  //        "invRegScheme" -> Json.obj(
+  //          "startDateDetails" -> startDateDetailsNode
+  //        )
+  //      )
+  //      Tuple2(ua, expected)
+  //    }
+  //  }
 
   /*
   "event11" : {
@@ -133,75 +198,85 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
       taxYear <- taxYearGenerator
       hasSchemeChangedRulesUnAuthPayments <- arbitrary[Boolean]
       hasSchemeChangedRulesInvestmentsInAssets <- arbitrary[Boolean]
+      proceedTest = hasSchemeChangedRulesUnAuthPayments | hasSchemeChangedRulesInvestmentsInAssets
     } yield {
-      def event11DetailsUA(unAuthPayments: Boolean, investmentsInAssets: Boolean): JsObject = {
-        (unAuthPayments, investmentsInAssets) match {
-          case (true, true) =>
-            Json.obj(
-              "hasSchemeChangedRulesUnAuthPayments" -> unAuthPayments,
-              "unAuthPaymentsRuleChangeDate" -> Json.obj(
-                "date" -> s"$taxYear-08-06"
-              ),
-              "hasSchemeChangedRulesInvestmentsInAssets" -> investmentsInAssets,
-              "investmentsInAssetsRuleChangeDate" -> Json.obj(
-                "date" -> s"$taxYear-08-30"
+
+      if (proceedTest) {
+        def event11DetailsUA(unAuthPayments: Boolean, investmentsInAssets: Boolean): JsObject = {
+          (unAuthPayments, investmentsInAssets) match {
+            case (true, true) =>
+              Json.obj(
+                "hasSchemeChangedRulesUnAuthPayments" -> unAuthPayments,
+                "unAuthPaymentsRuleChangeDate" -> Json.obj(
+                  "date" -> s"$taxYear-08-06"
+                ),
+                "hasSchemeChangedRulesInvestmentsInAssets" -> investmentsInAssets,
+                "investmentsInAssetsRuleChangeDate" -> Json.obj(
+                  "date" -> s"$taxYear-08-30"
+                )
               )
-            )
-          case (false, true) =>
-            Json.obj(
-              "hasSchemeChangedRulesUnAuthPayments" -> unAuthPayments,
-              "hasSchemeChangedRulesInvestmentsInAssets" -> investmentsInAssets,
-              "investmentsInAssetsRuleChangeDate" -> Json.obj(
-                "date" -> s"$taxYear-08-30"
+            case (false, true) =>
+              Json.obj(
+                "hasSchemeChangedRulesUnAuthPayments" -> unAuthPayments,
+                "hasSchemeChangedRulesInvestmentsInAssets" -> investmentsInAssets,
+                "investmentsInAssetsRuleChangeDate" -> Json.obj(
+                  "date" -> s"$taxYear-08-30"
+                )
               )
-            )
-          case _ =>
-            Json.obj(
-              "hasSchemeChangedRulesUnAuthPayments" -> unAuthPayments,
-              "unAuthPaymentsRuleChangeDate" -> Json.obj(
-                "date" -> s"$taxYear-08-06"
-              ),
-              "hasSchemeChangedRulesInvestmentsInAssets" -> investmentsInAssets
-            )
+            case (true, false) =>
+              Json.obj(
+                "hasSchemeChangedRulesUnAuthPayments" -> unAuthPayments,
+                "unAuthPaymentsRuleChangeDate" -> Json.obj(
+                  "date" -> s"$taxYear-08-06"
+                ),
+                "hasSchemeChangedRulesInvestmentsInAssets" -> investmentsInAssets
+              )
+            case _ =>
+              Json.obj()
+          }
+
         }
 
-      }
-
-      def event11DetailsExpected(unAuthPayments: Boolean, investmentsInAssets: Boolean): JsObject = {
-        (unAuthPayments, investmentsInAssets) match {
-          case (true, true) =>
-            Json.obj(
-              "recordVersion" -> "001",
-              "unauthorisedPmtsDate" -> s"$taxYear-08-06",
-              "contractsOrPoliciesDate" -> s"$taxYear-08-30"
-            )
-          case (false, true) =>
-            Json.obj(
-              "recordVersion" -> "001",
-              "contractsOrPoliciesDate" -> s"$taxYear-08-30"
-            )
-          case _ =>
-            Json.obj(
-              "recordVersion" -> "001",
-              "unauthorisedPmtsDate" -> s"$taxYear-08-06"
-            )
+        def event11DetailsExpected(unAuthPayments: Boolean, investmentsInAssets: Boolean): JsObject = {
+          (unAuthPayments, investmentsInAssets) match {
+            case (true, true) =>
+              Json.obj(
+                "recordVersion" -> "001",
+                "unauthorisedPmtsDate" -> s"$taxYear-08-06",
+                "contractsOrPoliciesDate" -> s"$taxYear-08-30"
+              )
+            case (false, true) =>
+              Json.obj(
+                "recordVersion" -> "001",
+                "contractsOrPoliciesDate" -> s"$taxYear-08-30"
+              )
+            case (true, false) =>
+              Json.obj(
+                "recordVersion" -> "001",
+                "unauthorisedPmtsDate" -> s"$taxYear-08-06"
+              )
+            case _ =>
+              Json.obj()
+          }
         }
-      }
 
-      val ua = Json.obj(
-        "event11" -> event11DetailsUA(hasSchemeChangedRulesUnAuthPayments, hasSchemeChangedRulesInvestmentsInAssets),
-        "taxYear" -> taxYear
-      )
-      val expected = Json.obj(
-        "eventReportDetails" -> Json.obj(
-          "reportStartDate" -> s"$taxYear-04-06",
-          "reportEndDate" -> s"${taxYear.toInt + 1}-04-05"
-        ),
-        "eventDetails" -> Json.obj(
-          "event11" -> event11DetailsExpected(hasSchemeChangedRulesUnAuthPayments, hasSchemeChangedRulesInvestmentsInAssets)
+        val ua = Json.obj(
+          "event11" -> event11DetailsUA(hasSchemeChangedRulesUnAuthPayments, hasSchemeChangedRulesInvestmentsInAssets),
+          "taxYear" -> taxYear
         )
-      )
-      Tuple2(ua, expected)
+        val expected = Json.obj(
+          "eventReportDetails" -> Json.obj(
+            "reportStartDate" -> s"$taxYear-04-06",
+            "reportEndDate" -> s"${taxYear.toInt + 1}-04-05"
+          ),
+          "eventDetails" -> Json.obj(
+            "event11" -> event11DetailsExpected(hasSchemeChangedRulesUnAuthPayments, hasSchemeChangedRulesInvestmentsInAssets)
+          )
+        )
+        Tuple2(ua, expected)
+      } else {
+        Tuple2(Json.obj(), Json.obj())
+      }
     }
   }
 
