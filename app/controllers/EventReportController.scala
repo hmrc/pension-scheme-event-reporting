@@ -51,7 +51,7 @@ class EventReportController @Inject()(
     implicit request =>
       withPstr { pstr => {
         eventReportService.removeUserAnswers(pstr)
-        Future.successful(Ok("")) // TODO: Ok of what? -NJ
+        Future.successful(Ok)
       }
     }
   }

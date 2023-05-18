@@ -460,6 +460,21 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
   }
 
+  "removeUserAnswers" must {
+    "return 200 OK" in {
+
+      when(mockEventReportService.removeUserAnswers(
+        ArgumentMatchers.eq(pstr)
+      )(any()))
+        .thenReturn(Future.successful(()))
+
+      val result = controller.removeUserAnswers(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr))
+
+      status(result) mustBe OK
+    }
+  }
+
   "saveUserAnswersToCache" must {
     "return 200 OK when valid response" in {
 
