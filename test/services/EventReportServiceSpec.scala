@@ -262,10 +262,24 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         any()
       )(any()))
         .thenReturn(Future.successful((): Unit))
+
       eventReportService.saveUserAnswers(pstr, EventType.Event3, payload)(implicitly).map { result =>
         verify(mockEventReportCacheRepository, times(1)).upsert(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(Api1830), any())(any())
         result mustBe()
       }
+    }
+  }
+
+  "removeUserAnswers" must {
+    "return unit when data deleted" in {
+      when(mockEventReportCacheRepository.removeAllOnSignOut(
+        ArgumentMatchers.eq(pstr)
+      )(any()))
+        .thenReturn(Future.successful((): Unit))
+        eventReportService.removeUserAnswers(pstr)(implicitly).map { result =>
+          verify(mockEventReportCacheRepository, times(1)).removeAllOnSignOut(ArgumentMatchers.eq(pstr))(any())
+          result mustBe()
+        }
     }
   }
 

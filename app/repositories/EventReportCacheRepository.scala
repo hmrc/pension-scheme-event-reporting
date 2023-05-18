@@ -148,7 +148,10 @@ class EventReportCacheRepository @Inject()(
   def removeAllOnSignOut(pstr: String)(implicit ec: ExecutionContext): Future[Unit] = {
     collection.deleteMany(filterByKeys(Map("pstr" -> pstr))).toFuture().map { result =>
       logger.info(s"Removing all data from collection associated with $pstr")
-      result.wasAcknowledged
+      if (!result.wasAcknowledged) {
+        logger.warn(s"Issue removing all data from collection associated with $pstr")
+      }
+      ()
     }
   }
 
