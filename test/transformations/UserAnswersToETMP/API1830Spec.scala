@@ -33,6 +33,8 @@ class API1830Spec extends AnyFreeSpec with Matchers
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
           val result = userAnswers.validate(API1830.transformToETMPData(Event2, "87219363YN"))
           val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event2") \ Symbol("members"))
+          println("\nEXP=" + expectedResult)
+          println("\nACT=" + result)
           result mustBe expectedResult
       }
     }

@@ -74,7 +74,8 @@ object API1830 extends Transformer {
         (pathPersonReceivedThePayment \ Symbol("lastName")).json.copyFrom((pathBeneficiaryMemberDetails \ Symbol("lastName")).json.pick) and
         (pathPersonReceivedThePayment \ Symbol("nino")).json.copyFrom((pathBeneficiaryMemberDetails \ Symbol("nino")).json.pick) and
         (pathPaymentDetails \ Symbol("amountPaid")).json.copyFrom((__ \ Symbol("amountPaid")).json.pick) and
-        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((__ \ Symbol("datePaid")).json.pick)
+        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((__ \ Symbol("datePaid")).json.pick) and
+        pathMemberStatus.json.put(memberStatusNew)
       ).reduce
   }
 
@@ -87,7 +88,9 @@ object API1830 extends Transformer {
         (pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.copyFrom(readsTypeOfBenefitEvent3) and
         (pathPaymentDetails \ Symbol("amountBenefit")).json.copyFrom((__ \ Symbol("paymentDetails") \ Symbol("amountPaid")).json.pick) and
         (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((__ \ Symbol("paymentDetails") \ Symbol("eventDate")).json.pick) and
-        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom(readsFreeTextEvent3.orElse(Reads.pure(JsString("N/A"))))).reduce
+        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom(readsFreeTextEvent3.orElse(Reads.pure(JsString("N/A")))) and
+        pathMemberStatus.json.put(memberStatusNew)
+      ).reduce
   }
 
   private def readsIndividualMemberDetailsEvent4: Reads[JsObject] = {
@@ -96,7 +99,8 @@ object API1830 extends Transformer {
       (pathToEvent \ Symbol("eventType")).json.put(JsString(s"Event$Event4")) and
         readsIndividualMemberDetails and
         (pathPaymentDetails \ Symbol("amountPaid")).json.copyFrom((__ \ Symbol("paymentDetails") \ Symbol("amountPaid")).json.pick) and
-        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((__ \ Symbol("paymentDetails") \ Symbol("eventDate")).json.pick)
+        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((__ \ Symbol("paymentDetails") \ Symbol("eventDate")).json.pick) and
+        pathMemberStatus.json.put(memberStatusNew)
       ).reduce
   }
 
@@ -105,7 +109,8 @@ object API1830 extends Transformer {
       (pathToEvent \ Symbol("eventType")).json.put(JsString(s"Event$Event5")) and
         readsIndividualMemberDetails and
         (pathPaymentDetails \ Symbol("annualRate")).json.copyFrom((__ \ Symbol("paymentDetails") \ Symbol("amountPaid")).json.pick) and
-        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((__ \ Symbol("paymentDetails") \ Symbol("eventDate")).json.pick)
+        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((__ \ Symbol("paymentDetails") \ Symbol("eventDate")).json.pick) and
+        pathMemberStatus.json.put(memberStatusNew)
       ).reduce
   }
 
@@ -117,7 +122,9 @@ object API1830 extends Transformer {
         (pathPaymentDetails \ Symbol("amountCrystalised")).json.copyFrom((pathAmountCrystallisedAndDateDetails \ Symbol("amountCrystallised")).json.pick) and
         (pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionEvent6) and
         (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathAmountCrystallisedAndDateDetails \ Symbol("crystallisedDate")).json.pick) and
-        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom((__ \ Symbol("inputProtectionType")).json.pick)).reduce
+        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom((__ \ Symbol("inputProtectionType")).json.pick) and
+        pathMemberStatus.json.put(memberStatusNew)
+      ).reduce
   }
 
   private def readsIndividualMemberDetailsEvent7: Reads[JsObject] = {
@@ -127,7 +134,9 @@ object API1830 extends Transformer {
         readsIndividualMemberDetails and
         (pathPaymentDetails \ Symbol("amountLumpSum")).json.copyFrom((__ \ Symbol("lumpSumAmount")).json.pick) and
         (pathPaymentDetails \ Symbol("amountCrystalised")).json.copyFrom((__ \ Symbol("crystallisedAmount")).json.pick) and
-        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((__ \ Symbol("paymentDate") \ Symbol("date")).json.pick)).reduce
+        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((__ \ Symbol("paymentDate") \ Symbol("date")).json.pick) and
+        pathMemberStatus.json.put(memberStatusNew)
+      ).reduce
   }
 
   private def readsIndividualMemberDetailsEvent8: Reads[JsObject] = {
@@ -137,7 +146,9 @@ object API1830 extends Transformer {
         (pathPaymentDetails \ Symbol("amountLumpSum")).json.copyFrom((pathLumpSumAmountAndDateDetails \ Symbol("lumpSumAmount")).json.pick) and
         (pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionEvent8) and
         (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathLumpSumAmountAndDateDetails \ Symbol("lumpSumDate")).json.pick) and
-        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom((__ \ Symbol("typeOfProtectionReference")).json.pick)).reduce
+        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom((__ \ Symbol("typeOfProtectionReference")).json.pick) and
+        pathMemberStatus.json.put(memberStatusNew)
+      ).reduce
   }
 
   private def readsIndividualMemberDetailsEvent8A: Reads[JsObject] = {
@@ -148,7 +159,9 @@ object API1830 extends Transformer {
         (pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionEvent8A.orElse((Reads.pure(JsString("N/A"))))) and
         (pathPaymentDetails \ Symbol("amountLumpSum")).json.copyFrom((pathLumpSumAmountAndDateDetails \ Symbol("lumpSumAmount")).json.pick) and
         (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathLumpSumAmountAndDateDetails \ Symbol("lumpSumDate")).json.pick) and
-        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom(readsTypeOfProtectionReferenceEvent8A.orElse(Reads.pure(JsString("N/A"))))).reduce
+        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom(readsTypeOfProtectionReferenceEvent8A.orElse(Reads.pure(JsString("N/A")))) and
+        pathMemberStatus.json.put(memberStatusNew)
+     ).reduce
   }
 
   private def readsIndividualMemberDetailsEvent22And23(eventType: EventType): Reads[JsObject] = {
@@ -157,7 +170,9 @@ object API1830 extends Transformer {
       (pathToEvent \ Symbol("eventType")).json.put(JsString(s"Event${eventType}")) and
         readsIndividualMemberDetails and
         (pathPaymentDetails \ Symbol("taxYearEndingDate")).json.copyFrom(readsTaxYearEndDate) and
-        (pathPaymentDetails \ Symbol("monetaryAmount")).json.copyFrom((__ \ Symbol("totalPensionAmounts")).json.pick)).reduce
+        (pathPaymentDetails \ Symbol("monetaryAmount")).json.copyFrom((__ \ Symbol("totalPensionAmounts")).json.pick) and
+        pathMemberStatus.json.put(memberStatusNew)
+      ).reduce
   }
 
   private val pathBenefitType = __ \ Symbol("benefitType")
@@ -207,11 +222,15 @@ object API1830 extends Transformer {
     case _ => fail[JsString]
   }
 
-  val pathToEvent: JsPath = __ \ Symbol("memberDetail") \ Symbol("event")
-  val pathIndividualMemberDetails: JsPath = pathToEvent \ Symbol("individualDetails")
-  val pathPaymentDetails = pathToEvent \ Symbol("paymentDetails")
+  private val pathToEvent: JsPath = __ \ Symbol("memberDetail") \ Symbol("event")
+  private val pathIndividualMemberDetails: JsPath = pathToEvent \ Symbol("individualDetails")
+  private val pathMemberStatus: JsPath = __ \ Symbol("memberDetail") \ Symbol("memberStatus")
+  private val pathPaymentDetails = pathToEvent \ Symbol("paymentDetails")
 
-  val readsIndividualMemberDetails: Reads[JsObject] = {
+
+  private val memberStatusNew = JsString("New")
+
+  private val readsIndividualMemberDetails: Reads[JsObject] = {
     (
       (pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick) and
         (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("lastName")).json.pick) and
