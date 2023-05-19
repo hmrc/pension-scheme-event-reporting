@@ -40,7 +40,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
               "schemeChangeDate" -> Json.obj(
                 "schemeChangeDate" -> s"$taxYear-04-06"
               ),
-              "contractsOrPolicies" -> contractsOrPolicies.toString
+              "contractsOrPolicies" -> contractsOrPolicies
             )
           case _ =>
             Json.obj(
@@ -59,7 +59,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
               "startDateDetails" -> Json.obj(
                 "startDateOfInvReg" -> s"$taxYear-04-06"
               ),
-              "contractsOrPolicies" -> contractsOrPolicies.toString
+              "contractsOrPolicies" -> (if (contractsOrPolicies) "Yes" else "No")
             )
           case _ =>
             Json.obj(

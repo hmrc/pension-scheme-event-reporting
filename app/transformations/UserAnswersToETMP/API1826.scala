@@ -23,75 +23,47 @@ import transformations.Transformer
 
 object API1826 extends Transformer {
 
-  private def optField(fieldName:String, value:Option[String]) = {
+  private def optField(fieldName: String, value: Option[String]) = {
     value.map(fieldName -> JsString(_))
   }
 
-  private def optObj[T](objName:String, wrapper:String => T, value:Option[String]) = {
+  private def optObj[T](objName: String, wrapper: String => T, value: Option[String]) = {
     value.map(objName -> wrapper(_))
   }
 
-  /*
-  "event10" : {
-                "becomeOrCeaseScheme" : "itBecameAnInvestmentRegulatedPensionScheme",
-                "schemeChangeDate" : {
-                    "schemeChangeDate" : "2023-08-12"
-                },
-                "contractsOrPolicies" : true
-            }
+  lazy val event10Reads: Reads[Option[JsObject]] = {
+    (__ \ "event10").readNullable[JsObject].flatMap {
+      case Some(_) =>
+        val base = __ \ "event10"
+        val invRegScheme = "invRegScheme"
+        val mainPath: JsPath = __
+        val recordVersionReads = (mainPath \ "recordVersion").json.put(JsString("001"))
+        val startDateReads = (
+          (mainPath \ invRegScheme \ "startDateDetails" \ "startDateOfInvReg").json.copyFrom((base \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
+            (mainPath \ invRegScheme \ "contractsOrPolicies").json.copyFrom((base \ "contractsOrPolicies").json.pick.map(toYesNo)) and
+            recordVersionReads
+          ).reduce
+        val ceaseDateReads =
+          ((mainPath \ invRegScheme \ "ceaseDateDetails" \ "ceaseDateOfInvReg").json.copyFrom((base \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
+            recordVersionReads).reduce
+
+        val mainPayload = (base \ "becomeOrCeaseScheme").read[String].flatMap {
+          case "itBecameAnInvestmentRegulatedPensionScheme" => startDateReads
+          case _ => ceaseDateReads
         }
-        "taxYear" : "2023",
-            "event10" : {
-                "becomeOrCeaseScheme" : "itHasCeasedToBeAnInvestmentRegulatedPensionScheme",
-                "schemeChangeDate" : {
-                    "schemeChangeDate" : "2023-08-12"
-                }
-            }
-        }
-  */
-
-  private lazy val event10Reads = {
-
-      val invRegScheme = "invRegScheme"
-      val mainPath = __ \ "event10" \ 0
-      val recordVersionReads = (mainPath \ "recordVersion").json.put(JsString("001"))
-      val startDateReads = (
-        (mainPath \ invRegScheme \ "startDateDetails" \ "startDateOfInvReg").json.copyFrom((__ \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
-          (mainPath\ invRegScheme \ "contractsOrPolicies").json.copyFrom((__ \ "contractsOrPolicies").json.pick.map(toYesNo)) and
-          recordVersionReads
-        ).reduce
-     val ceaseDateReads =
-       ((mainPath \ invRegScheme \ "ceaseDateDetails" \ "ceaseDateOfInvReg").json.copyFrom((__ \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
-         recordVersionReads).reduce
-
-      (__ \ "becomeOrCeaseScheme").read[String].flatMap {
-        case "itBecameAnInvestmentRegulatedPensionScheme" => startDateReads
-        case _ => ceaseDateReads
-      }
-
-    // ((pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick)
-
-//    (__ \ "event10").readNullable[JsObject].map { optJsonObj =>
-//      optJsonObj.map { jsonObject =>
-//        Json.obj(
-//          "event10" ->
-//            Json.arr(
-//              Json.obj(
-//              "recordVersion" -> JsString((jsonObject \ "recordVersion").asOpt[String].getOrElse("001")),
-//              "invRegScheme" -> invRegScheme(jsonObject)
-//              )
-//            )
-//        )
-//      }
-//    }
+        mainPayload.flatMap(jsObject => (__ \ "event10").json.put(Json.arr(jsObject)).map(Some(_)))
+      case _ => Reads.pure(None)
+    }
   }
 
   private lazy val event11Reads = (__ \ "event11").readNullable[JsObject].map { optJson =>
     optJson.map { json =>
       val optReadsUnauthorisedPmtsDate = if ((json \ "hasSchemeChangedRulesUnAuthPayments").as[Boolean]) {
-        (json \ "unAuthPaymentsRuleChangeDate" \ "date").asOpt[String]} else None
+        (json \ "unAuthPaymentsRuleChangeDate" \ "date").asOpt[String]
+      } else None
       val optReadsContractsOrPoliciesDate = if ((json \ "hasSchemeChangedRulesInvestmentsInAssets").as[Boolean]) {
-        (json \ "investmentsInAssetsRuleChangeDate" \ "date").asOpt[String]} else None
+        (json \ "investmentsInAssetsRuleChangeDate" \ "date").asOpt[String]
+      } else None
       val optReadsRecordVersion = (json \ "recordVersion").asOpt[String]
 
       (optReadsUnauthorisedPmtsDate, optReadsContractsOrPoliciesDate) match {
@@ -103,7 +75,7 @@ object API1826 extends Transformer {
           "recordVersion" -> JsString(optReadsRecordVersion.getOrElse("001")),
           "unauthorisedPmtsDate" -> JsString(date1)))
         case (None, Some(date2)) => Json.obj("event11" -> Json.obj(
-            "recordVersion" -> JsString(optReadsRecordVersion.getOrElse("001")),
+          "recordVersion" -> JsString(optReadsRecordVersion.getOrElse("001")),
           "contractsOrPoliciesDate" -> JsString(date2)))
         case (None, None) => Json.obj() // Note: the FE prevents this option from being compiled.
       }
@@ -142,20 +114,20 @@ object API1826 extends Transformer {
       Json.obj(
         "event14" -> Json.obj(
           "recordVersion" -> JsString((json \ "recordVersion").asOpt[String].getOrElse("001")),
-            "schemeMembers" -> (json \ "schemeMembers").as[String]
-          )
+          "schemeMembers" -> (json \ "schemeMembers").as[String]
+        )
       )
     }
   }
 
   private lazy val event18Reads = (__ \ "event18").readNullable[JsObject].map { optJson =>
     optJson.map { json =>
-        Json.obj(
-          "event18" -> Json.obj(
-            "recordVersion" -> JsString((json \ "recordVersion").asOpt[String].getOrElse("001")),
-            "chargeablePmt" -> yes
-          )
+      Json.obj(
+        "event18" -> Json.obj(
+          "recordVersion" -> JsString((json \ "recordVersion").asOpt[String].getOrElse("001")),
+          "chargeablePmt" -> yes
         )
+      )
     }
   }
 
