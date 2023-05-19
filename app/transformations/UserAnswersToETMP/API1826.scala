@@ -16,58 +16,53 @@
 
 package transformations.UserAnswersToETMP
 
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
+import play.api.libs.json.Reads.JsObjectReducer
 import play.api.libs.json._
 import transformations.Transformer
 
 object API1826 extends Transformer {
 
-  private def optField(fieldName:String, value:Option[String]) = {
+  private def optField(fieldName: String, value: Option[String]) = {
     value.map(fieldName -> JsString(_))
   }
 
-  private def optObj[T](objName:String, wrapper:String => T, value:Option[String]) = {
+  private def optObj[T](objName: String, wrapper: String => T, value: Option[String]) = {
     value.map(objName -> wrapper(_))
   }
 
-  private lazy val event10Reads = {
-    def invRegScheme(json:JsValue) = {
-      val invRegSchemePath = json \ "invRegScheme"
-      JsObject(
-        Seq(
-          Some("startDateDetails" -> {
-            val startDateDetailsPath = invRegSchemePath \ "startDateDetails"
-            Json.obj(
-              "startDateOfInvReg" -> (startDateDetailsPath \ "startDateOfInvReg").asOpt[String],
-              "contractsOrPolicies" -> (startDateDetailsPath \ "contractsOrPolicies").asOpt[String]
-            )
-          }),
-          optObj("ceaseDateDetails",
-            value => JsObject(Seq("ceaseDateOfInvReg" -> JsString(value))),
-            (invRegSchemePath \ "ceaseDateDetails" \ "ceaseDateOfInvReg").asOpt[String])
-        ).flatten
-      )
-    }
+  private lazy val event10Reads: Reads[Option[JsObject]] = {
+    (__ \ "event10").readNullable[JsObject].flatMap {
+      case Some(_) =>
+        val base = __ \ "event10"
+        val invRegScheme = "invRegScheme"
+        val recordVersionReads = (__ \ "recordVersion").json.put(JsString("001"))
+        val startDateReads = (
+          (__ \ invRegScheme \ "startDateDetails" \ "startDateOfInvReg").json.copyFrom((base \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
+            (__ \ invRegScheme \ "contractsOrPolicies").json.copyFrom((base \ "contractsOrPolicies").json.pick.map(toYesNo)) and
+            recordVersionReads
+          ).reduce
+        val ceaseDateReads =
+          ((__ \ invRegScheme \ "ceaseDateDetails" \ "ceaseDateOfInvReg").json.copyFrom((base \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
+            recordVersionReads).reduce
 
-    (__ \ "event10").readNullable[JsArray].map { optJsonArray =>
-      optJsonArray.map { jsonArray =>
-        Json.obj(
-          "event10" -> jsonArray.value.map { json =>
-            Json.obj(
-              "recordVersion" -> JsString((json \ "recordVersion").asOpt[String].getOrElse("001")),
-              "invRegScheme" -> invRegScheme(json)
-            )
-          }
-        )
-      }
+        val mainPayload = (base \ "becomeOrCeaseScheme").read[String].flatMap {
+          case "itBecameAnInvestmentRegulatedPensionScheme" => startDateReads
+          case _ => ceaseDateReads
+        }
+        mainPayload.flatMap(jsObject => (__ \ "event10").json.put(Json.arr(jsObject)).map(Some(_)))
+      case _ => Reads.pure(None)
     }
   }
 
   private lazy val event11Reads = (__ \ "event11").readNullable[JsObject].map { optJson =>
     optJson.map { json =>
       val optReadsUnauthorisedPmtsDate = if ((json \ "hasSchemeChangedRulesUnAuthPayments").as[Boolean]) {
-        (json \ "unAuthPaymentsRuleChangeDate" \ "date").asOpt[String]} else None
+        (json \ "unAuthPaymentsRuleChangeDate" \ "date").asOpt[String]
+      } else None
       val optReadsContractsOrPoliciesDate = if ((json \ "hasSchemeChangedRulesInvestmentsInAssets").as[Boolean]) {
-        (json \ "investmentsInAssetsRuleChangeDate" \ "date").asOpt[String]} else None
+        (json \ "investmentsInAssetsRuleChangeDate" \ "date").asOpt[String]
+      } else None
       val optReadsRecordVersion = (json \ "recordVersion").asOpt[String]
 
       (optReadsUnauthorisedPmtsDate, optReadsContractsOrPoliciesDate) match {
@@ -79,7 +74,7 @@ object API1826 extends Transformer {
           "recordVersion" -> JsString(optReadsRecordVersion.getOrElse("001")),
           "unauthorisedPmtsDate" -> JsString(date1)))
         case (None, Some(date2)) => Json.obj("event11" -> Json.obj(
-            "recordVersion" -> JsString(optReadsRecordVersion.getOrElse("001")),
+          "recordVersion" -> JsString(optReadsRecordVersion.getOrElse("001")),
           "contractsOrPoliciesDate" -> JsString(date2)))
         case (None, None) => Json.obj() // Note: the FE prevents this option from being compiled.
       }
@@ -91,6 +86,7 @@ object API1826 extends Transformer {
       Json.obj(
         "event12" ->
           Json.obj(
+            "recordVersion" -> JsString((json \ "recordVersion").asOpt[String].getOrElse("001")),
             "twoOrMoreSchemesDate" -> (json \ "dateOfChange" \ "dateOfChange").as[String]
           )
       )
@@ -117,22 +113,21 @@ object API1826 extends Transformer {
       Json.obj(
         "event14" -> Json.obj(
           "recordVersion" -> JsString((json \ "recordVersion").asOpt[String].getOrElse("001")),
-            "schemeMembers" -> (json \ "schemeMembers").as[String]
-          )
+          "schemeMembers" -> (json \ "schemeMembers").as[String]
+        )
       )
     }
   }
 
-  private lazy val event18Reads = (__ \ "event18Confirmation").readNullable[Boolean].map {
-    case Some(true) =>
-      Some(
-        Json.obj(
-          "event18" -> Json.obj(
-            "chargeablePmt" -> yes
-          )
+  private lazy val event18Reads = (__ \ "event18").readNullable[JsObject].map { optJson =>
+    optJson.map { json =>
+      Json.obj(
+        "event18" -> Json.obj(
+          "recordVersion" -> JsString((json \ "recordVersion").asOpt[String].getOrElse("001")),
+          "chargeablePmt" -> yes
         )
       )
-    case _ => None
+    }
   }
 
   private lazy val event19Reads = (__ \ "event19").readNullable[JsArray].map { optJsonArray =>
@@ -170,19 +165,16 @@ object API1826 extends Transformer {
     }
   }
 
-  private lazy val schemeWindUpReads = (__ \ "schemeWindUpDate").readNullable[String].map {
-    case Some(date) =>
-      Some(
-        Json.obj(
-          "eventWindUp" -> Json.obj(
-            "dateOfWindUp" -> date
-          )
+  private lazy val schemeWindUpReads = (__ \ "eventWindUp").readNullable[JsObject].map { optJson =>
+    optJson.map { json =>
+      Json.obj(
+        "eventWindUp" -> Json.obj(
+          "recordVersion" -> JsString((json \ "recordVersion").asOpt[String].getOrElse("001")),
+          "dateOfWindUp" -> (json \ "schemeWindUpDate").as[String]
         )
       )
-    case _ => None
+    }
   }
-
-
 
   val transformToETMPData: Reads[JsObject] = {
 
