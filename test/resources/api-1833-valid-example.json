@@ -1,0 +1,39 @@
+{
+  "processingDate": "2023-12-15T12:30:46Z",
+  "schemeDetails": {
+    "pSTR": "87219363YN",
+    "schemeName": "Abc Ltd"
+  },
+  "eventReportDetails": {
+    "reportFormBundleNumber": "123456789012",
+    "reportStartDate": "2021-04-06",
+    "reportEndDate": "2022-04-05",
+    "reportStatus": "Compiled",
+    "reportVersionNumber": "001",
+    "reportSubmittedDateAndTime": "2023-12-13T12:12:12Z"
+  },
+  "event1Details": [
+    {
+      "memberStatus": "New",
+      "memberType": "Individual",
+      "individualMemberDetails": {
+        "title": "Mr",
+        "firstName": "John",
+        "middleName": "Mac",
+        "lastName": "Smith",
+        "nino": "AA999999A",
+        "signedMandate": "Yes",
+        "pmtMoreThan25PerFundValue": "No",
+        "schemePayingSurcharge": "Yes"
+      },
+      "unAuthorisedPaymentDetails": {
+        "unAuthorisedPmtType1": "Transfer to non-registered pensions scheme",
+        "unAuthorisedPmtType2": "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
+        "freeTxtOrSchemeOrRecipientName": "ABCDEFGHIJKLMNOPQRSTUV",
+        "pstrOrReference": "20034565RX",
+        "dateOfUnauthorisedPayment": "2020-06-30",
+        "valueOfUnauthorisedPayment": 723
+      }
+    }
+  ]
+}

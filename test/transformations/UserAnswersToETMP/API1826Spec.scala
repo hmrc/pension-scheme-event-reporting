@@ -43,7 +43,6 @@ class API1826Spec extends AnyFreeSpec with Matchers
       }
     }
 
-
     "must transform all events when present" in {
 
       val event10Obj = Json.obj(
@@ -60,6 +59,22 @@ class API1826Spec extends AnyFreeSpec with Matchers
         event10Obj
       ))
 
+      val event11ObjUA = Json.parse(
+        """
+          |{
+          |            "recordVersion": "001",
+          |            "hasSchemeChangedRulesUnAuthPayments" : true,
+          |            "unAuthPaymentsRuleChangeDate" : {
+          |                "date" : "2022-01-31"
+          |            },
+          |            "hasSchemeChangedRulesInvestmentsInAssets" : true,
+          |            "investmentsInAssetsRuleChangeDate" : {
+          |                "date" : "2022-01-10"
+          |            }
+          |        }
+          |""".stripMargin
+      )
+
       val event11Obj = Json.parse(
         """
           |{
@@ -70,10 +85,17 @@ class API1826Spec extends AnyFreeSpec with Matchers
           |""".stripMargin
       )
 
-      val event12Obj = Json.parse("""{
-                         |      "recordVersion": "001",
-                         |      "twoOrMoreSchemesDate": "2022-01-02"
-                         |    }""".stripMargin)
+      val event12Obj = Json.parse(
+        """{
+          |      "twoOrMoreSchemesDate": "2022-01-02"
+          |    }""".stripMargin)
+
+      val event12ObjUA = Json.parse(
+        """{
+          |      "dateOfChange": {
+          |          "dateOfChange": "2022-01-02"
+          |        }
+          |    }""".stripMargin)
 
       val event13Obj = Json.obj(
         "recordVersion" -> "001",
@@ -86,27 +108,32 @@ class API1826Spec extends AnyFreeSpec with Matchers
         event13Obj
       ))
 
-      val event14Obj = Json.parse("""{
-                         |      "recordVersion": "001",
-                         |      "schemeMembers": "12 to 50"
-                         |    }""".stripMargin)
+      val event14Obj = Json.parse(
+        """{
+          |      "recordVersion": "001",
+          |      "schemeMembers": "12 to 50"
+          |    }""".stripMargin)
 
-      val event19Obj = Json.parse("""{
-                                    |        "recordVersion": "001",
-                                    |        "countryCode": "GB",
-                                    |        "dateOfChange": "2022-01-14"
-                                    |      }""".stripMargin)
+      val event19Obj = Json.parse(
+        """{
+          |        "recordVersion": "001",
+          |        "countryCode": "GB",
+          |        "dateOfChange": "2022-01-14"
+          |      }""".stripMargin)
+
       val event19 = JsArray(Seq(
         event19Obj,
         event19Obj
       ))
 
-      val event20Obj = Json.parse("""{
-                                    |        "recordVersion": "001",
-                                    |        "occSchemeDetails": {
-                                    |          "startDateOfOccScheme": "2022-01-27"
-                                    |        }
-                                    |      }""".stripMargin)
+      val event20Obj = Json.parse(
+        """{
+          |        "recordVersion": "001",
+          |        "occSchemeDetails": {
+          |          "startDateOfOccScheme": "2022-01-27"
+          |        }
+          |      }""".stripMargin)
+
       val event20 = JsArray(Seq(
         event20Obj,
         event20Obj
@@ -118,8 +145,8 @@ class API1826Spec extends AnyFreeSpec with Matchers
           "schemeWindUpDate" -> "1991-11-22",
           "taxYear" -> "2020",
           "event10" -> event10,
-          "event11" -> event11Obj,
-          "event12" -> event12Obj,
+          "event11" -> event11ObjUA,
+          "event12" -> event12ObjUA,
           "event13" -> event13,
           "event14" -> event14Obj,
           "event19" -> event19,
