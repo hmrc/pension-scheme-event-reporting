@@ -60,6 +60,11 @@ class API1826Spec extends AnyFreeSpec with Matchers
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
           val result = userAnswers.validate(API1826.transformToETMPData)
           val expectedResult = JsSuccess(expectedResponse)
+
+          println(s"\n\n UserAnswers ======== ${userAnswers}\n\n")
+          println(s"\n\n expectedResult ======== ${expectedResult}\n\n")
+          println(s"\n\n result ======== ${result}\n\n")
+
           result mustBe expectedResult
       }
     }

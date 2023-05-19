@@ -260,7 +260,9 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
           "reportEndDate" -> s"${taxYear.toInt + 1}-04-05"
         ),
         "eventDetails" -> Json.obj(
-          "event13" -> event13Details("value")
+          "event13" -> Json.arr(
+            event13Details("value")
+          )
         )
       )
       Tuple2(ua, expected)

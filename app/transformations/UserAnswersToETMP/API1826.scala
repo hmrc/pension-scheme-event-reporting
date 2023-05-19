@@ -93,18 +93,56 @@ object API1826 extends Transformer {
     }
   }
 
-  private lazy val event13Reads = (__ \ "event13").readNullable[JsArray].map { optJsonArray =>
-    optJsonArray.map { jsonArray =>
-      Json.obj(
-        "event13" -> jsonArray.value.map { json =>
-          Json.obj(
-            "recordVersion" -> JsString((json \ "recordVersion").asOpt[String].getOrElse("001")),
-            "schemeStructure" -> (json \ "schemeStructure").as[String],
-            "schemeStructureOther" -> (json \ "schemeStructureOther").asOpt[String],
-            "dateOfChange" -> (json \ "dateOfChange").as[String]
-          )
+  /*
+    "taxYear" : "2023",
+            "event13" : {
+                "schemeStructure" : "single",
+                "changeDate" : "2023-08-12"
+            }
         }
-      )
+
+        "taxYear" : "2023",
+            "event13" : {
+                "schemeStructure" : "other",
+                "changeDate" : "2023-08-12",
+                "schemeStructureDescription" : "Testing"
+            }
+        }
+     */
+
+  private lazy val event13Reads: Reads[Option[JsObject]] = {
+
+    def event13SchemeStructureTransformer(schemeStructure: JsValue): JsString = {
+      schemeStructure.as[JsString].value match {
+        case "single" => JsString("A single trust under which all of the assets are held for the benefit of all members of the scheme")
+        case "group" => JsString("A group life/death in service scheme")
+        case "corporate" => JsString("A body corporate")
+        case _ => JsString("Other")
+      }
+    }
+
+    (__ \ "event13").readNullable[JsObject].flatMap {
+      case Some(_) =>
+        val base = __ \ "event13"
+        val recordVersionReads = (__ \ "recordVersion").json.put(JsString("001"))
+        val schemeStructureReads = (
+          (__ \ "schemeStructure").json.copyFrom((base \ "schemeStructure").json.pick.map(event13SchemeStructureTransformer)) and
+          (__ \ "dateOfChange").json.copyFrom((base \ "changeDate").json.pick) and
+            recordVersionReads
+          ).reduce
+        val schemeStructureOtherReads = (
+          (__ \ "schemeStructure").json.copyFrom((base \ "schemeStructure").json.pick.map(event13SchemeStructureTransformer)) and
+          (__ \ "dateOfChange").json.copyFrom((base \ "changeDate").json.pick) and
+            ((__ \ "schemeStructureOther").json.copyFrom((base \ "schemeStructureDescription").json.pick) orElse doNothing) and
+            recordVersionReads
+          ).reduce
+
+        val mainPayload = (base \ "schemeStructure").read[String].flatMap {
+          case "other" => schemeStructureOtherReads
+          case _ => schemeStructureReads
+        }
+        mainPayload.flatMap(jsObject => (__ \ "event13").json.put(Json.arr(jsObject)).map(Some(_)))
+      case _ => Reads.pure(None)
     }
   }
 
