@@ -31,20 +31,19 @@ object API1826 extends Transformer {
     value.map(objName -> wrapper(_))
   }
 
-  lazy val event10Reads: Reads[Option[JsObject]] = {
+  private lazy val event10Reads: Reads[Option[JsObject]] = {
     (__ \ "event10").readNullable[JsObject].flatMap {
       case Some(_) =>
         val base = __ \ "event10"
         val invRegScheme = "invRegScheme"
-        val mainPath: JsPath = __
-        val recordVersionReads = (mainPath \ "recordVersion").json.put(JsString("001"))
+        val recordVersionReads = (__ \ "recordVersion").json.put(JsString("001"))
         val startDateReads = (
-          (mainPath \ invRegScheme \ "startDateDetails" \ "startDateOfInvReg").json.copyFrom((base \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
-            (mainPath \ invRegScheme \ "contractsOrPolicies").json.copyFrom((base \ "contractsOrPolicies").json.pick.map(toYesNo)) and
+          (__ \ invRegScheme \ "startDateDetails" \ "startDateOfInvReg").json.copyFrom((base \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
+            (__ \ invRegScheme \ "contractsOrPolicies").json.copyFrom((base \ "contractsOrPolicies").json.pick.map(toYesNo)) and
             recordVersionReads
           ).reduce
         val ceaseDateReads =
-          ((mainPath \ invRegScheme \ "ceaseDateDetails" \ "ceaseDateOfInvReg").json.copyFrom((base \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
+          ((__ \ invRegScheme \ "ceaseDateDetails" \ "ceaseDateOfInvReg").json.copyFrom((base \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
             recordVersionReads).reduce
 
         val mainPayload = (base \ "becomeOrCeaseScheme").read[String].flatMap {
