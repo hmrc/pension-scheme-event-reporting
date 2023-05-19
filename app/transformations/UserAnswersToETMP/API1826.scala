@@ -48,15 +48,14 @@ object API1826 extends Transformer {
       )
     }
 
-    (__ \ "event10").readNullable[JsArray].map { optJsonArray =>
-      optJsonArray.map { jsonArray =>
+    (__ \ "event10").readNullable[JsObject].map { optJsonObj =>
+      optJsonObj.map { jsonObject =>
         Json.obj(
-          "event10" -> jsonArray.value.map { json =>
+          "event10" ->
             Json.obj(
-              "recordVersion" -> JsString((json \ "recordVersion").asOpt[String].getOrElse("001")),
-              "invRegScheme" -> invRegScheme(json)
+              "recordVersion" -> JsString((jsonObject \ "recordVersion").asOpt[String].getOrElse("001")),
+              "invRegScheme" -> invRegScheme(jsonObject)
             )
-          }
         )
       }
     }

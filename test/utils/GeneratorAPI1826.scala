@@ -26,13 +26,6 @@ import play.api.libs.json.{JsObject, Json}
 
 //noinspection ScalaStyle
 trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerators {
-  def generateUserAnswersAndPOSTBodyByEvent(eventType: EventType): Gen[(JsObject, JsObject)] = {
-    eventType match {
-      case Event10 => generateUserAnswersAndPOSTBodyEvent10
-      case _ => generateUserAnswersAndPOSTBodyWindUp
-    }
-  }
-
   /*
   "event10" : {
               "becomeOrCeaseScheme" : "itBecameAnInvestmentRegulatedPensionScheme",
