@@ -16,8 +16,6 @@
 
 package utils
 
-import models.enumeration.EventType
-import models.enumeration.EventType._
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
@@ -26,25 +24,6 @@ import play.api.libs.json.{JsObject, Json}
 
 //noinspection ScalaStyle
 trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerators {
-  /*
-  "event10" : {
-              "becomeOrCeaseScheme" : "itBecameAnInvestmentRegulatedPensionScheme",
-              "schemeChangeDate" : {
-                  "schemeChangeDate" : "2023-08-12"
-              },
-              "contractsOrPolicies" : true
-          }
-      }
-
-      "taxYear" : "2023",
-          "event10" : {
-              "becomeOrCeaseScheme" : "itHasCeasedToBeAnInvestmentRegulatedPensionScheme",
-              "schemeChangeDate" : {
-                  "schemeChangeDate" : "2023-08-12"
-              }
-          }
-      }
-   */
 
   def generateUserAnswersAndPOSTBodyEvent10: Gen[(JsObject, JsObject)] = {
     for {
@@ -114,80 +93,6 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
   }
 
 
-  //  def contractsOrPoliciesNode(becomeOrCeaseSchemeValue: String, contractsOrPoliciesValue: Boolean): JsObject = {
-  //    becomeOrCeaseSchemeValue match {
-  //      case "itHasCeasedToBeAnInvestmentRegulatedPensionScheme" => Json.obj(
-  //        "contractsOrPolicies" -> contractsOrPoliciesValue
-  //      )
-  //      case _ => Json.obj()
-  //    }
-  //  }
-  //
-  //  def generateUserAnswersAndPOSTBodyEvent10: Gen[(JsObject, JsObject)] = {
-  //    for {
-  //      becomeOrCeaseScheme <- Gen.oneOf(Seq("itBecameAnInvestmentRegulatedPensionScheme", "itHasCeasedToBeAnInvestmentRegulatedPensionScheme"))
-  //      taxYear <- taxYearGenerator
-  //      contractsOrPolicies <- arbitrary[Boolean]
-  //    } yield {
-  //      val event10Details = Json.obj("becomeOrCeaseScheme" -> becomeOrCeaseScheme,
-  //        "schemeChangeDate" -> Json.obj(
-  //          "schemeChangeDate" -> s"${taxYear}-04-06"
-  //        )
-  //      ) ++ contractsOrPoliciesNode(becomeOrCeaseScheme, contractsOrPolicies)
-  //
-  //      val ua = Json.obj(
-  //        "event10" -> event10Details,
-  //        "taxYear" -> taxYear
-  //      )
-  //
-  //      val startDateDetailsNode = Json.obj(
-  //        "startDateOfInvReg" -> s"${taxYear}-04-06",
-  //      ) ++ contractsOrPoliciesNode(becomeOrCeaseScheme, contractsOrPolicies)
-  //
-  //      //startDateDetails node exists only if become is selected and ceaseDateDetails node exists only if ceases is selected.
-  //      val expected = Json.obj(
-  //        "invRegScheme" -> Json.obj(
-  //          "startDateDetails" -> startDateDetailsNode
-  //        )
-  //      )
-  //      Tuple2(ua, expected)
-  //    }
-  //  }
-
-  /*
-  "event11" : {
-              "hasSchemeChangedRulesUnAuthPayments" : true,
-              "unAuthPaymentsRuleChangeDate" : {
-                  "date" : "2023-08-12"
-              },
-              "hasSchemeChangedRulesInvestmentsInAssets" : true,
-              "investmentsInAssetsRuleChangeDate" : {
-                  "date" : "2023-08-23"
-              }
-          }
-      }
-      "event11" : {
-              "hasSchemeChangedRulesUnAuthPayments" : true,
-              "unAuthPaymentsRuleChangeDate" : {
-                  "date" : "2023-08-12"
-              },
-              "hasSchemeChangedRulesInvestmentsInAssets" : false
-          }
-      }
-      "event11" : {
-              "hasSchemeChangedRulesUnAuthPayments" : false,
-              "hasSchemeChangedRulesInvestmentsInAssets" : true,
-              "investmentsInAssetsRuleChangeDate" : {
-                  "date" : "2023-08-23"
-              }
-          }
-      }
-      "event11" : {
-              "hasSchemeChangedRulesUnAuthPayments" : false,
-              "hasSchemeChangedRulesInvestmentsInAssets" : false
-          }
-      }
-   */
   def generateUserAnswersAndPOSTBodyEvent11: Gen[(JsObject, JsObject)] = {
     for {
       taxYear <- taxYearGenerator
@@ -304,22 +209,6 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
-  /*
-  "taxYear" : "2023",
-          "event13" : {
-              "schemeStructure" : "single",
-              "changeDate" : "2023-08-12"
-          }
-      }
-
-      "taxYear" : "2023",
-          "event13" : {
-              "schemeStructure" : "other",
-              "changeDate" : "2023-08-12",
-              "schemeStructureDescription" : "Testing"
-          }
-      }
-   */
 
   private val schemeStructureETMPEvent13: Map[String, String] = {
     Map("single" -> "A single trust under which all of the assets are held for the benefit of all members of the scheme",

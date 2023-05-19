@@ -16,6 +16,8 @@
 
 package transformations.UserAnswersToETMP
 
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
+import play.api.libs.json.Reads.JsObjectReducer
 import play.api.libs.json._
 import transformations.Transformer
 
@@ -29,36 +31,59 @@ object API1826 extends Transformer {
     value.map(objName -> wrapper(_))
   }
 
-  private lazy val event10Reads = {
-    def invRegScheme(json:JsValue) = {
-      val invRegSchemePath = json \ "invRegScheme"
-      JsObject(
-        Seq(
-          Some("startDateDetails" -> {
-            val startDateDetailsPath = invRegSchemePath \ "startDateDetails"
-            Json.obj(
-              "startDateOfInvReg" -> (startDateDetailsPath \ "startDateOfInvReg").asOpt[String],
-              "contractsOrPolicies" -> (startDateDetailsPath \ "contractsOrPolicies").asOpt[String]
-            )
-          }),
-          optObj("ceaseDateDetails",
-            value => JsObject(Seq("ceaseDateOfInvReg" -> JsString(value))),
-            (invRegSchemePath \ "ceaseDateDetails" \ "ceaseDateOfInvReg").asOpt[String])
-        ).flatten
-      )
-    }
+  /*
+  "event10" : {
+                "becomeOrCeaseScheme" : "itBecameAnInvestmentRegulatedPensionScheme",
+                "schemeChangeDate" : {
+                    "schemeChangeDate" : "2023-08-12"
+                },
+                "contractsOrPolicies" : true
+            }
+        }
+        "taxYear" : "2023",
+            "event10" : {
+                "becomeOrCeaseScheme" : "itHasCeasedToBeAnInvestmentRegulatedPensionScheme",
+                "schemeChangeDate" : {
+                    "schemeChangeDate" : "2023-08-12"
+                }
+            }
+        }
+  */
 
-    (__ \ "event10").readNullable[JsObject].map { optJsonObj =>
-      optJsonObj.map { jsonObject =>
-        Json.obj(
-          "event10" ->
-            Json.obj(
-              "recordVersion" -> JsString((jsonObject \ "recordVersion").asOpt[String].getOrElse("001")),
-              "invRegScheme" -> invRegScheme(jsonObject)
-            )
-        )
+  private lazy val event10Reads = {
+
+      val invRegScheme = "invRegScheme"
+      val mainPath = __ \ "event10" \ 0
+      val recordVersionReads = (mainPath \ "recordVersion").json.put(JsString("001"))
+      val startDateReads = (
+        (mainPath \ invRegScheme \ "startDateDetails" \ "startDateOfInvReg").json.copyFrom((__ \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
+          (mainPath\ invRegScheme \ "contractsOrPolicies").json.copyFrom((__ \ "contractsOrPolicies").json.pick.map(toYesNo)) and
+          recordVersionReads
+        ).reduce
+     val ceaseDateReads =
+       ((mainPath \ invRegScheme \ "ceaseDateDetails" \ "ceaseDateOfInvReg").json.copyFrom((__ \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
+         recordVersionReads).reduce
+
+      (__ \ "becomeOrCeaseScheme").read[String].flatMap {
+        case "itBecameAnInvestmentRegulatedPensionScheme" => startDateReads
+        case _ => ceaseDateReads
       }
-    }
+
+    // ((pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick)
+
+//    (__ \ "event10").readNullable[JsObject].map { optJsonObj =>
+//      optJsonObj.map { jsonObject =>
+//        Json.obj(
+//          "event10" ->
+//            Json.arr(
+//              Json.obj(
+//              "recordVersion" -> JsString((jsonObject \ "recordVersion").asOpt[String].getOrElse("001")),
+//              "invRegScheme" -> invRegScheme(jsonObject)
+//              )
+//            )
+//        )
+//      }
+//    }
   }
 
   private lazy val event11Reads = (__ \ "event11").readNullable[JsObject].map { optJson =>
