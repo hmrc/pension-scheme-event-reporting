@@ -61,7 +61,6 @@ class FileUploadResponseCacheRepositorySpec extends AnyWordSpec with MockitoSuga
         documentsInDB <- fileUploadResponseCacheRepository.collection.find[JsValue](filters).toFuture()
       } yield documentsInDB
 
-      // The future returned an exception of type: org.bson.codecs.configuration.CodecConfigurationException, with message: Can't find a codec for class repositories.FileUploadResponseCacheEntry.
       whenReady(documentsInDB) {
         documentsInDB =>
           documentsInDB.size mustBe 1
