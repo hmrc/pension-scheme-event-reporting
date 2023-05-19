@@ -220,10 +220,11 @@ class EventReportController @Inject()(
 
     authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
       case Some(_) =>
-
           request.headers.get("pstr") match {
           case Some(pstr) =>
             block(pstr)
+          case _ =>
+            Future.failed(new BadRequestException(s"Bad Request, no pstr in headers"))
         }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))

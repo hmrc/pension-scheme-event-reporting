@@ -473,6 +473,15 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
       status(result) mustBe OK
     }
+
+    "throw a Bad Request Exception when all parameters missing in header" in {
+      recoverToExceptionIf[BadRequestException] {
+        controller.removeUserAnswers(fakeRequest)
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+        response.message must include("Bad Request, no pstr in headers")
+      }
+    }
   }
 
   "saveUserAnswersToCache" must {
