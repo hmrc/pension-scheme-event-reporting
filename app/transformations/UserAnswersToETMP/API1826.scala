@@ -61,7 +61,7 @@ object API1826 extends Transformer {
         case "itBecameAnInvestmentRegulatedPensionScheme" =>
           ((__ \ invRegScheme \ "startDateDetails" \ "startDateOfInvReg").json
             .copyFrom((uaBaseForEventType \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
-            (__ \ invRegScheme \ "contractsOrPolicies").json
+            (__ \ invRegScheme \ "startDateDetails" \ "contractsOrPolicies").json
               .copyFrom((uaBaseForEventType \ "contractsOrPolicies").json.pick.map(toYesNo)) and
             recordVersionReads).reduce
         case _ =>
