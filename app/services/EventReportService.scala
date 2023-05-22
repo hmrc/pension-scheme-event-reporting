@@ -92,7 +92,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
-    eventReportCacheRepository.getUserAnswers(pstr, Some(apiType)).flatMap {
+        eventReportCacheRepository.getUserAnswers(pstr, Some(apiType)).flatMap {
           case Some(data) =>
             eventReportCacheRepository.getUserAnswers(pstr, None).flatMap {
               case Some(header) =>

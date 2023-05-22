@@ -162,7 +162,6 @@ class EventReportConnector @Inject()(
                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsValue]] = {
 
     val apiUrl: String = s"${config.getApiUrlByApiNum(api.toString).format(pstr)}"
-
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = headers: _*)
     logger.info(s"Get $api.toString (IF) called - URL: $apiUrl with headers: $headers")
 
