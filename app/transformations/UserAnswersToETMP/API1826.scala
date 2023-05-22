@@ -31,25 +31,29 @@ object API1826 extends Transformer {
     value.map(objName -> wrapper(_))
   }
 
-  private def mapReadsToOptionArray(reads: Reads[JsObject], targetEventTypeNodeName: String): Reads[Option[JsObject]] =
+  private def mapReadsToOptionArray(targetEventTypeNodeName: String)(reads: Reads[JsObject]): Reads[Option[JsObject]] =
     reads.flatMap(jsObject => (__ \ targetEventTypeNodeName).json.put(Json.arr(jsObject)).map(Option(_)))
 
+  private val recordVersionReads: Reads[JsObject] = (__ \ "recordVersion").json.put(JsString("001"))
+  private val invRegScheme = "invRegScheme"
+
+
   private lazy val event10Reads: Reads[Option[JsObject]] = {
-    (__ \ "event10").readNullable[JsObject].flatMap {
+    val eventType = "event10"
+    (__ \ eventType).readNullable[JsObject].flatMap {
       case Some(_) =>
-        val base = __ \ "event10"
-        val invRegScheme = "invRegScheme"
-        val recordVersionReads = (__ \ "recordVersion").json.put(JsString("001"))
-        val mainPayload = (base \ "becomeOrCeaseScheme").read[String].flatMap {
-          case "itBecameAnInvestmentRegulatedPensionScheme" =>
-            ((__ \ invRegScheme \ "startDateDetails" \ "startDateOfInvReg").json.copyFrom((base \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
-                (__ \ invRegScheme \ "contractsOrPolicies").json.copyFrom((base \ "contractsOrPolicies").json.pick.map(toYesNo)) and
+        val uaBase = __ \ eventType
+        mapReadsToOptionArray(eventType){
+          (uaBase \ "becomeOrCeaseScheme").read[String].flatMap {
+            case "itBecameAnInvestmentRegulatedPensionScheme" =>
+              ((__ \ invRegScheme \ "startDateDetails" \ "startDateOfInvReg").json.copyFrom((uaBase \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
+                (__ \ invRegScheme \ "contractsOrPolicies").json.copyFrom((uaBase \ "contractsOrPolicies").json.pick.map(toYesNo)) and
                 recordVersionReads).reduce
-          case _ =>
-            ((__ \ invRegScheme \ "ceaseDateDetails" \ "ceaseDateOfInvReg").json.copyFrom((base \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
-              recordVersionReads).reduce
+            case _ =>
+              ((__ \ invRegScheme \ "ceaseDateDetails" \ "ceaseDateOfInvReg").json.copyFrom((uaBase \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
+                recordVersionReads).reduce
+          }
         }
-        mapReadsToOptionArray(mainPayload, "event10")
       case _ =>
         Reads.pure(None)
     }
