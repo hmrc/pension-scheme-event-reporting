@@ -91,7 +91,7 @@ object FileUploadResponseCacheRepositorySpec extends AnyWordSpec with MockitoSug
 
   private val mockAppConfig = mock[Configuration]
   private val mockConfig = mock[Config]
-  private val ttlValue = 600
+  private val ttlValue = 900
 
   private def buildFromRepository(mongoHost: String, mongoPort: Int) = {
     val databaseName = "pension-scheme-event-reporting"
