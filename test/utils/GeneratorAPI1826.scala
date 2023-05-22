@@ -57,9 +57,9 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
           case "itBecameAnInvestmentRegulatedPensionScheme" =>
             Json.obj(
               "startDateDetails" -> Json.obj(
-                "startDateOfInvReg" -> s"$taxYear-04-06"
-              ),
-              "contractsOrPolicies" -> (if (contractsOrPolicies) "Yes" else "No")
+                "startDateOfInvReg" -> s"$taxYear-04-06",
+                "contractsOrPolicies" -> (if (contractsOrPolicies) "Yes" else "No")
+              )
             )
           case _ =>
             Json.obj(
