@@ -31,9 +31,8 @@ object API1826 extends Transformer {
     value.map(objName -> wrapper(_))
   }
 
-  private def mapReadsToOptionArray(reads: Reads[JsObject], targetEventTypeNodeName: String): Reads[Option[JsObject]] = {
+  private def mapReadsToOptionArray(reads: Reads[JsObject], targetEventTypeNodeName: String): Reads[Option[JsObject]] =
     reads.flatMap(jsObject => (__ \ targetEventTypeNodeName).json.put(Json.arr(jsObject)).map(Option(_)))
-  }
 
   private lazy val event10Reads: Reads[Option[JsObject]] = {
     (__ \ "event10").readNullable[JsObject].flatMap {

@@ -20,8 +20,7 @@ object AppDependencies {
     "org.scalatest"           %% "scalatest"                  % "3.2.15"                % Test,
     "org.scalatestplus.play"  %% "scalatestplus-play"         % "5.1.0"                 % Test,
     "org.scalatestplus"       %% "mockito-4-6"                % "3.2.15.0"              % Test,
-    "org.scalatestplus"       %% "scalacheck-1-17"            % "3.2.15.0"              % Test,
-    "org.typelevel" %% "cats-core" % "2.9.0"
+    "org.scalatestplus"       %% "scalacheck-1-17"            % "3.2.15.0"              % Test
   )
 
   def apply(): Seq[ModuleID] = compile ++ test
