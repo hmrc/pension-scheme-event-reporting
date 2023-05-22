@@ -61,14 +61,14 @@ class API1826Spec extends AnyFreeSpec with Matchers
           result mustBe expectedResult
       }
     }
-    //    "must transform a randomly generated valid payload correctly for Event 13" in {
-    //      forAll(generateUserAnswersAndPOSTBodyEvent13) {
-    //        case (userAnswers: JsObject, expectedResponse: JsObject) =>
-    //          val result = userAnswers.validate(API1826.transformToETMPData)
-    //          val expectedResult = JsSuccess(expectedResponse)
-    //          result mustBe expectedResult
-    //      }
-    //    }
+    "must transform a randomly generated valid payload correctly for Event 13" in {
+      forAll(generateUserAnswersAndPOSTBodyEvent13) {
+        case (userAnswers: JsObject, expectedResponse: JsObject) =>
+          val result = userAnswers.validate(API1826.transformToETMPData)
+          val expectedResult = JsSuccess(expectedResponse)
+          result mustBe expectedResult
+      }
+    }
     "must transform a randomly generated valid payload correctly for Event 14" in {
       forAll(generateUserAnswersAndPOSTBodyEvent14) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
@@ -98,18 +98,21 @@ class API1826Spec extends AnyFreeSpec with Matchers
       val ev10 = generateUserAnswersAndPOSTBodyEvent10.sample.get
       val ev11 = generateUserAnswersAndPOSTBodyEvent11.sample.get
       val ev12 = generateUserAnswersAndPOSTBodyEvent12.sample.get
-      //  val ev13 = generateUserAnswersAndPOSTBodyEvent13.sample.get
+      val ev13 = generateUserAnswersAndPOSTBodyEvent13.sample.get
       val ev14 = generateUserAnswersAndPOSTBodyEvent14.sample.get
       val ev18 = generateUserAnswersAndPOSTBodyEvent18.sample.get
+      val windUp = generateUserAnswersAndPOSTBodyWindUp.sample.get
 
-      val ua = ev10._1 ++ ev11._1 ++ ev12._1 /*++ ev13._1*/ ++ ev14._1 ++ ev18._1
+      val ua = ev10._1 ++ ev11._1 ++ ev12._1 ++ ev13._1 ++ ev14._1 ++ ev18._1 ++ windUp._1
       val result = ua.validate(API1826.transformToETMPData)
 
       checkExpectation("event10", result, ev10._2)
       checkExpectation("event11", result, ev11._2)
       checkExpectation("event12", result, ev12._2)
+      checkExpectation("event13", result, ev13._2)
       checkExpectation("event14", result, ev14._2)
       checkExpectation("event18", result, ev18._2)
+      checkExpectation("eventWindup", result, windUp._2)
     }
 
     "must not transform an event that is not present" in {
