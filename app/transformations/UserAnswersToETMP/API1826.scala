@@ -31,27 +31,28 @@ object API1826 extends Transformer {
     value.map(objName -> wrapper(_))
   }
 
+  private def mapReadsToOptionArray(reads: Reads[JsObject], targetEventTypeNodeName: String): Reads[Option[JsObject]] = {
+    reads.flatMap(jsObject => (__ \ targetEventTypeNodeName).json.put(Json.arr(jsObject)).map(Option(_)))
+  }
+
   private lazy val event10Reads: Reads[Option[JsObject]] = {
     (__ \ "event10").readNullable[JsObject].flatMap {
       case Some(_) =>
         val base = __ \ "event10"
         val invRegScheme = "invRegScheme"
         val recordVersionReads = (__ \ "recordVersion").json.put(JsString("001"))
-        val startDateReads = (
-          (__ \ invRegScheme \ "startDateDetails" \ "startDateOfInvReg").json.copyFrom((base \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
-            (__ \ invRegScheme \ "contractsOrPolicies").json.copyFrom((base \ "contractsOrPolicies").json.pick.map(toYesNo)) and
-            recordVersionReads
-          ).reduce
-        val ceaseDateReads =
-          ((__ \ invRegScheme \ "ceaseDateDetails" \ "ceaseDateOfInvReg").json.copyFrom((base \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
-            recordVersionReads).reduce
-
         val mainPayload = (base \ "becomeOrCeaseScheme").read[String].flatMap {
-          case "itBecameAnInvestmentRegulatedPensionScheme" => startDateReads
-          case _ => ceaseDateReads
+          case "itBecameAnInvestmentRegulatedPensionScheme" =>
+            ((__ \ invRegScheme \ "startDateDetails" \ "startDateOfInvReg").json.copyFrom((base \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
+                (__ \ invRegScheme \ "contractsOrPolicies").json.copyFrom((base \ "contractsOrPolicies").json.pick.map(toYesNo)) and
+                recordVersionReads).reduce
+          case _ =>
+            ((__ \ invRegScheme \ "ceaseDateDetails" \ "ceaseDateOfInvReg").json.copyFrom((base \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
+              recordVersionReads).reduce
         }
-        mainPayload.flatMap(jsObject => (__ \ "event10").json.put(Json.arr(jsObject)).map(Some(_)))
-      case _ => Reads.pure(None)
+        mapReadsToOptionArray(mainPayload, "event10")
+      case _ =>
+        Reads.pure(None)
     }
   }
 
