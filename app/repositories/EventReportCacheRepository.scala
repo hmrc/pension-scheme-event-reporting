@@ -145,6 +145,16 @@ class EventReportCacheRepository @Inject()(
     }
   }
 
+  def removeAllOnSignOut(pstr: String)(implicit ec: ExecutionContext): Future[Unit] = {
+    collection.deleteMany(filterByKeys(Map("pstr" -> pstr))).toFuture().map { result =>
+      logger.info(s"Removing all data from collection associated with $pstr")
+      if (!result.wasAcknowledged) {
+        logger.warn(s"Issue removing all data from collection associated with $pstr")
+      }
+      ()
+    }
+  }
+
   private def filterByKeys(mapOfKeys: Map[String, String]): Bson = {
     val filters = mapOfKeys.map(t => Filters.equal(t._1, t._2)).toList
     Filters.and(filters: _*)

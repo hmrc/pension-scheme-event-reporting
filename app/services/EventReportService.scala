@@ -79,6 +79,9 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def saveUserAnswers(pstr: String, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] =
     eventReportCacheRepository.upsert(pstr, userAnswersJson)
 
+  def removeUserAnswers(pstr: String)(implicit ec: ExecutionContext): Future[Unit] =
+    eventReportCacheRepository.removeAllOnSignOut(pstr)
+
   def getUserAnswers(pstr: String, eventType: EventType)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     EventType.postApiTypeByEventType(eventType) match {
       case Some(apiType) => eventReportCacheRepository.getUserAnswers(pstr, Some(apiType))
@@ -92,7 +95,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
-    eventReportCacheRepository.getUserAnswers(pstr, Some(apiType)).flatMap {
+        eventReportCacheRepository.getUserAnswers(pstr, Some(apiType)).flatMap {
           case Some(data) =>
             eventReportCacheRepository.getUserAnswers(pstr, None).flatMap {
               case Some(header) =>
