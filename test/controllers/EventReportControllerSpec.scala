@@ -460,6 +460,30 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
   }
 
+  "removeUserAnswers" must {
+    "return 200 OK" in {
+
+      when(mockEventReportService.removeUserAnswers(
+        ArgumentMatchers.eq(pstr)
+      )(any()))
+        .thenReturn(Future.successful(()))
+
+      val result = controller.removeUserAnswers(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr))
+
+      status(result) mustBe OK
+    }
+
+    "throw a Bad Request Exception when all parameters missing in header" in {
+      recoverToExceptionIf[BadRequestException] {
+        controller.removeUserAnswers(fakeRequest)
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+        response.message must include("Bad Request, no pstr in headers")
+      }
+    }
+  }
+
   "saveUserAnswersToCache" must {
     "return 200 OK when valid response" in {
 
