@@ -43,7 +43,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    eventReportCacheRepository: EventReportCacheRepository,
                                    getEventCacheRepository: GetEventCacheRepository,
                                    jsonPayloadSchemaValidator: JSONSchemaValidator,
-                                   overviewCacheRepository: OverviewCacheRepository
+                                   overviewCacheRepository: OverviewCacheRepository,
+                                   auditService: AuditService
                                   ) extends Logging {
   private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private final val SchemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.4.json"

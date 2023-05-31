@@ -56,6 +56,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
   private val mockOverviewCacheRepository = mock[OverviewCacheRepository]
   private val mockGetEventCacheRepository = mock[GetEventCacheRepository]
+  private val mockAuditService = mock[AuditService]
 
   private val pstr = "pstr"
   private val startDate = "startDate"
@@ -68,7 +69,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       inject.bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
       inject.bind[JSONSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
       inject.bind[OverviewCacheRepository].toInstance(mockOverviewCacheRepository),
-      inject.bind[GetEventCacheRepository].toInstance(mockGetEventCacheRepository)
+      inject.bind[GetEventCacheRepository].toInstance(mockGetEventCacheRepository),
+      inject.bind[AuditService].toInstance(mockAuditService)
     )
 
   val application: Application = new GuiceApplicationBuilder()
@@ -83,9 +85,11 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     reset(mockGetEventCacheRepository)
     reset(mockEventReportCacheRepository)
     reset(mockJSONPayloadSchemaValidator)
+    reset(mockAuditService)
     when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any())).thenReturn(Success(()))
     when(mockOverviewCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
     when(mockGetEventCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
+    doNothing().when(mockAuditService).sendEvent(any())(any(), any())
   }
 
   "compileEventReport for unimplemented api type" must {
@@ -115,7 +119,10 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
       eventReportService.compileEventReport("pstr", Event1).map {
-        result => result.header.status mustBe NO_CONTENT
+        result =>
+          result.header.status mustBe NO_CONTENT
+//          val expectedAuditEvent =
+//          verify(mockAuditService, times(1)).sendEvent()
       }
     }
 
