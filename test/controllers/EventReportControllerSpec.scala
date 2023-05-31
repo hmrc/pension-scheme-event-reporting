@@ -540,7 +540,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
   "compileEvent" must {
     "return 204 No Content when valid response" in {
-      when(mockEventReportService.compileEventReport(any(), any())(any(), any()))
+      when(mockEventReportService.compileEventReport(any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(NoContent))
 
       val result = controller.compileEvent(fakeRequest.withJsonBody(compileEventSuccessResponse).withHeaders(

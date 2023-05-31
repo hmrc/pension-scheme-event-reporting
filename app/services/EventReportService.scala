@@ -17,6 +17,7 @@
 package services
 
 
+import audit.CompileEventAuditEvent
 import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
 import models.ERVersion
@@ -92,8 +93,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def getUserAnswers(pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     eventReportCacheRepository.getUserAnswers(pstr, None)
 
-  def compileEventReport(pstr: String, eventType: EventType)
-                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
+  def compileEventReport(psaPspId: String, pstr: String, eventType: EventType)
+                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, requestHeader: RequestHeader): Future[Result] = {
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
         eventReportCacheRepository.getUserAnswers(pstr, Some(apiType)).flatMap {
@@ -106,6 +107,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                   _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, schemaPath, apiType.toString))
                   response <- connectToAPI(pstr, transformedData)
                 } yield {
+                  auditService.sendEvent(CompileEventAuditEvent(psaPspId, pstr))
                   response.status match {
                     case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
                     case _ =>
