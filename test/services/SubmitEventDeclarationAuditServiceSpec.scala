@@ -16,6 +16,7 @@
 
 package services
 
+import audit.SubmitEventDeclarationAuditEvent
 import base.SpecBase
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
@@ -28,9 +29,8 @@ import play.api.test.FakeRequest
 import services.AuditServiceSpec.mock
 import uk.gov.hmrc.http.{HttpException, HttpResponse, Upstream4xxResponse}
 
-import scala.util.Failure
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.Success
+import scala.util.{Failure, Success}
 class SubmitEventDeclarationAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
 
   private implicit lazy val rh: RequestHeader = FakeRequest("", "")

@@ -16,6 +16,7 @@
 
 package services
 
+import audit.SubmitEventDeclarationAuditEvent
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{times, verify, when}

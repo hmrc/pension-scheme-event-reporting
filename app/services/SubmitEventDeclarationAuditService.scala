@@ -16,7 +16,7 @@
 
 package services
 
-import audit.AuditEvent
+import audit.{AuditEvent, SubmitEventDeclarationAuditEvent}
 import com.google.inject.Inject
 import play.api.http.Status
 import play.api.libs.json._
@@ -60,28 +60,4 @@ class SubmitEventDeclarationAuditService @Inject()(auditService: AuditService) {
         maybeErrorMessage = Some(error.getMessage)
       ))
   }
-}
-
-case class SubmitEventDeclarationAuditEvent(pstr: String,
-                                            maybeStatus: Option[Int],
-                                            request: JsValue,
-                                            response: Option[JsValue],
-                                            maybeErrorMessage: Option[String]
-                                           ) extends AuditEvent {
-  override def auditType: String = "EventreportTaxreturnSubmitted"
-
-  override def details: JsObject = {
-    val statusJson = maybeStatus.map(v => Json.obj( "status" -> v )).getOrElse(Json.obj())
-    val responseJson = response.map(response => Json.obj( "response" -> response )).getOrElse(Json.obj())
-    val errorMessageJson = maybeErrorMessage.map(errorMessage => Json.obj( "errorMessage" -> errorMessage )).getOrElse(Json.obj())
-
-    Json.obj(
-      "pstr" -> pstr,
-      "request" -> request
-    ) ++ statusJson ++ responseJson ++ errorMessageJson
-  }
-}
-
-object SubmitEventDeclarationAuditEvent {
-  implicit val formats: Format[SubmitEventDeclarationAuditEvent] = Json.format[SubmitEventDeclarationAuditEvent]
 }
