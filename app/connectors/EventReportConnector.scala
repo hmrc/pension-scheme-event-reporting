@@ -26,8 +26,8 @@ import play.api.Logging
 import play.api.http.Status._
 import play.api.libs.json._
 import play.api.mvc.RequestHeader
-import services.SubmitEventDeclarationAuditService
-import uk.gov.hmrc.http.{HttpClient, _}
+import services.PostToAPIAuditService
+import uk.gov.hmrc.http._
 import utils.HttpResponseHelper
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -36,7 +36,7 @@ class EventReportConnector @Inject()(
                                       config: AppConfig,
                                       http: HttpClient,
                                       headerUtils: HeaderUtils,
-                                      submitEventDeclarationAuditService:SubmitEventDeclarationAuditService
+                                      submitEventDeclarationAuditService:PostToAPIAuditService
                                     )
   extends HttpErrorFunctions
     with HttpResponseHelper

@@ -18,6 +18,7 @@ package controllers
 
 import models.enumeration.EventType
 import play.api.Logging
+import uk.gov.hmrc.auth.core.retrieve.~
 import play.api.libs.json._
 import play.api.mvc._
 import services.EventReportService

@@ -31,7 +31,7 @@ import uk.gov.hmrc.http.{HttpException, HttpResponse, Upstream4xxResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
-class SubmitEventDeclarationAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
+class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
 
   private implicit lazy val rh: RequestHeader = FakeRequest("", "")
 
@@ -48,7 +48,7 @@ class SubmitEventDeclarationAuditServiceSpec extends SpecBase with BeforeAndAfte
   "SubmitEventDeclarationAuditService" must {
     "send the correct audit event for a successful response" in {
       doNothing().when(mockAuditService).sendEvent(any())(any(), any())
-      val service = new SubmitEventDeclarationAuditService(mockAuditService)
+      val service = new PostToAPIAuditService(mockAuditService)
       val pf = service.sendSubmitEventDeclarationAuditEvent(pstr, requestData)
       pf(Success(HttpResponse.apply(Status.OK, responseData, Map.empty)))
       val expectedAuditEvent = SubmitEventDeclarationAuditEvent(
@@ -63,7 +63,7 @@ class SubmitEventDeclarationAuditServiceSpec extends SpecBase with BeforeAndAfte
 
     "send the audit event with the status code when an upstream error occurs" in {
       doNothing().when(mockAuditService).sendEvent(any())(any(), any())
-      val service = new SubmitEventDeclarationAuditService(mockAuditService)
+      val service = new PostToAPIAuditService(mockAuditService)
       val pf = service.sendSubmitEventDeclarationAuditEvent(pstr, requestData)
       val reportAs = 202
       val message = "The request was not found"
@@ -81,7 +81,7 @@ class SubmitEventDeclarationAuditServiceSpec extends SpecBase with BeforeAndAfte
 
     "send the audit event with the status code when an HttpException error occurs" in {
       doNothing().when(mockAuditService).sendEvent(any())(any(), any())
-      val service = new SubmitEventDeclarationAuditService(mockAuditService)
+      val service = new PostToAPIAuditService(mockAuditService)
       val pf = service.sendSubmitEventDeclarationAuditEvent(pstr, requestData)
 
       val message = "The request had a network error"
@@ -99,7 +99,7 @@ class SubmitEventDeclarationAuditServiceSpec extends SpecBase with BeforeAndAfte
 
     "send the audit event when a throwable is thrown" in {
       doNothing().when(mockAuditService).sendEvent(any())(any(), any())
-      val service = new SubmitEventDeclarationAuditService(mockAuditService)
+      val service = new PostToAPIAuditService(mockAuditService)
       val pf = service.sendSubmitEventDeclarationAuditEvent(pstr, requestData)
 
       val message = "The request had a network error"

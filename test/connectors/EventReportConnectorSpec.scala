@@ -32,7 +32,7 @@ import play.api.libs.json.{JsArray, JsString, Json}
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
-import services.SubmitEventDeclarationAuditService
+import services.PostToAPIAuditService
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.test.HttpClientSupport
 import utils.{JsonFileReader, UnrecognisedHttpResponseException, WireMockHelper}
@@ -53,7 +53,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
   private val mockHeaderUtils = mock[HeaderUtils]
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
   private val mockOverviewCacheRepository = mock[OverviewCacheRepository]
-  private val mockSubmitEventDeclarationAuditService = mock[SubmitEventDeclarationAuditService]
+  private val mockSubmitEventDeclarationAuditService = mock[PostToAPIAuditService]
   private lazy val connector: EventReportConnector = injector.instanceOf[EventReportConnector]
 
 
@@ -63,7 +63,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       bind[HeaderUtils].toInstance(mockHeaderUtils),
       bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
       bind[OverviewCacheRepository].toInstance(mockOverviewCacheRepository),
-      bind[SubmitEventDeclarationAuditService].toInstance(mockSubmitEventDeclarationAuditService)
+      bind[PostToAPIAuditService].toInstance(mockSubmitEventDeclarationAuditService)
     )
 
   private val pfSuccess: PartialFunction[Try[HttpResponse], Unit] = new PartialFunction[Try[HttpResponse], Unit] {

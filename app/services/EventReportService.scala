@@ -17,7 +17,6 @@
 package services
 
 
-import audit.CompileEventAuditEvent
 import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
 import models.ERVersion
@@ -44,8 +43,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    eventReportCacheRepository: EventReportCacheRepository,
                                    getEventCacheRepository: GetEventCacheRepository,
                                    jsonPayloadSchemaValidator: JSONSchemaValidator,
-                                   overviewCacheRepository: OverviewCacheRepository,
-                                   auditService: AuditService
+                                   overviewCacheRepository: OverviewCacheRepository
                                   ) extends Logging {
   private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private final val SchemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.4.json"
@@ -94,7 +92,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     eventReportCacheRepository.getUserAnswers(pstr, None)
 
   def compileEventReport(psaPspId: String, pstr: String, eventType: EventType)
-                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, requestHeader: RequestHeader): Future[Result] = {
+                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
         eventReportCacheRepository.getUserAnswers(pstr, Some(apiType)).flatMap {
@@ -107,7 +105,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                   _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, schemaPath, apiType.toString))
                   response <- connectToAPI(pstr, transformedData)
                 } yield {
-                  auditService.sendEvent(CompileEventAuditEvent(psaPspId, pstr))
                   response.status match {
                     case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
                     case _ =>

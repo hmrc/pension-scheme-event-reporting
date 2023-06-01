@@ -26,7 +26,7 @@ import uk.gov.hmrc.http.{HttpException, HttpResponse, UpstreamErrorResponse}
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
 
-class SubmitEventDeclarationAuditService @Inject()(auditService: AuditService) {
+class PostToAPIAuditService @Inject()(auditService: AuditService) {
   def sendSubmitEventDeclarationAuditEvent(pstr: String, data: JsValue)
                                           (implicit ec: ExecutionContext, request: RequestHeader): PartialFunction[Try[HttpResponse], Unit] = {
     case Success(httpResponse) =>

@@ -16,7 +16,6 @@
 
 package services
 
-import audit.CompileEventAuditEvent
 import connectors.EventReportConnector
 import models.enumeration.ApiType._
 import models.enumeration.EventType
@@ -26,7 +25,6 @@ import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.concurrent.Eventually.eventually
 import org.scalatest.concurrent.ScalaFutures.whenReady
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
@@ -58,8 +56,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
   private val mockOverviewCacheRepository = mock[OverviewCacheRepository]
   private val mockGetEventCacheRepository = mock[GetEventCacheRepository]
-  private val mockAuditService = mock[AuditService]
 
+  private val psaId = "psa"
   private val pstr = "pstr"
   private val startDate = "startDate"
   private val version = "version"
@@ -71,8 +69,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       inject.bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
       inject.bind[JSONSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
       inject.bind[OverviewCacheRepository].toInstance(mockOverviewCacheRepository),
-      inject.bind[GetEventCacheRepository].toInstance(mockGetEventCacheRepository),
-      inject.bind[AuditService].toInstance(mockAuditService)
+      inject.bind[GetEventCacheRepository].toInstance(mockGetEventCacheRepository)
     )
 
   val application: Application = new GuiceApplicationBuilder()
@@ -87,16 +84,14 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     reset(mockGetEventCacheRepository)
     reset(mockEventReportCacheRepository)
     reset(mockJSONPayloadSchemaValidator)
-    reset(mockAuditService)
     when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any())).thenReturn(Success(()))
     when(mockOverviewCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
     when(mockGetEventCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
-    doNothing().when(mockAuditService).sendEvent(any())(any(), any())
   }
 
   "compileEventReport for unimplemented api type" must {
     "return Bad Request" in {
-      eventReportService.compileEventReport("psa", "pstr", Event20A)(implicitly, implicitly, implicitly).map {
+      eventReportService.compileEventReport(psaId, "pstr", Event20A)(implicitly, implicitly).map {
         result => result.header.status mustBe BAD_REQUEST
       }
     }
@@ -106,7 +101,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     "return NOT FOUND when no data return from repository" in {
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1827)))(any()))
         .thenReturn(Future.successful(None))
-      eventReportService.compileEventReport("psa", "pstr", Event1)(implicitly, implicitly, implicitly).map {
+      eventReportService.compileEventReport(psaId, "pstr", Event1)(implicitly, implicitly).map {
         result => result.header.status mustBe NOT_FOUND
       }
     }
@@ -120,16 +115,9 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportConnector.compileEventOneReport(any(), any())(any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
-      eventReportService.compileEventReport("psa", "pstr", Event1).map {
-        result =>
-          eventually {
-            val expectedAuditEvent = CompileEventAuditEvent("", pstr)
-            verify(mockAuditService, times(1)).sendEvent(ArgumentMatchers.eq(expectedAuditEvent))(any(), any())
-          }
-          result.header.status mustBe NO_CONTENT
+      eventReportService.compileEventReport(psaId, "pstr", Event1).map {
+        result => result.header.status mustBe NO_CONTENT
       }
-
-
     }
 
     "return 400 when validation errors response for event one report" in {
@@ -141,7 +129,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Failure(new Exception("Message")))
 
       recoverToExceptionIf[Exception] {
-        eventReportService.compileEventReport("psa", "pstr", Event1)
+        eventReportService.compileEventReport(psaId, "pstr", Event1)
       } map {
         failure =>
           failure.getMessage mustBe "Message"
@@ -158,7 +146,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
 
       recoverToExceptionIf[UpstreamErrorResponse] {
-        eventReportService.compileEventReport("psa", "pstr", Event1)
+        eventReportService.compileEventReport(psaId, "pstr", Event1)
       } map {
         _.statusCode mustBe INTERNAL_SERVER_ERROR
       }
@@ -169,12 +157,12 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     "return Not Found when no data returned from repository" in {
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1826)))(any()))
         .thenReturn(Future.successful(None))
-      eventReportService.compileEventReport("psa", "pstr", WindUp)(implicitly, implicitly, implicitly).map {
+      eventReportService.compileEventReport(psaId, "pstr", WindUp)(implicitly, implicitly).map {
         result => result.header.status mustBe NOT_FOUND
       }
     }
 
-    "return 204 No Content when valid data return from repository & send audit event - event 1" in {
+    "return 204 No Content when valid data return from repository - event 1" in {
 
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1826)))(any()))
         .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
@@ -184,13 +172,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
-      eventReportService.compileEventReport("psa", "pstr", WindUp).map {
-        result =>
-          eventually {
-            val expectedAuditEvent = CompileEventAuditEvent("", pstr)
-            verify(mockAuditService, times(1)).sendEvent(ArgumentMatchers.eq(expectedAuditEvent))(any(), any())
-          }
-          result.header.status mustBe NO_CONTENT
+      eventReportService.compileEventReport(psaId, "pstr", WindUp).map {
+        result => result.header.status mustBe NO_CONTENT
       }
     }
 
@@ -204,7 +187,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Failure(new Exception("Message")))
 
       recoverToExceptionIf[Exception] {
-        eventReportService.compileEventReport("psa", "pstr", WindUp)
+        eventReportService.compileEventReport(psaId, "pstr", WindUp)
       } map {
         failure =>
           failure.getMessage mustBe "Message"
@@ -222,7 +205,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
 
       recoverToExceptionIf[UpstreamErrorResponse] {
-        eventReportService.compileEventReport("psa", "pstr", WindUp)
+        eventReportService.compileEventReport(psaId, "pstr", WindUp)
       } map {
         _.statusCode mustBe INTERNAL_SERVER_ERROR
       }
@@ -262,7 +245,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
   "getEventSummary" must {
     "return the payload from the connector for API1834" in {
-      val response = Set("1", "2","3","4","5","6","7","8","8A","10","11","12","13","14","18","19","20","22","23","24","0")
+      val response = Set("1", "2", "3", "4", "5", "6", "7", "8", "8A", "10", "11", "12", "13", "14", "18", "19", "20", "22", "23", "24", "0")
       when(mockEventReportConnector.getEvent(pstr, startDate, version, None)(implicitly, implicitly))
         .thenReturn(Future.successful(responseJsonForAPI1834))
       eventReportService.getEventSummary(pstr, version, startDate).map { result =>
@@ -294,10 +277,10 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         ArgumentMatchers.eq(pstr)
       )(any()))
         .thenReturn(Future.successful((): Unit))
-        eventReportService.removeUserAnswers(pstr)(implicitly).map { result =>
-          verify(mockEventReportCacheRepository, times(1)).removeAllOnSignOut(ArgumentMatchers.eq(pstr))(any())
-          result mustBe()
-        }
+      eventReportService.removeUserAnswers(pstr)(implicitly).map { result =>
+        verify(mockEventReportCacheRepository, times(1)).removeAllOnSignOut(ArgumentMatchers.eq(pstr))(any())
+        result mustBe()
+      }
     }
   }
 
