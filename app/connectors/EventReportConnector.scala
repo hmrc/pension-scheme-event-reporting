@@ -36,7 +36,7 @@ class EventReportConnector @Inject()(
                                       config: AppConfig,
                                       http: HttpClient,
                                       headerUtils: HeaderUtils,
-                                      submitEventDeclarationAuditService:PostToAPIAuditService
+                                      postToAPIAuditService:PostToAPIAuditService
                                     )
   extends HttpErrorFunctions
     with HttpResponseHelper
@@ -117,7 +117,7 @@ class EventReportConnector @Inject()(
     }
   }
 
-  def compileEventReportSummary(pstr: String, data: JsValue)
+  def compileEventReportSummary(psaPspId: String, pstr: String, data: JsValue)
                                (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
     val createCompileEventReportSummaryUrl = config.createCompileEventReportSummaryUrl.format(pstr)
     logger.debug("Compile Event Report Summary called - URL:" + createCompileEventReportSummaryUrl)
@@ -128,10 +128,10 @@ class EventReportConnector @Inject()(
           case OK => response
           case _ => handleErrorResponse("POST", createCompileEventReportSummaryUrl)(response)
         }
-    } andThen submitEventDeclarationAuditService.sendCompileEventDeclarationAuditEvent("", pstr, data)
+    } andThen postToAPIAuditService.sendCompileEventDeclarationAuditEvent(psaPspId, pstr, data)
   }
 
-  def compileEventOneReport(pstr: String, data: JsValue)
+  def compileEventOneReport(psaPspId: String, pstr: String, data: JsValue)
                            (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
     val compileEvent1ReportUrl = config.compileEvent1ReportUrl.format(pstr)
     logger.debug("Compile Event Report One - URL:" + compileEvent1ReportUrl)
@@ -142,10 +142,10 @@ class EventReportConnector @Inject()(
           case OK => response
           case _ => handleErrorResponse("POST", compileEvent1ReportUrl)(response)
         }
-    } andThen submitEventDeclarationAuditService.sendCompileEventDeclarationAuditEvent("", pstr, data)
+    } andThen postToAPIAuditService.sendCompileEventDeclarationAuditEvent(psaPspId, pstr, data)
   }
 
-  def compileMemberEventReport(pstr: String, data: JsValue)
+  def compileMemberEventReport(psaPspId: String, pstr: String, data: JsValue)
                               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
     val compileMemberEventReportUrl = config.compileMemberEventReportUrl.format(pstr)
     logger.debug("Compile Member Event Report- URL:" + compileMemberEventReportUrl)
@@ -156,7 +156,7 @@ class EventReportConnector @Inject()(
           case OK => response
           case _ => handleErrorResponse("POST", compileMemberEventReportUrl)(response)
         }
-    } andThen submitEventDeclarationAuditService.sendCompileEventDeclarationAuditEvent("", pstr, data)
+    } andThen postToAPIAuditService.sendCompileEventDeclarationAuditEvent(psaPspId, pstr, data)
   }
 
   def submitEventDeclarationReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier,
@@ -170,7 +170,7 @@ class EventReportConnector @Inject()(
           case OK => response
           case _ => handleErrorResponse("POST", submitEventDeclarationReportUrl)(response)
         }
-    } andThen submitEventDeclarationAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data)
+    } andThen postToAPIAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data)
   }
 
   def submitEvent20ADeclarationReport(pstr: String, data: JsValue)
@@ -184,7 +184,7 @@ class EventReportConnector @Inject()(
           case OK => response
           case _ => handleErrorResponse("POST", submitEvent20ADeclarationReportUrl)(response)
         }
-    } andThen submitEventDeclarationAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data)
+    } andThen postToAPIAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data)
   }
 
   def getVersions(pstr: String, reportType: String, startDate: String)

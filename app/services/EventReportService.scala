@@ -52,7 +52,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   private case class APIProcessingInfo(apiType: ApiType,
                                        readsForTransformation: Reads[JsObject],
                                        schemaPath: String,
-                                       connectToAPI: (String, JsValue) => Future[HttpResponse]
+                                       connectToAPI: (String, String, JsValue) => Future[HttpResponse]
                                       )
 
   private def apiProcessingInfo(eventType: EventType, pstr: String)
@@ -103,7 +103,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                 for {
                   transformedData <- Future.fromTry(toTry(fullData.validate(reads)))
                   _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, schemaPath, apiType.toString))
-                  response <- connectToAPI(pstr, transformedData)
+                  response <- connectToAPI(psaPspId, pstr, transformedData)
                 } yield {
                   response.status match {
                     case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")

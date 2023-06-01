@@ -98,15 +98,6 @@ class EventReportController @Inject()(
       }
   }
 
-  def compileEvent: Action[AnyContent] = Action.async {
-    implicit request =>
-      withPstrPsaPspIDAndEventType { (psaPspId, pstr, et) =>
-        EventType.getEventType(et) match {
-          case Some(eventType) => eventReportService.compileEventReport(psaPspId, pstr, eventType)
-          case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
-        }
-      }
-  }
 
   def getEvent: Action[AnyContent] = Action.async {
     implicit request =>
@@ -166,6 +157,17 @@ class EventReportController @Inject()(
       withAuthAndOverviewParameters { (pstr, reportType, startDate, endDate) =>
         eventReportService.getOverview(pstr, reportType, startDate, endDate).map {
           data => Ok(data)
+        }
+      }
+  }
+
+
+  def compileEvent: Action[AnyContent] = Action.async {
+    implicit request =>
+      withPstrPsaPspIDAndEventType { (psaPspId, pstr, et) =>
+        EventType.getEventType(et) match {
+          case Some(eventType) => eventReportService.compileEventReport(psaPspId, pstr, eventType)
+          case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
         }
       }
   }
