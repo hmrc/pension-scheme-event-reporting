@@ -41,7 +41,7 @@ class EmailAuditEventSpec extends AnyFlatSpec with Matchers {
       "submittedBy" -> "PSA"
     )
 
-    event.auditType shouldBe "emailEvent"
+    event.auditType shouldBe "EventReportingEmailEvent"
     event.details shouldBe expected
   }
 }

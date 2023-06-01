@@ -16,7 +16,7 @@
 
 package services
 
-import audit.AuditEvent
+import audit.{CompileEventAuditEvent, SubmitEventDeclarationAuditEvent}
 import com.google.inject.Inject
 import play.api.http.Status
 import play.api.libs.json._
@@ -26,7 +26,7 @@ import uk.gov.hmrc.http.{HttpException, HttpResponse, UpstreamErrorResponse}
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
 
-class SubmitEventDeclarationAuditService @Inject()(auditService: AuditService) {
+class PostToAPIAuditService @Inject()(auditService: AuditService) {
   def sendSubmitEventDeclarationAuditEvent(pstr: String, data: JsValue)
                                           (implicit ec: ExecutionContext, request: RequestHeader): PartialFunction[Try[HttpResponse], Unit] = {
     case Success(httpResponse) =>
@@ -60,28 +60,45 @@ class SubmitEventDeclarationAuditService @Inject()(auditService: AuditService) {
         maybeErrorMessage = Some(error.getMessage)
       ))
   }
-}
 
-case class SubmitEventDeclarationAuditEvent(pstr: String,
-                                            maybeStatus: Option[Int],
-                                            request: JsValue,
-                                            response: Option[JsValue],
-                                            maybeErrorMessage: Option[String]
-                                           ) extends AuditEvent {
-  override def auditType: String = "EventreportTaxreturnSubmitted"
+  def sendCompileEventDeclarationAuditEvent(psaPspIdentifier: String, pstr: String, payload: JsValue)
+                                          (implicit ec: ExecutionContext, request: RequestHeader): PartialFunction[Try[HttpResponse], Unit] = {
+    case Success(httpResponse) =>
+      auditService.sendEvent(CompileEventAuditEvent(
+        psaPspIdentifier = psaPspIdentifier,
+        pstr = pstr,
+        payload = payload,
+        status = Some(httpResponse.status),
+        response = Some(httpResponse.json),
+        errorMessage = None
+      ))
+    case Failure(error: UpstreamErrorResponse) =>
+      auditService.sendEvent(CompileEventAuditEvent(
+        psaPspIdentifier = psaPspIdentifier,
+        pstr = pstr,
+        payload = payload,
+        status = Some(error.statusCode),
+        response = None,
+        errorMessage = None
+      ))
+    case Failure(error: HttpException) =>
+      auditService.sendEvent(CompileEventAuditEvent(
+        psaPspIdentifier = psaPspIdentifier,
+        pstr = pstr,
+        payload = payload,
+        status = Some(error.responseCode),
+        response = None,
+        errorMessage = None
+      ))
 
-  override def details: JsObject = {
-    val statusJson = maybeStatus.map(v => Json.obj( "status" -> v )).getOrElse(Json.obj())
-    val responseJson = response.map(response => Json.obj( "response" -> response )).getOrElse(Json.obj())
-    val errorMessageJson = maybeErrorMessage.map(errorMessage => Json.obj( "errorMessage" -> errorMessage )).getOrElse(Json.obj())
-
-    Json.obj(
-      "pstr" -> pstr,
-      "request" -> request
-    ) ++ statusJson ++ responseJson ++ errorMessageJson
+    case Failure(error: Throwable) =>
+      auditService.sendEvent(CompileEventAuditEvent(
+        psaPspIdentifier = psaPspIdentifier,
+        pstr = pstr,
+        payload = payload,
+        status = None,
+        response = None,
+        errorMessage = Some(error.getMessage)
+      ))
   }
-}
-
-object SubmitEventDeclarationAuditEvent {
-  implicit val formats: Format[SubmitEventDeclarationAuditEvent] = Json.format[SubmitEventDeclarationAuditEvent]
 }
