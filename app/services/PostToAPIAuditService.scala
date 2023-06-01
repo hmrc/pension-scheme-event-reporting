@@ -16,7 +16,7 @@
 
 package services
 
-import audit.{AuditEvent, CompileEventAuditEvent, SubmitEventDeclarationAuditEvent}
+import audit.{CompileEventAuditEvent, SubmitEventDeclarationAuditEvent}
 import com.google.inject.Inject
 import play.api.http.Status
 import play.api.libs.json._

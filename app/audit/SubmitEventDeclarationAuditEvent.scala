@@ -23,7 +23,7 @@ case class SubmitEventDeclarationAuditEvent(pstr: String,
                                             response: Option[JsValue],
                                             maybeErrorMessage: Option[String]
                                            ) extends AuditEvent {
-  override def auditType: String = "EventreportTaxreturnSubmitted"
+  override def auditType: String = "EventReportTaxReturnSubmitted"
 
   override def details: JsObject = {
     val statusJson = maybeStatus.map(v => Json.obj( "status" -> v )).getOrElse(Json.obj())

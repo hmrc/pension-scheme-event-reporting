@@ -16,7 +16,7 @@
 
 package services
 
-import audit.SubmitEventDeclarationAuditEvent
+import audit.{CompileEventAuditEvent, SubmitEventDeclarationAuditEvent}
 import base.SpecBase
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
@@ -37,6 +37,7 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
 
   private val mockAuditService = mock[AuditService]
 
+  private val psaId = "psa"
   private val pstr = "pstr"
   private val requestData = Json.obj("test" -> "test")
   private val responseData = Json.obj("responsetest" -> "test")
@@ -45,7 +46,7 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
     reset(mockAuditService)
   }
 
-  "SubmitEventDeclarationAuditService" must {
+  "sendSubmitEventDeclarationAuditEvent" must {
     "send the correct audit event for a successful response" in {
       doNothing().when(mockAuditService).sendEvent(any())(any(), any())
       val service = new PostToAPIAuditService(mockAuditService)
@@ -116,6 +117,83 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
     }
   }
 
+
+  "sendCompileEventDeclarationAuditEvent" must {
+    "send the correct audit event for a successful response" in {
+      doNothing().when(mockAuditService).sendEvent(any())(any(), any())
+      val service = new PostToAPIAuditService(mockAuditService)
+      val pf = service.sendCompileEventDeclarationAuditEvent(psaId, pstr, requestData)
+      pf(Success(HttpResponse.apply(Status.OK, responseData, Map.empty)))
+      val expectedAuditEvent = CompileEventAuditEvent(
+        psaPspIdentifier = psaId,
+        pstr = pstr,
+        payload = requestData,
+        status = Some(Status.OK),
+        response = Some(responseData),
+        errorMessage = None
+      )
+      verify(mockAuditService, times(1)).sendEvent(ArgumentMatchers.eq(expectedAuditEvent))(any(), any())
+    }
+
+    "send the audit event with the status code when an upstream error occurs" in {
+      doNothing().when(mockAuditService).sendEvent(any())(any(), any())
+      val service = new PostToAPIAuditService(mockAuditService)
+      val pf = service.sendCompileEventDeclarationAuditEvent(psaId, pstr, requestData)
+      val reportAs = 202
+      val message = "The request was not found"
+      val status = Status.NOT_FOUND
+      pf(Failure(Upstream4xxResponse.apply(message, status, reportAs, Map.empty)))
+      val expectedAuditEvent = CompileEventAuditEvent(
+        psaPspIdentifier = psaId,
+        pstr = pstr,
+        payload = requestData,
+        status = Some(status),
+        response = None,
+        errorMessage = None
+      )
+      verify(mockAuditService, times(1)).sendEvent(ArgumentMatchers.eq(expectedAuditEvent))(any(), any())
+    }
+
+    "send the audit event with the status code when an HttpException error occurs" in {
+      doNothing().when(mockAuditService).sendEvent(any())(any(), any())
+      val service = new PostToAPIAuditService(mockAuditService)
+      val pf = service.sendCompileEventDeclarationAuditEvent(psaId, pstr, requestData)
+
+      val message = "The request had a network error"
+      val status = Status.SERVICE_UNAVAILABLE
+      pf(Failure(new HttpException(message, status)))
+      val expectedAuditEvent = CompileEventAuditEvent(
+        psaPspIdentifier = psaId,
+        pstr = pstr,
+        payload = requestData,
+        status = Some(status),
+        response = None,
+        errorMessage = None
+      )
+      verify(mockAuditService, times(1)).sendEvent(ArgumentMatchers.eq(expectedAuditEvent))(any(), any())
+    }
+
+    "send the audit event when a throwable is thrown" in {
+      doNothing().when(mockAuditService).sendEvent(any())(any(), any())
+      val service = new PostToAPIAuditService(mockAuditService)
+      val pf = service.sendCompileEventDeclarationAuditEvent(psaId, pstr, requestData)
+
+      val message = "The request had a network error"
+      val status = Status.SERVICE_UNAVAILABLE
+      pf(Failure(new RuntimeException(message)))
+      val expectedAuditEvent = CompileEventAuditEvent(
+        psaPspIdentifier = psaId,
+        pstr = pstr,
+        payload = requestData,
+        status = None,
+        response = None,
+        errorMessage = Some(message)
+      )
+      verify(mockAuditService, times(1)).sendEvent(ArgumentMatchers.eq(expectedAuditEvent))(any(), any())
+    }
+  }
+
+
   "SubmitEventDeclarationAuditService.details" must {
     "render when all optional values are present" in {
       val errorMessage = "error message"
@@ -145,6 +223,44 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
       ).details mustBe Json.obj(
         "pstr" -> "pstr",
         "request" -> requestData
+      )
+    }
+  }
+
+
+  "CompileEventAuditEvent.details" must {
+    "render when all optional values are present" in {
+      val errorMessage = "error message"
+      CompileEventAuditEvent(
+        psaPspIdentifier = psaId,
+        pstr = pstr,
+        payload = requestData,
+        status = Some(Status.OK),
+        response = Some(responseData),
+        errorMessage = Some(errorMessage)
+      ).details mustBe Json.obj(
+        "pspOrPsaId" -> psaId,
+        "pstr" -> "pstr",
+        "status" -> 200,
+        "payload" -> requestData,
+        "response" -> responseData,
+        "errorMessage" -> errorMessage
+      )
+    }
+
+    "render when all optional values are absent" in {
+      val errorMessage = "error message"
+      CompileEventAuditEvent(
+        psaPspIdentifier = psaId,
+        pstr = pstr,
+        payload = requestData,
+        status = None,
+        response = None,
+        errorMessage = None
+      ).details mustBe Json.obj(
+        "pspOrPsaId" -> psaId,
+        "pstr" -> "pstr",
+        "payload" -> requestData
       )
     }
   }
