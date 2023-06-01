@@ -56,7 +56,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                       )
 
   private def apiProcessingInfo(eventType: EventType, pstr: String)
-                               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Option[APIProcessingInfo] = {
+                               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Option[APIProcessingInfo] = {
     EventType.postApiTypeByEventType(eventType) flatMap {
       case Api1826 =>
         Some(APIProcessingInfo(Api1826, API1826.transformToETMPData, SchemaPath1826, eventReportConnector.compileEventReportSummary))
@@ -92,7 +92,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     eventReportCacheRepository.getUserAnswers(pstr, None)
 
   def compileEventReport(psaPspId: String, pstr: String, eventType: EventType)
-                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
+                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
         eventReportCacheRepository.getUserAnswers(pstr, Some(apiType)).flatMap {
@@ -189,7 +189,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   }
 
   def submitEvent20ADeclarationReport(pstr: String, data: JsValue)
-                                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
+                                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[JsValue] = {
     eventReportConnector.submitEvent20ADeclarationReport(pstr, data).map(_.json)
   }
 

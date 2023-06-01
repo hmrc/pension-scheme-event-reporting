@@ -42,62 +42,6 @@ class EventReportConnector @Inject()(
     with HttpResponseHelper
     with Logging {
 
-  def compileEventReportSummary(pstr: String, data: JsValue)
-                               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
-    val createCompileEventReportSummaryUrl = config.createCompileEventReportSummaryUrl.format(pstr)
-    logger.debug("Compile Event Report Summary called - URL:" + createCompileEventReportSummaryUrl)
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
-    http.POST[JsValue, HttpResponse](createCompileEventReportSummaryUrl, data)(implicitly, implicitly, hc, implicitly) map {
-      response =>
-        response.status match {
-          case OK => response
-          case _ => handleErrorResponse("POST", createCompileEventReportSummaryUrl)(response)
-        }
-    }
-  }
-
-  def compileEventOneReport(pstr: String, data: JsValue)
-                           (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
-    val compileEvent1ReportUrl = config.compileEvent1ReportUrl.format(pstr)
-    logger.debug("Compile Event Report One - URL:" + compileEvent1ReportUrl)
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
-    http.POST[JsValue, HttpResponse](compileEvent1ReportUrl, data)(implicitly, implicitly, hc, implicitly) map {
-      response =>
-        response.status match {
-          case OK => response
-          case _ => handleErrorResponse("POST", compileEvent1ReportUrl)(response)
-        }
-    }
-  }
-
-  def compileMemberEventReport(pstr: String, data: JsValue)
-                              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
-    val compileMemberEventReportUrl = config.compileMemberEventReportUrl.format(pstr)
-    logger.debug("Compile Member Event Report- URL:" + compileMemberEventReportUrl)
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
-    http.POST[JsValue, HttpResponse](compileMemberEventReportUrl, data)(implicitly, implicitly, hc, implicitly) map {
-      response =>
-        response.status match {
-          case OK => response
-          case _ => handleErrorResponse("POST", compileMemberEventReportUrl)(response)
-        }
-    }
-  }
-
-  def submitEvent20ADeclarationReport(pstr: String, data: JsValue)
-                                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[HttpResponse] = {
-    val submitEvent20ADeclarationReportUrl = config.submitEvent20ADeclarationReportUrl.format(pstr)
-    logger.debug("Submit Event 20A Report - URL:" + submitEvent20ADeclarationReportUrl)
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
-    http.POST[JsValue, HttpResponse](submitEvent20ADeclarationReportUrl, data)(implicitly, implicitly, hc, implicitly) map {
-      response =>
-        response.status match {
-          case OK => response
-          case _ => handleErrorResponse("POST", submitEvent20ADeclarationReportUrl)(response)
-        }
-    }
-  }
-
   //scalastyle:off cyclomatic.complexity
   def getOverview(pstr: String, reportType: String, startDate: String, endDate: String)
                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]] = {
@@ -173,6 +117,48 @@ class EventReportConnector @Inject()(
     }
   }
 
+  def compileEventReportSummary(pstr: String, data: JsValue)
+                               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
+    val createCompileEventReportSummaryUrl = config.createCompileEventReportSummaryUrl.format(pstr)
+    logger.debug("Compile Event Report Summary called - URL:" + createCompileEventReportSummaryUrl)
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+    http.POST[JsValue, HttpResponse](createCompileEventReportSummaryUrl, data)(implicitly, implicitly, hc, implicitly) map {
+      response =>
+        response.status match {
+          case OK => response
+          case _ => handleErrorResponse("POST", createCompileEventReportSummaryUrl)(response)
+        }
+    } andThen submitEventDeclarationAuditService.sendCompileEventDeclarationAuditEvent("", pstr, data)
+  }
+
+  def compileEventOneReport(pstr: String, data: JsValue)
+                           (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
+    val compileEvent1ReportUrl = config.compileEvent1ReportUrl.format(pstr)
+    logger.debug("Compile Event Report One - URL:" + compileEvent1ReportUrl)
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+    http.POST[JsValue, HttpResponse](compileEvent1ReportUrl, data)(implicitly, implicitly, hc, implicitly) map {
+      response =>
+        response.status match {
+          case OK => response
+          case _ => handleErrorResponse("POST", compileEvent1ReportUrl)(response)
+        }
+    } andThen submitEventDeclarationAuditService.sendCompileEventDeclarationAuditEvent("", pstr, data)
+  }
+
+  def compileMemberEventReport(pstr: String, data: JsValue)
+                              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
+    val compileMemberEventReportUrl = config.compileMemberEventReportUrl.format(pstr)
+    logger.debug("Compile Member Event Report- URL:" + compileMemberEventReportUrl)
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+    http.POST[JsValue, HttpResponse](compileMemberEventReportUrl, data)(implicitly, implicitly, hc, implicitly) map {
+      response =>
+        response.status match {
+          case OK => response
+          case _ => handleErrorResponse("POST", compileMemberEventReportUrl)(response)
+        }
+    } andThen submitEventDeclarationAuditService.sendCompileEventDeclarationAuditEvent("", pstr, data)
+  }
+
   def submitEventDeclarationReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier,
                                                                 ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
     val submitEventDeclarationReportUrl = config.submitEventDeclarationReportUrl.format(pstr)
@@ -183,6 +169,20 @@ class EventReportConnector @Inject()(
         response.status match {
           case OK => response
           case _ => handleErrorResponse("POST", submitEventDeclarationReportUrl)(response)
+        }
+    } andThen submitEventDeclarationAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data)
+  }
+
+  def submitEvent20ADeclarationReport(pstr: String, data: JsValue)
+                                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
+    val submitEvent20ADeclarationReportUrl = config.submitEvent20ADeclarationReportUrl.format(pstr)
+    logger.debug("Submit Event 20A Report - URL:" + submitEvent20ADeclarationReportUrl)
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+    http.POST[JsValue, HttpResponse](submitEvent20ADeclarationReportUrl, data)(implicitly, implicitly, hc, implicitly) map {
+      response =>
+        response.status match {
+          case OK => response
+          case _ => handleErrorResponse("POST", submitEvent20ADeclarationReportUrl)(response)
         }
     } andThen submitEventDeclarationAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data)
   }
@@ -206,6 +206,7 @@ class EventReportConnector @Inject()(
         }
     }
   }
+
 
   private def integrationFrameworkHeader: Seq[(String, String)] = {
     Seq("Environment" -> config.integrationFrameworkEnvironment,

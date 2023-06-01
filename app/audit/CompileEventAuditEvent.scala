@@ -16,18 +16,27 @@
 
 package audit
 
-import play.api.libs.json.{Format, JsObject, Json}
+import play.api.libs.json.{Format, JsObject, JsValue, Json}
 
 case class CompileEventAuditEvent(psaPspIdentifier: String,
-                                  pstr: String) extends AuditEvent {
+                                  pstr: String,
+                                  payload: JsValue,
+                                  status: Option[Int],
+                                  response: Option[JsValue],
+                                  errorMessage: Option[String]
+                                 ) extends AuditEvent {
   override def auditType: String = "EventReportTaxReturnCompiled"
 
   override def details: JsObject = {
+    val optStatus = status.fold[JsObject](Json.obj())(s => Json.obj("status" -> s))
+    val optResponse = response.fold[JsObject](Json.obj())(s => Json.obj("response" -> s))
+    val optErrorMessage = errorMessage.fold[JsObject](Json.obj())(s => Json.obj("errorMessage" -> s))
 
     Json.obj(
       "pspOrPsaId" -> psaPspIdentifier,
-      "pstr" -> pstr
-    )
+      "pstr" -> pstr,
+      "payload" -> payload
+    ) ++ optStatus ++ optResponse ++ optErrorMessage
   }
 }
 

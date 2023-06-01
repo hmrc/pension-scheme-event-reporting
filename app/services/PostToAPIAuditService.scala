@@ -16,7 +16,7 @@
 
 package services
 
-import audit.{AuditEvent, SubmitEventDeclarationAuditEvent}
+import audit.{AuditEvent, CompileEventAuditEvent, SubmitEventDeclarationAuditEvent}
 import com.google.inject.Inject
 import play.api.http.Status
 import play.api.libs.json._
@@ -58,6 +58,47 @@ class PostToAPIAuditService @Inject()(auditService: AuditService) {
         request = data,
         response = None,
         maybeErrorMessage = Some(error.getMessage)
+      ))
+  }
+
+  def sendCompileEventDeclarationAuditEvent(psaPspIdentifier: String, pstr: String, payload: JsValue)
+                                          (implicit ec: ExecutionContext, request: RequestHeader): PartialFunction[Try[HttpResponse], Unit] = {
+    case Success(httpResponse) =>
+      auditService.sendEvent(CompileEventAuditEvent(
+        psaPspIdentifier = psaPspIdentifier,
+        pstr = pstr,
+        payload = payload,
+        status = Some(httpResponse.status),
+        response = Some(httpResponse.json),
+        errorMessage = None
+      ))
+    case Failure(error: UpstreamErrorResponse) =>
+      auditService.sendEvent(CompileEventAuditEvent(
+        psaPspIdentifier = psaPspIdentifier,
+        pstr = pstr,
+        payload = payload,
+        status = Some(error.statusCode),
+        response = None,
+        errorMessage = None
+      ))
+    case Failure(error: HttpException) =>
+      auditService.sendEvent(CompileEventAuditEvent(
+        psaPspIdentifier = psaPspIdentifier,
+        pstr = pstr,
+        payload = payload,
+        status = Some(error.responseCode),
+        response = None,
+        errorMessage = None
+      ))
+
+    case Failure(error: Throwable) =>
+      auditService.sendEvent(CompileEventAuditEvent(
+        psaPspIdentifier = psaPspIdentifier,
+        pstr = pstr,
+        payload = payload,
+        status = None,
+        response = None,
+        errorMessage = Some(error.getMessage)
       ))
   }
 }
