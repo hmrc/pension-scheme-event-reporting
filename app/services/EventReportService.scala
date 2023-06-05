@@ -186,18 +186,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def submitEventDeclarationReport(pstr: String, userAnswersJson: JsValue)
                                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[JsValue] = {
     eventReportConnector.submitEventDeclarationReport(pstr, userAnswersJson).map(_.json)
+    //eventReportConnector.submitEvent20ADeclarationReport(pstr, data).map(_.json)
   }
 
-  def submitEvent20ADeclarationReport(pstr: String, data: JsValue)
-                                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[JsValue] = {
-    eventReportConnector.submitEvent20ADeclarationReport(pstr, data).map(_.json)
-  }
-
-  private val sortEventTypes: (JsValue, JsValue) => Boolean = (a, b) =>
-    (a, b) match {
-      case (JsString("0"), _) => false
-      case (_, JsString("0")) => true
-      case (a: JsString, b: JsString) if EventType.getEventType(a.value).get.order < EventType.getEventType(b.value).get.order => true
-      case _ => false
-    }
 }

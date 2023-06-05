@@ -183,17 +183,6 @@ class EventReportController @Inject()(
       }
   }
 
-  def submitEvent20ADeclarationReport: Action[AnyContent] = Action.async {
-    implicit request =>
-      withPstrAndBody { (pstr, userAnswersJson) =>
-        logger.debug(message = s"[Submit Event 20A Declaration Report - Incoming payload]$userAnswersJson")
-        Future.fromTry(jsonSchemaValidator.validatePayload(userAnswersJson, submitEvent20ADeclarationReportSchemaPath, "submitEvent20ADeclarationReport"))
-          .flatMap { _ =>
-            eventReportService.submitEvent20ADeclarationReport(pstr, userAnswersJson).map(Ok(_))
-          }
-      }
-  }
-
   private def withPstrAndBody(block: (String, JsValue) => Future[Result])
                              (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 

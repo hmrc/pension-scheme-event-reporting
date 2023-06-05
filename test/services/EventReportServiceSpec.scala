@@ -366,21 +366,21 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
   }
 
-  "submitEvent20ADeclarationReport" must {
-    "return valid response" in {
-      when(mockEventReportConnector.submitEvent20ADeclarationReport(
-        ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponse))(any(), any(), any()))
-        .thenReturn(Future.successful(HttpResponse.apply(
-          status = OK,
-          json = submitEvent20ADeclarationReportSuccessResponse,
-          headers = Map.empty)))
-      eventReportService.submitEvent20ADeclarationReport(pstr,
-        submitEvent20ADeclarationReportSuccessResponse)(implicitly, implicitly, implicitly).map { resultJsValue =>
-        resultJsValue mustBe submitEvent20ADeclarationReportSuccessResponse
-      }
-    }
-  }
+//  "submitEvent20ADeclarationReport" must {
+//    "return valid response" in {
+//      when(mockEventReportConnector.submitEvent20ADeclarationReport(
+//        ArgumentMatchers.eq(pstr),
+//        ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponse))(any(), any(), any()))
+//        .thenReturn(Future.successful(HttpResponse.apply(
+//          status = OK,
+//          json = submitEvent20ADeclarationReportSuccessResponse,
+//          headers = Map.empty)))
+//      eventReportService.submitEvent20ADeclarationReport(pstr,
+//        submitEvent20ADeclarationReportSuccessResponse)(implicitly, implicitly, implicitly).map { resultJsValue =>
+//        resultJsValue mustBe submitEvent20ADeclarationReportSuccessResponse
+//      }
+//    }
+//  }
 }
 
 object EventReportServiceSpec {
