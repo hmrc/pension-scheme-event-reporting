@@ -31,7 +31,7 @@ import play.api.mvc.Results._
 import play.api.mvc.{RequestHeader, Result}
 import repositories.{EventReportCacheRepository, GetEventCacheRepository, OverviewCacheRepository}
 import transformations.ETMPToFrontEnd.{EventOneReport, MemberEventReport}
-import transformations.UserAnswersToETMP.{API1826, API1827, API1830}
+import transformations.UserAnswersToETMP._
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
 
@@ -184,9 +184,15 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   }
 
   def submitEventDeclarationReport(pstr: String, userAnswersJson: JsValue)
-                                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[JsValue] = {
-    eventReportConnector.submitEventDeclarationReport(pstr, userAnswersJson).map(_.json)
-    //eventReportConnector.submitEvent20ADeclarationReport(pstr, data).map(_.json)
+                                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Unit] = {
+    for {
+      transform1828toETMP <- Future.fromTry(toTry(userAnswersJson.transform(API1828.transformToETMPData)))
+      transform1829toETMP <- Future.fromTry(toTry(userAnswersJson.transform(API1829.transformToETMPData)))
+      _ <- eventReportConnector.submitEventDeclarationReport(pstr, transform1828toETMP).map(_.json)
+      _ <- eventReportConnector.submitEvent20ADeclarationReport(pstr, transform1829toETMP).map(_.json)
+    } yield {
+      ()
+    }
   }
 
 }

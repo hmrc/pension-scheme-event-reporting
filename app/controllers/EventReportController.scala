@@ -18,11 +18,11 @@ package controllers
 
 import models.enumeration.EventType
 import play.api.Logging
-import uk.gov.hmrc.auth.core.retrieve.~
 import play.api.libs.json._
 import play.api.mvc._
 import services.EventReportService
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
+import uk.gov.hmrc.auth.core.retrieve.~
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, Enrolment, Enrolments}
 import uk.gov.hmrc.http.{UnauthorizedException, Request => _, _}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -54,7 +54,7 @@ class EventReportController @Inject()(
         eventReportService.removeUserAnswers(pstr)
         Future.successful(Ok)
       }
-    }
+      }
   }
 
   def saveUserAnswers: Action[AnyContent] = Action.async {
@@ -178,7 +178,7 @@ class EventReportController @Inject()(
         logger.debug(message = s"[Submit Event Declaration Report - Incoming payload]$userAnswersJson")
         Future.fromTry(jsonSchemaValidator.validatePayload(userAnswersJson, submitEventDeclarationReportSchemaPath, "submitEventDeclarationReport"))
           .flatMap { _ =>
-            eventReportService.submitEventDeclarationReport(pstr, userAnswersJson).map(Ok(_))
+            eventReportService.submitEventDeclarationReport(pstr, userAnswersJson).map(_ => NoContent)
           }
       }
   }
@@ -206,13 +206,13 @@ class EventReportController @Inject()(
   }
 
   private def withPstr(block: (String) => Future[Result])
-                                            (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+                      (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = "Logger message TBC")
 
     authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
       case Some(_) =>
-          request.headers.get("pstr") match {
+        request.headers.get("pstr") match {
           case Some(pstr) =>
             block(pstr)
           case _ =>
@@ -224,7 +224,7 @@ class EventReportController @Inject()(
   }
 
   private def withPstrOptionEventTypeAndBody(block: (String, Option[String], JsValue) => Future[Result])
-                                      (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+                                            (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
 
@@ -270,7 +270,7 @@ class EventReportController @Inject()(
     }
 
   private def withPstrPsaPspIDAndEventType(block: (String, String, String) => Future[Result])
-                                  (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+                                          (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
 

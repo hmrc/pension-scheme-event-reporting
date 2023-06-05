@@ -162,7 +162,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   }
 
   "submitEventDeclarationReport" must {
-    "return OK when valid response" in {
+    "return NoContent when valid response" in {
       when(mockEventReportService.submitEventDeclarationReport(any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(submitEventDeclarationReportSuccessResponse))
       when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
@@ -171,7 +171,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       val result = controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse).withHeaders(
         newHeaders = "pstr" -> pstr))
 
-      status(result) mustBe OK
+      status(result) mustBe NO_CONTENT
     }
 
     "throw validation exception when validation errors response" in {

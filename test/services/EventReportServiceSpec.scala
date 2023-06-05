@@ -24,6 +24,7 @@ import models.{EROverview, EROverviewVersion, ERVersion}
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
+import org.scalacheck.Gen
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures.whenReady
 import org.scalatest.matchers.must.Matchers
@@ -37,14 +38,17 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
 import repositories.{EventReportCacheRepository, GetEventCacheRepository, OverviewCacheRepository}
+import transformations.UserAnswersToETMP.{API1828, API1829}
 import uk.gov.hmrc.http._
-import utils.{JSONSchemaValidator, JsonFileReader}
+import utils.{GeneratorAPI1828, GeneratorAPI1829, JSONSchemaValidator, JsonFileReader}
 
 import java.time.LocalDate
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
-class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSugar with BeforeAndAfterEach with JsonFileReader {
+class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSugar with BeforeAndAfterEach with JsonFileReader with GeneratorAPI1828 with GeneratorAPI1829 {
+
+  override def generateUserAnswersAndPOSTBody: Gen[(JsObject, JsObject)] = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody
 
   import EventReportServiceSpec._
 
@@ -352,39 +356,70 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   }
 
   "submitEventDeclarationReport" must {
-    "return valid response" in {
+    "return valid response where there are changes in both declaration APIs" in {
+      val userAnswers: JsObject = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
+      val submitEvent20ADeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1829.transformToETMPData).get
+      val submitEventDeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1828.transformToETMPData).get
+
       when(mockEventReportConnector.submitEventDeclarationReport(
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponse))(any(), any(), any()))
+        any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse.apply(
           status = OK,
-          json = submitEventDeclarationReportSuccessResponse,
+          json = Json.obj(),
           headers = Map.empty)))
-      eventReportService.submitEventDeclarationReport(pstr, submitEventDeclarationReportSuccessResponse)(implicitly, implicitly, implicitly).map { resultJsValue =>
-        resultJsValue mustBe submitEventDeclarationReportSuccessResponse
+      when(mockEventReportConnector.submitEvent20ADeclarationReport(
+        ArgumentMatchers.eq(pstr),
+        any())(any(), any(), any()))
+        .thenReturn(Future.successful(HttpResponse.apply(
+          status = OK,
+          json = Json.obj(),
+          headers = Map.empty)))
+      eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly).map { _ =>
+        verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
+          ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP))(any(), any(), any())
+        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
+          ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP))(any(), any(), any())
+        assert(true)
+      }
+    }
+    "return valid response where there are changes in only API1828" in {
+      val userAnswers: JsObject = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
+      val SuccessResponseETMP: JsObject = userAnswers.transform(API1828.transformToETMPData).get
+
+      when(mockEventReportConnector.submitEventDeclarationReport(
+        ArgumentMatchers.eq(pstr),
+        any())(any(), any(), any()))
+        .thenReturn(Future.successful(HttpResponse.apply(
+          status = OK,
+          json = Json.obj(),
+          headers = Map.empty)))
+      eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly).map { _ =>
+        verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
+          ArgumentMatchers.eq(SuccessResponseETMP))(any(), any(), any())
+        assert(true)
       }
     }
   }
 
-//  "submitEvent20ADeclarationReport" must {
-//    "return valid response" in {
-//      when(mockEventReportConnector.submitEvent20ADeclarationReport(
-//        ArgumentMatchers.eq(pstr),
-//        ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponse))(any(), any(), any()))
-//        .thenReturn(Future.successful(HttpResponse.apply(
-//          status = OK,
-//          json = submitEvent20ADeclarationReportSuccessResponse,
-//          headers = Map.empty)))
-//      eventReportService.submitEvent20ADeclarationReport(pstr,
-//        submitEvent20ADeclarationReportSuccessResponse)(implicitly, implicitly, implicitly).map { resultJsValue =>
-//        resultJsValue mustBe submitEvent20ADeclarationReportSuccessResponse
-//      }
-//    }
-//  }
+  //  "submitEvent20ADeclarationReport" must {
+  //    "return valid response" in {
+  //      when(mockEventReportConnector.submitEvent20ADeclarationReport(
+  //        ArgumentMatchers.eq(pstr),
+  //        ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseUA))(any(), any(), any()))
+  //        .thenReturn(Future.successful(HttpResponse.apply(
+  //          status = OK,
+  //          json = submitEvent20ADeclarationReportSuccessResponseUA,
+  //          headers = Map.empty)))
+  //      eventReportService.submitEvent20ADeclarationReport(pstr,
+  //        submitEvent20ADeclarationReportSuccessResponseUA)(implicitly, implicitly, implicitly).map { resultJsValue =>
+  //        resultJsValue mustBe submitEvent20ADeclarationReportSuccessResponseUA
+  //      }
+  //    }
+  //  }
 }
 
 object EventReportServiceSpec {
-
   private val responseJson: JsObject = Json.obj("event" -> "mockEvent - test passed")
   private val responseNoEventTypeJson: JsObject = Json.obj("taxYear" -> "2022")
   private val uaJsonEventWindUp: JsObject =
@@ -466,14 +501,6 @@ object EventReportServiceSpec {
   ))
 
   private val erOverview = Seq(overview1, overview2)
-
-  private val submitEventDeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
-    "formBundleNumber" -> "12345678933")
-
-  private val submitEvent20ADeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
-    "formBundleNumber" -> "12345670811")
-
-
   private val responseJsonForAPI1834: Option[JsValue] = Some(Json.parse(
     """
       |{
