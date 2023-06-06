@@ -21,71 +21,17 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json._
-import utils.JsonFileReader
+import utils.{GeneratorAPI1831, JsonFileReader}
 
-class Event20AReportSpec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader with ScalaCheckPropertyChecks {
-
-  import Event20AReportSpec._
-
+class Event20AReportSpec extends AnyFreeSpec
+  with Matchers with MockitoSugar with JsonFileReader with ScalaCheckPropertyChecks with GeneratorAPI1831 {
   "Reads" - {
     "transform a valid payload from API 1831 correctly" in {
-
-      (payload, response) match {
+      forAll(generateUserAnswersAndPOSTBody){
         case (payload: JsObject, expectedResponse: JsObject) =>
-          val result = payload.validate(Event20AReport.rds1831Api).asOpt
-          result mustBe Some(expectedResponse)
+            val result = payload.validate(Event20AReport.rds1831Api).asOpt
+            result mustBe Some(expectedResponse)
+        }
       }
     }
-  }
 }
-
-object Event20AReportSpec {
-  val payload: JsValue = Json.parse(
-    """
-      |{
-      |  "processingDate": "2023-12-15T12:30:46Z",
-      |  "schemeDetails": {
-      |    "pSTR": "87219363YN",
-      |    "schemeName": "Abc Ltd"
-      |  },
-      |  "er20aDetails": {
-      |    "reportStartDate": "2021-04-06",
-      |    "reportEndDate": "2022-04-05",
-      |    "reportVersionNumber": "001",
-      |    "reportSubmittedDateAndTime": "2023-12-13T12:12:12Z"
-      |  },
-      |  "schemeMasterTrustDetails": {
-      |    "startDate": "2021-06-08"
-      |  },
-      |  "erDeclarationDetails": {
-      |    "submittedBy": "PSP",
-      |    "submittedID": "20000001",
-      |    "submittedName": "ABCDEFGHIJKLMNOPQRSTUV",
-      |    "pspDeclaration": {
-      |      "authorisedPSAID": "A4045157",
-      |      "pspDeclaration1": "Selected",
-      |      "pspDeclaration2": "Selected"
-      |    }
-      |  }
-      |}
-      |""".stripMargin
-  )
-
-  val response: JsValue = Json.parse(
-    """
-      |{
-      |  "pspDeclaration2": "Selected",
-      |  "submittedBy": "PSP",
-      |  "pspDeclaration1": "Selected",
-      |  "schemeMasterTrustStartDate": "2021-06-08",
-      |  "reportStartDate": "2021-04-06",
-      |  "submittedID": "20000001",
-      |  "pstr": "87219363YN",
-      |  "authorisedPSAID": "A4045157",
-      |  "reportEndDate": "2022-04-05"
-      |}
-      |""".stripMargin
-  )
-}
-
-
