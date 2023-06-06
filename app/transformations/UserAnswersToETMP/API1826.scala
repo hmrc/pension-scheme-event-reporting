@@ -159,17 +159,12 @@ object API1826 extends Transformer {
     }
   }
 
-  private lazy val event19Reads = (__ \ "event19").readNullable[JsArray].map { optJsonArray =>
-    optJsonArray.map { jsonArray =>
-      Json.obj(
-        "event19" -> jsonArray.value.map { json =>
-          Json.obj(
-            "recordVersion" -> JsString((json \ "recordVersion").asOpt[String].getOrElse("001")),
-            "countryCode" -> (json \ "countryCode").as[String],
-            "dateOfChange" -> (json \ "dateOfChange").as[String]
-          )
-        }
-      )
+  private lazy val event19Reads: Reads[Option[JsObject]] = {
+    mapReadsToOptionArray(eventTypeNodeName = "event19") { uaBaseForEventType =>
+      ((__ \ "countryCode").json.copyFrom((uaBaseForEventType \ "CountryOrTerritory").json.pick) and
+        (__ \ "dateOfChange").json.copyFrom((uaBaseForEventType \ "dateChangeMade").json.pick) and
+        recordVersionReads
+        ).reduce
     }
   }
 
