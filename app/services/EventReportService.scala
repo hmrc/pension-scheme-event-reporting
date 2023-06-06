@@ -69,35 +69,35 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def saveUserAnswers(pstr: String, eventType: EventType, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
+  def saveUserAnswers(externalId:String, pstr: String, eventType: EventType, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     EventType.postApiTypeByEventType(eventType) match {
-      case Some(apiType) => eventReportCacheRepository.upsert(pstr, apiType, userAnswersJson)
+      case Some(apiType) => eventReportCacheRepository.upsert(externalId, pstr, apiType, userAnswersJson)
       case _ => Future.successful(())
     }
   }
 
-  def saveUserAnswers(pstr: String, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] =
-    eventReportCacheRepository.upsert(pstr, userAnswersJson)
+  def saveUserAnswers(externalId:String, pstr: String, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] =
+    eventReportCacheRepository.upsert(externalId, pstr, userAnswersJson)
 
-  def removeUserAnswers(pstr: String)(implicit ec: ExecutionContext): Future[Unit] =
-    eventReportCacheRepository.removeAllOnSignOut(pstr)
+  def removeUserAnswers(pstr: String, externalId:String)(implicit ec: ExecutionContext): Future[Unit] =
+    eventReportCacheRepository.removeAllOnSignOut(pstr, externalId)
 
-  def getUserAnswers(pstr: String, eventType: EventType)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
+  def getUserAnswers(externalId:String, pstr: String, eventType: EventType)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     EventType.postApiTypeByEventType(eventType) match {
-      case Some(apiType) => eventReportCacheRepository.getUserAnswers(pstr, Some(apiType))
+      case Some(apiType) => eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(apiType))
       case _ => Future.successful(None)
     }
 
-  def getUserAnswers(pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
-    eventReportCacheRepository.getUserAnswers(pstr, None)
+  def getUserAnswers(externalId:String, pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
+    eventReportCacheRepository.getUserAnswers(externalId, pstr, None)
 
-  def compileEventReport(pstr: String, eventType: EventType)
+  def compileEventReport(externalId:String, pstr: String, eventType: EventType)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
-        eventReportCacheRepository.getUserAnswers(pstr, Some(apiType)).flatMap {
+        eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(apiType)).flatMap {
           case Some(data) =>
-            eventReportCacheRepository.getUserAnswers(pstr, None).flatMap {
+            eventReportCacheRepository.getUserAnswers(externalId, pstr, None).flatMap {
               case Some(header) =>
                 val fullData = header ++ data
                 for {

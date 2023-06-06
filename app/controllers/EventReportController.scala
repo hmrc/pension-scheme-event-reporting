@@ -49,8 +49,8 @@ class EventReportController @Inject()(
 
   def removeUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
-      withPstr { pstr => {
-        eventReportService.removeUserAnswers(pstr)
+      withPstrAndExternalId { case (pstr, externalId) => {
+        eventReportService.removeUserAnswers(pstr, externalId)
         Future.successful(Ok)
       }
     }
@@ -58,29 +58,29 @@ class EventReportController @Inject()(
 
   def saveUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
-      withPstrOptionEventTypeAndBody { (pstr, optEventType, userAnswersJson) =>
+      withPstrOptionEventTypeAndBodyAndExternalId { (pstr, optEventType, userAnswersJson, externalId) =>
         logger.debug(message = s"[Save Event: Incoming-Payload]$userAnswersJson")
 
         optEventType match {
           case Some(eventType) =>
             EventType.getEventType(eventType) match {
               case Some(et) =>
-                eventReportService.saveUserAnswers(pstr, et, userAnswersJson).map(_ => Ok)
+                eventReportService.saveUserAnswers(externalId, pstr, et, userAnswersJson).map(_ => Ok)
               case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
             }
-          case _ => eventReportService.saveUserAnswers(pstr, userAnswersJson).map(_ => Ok)
+          case _ => eventReportService.saveUserAnswers(externalId, pstr, userAnswersJson).map(_ => Ok)
         }
       }
   }
 
   def getUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
-      withPstrAndOptionEventType { (pstr, optEventType) =>
+      withPstrAndOptionEventTypeAndExternalId { (pstr, optEventType, externalId) =>
         optEventType match {
           case Some(eventType) =>
             EventType.getEventType(eventType) match {
               case Some(et) =>
-                eventReportService.getUserAnswers(pstr, et)
+                eventReportService.getUserAnswers(externalId, pstr, et)
                   .map {
                     case None => NotFound
                     case Some(jsobj) => Ok(jsobj)
@@ -88,7 +88,7 @@ class EventReportController @Inject()(
               case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
             }
           case None =>
-            eventReportService.getUserAnswers(pstr)
+            eventReportService.getUserAnswers(externalId, pstr)
               .map {
                 case None => NotFound
                 case Some(jsobj) => Ok(jsobj)
@@ -99,9 +99,9 @@ class EventReportController @Inject()(
 
   def compileEvent: Action[AnyContent] = Action.async {
     implicit request =>
-      withPstrAndEventType { (pstr, et) =>
+      withPstrAndEventTypeAndExternalId { (pstr, et, externalId) =>
         EventType.getEventType(et) match {
-          case Some(eventType) => eventReportService.compileEventReport(pstr, eventType)
+          case Some(eventType) => eventReportService.compileEventReport(externalId, pstr, eventType)
           case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
         }
       }
@@ -213,16 +213,16 @@ class EventReportController @Inject()(
     }
   }
 
-  private def withPstr(block: (String) => Future[Result])
+  private def withPstrAndExternalId(pstrAndExternalId: (String, String) => Future[Result])
                                             (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = "Logger message TBC")
 
     authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
-      case Some(_) =>
+      case Some(externalId) =>
           request.headers.get("pstr") match {
           case Some(pstr) =>
-            block(pstr)
+            pstrAndExternalId(pstr, externalId)
           case _ =>
             Future.failed(new BadRequestException(s"Bad Request, no pstr in headers"))
         }
@@ -231,21 +231,22 @@ class EventReportController @Inject()(
     }
   }
 
-  private def withPstrOptionEventTypeAndBody(block: (String, Option[String], JsValue) => Future[Result])
+  private def withPstrOptionEventTypeAndBodyAndExternalId(block: (String, Option[String], JsValue, String) => Future[Result])
                                       (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
 
     authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
-      case Some(_) =>
+      case Some(externalId) =>
         (
           request.headers.get("pstr"),
           request.headers.get("eventType"),
-          request.body.asJson
+          request.body.asJson,
+          externalId
         ) match {
-          case (Some(pstr), optET, Some(js)) =>
-            block(pstr, optET, js)
-          case (pstr, _, jsValue) =>
+          case (Some(pstr), optET, Some(js), externalId) =>
+            block(pstr, optET, js, externalId)
+          case (pstr, _, jsValue, externalId) =>
             Future.failed(new BadRequestException(
               s"Bad Request without pstr ($pstr) or request body ($jsValue)"))
         }
@@ -254,19 +255,19 @@ class EventReportController @Inject()(
     }
   }
 
-  private def withPstrAndEventType(block: (String, String) => Future[Result])
+  private def withPstrAndEventTypeAndExternalId(block: (String, String, String) => Future[Result])
                                   (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
 
     authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
-      case Some(_) =>
+      case Some(externalId) =>
         (
           request.headers.get("pstr"),
           request.headers.get("eventType")
         ) match {
           case (Some(pstr), Some(et)) =>
-            block(pstr, et)
+            block(pstr, et, externalId)
           case (pstr, et) =>
             Future.failed(new BadRequestException(
               s"Bad Request without pstr ($pstr) or eventType ($et)"))
@@ -276,19 +277,19 @@ class EventReportController @Inject()(
     }
   }
 
-  private def withPstrAndOptionEventType(block: (String, Option[String]) => Future[Result])
+  private def withPstrAndOptionEventTypeAndExternalId(block: (String, Option[String], String) => Future[Result])
                                         (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
 
     authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
-      case Some(_) =>
+      case Some(externalId) =>
         (
           request.headers.get("pstr"),
           request.headers.get("eventType")
         ) match {
           case (Some(pstr), et) =>
-            block(pstr, et)
+            block(pstr, et, externalId)
           case (pstr, _) =>
             Future.failed(new BadRequestException(
               s"Bad Request without pstr ($pstr)"))

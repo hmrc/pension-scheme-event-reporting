@@ -49,6 +49,7 @@ object EventReportCacheEntry {
   implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
   implicit val format: Format[EventReportCacheEntry] = Json.format[EventReportCacheEntry]
 
+  val externalIdKey = "externalId"
   val pstrKey = "pstr"
   val apiTypesKey = "apiTypes"
   val expireAtKey = "expireAt"
@@ -83,12 +84,13 @@ class EventReportCacheRepository @Inject()(
 
   private def evaluatedExpireAt: DateTime = DateTime.now(DateTimeZone.UTC).toLocalDate.plusDays(expireInDays + 1).toDateTimeAtStartOfDay()
 
-  def upsert(pstr: String, apiType: ApiType, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
+  def upsert(externalId:String, pstr: String, apiType: ApiType, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val record = EventReportCacheEntry.applyEventReportCacheEntry(
       pstr, apiType, Json.toJson(data),
       expireAt = evaluatedExpireAt)
 
     val modifier = Updates.combine(
+      Updates.set(externalIdKey, externalId),
       Updates.set(pstrKey, record.pstr),
       Updates.set(apiTypesKey, record.apiTypes),
       Updates.set(dataKey, Codecs.toBson(record.data)),
@@ -102,9 +104,10 @@ class EventReportCacheRepository @Inject()(
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
   }
 
-  def upsert(pstr: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
+  def upsert(externalId:String, pstr: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val lastUpdated = DateTime.now(DateTimeZone.UTC)
     val modifier = Updates.combine(
+      Updates.set(externalIdKey, externalId),
       Updates.set(pstrKey, pstr),
       Updates.set(apiTypesKey, "None"),
       Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
@@ -118,13 +121,13 @@ class EventReportCacheRepository @Inject()(
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
   }
 
-  def getUserAnswers(pstr: String, optApiType: Option[ApiType])(implicit ec: ExecutionContext): Future[Option[JsObject]] = {
+  def getUserAnswers(externalId:String, pstr: String, optApiType: Option[ApiType])(implicit ec: ExecutionContext): Future[Option[JsObject]] = {
     optApiType match {
       case Some(apiType) =>
-        getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString))
+        getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString, externalIdKey -> externalId))
           .map(_.map(_.as[JsObject]))
       case None =>
-        getByKeys(Map("pstr" -> pstr, "apiTypes" -> "None"))
+        getByKeys(Map("pstr" -> pstr, "apiTypes" -> "None", externalIdKey -> externalId))
           .map(_.map(_.as[JsObject]))
     }
   }
@@ -145,11 +148,11 @@ class EventReportCacheRepository @Inject()(
     }
   }
 
-  def removeAllOnSignOut(pstr: String)(implicit ec: ExecutionContext): Future[Unit] = {
-    collection.deleteMany(filterByKeys(Map("pstr" -> pstr))).toFuture().map { result =>
-      logger.info(s"Removing all data from collection associated with $pstr")
+  def removeAllOnSignOut(pstr: String, externalId: String)(implicit ec: ExecutionContext): Future[Unit] = {
+    collection.deleteMany(filterByKeys(Map("pstr" -> pstr, "externalId" -> externalId))).toFuture().map { result =>
+      logger.info(s"Removing all data from collection associated with PSTR: $pstr ExternalId: $externalId")
       if (!result.wasAcknowledged) {
-        logger.warn(s"Issue removing all data from collection associated with $pstr")
+        logger.warn(s"Issue removing all data from collection associated with PSTR: $pstr ExternalId: $externalId")
       }
       ()
     }
