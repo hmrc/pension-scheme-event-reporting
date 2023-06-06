@@ -173,21 +173,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
       status(result) mustBe NO_CONTENT
     }
-
-    "throw validation exception when validation errors response" in {
-      val controller = application.injector.instanceOf[EventReportController]
-
-      when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
-        .thenReturn(Failure(EventReportValidationFailureException("Test")))
-
-      recoverToExceptionIf[EventReportValidationFailureException] {
-        controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse).withHeaders(
-          newHeaders = "pstr" -> pstr))
-      } map {
-        failure =>
-          failure.getMessage mustBe "Test"
-      }
-    }
   }
 
 //  "submitEvent20ADeclarationReport" must {

@@ -48,6 +48,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private final val SchemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.4.json"
   private final val SchemaPath1830 = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.7.json"
+  private final val SchemaPath1828 = "/resources.schemas/api-1828-submit-event-declaration-report-request-schema-v1.0.4.json"
+  private final val SchemaPath1829 = "/resources.schemas/api-1829-submit-event20a-declaration-report-request-schema-v1.0.0.json"
 
   private case class APIProcessingInfo(apiType: ApiType,
                                        readsForTransformation: Reads[JsObject],
@@ -185,23 +187,24 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def submitEventDeclarationReport(pstr: String, userAnswersJson: JsValue)
                                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Unit] = {
+//write method here
+    def recoverAndValidatePayload(transform1828toETMP: JsObject, transform1829toETMP: JsObject): Future[Unit] = {
 
-    def recoverIfNothingSubmitted(transform1828toETMP: JsObject, transform1829toETMP: JsObject): Future[Unit] = {
-      val test1 = eventReportConnector.submitEventDeclarationReport(pstr, transform1828toETMP).map(_.json)
-      val test2 = eventReportConnector.submitEvent20ADeclarationReport(pstr, transform1829toETMP).map(_.json)
-
-      val a = test1.recover {
+      val recoveredConnectorCallForAPI1828 = eventReportConnector.submitEventDeclarationReport(pstr, transform1828toETMP).map(_.json).recover {
         case _: BadRequestException =>
           Json.obj()
       }
 
-      val b = test2.recover {
+      val recoveredConnectorCallForAPI1829 = eventReportConnector.submitEvent20ADeclarationReport(pstr, transform1829toETMP).map(_.json).recover {
         case _: BadRequestException =>
           Json.obj()
       }
       for {
-        _ <- a
-        _ <- b
+        a <- recoveredConnectorCallForAPI1828
+        b <- recoveredConnectorCallForAPI1829
+        //Call new method here e.g. _<- methodName(a,b)
+        _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transform1828toETMP, SchemaPath1828, "submitEventDeclarationReport"))
+        _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transform1829toETMP, SchemaPath1829, "submitEvent20ADeclarationReport"))
       } yield {
         ()
       }
@@ -210,11 +213,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     for {
       transform1828toETMP <- Future.fromTry(toTry(userAnswersJson.transform(API1828.transformToETMPData)))
       transform1829toETMP <- Future.fromTry(toTry(userAnswersJson.transform(API1829.transformToETMPData)))
-      _ <- recoverIfNothingSubmitted(transform1828toETMP, transform1829toETMP)
-
+      _ <- recoverAndValidatePayload(transform1828toETMP, transform1829toETMP)
     } yield {
       ()
     }
   }
-
 }
+
+//Write a method to combine the result of the two recovered call json objects
+//Check if both are empty, if they are, skip over 205, 206 and generate a future 500 exception embedded in future failed

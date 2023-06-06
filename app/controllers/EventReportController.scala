@@ -26,7 +26,6 @@ import uk.gov.hmrc.auth.core.retrieve.~
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, Enrolment, Enrolments}
 import uk.gov.hmrc.http.{UnauthorizedException, Request => _, _}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import utils.JSONSchemaValidator
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
@@ -36,7 +35,6 @@ import scala.concurrent.{ExecutionContext, Future}
 class EventReportController @Inject()(
                                        cc: ControllerComponents,
                                        val authConnector: AuthConnector,
-                                       jsonSchemaValidator: JSONSchemaValidator,
                                        eventReportService: EventReportService
                                      )(implicit ec: ExecutionContext)
   extends BackendController(cc)
@@ -44,9 +42,6 @@ class EventReportController @Inject()(
     with Results
     with AuthorisedFunctions
     with Logging {
-
-  private val submitEventDeclarationReportSchemaPath = "/resources.schemas/api-1828-submit-event-declaration-report-request-schema-v1.0.4.json"
-  private val submitEvent20ADeclarationReportSchemaPath = "/resources.schemas/api-1829-submit-event20a-declaration-report-request-schema-v1.0.0.json"
 
   def removeUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
@@ -176,10 +171,7 @@ class EventReportController @Inject()(
     implicit request =>
       withPstrAndBody { (pstr, userAnswersJson) =>
         logger.debug(message = s"[Submit Event Declaration Report - Incoming payload]$userAnswersJson")
-        Future.fromTry(jsonSchemaValidator.validatePayload(userAnswersJson, submitEventDeclarationReportSchemaPath, "submitEventDeclarationReport"))
-          .flatMap { _ =>
-            eventReportService.submitEventDeclarationReport(pstr, userAnswersJson).map(_ => NoContent)
-          }
+        eventReportService.submitEventDeclarationReport(pstr, userAnswersJson).map(_ => NoContent)
       }
   }
 
