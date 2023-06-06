@@ -32,7 +32,7 @@ import play.api.mvc.{RequestHeader, Result}
 import repositories.{EventReportCacheRepository, GetEventCacheRepository, OverviewCacheRepository}
 import transformations.ETMPToFrontEnd.{EventOneReport, MemberEventReport}
 import transformations.UserAnswersToETMP._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -185,11 +185,33 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def submitEventDeclarationReport(pstr: String, userAnswersJson: JsValue)
                                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Unit] = {
+
+    def recoverIfNothingSubmitted(transform1828toETMP: JsObject, transform1829toETMP: JsObject): Future[Unit] = {
+      val test1 = eventReportConnector.submitEventDeclarationReport(pstr, transform1828toETMP).map(_.json)
+      val test2 = eventReportConnector.submitEvent20ADeclarationReport(pstr, transform1829toETMP).map(_.json)
+
+      val a = test1.recover {
+        case _: BadRequestException =>
+          Json.obj()
+      }
+
+      val b = test2.recover {
+        case _: BadRequestException =>
+          Json.obj()
+      }
+      for {
+        _ <- a
+        _ <- b
+      } yield {
+        ()
+      }
+    }
+
     for {
       transform1828toETMP <- Future.fromTry(toTry(userAnswersJson.transform(API1828.transformToETMPData)))
       transform1829toETMP <- Future.fromTry(toTry(userAnswersJson.transform(API1829.transformToETMPData)))
-      _ <- eventReportConnector.submitEventDeclarationReport(pstr, transform1828toETMP).map(_.json)
-      _ <- eventReportConnector.submitEvent20ADeclarationReport(pstr, transform1829toETMP).map(_.json)
+      _ <- recoverIfNothingSubmitted(transform1828toETMP, transform1829toETMP)
+
     } yield {
       ()
     }

@@ -385,7 +385,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
     "return valid response where there are changes in only API1828" in {
       val userAnswers: JsObject = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
-      val SuccessResponseETMP: JsObject = userAnswers.transform(API1828.transformToETMPData).get
+      val submitEventDeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1828.transformToETMPData).get
 
       when(mockEventReportConnector.submitEventDeclarationReport(
         ArgumentMatchers.eq(pstr),
@@ -394,29 +394,63 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
           status = OK,
           json = Json.obj(),
           headers = Map.empty)))
+      when(mockEventReportConnector.submitEvent20ADeclarationReport(
+        ArgumentMatchers.eq(pstr),
+        any())(any(), any(), any()))
+        .thenReturn(Future.failed(new BadRequestException("Test"))) //TODO: This needs to change when Sanjay gets back with actual error response
       eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly).map { _ =>
         verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
-          ArgumentMatchers.eq(SuccessResponseETMP))(any(), any(), any())
+          ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP))(any(), any(), any())
+        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr), any())(any(), any(), any())
         assert(true)
       }
     }
-  }
+    "return valid response where there are changes in only API1829" in {
+      val userAnswers: JsObject = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
+      val submitEvent20ADeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1829.transformToETMPData).get
 
-  //  "submitEvent20ADeclarationReport" must {
-  //    "return valid response" in {
-  //      when(mockEventReportConnector.submitEvent20ADeclarationReport(
-  //        ArgumentMatchers.eq(pstr),
-  //        ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseUA))(any(), any(), any()))
-  //        .thenReturn(Future.successful(HttpResponse.apply(
-  //          status = OK,
-  //          json = submitEvent20ADeclarationReportSuccessResponseUA,
-  //          headers = Map.empty)))
-  //      eventReportService.submitEvent20ADeclarationReport(pstr,
-  //        submitEvent20ADeclarationReportSuccessResponseUA)(implicitly, implicitly, implicitly).map { resultJsValue =>
-  //        resultJsValue mustBe submitEvent20ADeclarationReportSuccessResponseUA
-  //      }
-  //    }
-  //  }
+      when(mockEventReportConnector.submitEventDeclarationReport(
+        ArgumentMatchers.eq(pstr),
+        any())(any(), any(), any()))
+        .thenReturn(Future.failed(new BadRequestException("Test"))) //TODO: This needs to change when Sanjay gets back with actual error response
+      when(mockEventReportConnector.submitEvent20ADeclarationReport(
+        ArgumentMatchers.eq(pstr),
+        any())(any(), any(), any()))
+        .thenReturn(Future.successful(HttpResponse.apply(
+          status = OK,
+          json = Json.obj(),
+          headers = Map.empty)))
+      eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly).map { _ =>
+        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
+          ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP))(any(), any(), any())
+        verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr), any())(any(), any(), any())
+        assert(true)
+      }
+    }
+    //    "return invalid response when there is nothing to submit for either API" in {
+    //      val userAnswers: JsObject = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
+    //      val submitEventDeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1828.transformToETMPData).get
+    //      val submitEvent20ADeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1829.transformToETMPData).get
+    //
+    //      when(mockEventReportConnector.submitEventDeclarationReport(
+    //        ArgumentMatchers.eq(pstr),
+    //        any())(any(), any(), any()))
+    //        .thenReturn(Future.failed(new BadRequestException("Test"))) //TODO: This needs to change when Sanjay gets back with actual error response
+    //      when(mockEventReportConnector.submitEvent20ADeclarationReport(
+    //        ArgumentMatchers.eq(pstr),
+    //        any())(any(), any(), any()))
+    //        .thenReturn(Future.failed(new BadRequestException("Test2"))) //TODO: This needs to change when Sanjay gets back with actual error response
+    //      recoverToExceptionIf[BadRequestException] {
+    //        eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly)
+    //      } map { _ =>
+    //        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
+    //          ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP))(any(), any(), any())
+    //        verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
+    //          ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP))(any(), any(), any())
+    //        assert(true)
+    //      }
+    //    }
+  }
 }
 
 object EventReportServiceSpec {
