@@ -34,6 +34,8 @@ trait ResponseGenerators extends Matchers with OptionValues {
 
   val psaOrPspGen: Gen[String] = Gen.oneOf(Seq("PSA", "PSP"))
 
+  val schemeMasterTrustStartOrCeaseDate: Gen[String] = Gen.oneOf(Seq("startDate", "ceaseDate"))
+
   val psaIdGen: Gen[String] = for {
     letter <- Gen.alphaChar.map(_.toString)
     numbers <- Gen.chooseNum(1000000, 9999999)
@@ -44,6 +46,10 @@ trait ResponseGenerators extends Matchers with OptionValues {
   } yield s"${numbers}"
 
   val taxYearGenerator: Gen[String] = Gen.oneOf(Seq("2022", "2023", "2024"))
+
+  val reportStartDateGenerator: Gen[LocalDate] = for {
+    year <- Gen.choose(1990, 2000)
+  } yield LocalDate.of(year, 4, 6)
 
   val dateGenerator: Gen[LocalDate] = for {
     day <- Gen.choose(1, 28)
