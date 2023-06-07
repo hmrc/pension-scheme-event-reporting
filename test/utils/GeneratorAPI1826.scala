@@ -22,8 +22,6 @@ import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
 import play.api.libs.json.{JsObject, Json}
 
-import java.time.LocalDate
-
 //noinspection ScalaStyle
 trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerators {
 
