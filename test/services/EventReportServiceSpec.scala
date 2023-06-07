@@ -67,9 +67,6 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val version = "version"
   private val payload = Json.obj("test" -> "test")
 
-  private final val SchemaPath1828 = "/resources.schemas/api-1828-submit-event-declaration-report-request-schema-v1.0.4.json"
-  private final val SchemaPath1829 = "/resources.schemas/api-1829-submit-event20a-declaration-report-request-schema-v1.0.0.json"
-
   val modules: Seq[GuiceableModule] =
     Seq(
       inject.bind[EventReportConnector].toInstance(mockEventReportConnector),
@@ -96,363 +93,363 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     when(mockGetEventCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
   }
 
-  //  "compileEventReport for unimplemented api type" must {
-  //    "return Bad Request" in {
-  //      eventReportService.compileEventReport(psaId, "pstr", Event20A)(implicitly, implicitly, implicitly).map {
-  //        result => result.header.status mustBe BAD_REQUEST
-  //      }
-  //    }
-  //  }
+  "compileEventReport for unimplemented api type" must {
+    "return Bad Request" in {
+      eventReportService.compileEventReport(psaId, "pstr", Event20A)(implicitly, implicitly, implicitly).map {
+        result => result.header.status mustBe BAD_REQUEST
+      }
+    }
+  }
 
-  //  "compileEventReport for event 1" must {
-  //    "return NOT FOUND when no data return from repository" in {
-  //      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1827)))(any()))
-  //        .thenReturn(Future.successful(None))
-  //      eventReportService.compileEventReport(psaId, "pstr", Event1)(implicitly, implicitly, implicitly).map {
-  //        result => result.header.status mustBe NOT_FOUND
-  //      }
-  //    }
-  //
-  //    "return 204 No Content when valid data return from repository - event 1" in {
-  //      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1827)))(any()))
-  //        .thenReturn(Future.successful(Some(responseJson)))
-  //      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(None))(any()))
-  //        .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
-  //
-  //      when(mockEventReportConnector.compileEventOneReport(any(), any(), any())(any(), any(), any()))
-  //        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
-  //
-  //      eventReportService.compileEventReport(psaId, "pstr", Event1).map {
-  //        result => result.header.status mustBe NO_CONTENT
-  //      }
-  //    }
-  //
-  //    "return 400 when validation errors response for event one report" in {
-  //      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1827)))(any()))
-  //        .thenReturn(Future.successful(Some(responseJson)))
-  //      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(None))(any()))
-  //        .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
-  //      when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(compileEventOneReportSchemaPath), any()))
-  //        .thenReturn(Failure(new Exception("Message")))
-  //
-  //      recoverToExceptionIf[Exception] {
-  //        eventReportService.compileEventReport(psaId, "pstr", Event1)
-  //      } map {
-  //        failure =>
-  //          failure.getMessage mustBe "Message"
-  //      }
-  //    }
-  //
-  //    "throw Upstream5XXResponse on Internal Server Error" in {
-  //      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1827)))(any()))
-  //        .thenReturn(Future.successful(Some(responseJson)))
-  //      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(None))(any()))
-  //        .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
-  //
-  //      when(mockEventReportConnector.compileEventOneReport(any(), any(), any())(any(), any(), any()))
-  //        .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
-  //
-  //      recoverToExceptionIf[UpstreamErrorResponse] {
-  //        eventReportService.compileEventReport(psaId, "pstr", Event1)
-  //      } map {
-  //        _.statusCode mustBe INTERNAL_SERVER_ERROR
-  //      }
-  //    }
-  //  }
+  "compileEventReport for event 1" must {
+    "return NOT FOUND when no data return from repository" in {
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1827)))(any()))
+        .thenReturn(Future.successful(None))
+      eventReportService.compileEventReport(psaId, "pstr", Event1)(implicitly, implicitly, implicitly).map {
+        result => result.header.status mustBe NOT_FOUND
+      }
+    }
 
-  //  "compileEventReport for event windup" must {
-  //    "return Not Found when no data returned from repository" in {
-  //      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1826)))(any()))
-  //        .thenReturn(Future.successful(None))
-  //      eventReportService.compileEventReport(psaId, "pstr", WindUp)(implicitly, implicitly, implicitly).map {
-  //        result => result.header.status mustBe NOT_FOUND
-  //      }
-  //    }
-  //
-  //    "return 204 No Content when valid data return from repository - event 1" in {
-  //
-  //      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1826)))(any()))
-  //        .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
-  //      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(None))(any()))
-  //        .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
-  //
-  //      when(mockEventReportConnector.compileEventReportSummary(any(), any(), any())(any(), any(), any()))
-  //        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
-  //
-  //      eventReportService.compileEventReport(psaId, "pstr", WindUp).map {
-  //        result => result.header.status mustBe NO_CONTENT
-  //      }
-  //    }
-  //
-  //    "return 400 when validation errors response" in {
-  //      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1826)))(any()))
-  //        .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
-  //      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(None))(any()))
-  //        .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
-  //
-  //      when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(createCompiledEventSummaryReportSchemaPath), any()))
-  //        .thenReturn(Failure(new Exception("Message")))
-  //
-  //      recoverToExceptionIf[Exception] {
-  //        eventReportService.compileEventReport(psaId, "pstr", WindUp)
-  //      } map {
-  //        failure =>
-  //          failure.getMessage mustBe "Message"
-  //      }
-  //    }
-  //
-  //    "throw Upstream5XXResponse on Internal Server Error" in {
-  //
-  //      when(mockEventReportCacheRepository.getUserAnswers(any(), any())(any()))
-  //        .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
-  //      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(None))(any()))
-  //        .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
-  //
-  //      when(mockEventReportConnector.compileEventReportSummary(any(), any(), any())(any(), any(), any()))
-  //        .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
-  //
-  //      recoverToExceptionIf[UpstreamErrorResponse] {
-  //        eventReportService.compileEventReport(psaId, "pstr", WindUp)
-  //      } map {
-  //        _.statusCode mustBe INTERNAL_SERVER_ERROR
-  //      }
-  //    }
-  //  }
+    "return 204 No Content when valid data return from repository - event 1" in {
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1827)))(any()))
+        .thenReturn(Future.successful(Some(responseJson)))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(None))(any()))
+        .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
+
+      when(mockEventReportConnector.compileEventOneReport(any(), any(), any())(any(), any(), any()))
+        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
+
+      eventReportService.compileEventReport(psaId, "pstr", Event1).map {
+        result => result.header.status mustBe NO_CONTENT
+      }
+    }
+
+    "return 400 when validation errors response for event one report" in {
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1827)))(any()))
+        .thenReturn(Future.successful(Some(responseJson)))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(None))(any()))
+        .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
+      when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(compileEventOneReportSchemaPath), any()))
+        .thenReturn(Failure(new Exception("Message")))
+
+      recoverToExceptionIf[Exception] {
+        eventReportService.compileEventReport(psaId, "pstr", Event1)
+      } map {
+        failure =>
+          failure.getMessage mustBe "Message"
+      }
+    }
+
+    "throw Upstream5XXResponse on Internal Server Error" in {
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1827)))(any()))
+        .thenReturn(Future.successful(Some(responseJson)))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(None))(any()))
+        .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
+
+      when(mockEventReportConnector.compileEventOneReport(any(), any(), any())(any(), any(), any()))
+        .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
+
+      recoverToExceptionIf[UpstreamErrorResponse] {
+        eventReportService.compileEventReport(psaId, "pstr", Event1)
+      } map {
+        _.statusCode mustBe INTERNAL_SERVER_ERROR
+      }
+    }
+  }
+
+  "compileEventReport for event windup" must {
+    "return Not Found when no data returned from repository" in {
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1826)))(any()))
+        .thenReturn(Future.successful(None))
+      eventReportService.compileEventReport(psaId, "pstr", WindUp)(implicitly, implicitly, implicitly).map {
+        result => result.header.status mustBe NOT_FOUND
+      }
+    }
+
+    "return 204 No Content when valid data return from repository - event 1" in {
+
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1826)))(any()))
+        .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(None))(any()))
+        .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
+
+      when(mockEventReportConnector.compileEventReportSummary(any(), any(), any())(any(), any(), any()))
+        .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
+
+      eventReportService.compileEventReport(psaId, "pstr", WindUp).map {
+        result => result.header.status mustBe NO_CONTENT
+      }
+    }
+
+    "return 400 when validation errors response" in {
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1826)))(any()))
+        .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(None))(any()))
+        .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
+
+      when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(createCompiledEventSummaryReportSchemaPath), any()))
+        .thenReturn(Failure(new Exception("Message")))
+
+      recoverToExceptionIf[Exception] {
+        eventReportService.compileEventReport(psaId, "pstr", WindUp)
+      } map {
+        failure =>
+          failure.getMessage mustBe "Message"
+      }
+    }
+
+    "throw Upstream5XXResponse on Internal Server Error" in {
+
+      when(mockEventReportCacheRepository.getUserAnswers(any(), any())(any()))
+        .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(None))(any()))
+        .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
+
+      when(mockEventReportConnector.compileEventReportSummary(any(), any(), any())(any(), any(), any()))
+        .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
+
+      recoverToExceptionIf[UpstreamErrorResponse] {
+        eventReportService.compileEventReport(psaId, "pstr", WindUp)
+      } map {
+        _.statusCode mustBe INTERNAL_SERVER_ERROR
+      }
+    }
+  }
 
 
-  //  "getEvent" must {
-  //    "return OK and save the data in cache if no data was found in the cache to begin with" in {
-  //      when(mockEventReportConnector.getEvent(
-  //        ArgumentMatchers.eq(pstr),
-  //        ArgumentMatchers.eq(startDate),
-  //        ArgumentMatchers.eq(version),
-  //        ArgumentMatchers.eq(Some(Event22)))(any(), any()))
-  //        .thenReturn(Future.successful(getEvent22PayLoadData))
-  //      when(mockGetEventCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
-  //      when(mockGetEventCacheRepository.upsert(any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(()))
-  //
-  //      eventReportService.getEvent(pstr, startDate, version, Event22)(implicitly, implicitly).map { resultJsValue =>
-  //        verify(mockGetEventCacheRepository, times(1)).get(any(), any(), any(), any())(any())
-  //        verify(mockGetEventCacheRepository, times(1)).upsert(any(), any(), any(), any(), any())(any())
-  //        verify(mockEventReportConnector, times(1)).getEvent(any(), any(), any(), any())(any(), any())
-  //        resultJsValue mustBe Some(Json.toJson(getEvent22UAData))
-  //      }
-  //    }
-  //
-  //    "return OK with the event details and don't try to save the data in cache if the data already exists in the cache" in {
-  //      when(mockGetEventCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(Some(Json.toJson(getEvent22PayLoadData))))
-  //      eventReportService.getEvent(pstr, startDate, version, Event1)(implicitly, implicitly).map { resultJsValue =>
-  //        verify(mockGetEventCacheRepository, times(1)).get(any(), any(), any(), any())(any())
-  //        verify(mockGetEventCacheRepository, never).upsert(any(), any(), any(), any(), any())(any())
-  //        verify(mockEventReportConnector, never).getOverview(any(), any(), any(), any())(any(), any())
-  //        resultJsValue mustBe Some(Json.toJson(getEvent22PayLoadData))
-  //      }
-  //    }
-  //  }
+  "getEvent" must {
+    "return OK and save the data in cache if no data was found in the cache to begin with" in {
+      when(mockEventReportConnector.getEvent(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(startDate),
+        ArgumentMatchers.eq(version),
+        ArgumentMatchers.eq(Some(Event22)))(any(), any()))
+        .thenReturn(Future.successful(getEvent22PayLoadData))
+      when(mockGetEventCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
+      when(mockGetEventCacheRepository.upsert(any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(()))
 
-  //  "getEventSummary" must {
-  //    "return the payload from the connector for API1834" in {
-  //      val response = Set("1", "2", "3", "4", "5", "6", "7", "8", "8A", "10", "11", "12", "13", "14", "18", "19", "20", "22", "23", "24", "0")
-  //      when(mockEventReportConnector.getEvent(pstr, startDate, version, None)(implicitly, implicitly))
-  //        .thenReturn(Future.successful(responseJsonForAPI1834))
-  //      eventReportService.getEventSummary(pstr, version, startDate).map { result =>
-  //        verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, version, None)(implicitly, implicitly)
-  //        result.value.map(_.validate[String].get).toSet mustBe response
-  //      }
-  //    }
-  //  }
+      eventReportService.getEvent(pstr, startDate, version, Event22)(implicitly, implicitly).map { resultJsValue =>
+        verify(mockGetEventCacheRepository, times(1)).get(any(), any(), any(), any())(any())
+        verify(mockGetEventCacheRepository, times(1)).upsert(any(), any(), any(), any(), any())(any())
+        verify(mockEventReportConnector, times(1)).getEvent(any(), any(), any(), any())(any(), any())
+        resultJsValue mustBe Some(Json.toJson(getEvent22UAData))
+      }
+    }
 
-  //  "saveEventToMongo" must {
-  //    "return the payload from the connector when valid event type" in {
-  //      when(mockEventReportCacheRepository.upsert(
-  //        ArgumentMatchers.eq(pstr),
-  //        ArgumentMatchers.eq(Api1830),
-  //        any()
-  //      )(any()))
-  //        .thenReturn(Future.successful((): Unit))
-  //
-  //      eventReportService.saveUserAnswers(pstr, EventType.Event3, payload)(implicitly).map { result =>
-  //        verify(mockEventReportCacheRepository, times(1)).upsert(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(Api1830), any())(any())
-  //        result mustBe()
-  //      }
-  //    }
-  //  }
+    "return OK with the event details and don't try to save the data in cache if the data already exists in the cache" in {
+      when(mockGetEventCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(Some(Json.toJson(getEvent22PayLoadData))))
+      eventReportService.getEvent(pstr, startDate, version, Event1)(implicitly, implicitly).map { resultJsValue =>
+        verify(mockGetEventCacheRepository, times(1)).get(any(), any(), any(), any())(any())
+        verify(mockGetEventCacheRepository, never).upsert(any(), any(), any(), any(), any())(any())
+        verify(mockEventReportConnector, never).getOverview(any(), any(), any(), any())(any(), any())
+        resultJsValue mustBe Some(Json.toJson(getEvent22PayLoadData))
+      }
+    }
+  }
 
-  //  "removeUserAnswers" must {
-  //    "return unit when data deleted" in {
-  //      when(mockEventReportCacheRepository.removeAllOnSignOut(
-  //        ArgumentMatchers.eq(pstr)
-  //      )(any()))
-  //        .thenReturn(Future.successful((): Unit))
-  //      eventReportService.removeUserAnswers(pstr)(implicitly).map { result =>
-  //        verify(mockEventReportCacheRepository, times(1)).removeAllOnSignOut(ArgumentMatchers.eq(pstr))(any())
-  //        result mustBe()
-  //      }
-  //    }
-  //  }
+  "getEventSummary" must {
+    "return the payload from the connector for API1834" in {
+      val response = Set("1", "2", "3", "4", "5", "6", "7", "8", "8A", "10", "11", "12", "13", "14", "18", "19", "20", "22", "23", "24", "0")
+      when(mockEventReportConnector.getEvent(pstr, startDate, version, None)(implicitly, implicitly))
+        .thenReturn(Future.successful(responseJsonForAPI1834))
+      eventReportService.getEventSummary(pstr, version, startDate).map { result =>
+        verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, version, None)(implicitly, implicitly)
+        result.value.map(_.validate[String].get).toSet mustBe response
+      }
+    }
+  }
 
-  //  "getUserAnswers with event type" must {
-  //    "return the payload from the connector when valid event type" in {
-  //      val json = Json.obj("test" -> "test")
-  //      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1830)))(any()))
-  //        .thenReturn(Future.successful(Some(json)))
-  //
-  //      eventReportService.getUserAnswers(pstr, EventType.Event3)(implicitly).map { result =>
-  //        result mustBe Some(json)
-  //      }
-  //    }
-  //  }
+  "saveEventToMongo" must {
+    "return the payload from the connector when valid event type" in {
+      when(mockEventReportCacheRepository.upsert(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(Api1830),
+        any()
+      )(any()))
+        .thenReturn(Future.successful((): Unit))
 
-  //  "getUserAnswers with NO event type" must {
-  //    "return the payload from the connector when valid event type" in {
-  //      val json = Json.obj("test" -> "test")
-  //      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(None))(any()))
-  //        .thenReturn(Future.successful(Some(json)))
-  //
-  //      eventReportService.getUserAnswers(pstr)(implicitly).map { result =>
-  //        result mustBe Some(json)
-  //      }
-  //    }
-  //  }
+      eventReportService.saveUserAnswers(pstr, EventType.Event3, payload)(implicitly).map { result =>
+        verify(mockEventReportCacheRepository, times(1)).upsert(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(Api1830), any())(any())
+        result mustBe()
+      }
+    }
+  }
 
-  //  "getVersions" must {
-  //    "return the payload from the connector when valid event type" in {
-  //      when(mockEventReportConnector.getVersions(
-  //        ArgumentMatchers.eq(pstr),
-  //        ArgumentMatchers.eq(reportTypeER),
-  //        ArgumentMatchers.eq(startDate))(any(), any()))
-  //        .thenReturn(Future.successful(erVersions))
-  //      whenReady(eventReportService.getVersions(pstr, "ER", startDate)(implicitly, implicitly)) { result =>
-  //        result mustBe erVersions
-  //      }
-  //    }
-  //  }
+  "removeUserAnswers" must {
+    "return unit when data deleted" in {
+      when(mockEventReportCacheRepository.removeAllOnSignOut(
+        ArgumentMatchers.eq(pstr)
+      )(any()))
+        .thenReturn(Future.successful((): Unit))
+      eventReportService.removeUserAnswers(pstr)(implicitly).map { result =>
+        verify(mockEventReportCacheRepository, times(1)).removeAllOnSignOut(ArgumentMatchers.eq(pstr))(any())
+        result mustBe()
+      }
+    }
+  }
 
-  //  "getOverview" must {
-  //    "return OK with the Seq of overview details and save the data in cache if no data was found in the cache to begin with" in {
-  //      when(mockEventReportConnector.getOverview(
-  //        ArgumentMatchers.eq(pstr),
-  //        ArgumentMatchers.eq(reportTypeER),
-  //        ArgumentMatchers.eq(startDate),
-  //        ArgumentMatchers.eq(endDate))(any(), any()))
-  //        .thenReturn(Future.successful(erOverview))
-  //      when(mockOverviewCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
-  //      when(mockOverviewCacheRepository.upsert(any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(()))
-  //
-  //      eventReportService.getOverview(pstr, reportTypeER, startDate, endDate)(implicitly, implicitly).map { resultJsValue =>
-  //        verify(mockOverviewCacheRepository, times(1)).get(any(), any(), any(), any())(any())
-  //        verify(mockOverviewCacheRepository, times(1)).upsert(any(), any(), any(), any(), any())(any())
-  //        verify(mockEventReportConnector, times(1)).getOverview(any(), any(), any(), any())(any(), any())
-  //        resultJsValue mustBe Json.toJson(erOverview)
-  //      }
-  //    }
-  //
-  //    "return OK with the Seq of overview details and don't try to save the data in cache if the data already exists in the cache" in {
-  //      when(mockOverviewCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(Some(Json.toJson(erOverview))))
-  //      eventReportService.getOverview(pstr, reportTypeER, startDate, endDate)(implicitly, implicitly).map { resultJsValue =>
-  //        verify(mockOverviewCacheRepository, times(1)).get(any(), any(), any(), any())(any())
-  //        verify(mockOverviewCacheRepository, never).upsert(any(), any(), any(), any(), any())(any())
-  //        verify(mockEventReportConnector, never).getOverview(any(), any(), any(), any())(any(), any())
-  //        resultJsValue mustBe Json.toJson(erOverview)
-  //      }
-  //    }
-  //  }
+  "getUserAnswers with event type" must {
+    "return the payload from the connector when valid event type" in {
+      val json = Json.obj("test" -> "test")
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1830)))(any()))
+        .thenReturn(Future.successful(Some(json)))
+
+      eventReportService.getUserAnswers(pstr, EventType.Event3)(implicitly).map { result =>
+        result mustBe Some(json)
+      }
+    }
+  }
+
+  "getUserAnswers with NO event type" must {
+    "return the payload from the connector when valid event type" in {
+      val json = Json.obj("test" -> "test")
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(None))(any()))
+        .thenReturn(Future.successful(Some(json)))
+
+      eventReportService.getUserAnswers(pstr)(implicitly).map { result =>
+        result mustBe Some(json)
+      }
+    }
+  }
+
+  "getVersions" must {
+    "return the payload from the connector when valid event type" in {
+      when(mockEventReportConnector.getVersions(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(reportTypeER),
+        ArgumentMatchers.eq(startDate))(any(), any()))
+        .thenReturn(Future.successful(erVersions))
+      whenReady(eventReportService.getVersions(pstr, "ER", startDate)(implicitly, implicitly)) { result =>
+        result mustBe erVersions
+      }
+    }
+  }
+
+  "getOverview" must {
+    "return OK with the Seq of overview details and save the data in cache if no data was found in the cache to begin with" in {
+      when(mockEventReportConnector.getOverview(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(reportTypeER),
+        ArgumentMatchers.eq(startDate),
+        ArgumentMatchers.eq(endDate))(any(), any()))
+        .thenReturn(Future.successful(erOverview))
+      when(mockOverviewCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
+      when(mockOverviewCacheRepository.upsert(any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(()))
+
+      eventReportService.getOverview(pstr, reportTypeER, startDate, endDate)(implicitly, implicitly).map { resultJsValue =>
+        verify(mockOverviewCacheRepository, times(1)).get(any(), any(), any(), any())(any())
+        verify(mockOverviewCacheRepository, times(1)).upsert(any(), any(), any(), any(), any())(any())
+        verify(mockEventReportConnector, times(1)).getOverview(any(), any(), any(), any())(any(), any())
+        resultJsValue mustBe Json.toJson(erOverview)
+      }
+    }
+
+    "return OK with the Seq of overview details and don't try to save the data in cache if the data already exists in the cache" in {
+      when(mockOverviewCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(Some(Json.toJson(erOverview))))
+      eventReportService.getOverview(pstr, reportTypeER, startDate, endDate)(implicitly, implicitly).map { resultJsValue =>
+        verify(mockOverviewCacheRepository, times(1)).get(any(), any(), any(), any())(any())
+        verify(mockOverviewCacheRepository, never).upsert(any(), any(), any(), any(), any())(any())
+        verify(mockEventReportConnector, never).getOverview(any(), any(), any(), any())(any(), any())
+        resultJsValue mustBe Json.toJson(erOverview)
+      }
+    }
+  }
 
   "submitEventDeclarationReport" must {
-    //    "return valid response where there are changes in both declaration APIs" in {
-    //      val userAnswers: JsObject = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
-    //      val submitEvent20ADeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1829.transformToETMPData).get
-    //      val submitEventDeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1828.transformToETMPData).get
-    //
-    //      when(mockEventReportConnector.submitEventDeclarationReport(
-    //        ArgumentMatchers.eq(pstr),
-    //        any())(any(), any(), any()))
-    //        .thenReturn(Future.successful(HttpResponse.apply(
-    //          status = OK,
-    //          json = Json.obj(),
-    //          headers = Map.empty)))
-    //      when(mockEventReportConnector.submitEvent20ADeclarationReport(
-    //        ArgumentMatchers.eq(pstr),
-    //        any())(any(), any(), any()))
-    //        .thenReturn(Future.successful(HttpResponse.apply(
-    //          status = OK,
-    //          json = Json.obj(),
-    //          headers = Map.empty)))
-    //      eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly).map { _ =>
-    //        verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
-    //          ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP))(any(), any(), any())
-    //        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
-    //          ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP))(any(), any(), any())
-    //        assert(true)
-    //      }
-    //    }
-    //    "return valid response where there are changes in only API1828" in {
-    //      val userAnswers: JsObject = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
-    //      val submitEventDeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1828.transformToETMPData).get
-    //
-    //      when(mockEventReportConnector.submitEventDeclarationReport(
-    //        ArgumentMatchers.eq(pstr),
-    //        any())(any(), any(), any()))
-    //        .thenReturn(Future.successful(HttpResponse.apply(
-    //          status = OK,
-    //          json = Json.obj(),
-    //          headers = Map.empty)))
-    //      when(mockEventReportConnector.submitEvent20ADeclarationReport(
-    //        ArgumentMatchers.eq(pstr),
-    //        any())(any(), any(), any()))
-    //        .thenReturn(Future.failed(new BadRequestException("Test"))) //TODO: This needs to change when Sanjay gets back with actual error response
-    //      eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly).map { _ =>
-    //        verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
-    //          ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP))(any(), any(), any())
-    //        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr), any())(any(), any(), any())
-    //        assert(true)
-    //      }
-    //    }
-    //    "return valid response where there are changes in only API1829" in {
-    //      val userAnswers: JsObject = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
-    //      val submitEvent20ADeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1829.transformToETMPData).get
-    //
-    //      when(mockEventReportConnector.submitEventDeclarationReport(
-    //        ArgumentMatchers.eq(pstr),
-    //        any())(any(), any(), any()))
-    //        .thenReturn(Future.failed(new BadRequestException("Test"))) //TODO: This needs to change when Sanjay gets back with actual error response
-    //      when(mockEventReportConnector.submitEvent20ADeclarationReport(
-    //        ArgumentMatchers.eq(pstr),
-    //        any())(any(), any(), any()))
-    //        .thenReturn(Future.successful(HttpResponse.apply(
-    //          status = OK,
-    //          json = Json.obj(),
-    //          headers = Map.empty)))
-    //      eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly).map { _ =>
-    //        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
-    //          ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP))(any(), any(), any())
-    //        verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr), any())(any(), any(), any())
-    //        assert(true)
-    //      }
-    //    }
-    //    "return invalid response when there is nothing to submit for either API" in {
-    //      val userAnswers: JsObject = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
-    //      val submitEventDeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1828.transformToETMPData).get
-    //      val submitEvent20ADeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1829.transformToETMPData).get
-    //
-    //      when(mockEventReportConnector.submitEventDeclarationReport(
-    //        ArgumentMatchers.eq(pstr),
-    //        any())(any(), any(), any()))
-    //        .thenReturn(Future.failed(new BadRequestException("Test"))) //TODO: This needs to change when Sanjay gets back with actual error response
-    //      when(mockEventReportConnector.submitEvent20ADeclarationReport(
-    //        ArgumentMatchers.eq(pstr),
-    //        any())(any(), any(), any()))
-    //        .thenReturn(Future.failed(new BadRequestException("Test2"))) //TODO: This needs to change when Sanjay gets back with actual error response
-    //      recoverToExceptionIf[BadRequestException] {
-    //        eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly)
-    //      } map { _ =>
-    //        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
-    //          ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP))(any(), any(), any())
-    //        verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
-    //          ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP))(any(), any(), any())
-    //        assert(true)
-    //      }
-    //    }
+    "return valid response where there are changes in both declaration APIs" in {
+      val userAnswers: JsObject = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
+      val submitEvent20ADeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1829.transformToETMPData).get
+      val submitEventDeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1828.transformToETMPData).get
+
+      when(mockEventReportConnector.submitEventDeclarationReport(
+        ArgumentMatchers.eq(pstr),
+        any())(any(), any(), any()))
+        .thenReturn(Future.successful(HttpResponse.apply(
+          status = OK,
+          json = payload,
+          headers = Map.empty)))
+      when(mockEventReportConnector.submitEvent20ADeclarationReport(
+        ArgumentMatchers.eq(pstr),
+        any())(any(), any(), any()))
+        .thenReturn(Future.successful(HttpResponse.apply(
+          status = OK,
+          json = payload,
+          headers = Map.empty)))
+      eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly).map { _ =>
+        verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
+          ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP))(any(), any(), any())
+        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
+          ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP))(any(), any(), any())
+        assert(true)
+      }
+    }
+    "return valid response where there are changes in only API1828" in {
+      val userAnswers: JsObject = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
+      val submitEventDeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1828.transformToETMPData).get
+
+      when(mockEventReportConnector.submitEventDeclarationReport(
+        ArgumentMatchers.eq(pstr),
+        any())(any(), any(), any()))
+        .thenReturn(Future.successful(HttpResponse.apply(
+          status = OK,
+          json = payload,
+          headers = Map.empty)))
+      when(mockEventReportConnector.submitEvent20ADeclarationReport(
+        ArgumentMatchers.eq(pstr),
+        any())(any(), any(), any()))
+        .thenReturn(Future.failed(new BadRequestException("Test"))) //TODO: This needs to change when Sanjay gets back with actual error response
+      eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly).map { _ =>
+        verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
+          ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP))(any(), any(), any())
+        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr), any())(any(), any(), any())
+        assert(true)
+      }
+    }
+    "return valid response where there are changes in only API1829" in {
+      val userAnswers: JsObject = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
+      val submitEvent20ADeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1829.transformToETMPData).get
+
+      when(mockEventReportConnector.submitEventDeclarationReport(
+        ArgumentMatchers.eq(pstr),
+        any())(any(), any(), any()))
+        .thenReturn(Future.failed(new BadRequestException("Test"))) //TODO: This needs to change when Sanjay gets back with actual error response
+      when(mockEventReportConnector.submitEvent20ADeclarationReport(
+        ArgumentMatchers.eq(pstr),
+        any())(any(), any(), any()))
+        .thenReturn(Future.successful(HttpResponse.apply(
+          status = OK,
+          json = payload,
+          headers = Map.empty)))
+      eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly).map { _ =>
+        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
+          ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP))(any(), any(), any())
+        verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr), any())(any(), any(), any())
+        assert(true)
+      }
+    }
+    "return invalid response when there is nothing to submit for either API" in {
+      val userAnswers: JsObject = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
+      val submitEventDeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1828.transformToETMPData).get
+      val submitEvent20ADeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1829.transformToETMPData).get
+
+      when(mockEventReportConnector.submitEventDeclarationReport(
+        ArgumentMatchers.eq(pstr),
+        any())(any(), any(), any()))
+        .thenReturn(Future.failed(new BadRequestException("Test"))) //TODO: This needs to change when Sanjay gets back with actual error response
+      when(mockEventReportConnector.submitEvent20ADeclarationReport(
+        ArgumentMatchers.eq(pstr),
+        any())(any(), any(), any()))
+        .thenReturn(Future.failed(new BadRequestException("Test2"))) //TODO: This needs to change when Sanjay gets back with actual error response
+      recoverToExceptionIf[BadRequestException] {
+        eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly)
+      } map { _ =>
+        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
+          ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP))(any(), any(), any())
+        verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
+          ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP))(any(), any(), any())
+        assert(true)
+      }
+    }
 
     "return a Future failed when validation fails against the schema for API1828" in {
 
@@ -527,8 +524,8 @@ object EventReportServiceSpec {
   private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.4.json"
 
-  private val submitEventDeclarationReportSchemaPath = "/resources.schemas/api-1828-submit-event-declaration-report-request-schema-v1.0.4.json"
-  private val submitEvent20ADeclarationReportSchemaPath = "/resources.schemas/api-1829-submit-event20a-declaration-report-request-schema-v1.0.0.json"
+  private final val SchemaPath1828 = "/resources.schemas/api-1828-submit-event-declaration-report-request-schema-v1.0.4.json"
+  private final val SchemaPath1829 = "/resources.schemas/api-1829-submit-event20a-declaration-report-request-schema-v1.0.0.json"
 
   private val endDate = "2023-04-05"
   private val reportTypeER = "ER"

@@ -187,22 +187,30 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def submitEventDeclarationReport(pstr: String, userAnswersJson: JsValue)
                                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Unit] = {
-//write method here
+
+    def combineTest(seqJsValue: Seq[JsObject]): Future[Unit] = {
+      if (seqJsValue.forall(_.fields.isEmpty)) {
+        Future.failed(new BadRequestException("Nothing to submit"))
+      } else {
+        Future.successful((): Unit)
+      }
+    }
+
     def recoverAndValidatePayload(transform1828toETMP: JsObject, transform1829toETMP: JsObject): Future[Unit] = {
 
-      val recoveredConnectorCallForAPI1828 = eventReportConnector.submitEventDeclarationReport(pstr, transform1828toETMP).map(_.json).recover {
+      val recoveredConnectorCallForAPI1828: Future[JsObject] = eventReportConnector.submitEventDeclarationReport(pstr, transform1828toETMP).map(_.json.as[JsObject]).recover {
         case _: BadRequestException =>
           Json.obj()
       }
 
-      val recoveredConnectorCallForAPI1829 = eventReportConnector.submitEvent20ADeclarationReport(pstr, transform1829toETMP).map(_.json).recover {
+      val recoveredConnectorCallForAPI1829: Future[JsObject] = eventReportConnector.submitEvent20ADeclarationReport(pstr, transform1829toETMP).map(_.json.as[JsObject]).recover {
         case _: BadRequestException =>
           Json.obj()
       }
       for {
         a <- recoveredConnectorCallForAPI1828
         b <- recoveredConnectorCallForAPI1829
-        //Call new method here e.g. _<- methodName(a,b)
+        _ <- combineTest(Seq(a, b))
         _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transform1828toETMP, SchemaPath1828, "submitEventDeclarationReport"))
         _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transform1829toETMP, SchemaPath1829, "submitEvent20ADeclarationReport"))
       } yield {
@@ -219,6 +227,3 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 }
-
-//Write a method to combine the result of the two recovered call json objects
-//Check if both are empty, if they are, skip over 205, 206 and generate a future 500 exception embedded in future failed
