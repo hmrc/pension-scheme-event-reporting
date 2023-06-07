@@ -440,7 +440,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         ArgumentMatchers.eq(pstr),
         any())(any(), any(), any()))
         .thenReturn(Future.failed(new BadRequestException("Test2"))) //TODO: This needs to change when Sanjay gets back with actual error response
-      recoverToExceptionIf[InternalServerException] {
+      recoverToExceptionIf[ExpectationFailedException] {
         eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly)
       } map { _ =>
         verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
@@ -483,7 +483,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
     "return a Future failed when validation fails against the schema for API1829" in {
 
-      val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value
+      val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value //TODO: Double check this test
 
       when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(SchemaPath1828), any()))
         .thenReturn(Success((): Unit))

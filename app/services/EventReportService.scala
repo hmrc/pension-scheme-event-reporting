@@ -32,7 +32,7 @@ import play.api.mvc.{RequestHeader, Result}
 import repositories.{EventReportCacheRepository, GetEventCacheRepository, OverviewCacheRepository}
 import transformations.ETMPToFrontEnd.{EventOneReport, MemberEventReport}
 import transformations.UserAnswersToETMP._
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpResponse, InternalServerException}
+import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -190,9 +190,18 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
     def combineRecoveredPayload(seqJsValue: Seq[JsObject]): Future[Unit] = {
       if (seqJsValue.forall(_.fields.isEmpty)) {
-        Future.failed(new InternalServerException("Nothing to submit"))
+        Future.failed(new ExpectationFailedException("Nothing to submit"))
       } else {
         Future.successful((): Unit)
+      }
+    }
+
+    def validatePayloadAgainstSchema(payload: JsObject, schemePath: String, eventName: String) = {
+
+      if (payload.fields.isEmpty) {
+        Future.successful((): Unit)
+      } else {
+        Future.fromTry(jsonPayloadSchemaValidator.validatePayload(payload, schemePath, eventName)).map(_ => (): Unit)
       }
     }
 
@@ -211,8 +220,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         a <- recoveredConnectorCallForAPI1828
         b <- recoveredConnectorCallForAPI1829
         _ <- combineRecoveredPayload(Seq(a, b))
-        _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transform1828toETMP, SchemaPath1828, "submitEventDeclarationReport"))
-        _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transform1829toETMP, SchemaPath1829, "submitEvent20ADeclarationReport"))
+        _ <- validatePayloadAgainstSchema(transform1828toETMP, SchemaPath1828, "submitEventDeclarationReport")
+        _ <- validatePayloadAgainstSchema(transform1829toETMP, SchemaPath1829, "submitEvent20ADeclarationReport")
       } yield {
         ()
       }

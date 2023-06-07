@@ -16,14 +16,16 @@
 
 package transformations.UserAnswersToETMP
 
+import org.scalacheck.Gen
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json._
-import utils.{GeneratorAPI1829, JsonFileReader}
+import utils.{GeneratorAPI1828, GeneratorAPI1829, JsonFileReader}
 
 class API1829Spec extends AnyFreeSpec with Matchers
-  with JsonFileReader with GeneratorAPI1829 with ScalaCheckPropertyChecks {
+  with JsonFileReader with GeneratorAPI1829 with GeneratorAPI1828 with ScalaCheckPropertyChecks {
+  override def generateUserAnswersAndPOSTBody: Gen[(JsObject, JsObject)] = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody
 
   "transformToETMPData" - {
     "must transform a randomly generated valid payload correctly for Event Report 20A Submit Declaration" in {
@@ -33,6 +35,12 @@ class API1829Spec extends AnyFreeSpec with Matchers
           val expectedResult = JsSuccess(expectedResponse)
           result.asOpt mustBe expectedResult.asOpt
       }
+    }
+    "must not transform a randomly generated valid payload if the schemeMasterTrust node is not present" in {
+      val userAnswers: JsObject = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value._1
+      val result = userAnswers.validate(API1829.transformToETMPData)
+      val expectedResult = JsSuccess(Json.obj())
+      result.asOpt mustBe expectedResult.asOpt
     }
   }
 }

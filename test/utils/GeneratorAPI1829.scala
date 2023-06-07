@@ -105,9 +105,9 @@ trait GeneratorAPI1829 extends Matchers with OptionValues with ResponseGenerator
           "schemeMasterTrustDetails" -> startOrCeaseDateExpected,
           "erDeclarationDetails" -> Json.obj(
             "submittedBy" -> psaOrPsp,
-            "submittedID" -> psaOrPspId(psaOrPsp)
-          ),
-          psaOrPspJson
+            "submittedID" -> psaOrPspId(psaOrPsp),
+            psaOrPspJson
+          )
         )
       )
       Tuple2(fullUA(psaOrPsp), fullExpectedResult)
