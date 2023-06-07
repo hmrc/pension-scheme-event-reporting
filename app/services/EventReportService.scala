@@ -32,7 +32,7 @@ import play.api.mvc.{RequestHeader, Result}
 import repositories.{EventReportCacheRepository, GetEventCacheRepository, OverviewCacheRepository}
 import transformations.ETMPToFrontEnd.{EventOneReport, MemberEventReport}
 import transformations.UserAnswersToETMP._
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpResponse}
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpResponse, InternalServerException}
 import utils.JSONSchemaValidator
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -188,9 +188,9 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def submitEventDeclarationReport(pstr: String, userAnswersJson: JsValue)
                                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Unit] = {
 
-    def combineTest(seqJsValue: Seq[JsObject]): Future[Unit] = {
+    def combineRecoveredPayload(seqJsValue: Seq[JsObject]): Future[Unit] = {
       if (seqJsValue.forall(_.fields.isEmpty)) {
-        Future.failed(new BadRequestException("Nothing to submit"))
+        Future.failed(new InternalServerException("Nothing to submit"))
       } else {
         Future.successful((): Unit)
       }
@@ -210,7 +210,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       for {
         a <- recoveredConnectorCallForAPI1828
         b <- recoveredConnectorCallForAPI1829
-        _ <- combineTest(Seq(a, b))
+        _ <- combineRecoveredPayload(Seq(a, b))
         _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transform1828toETMP, SchemaPath1828, "submitEventDeclarationReport"))
         _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transform1829toETMP, SchemaPath1829, "submitEvent20ADeclarationReport"))
       } yield {

@@ -427,7 +427,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         assert(true)
       }
     }
-    "return invalid response when there is nothing to submit for either API" in {
+    "return a 500 error response when there is nothing to submit for either API" in {
       val userAnswers: JsObject = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
       val submitEventDeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1828.transformToETMPData).get
       val submitEvent20ADeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1829.transformToETMPData).get
@@ -440,7 +440,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         ArgumentMatchers.eq(pstr),
         any())(any(), any(), any()))
         .thenReturn(Future.failed(new BadRequestException("Test2"))) //TODO: This needs to change when Sanjay gets back with actual error response
-      recoverToExceptionIf[BadRequestException] {
+      recoverToExceptionIf[InternalServerException] {
         eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly)
       } map { _ =>
         verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
