@@ -24,7 +24,7 @@ import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
-import repositories.EventReportCacheEntry.{apiTypesKey, expireAtKey, pstrKey}
+import repositories.EventReportCacheEntry.{apiTypesKey, expireAtKey, externalIdKey, pstrKey}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
@@ -72,8 +72,8 @@ class EventReportCacheRepository @Inject()(
         IndexOptions().name("dataExpiry").expireAfter(0, TimeUnit.SECONDS).background(true)
       ),
       IndexModel(
-        Indexes.ascending(pstrKey, apiTypesKey),
-        IndexOptions().name(pstrKey + apiTypesKey).background(true)
+        Indexes.ascending(pstrKey, apiTypesKey, externalIdKey),
+        IndexOptions().name(pstrKey + apiTypesKey + externalIdKey).background(true)
       )
     )
   ) with Logging {
@@ -97,7 +97,7 @@ class EventReportCacheRepository @Inject()(
       Updates.set(lastUpdatedKey, Codecs.toBson(record.lastUpdated)),
       Updates.set(expireAtKey, Codecs.toBson(record.expireAt))
     )
-    val selector = Filters.and(Filters.equal(pstrKey, record.pstr), Filters.equal(apiTypesKey, record.apiTypes))
+    val selector = Filters.and(Filters.equal(pstrKey, record.pstr), Filters.equal(apiTypesKey, record.apiTypes), Filters.equal(externalIdKey, externalId))
 
     collection.findOneAndUpdate(
       filter = selector,
@@ -114,7 +114,7 @@ class EventReportCacheRepository @Inject()(
       Updates.set(lastUpdatedKey, Codecs.toBson(lastUpdated)),
       Updates.set(expireAtKey, Codecs.toBson(evaluatedExpireAt))
     )
-    val selector = Filters.and(Filters.equal(pstrKey, pstr), Filters.equal(apiTypesKey, "None"))
+    val selector = Filters.and(Filters.equal(pstrKey, pstr), Filters.equal(apiTypesKey, "None"), Filters.equal(externalIdKey, externalId))
 
     collection.findOneAndUpdate(
       filter = selector,

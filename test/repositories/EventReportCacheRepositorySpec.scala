@@ -160,12 +160,13 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
         _ <- eventReportCacheRepository.collection.drop().toFuture()
         _ <- eventReportCacheRepository.upsert(externalId, record1._1, record1._3)
         _ <- eventReportCacheRepository.upsert(externalId, record2._1, record2._3)
+        _ <- eventReportCacheRepository.upsert(externalId + "other", record1._1, record1._3)
         documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry]().toFuture()
       } yield documentsInDB
 
       whenReady(documentsInDB) {
         documentsInDB =>
-          documentsInDB.size mustBe 2
+          documentsInDB.size mustBe 3
       }
     }
   }
@@ -173,12 +174,12 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
   "removeAllOnSignOut" must {
     "remove all records for a given pstr without affecting other data" in {
       val record1 = ("pstr-1", Api1826, Json.parse("""{"data":"1"}"""))
-      val record2 = ("pstr-2", Api1826, Json.parse("""{"data":"2"}"""))
+      val record2 = ("pstr-1", Api1826, Json.parse("""{"data":"2"}"""))
       val record3 = ("pstr-3", Api1826, Json.parse("""{"data":"3"}"""))
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
         _ <- eventReportCacheRepository.upsert(externalId, record1._1, record1._2, record1._3)
-        _ <- eventReportCacheRepository.upsert(externalId, record2._1, record2._2, record2._3)
+        _ <- eventReportCacheRepository.upsert(externalId + "other", record2._1, record2._2, record2._3)
         _ <- eventReportCacheRepository.upsert(externalId, record3._1, record3._2, record3._3)
         _ <- eventReportCacheRepository.removeAllOnSignOut("pstr-1", externalId)
         documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry]().toFuture()
@@ -188,7 +189,7 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
         val doc1 = documentsInDB.head
         val doc2 = documentsInDB.tail.head
         documentsInDB.size mustBe 2
-        (doc1.pstr, doc1.apiTypes, doc1.data) mustBe ("pstr-2", "1826", Json.parse("""{"data":"2"}"""))
+        (doc1.pstr, doc1.apiTypes, doc1.data) mustBe ("pstr-1", "1826", Json.parse("""{"data":"2"}"""))
         (doc2.pstr, doc2.apiTypes, doc2.data) mustBe ("pstr-3", "1826", Json.parse("""{"data":"3"}"""))
       }
     }
