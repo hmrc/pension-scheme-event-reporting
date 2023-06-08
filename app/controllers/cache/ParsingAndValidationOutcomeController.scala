@@ -37,17 +37,6 @@ class ParsingAndValidationOutcomeController @Inject()(
 
   private val logger = Logger(classOf[ParsingAndValidationOutcomeController])
 
-  def post: Action[AnyContent] = Action.async {
-    implicit request =>
-      getId { id =>
-        request.body.asJson.map {
-          jsValue =>
-            repository.save(id, jsValue)
-              .map(_ => Created)
-        } getOrElse Future.successful(BadRequest)
-      }
-  }
-
   def get: Action[AnyContent] = Action.async {
     implicit request =>
       getId { id =>
@@ -57,6 +46,17 @@ class ParsingAndValidationOutcomeController @Inject()(
             Ok(_)
           } getOrElse NotFound
         }
+      }
+  }
+
+  def post: Action[AnyContent] = Action.async {
+    implicit request =>
+      getId { id =>
+        request.body.asJson.map {
+          jsValue =>
+            repository.save(id, jsValue)
+              .map(_ => Created)
+        } getOrElse Future.successful(BadRequest)
       }
   }
 

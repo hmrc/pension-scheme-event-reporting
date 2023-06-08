@@ -27,7 +27,7 @@ class ParsingAndValidationOutcomeRepository @Inject()(
                                              configuration: Configuration
                                            )(implicit val executionContext: ExecutionContext)
   extends CacheRepository(
-    collectionName = configuration.get[String](path = "mongodb.er-cache.parsing-and-validation-outcome.name"),
-    expireInSeconds = Some(configuration.get[Int]("mongodb.er-cache.parsing-and-validation-outcome.timeToLiveInSeconds")),
+    collectionName = configuration.get[String](path = "mongodb.parsing-and-validation-outcome.name"),
+    expireInSeconds = Some(configuration.get[Int]("mongodb.parsing-and-validation-outcome.timeToLiveInSeconds")),
     mongoComponent = mongoComponent
   )

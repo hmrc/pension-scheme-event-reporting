@@ -14,7 +14,10 @@ GET        /user-answers                                            controllers.
 POST       /user-answers                                            controllers.EventReportController.saveUserAnswers
 DELETE     /user-answers                                            controllers.EventReportController.removeUserAnswers
 
-
 POST       /email-response/:requestId/:email/:psaId                 controllers.EmailResponseController.sendAuditEvents(requestId: String, psaId: String, email: String)
-GET        /file-upload-response/get                controllers.FileUploadOutcomeController.get
-POST       /file-upload-response/save               controllers.FileUploadOutcomeController.save
+GET        /file-upload-response/get                                controllers.FileUploadOutcomeController.get
+POST       /file-upload-response/save                               controllers.FileUploadOutcomeController.save
+
+GET        /parsing-and-validation-outcome                          controllers.cache.ParsingAndValidationOutcomeController.get
+POST       /parsing-and-validation-outcome                          controllers.cache.ParsingAndValidationOutcomeController.post
+DELETE     /parsing-and-validation-outcome                          controllers.cache.ParsingAndValidationOutcomeController.delete
