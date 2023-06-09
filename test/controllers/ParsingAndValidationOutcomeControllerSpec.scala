@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package controllers.cache
+package controllers
 
 import akka.util.ByteString
-import controllers.cache.ParsingAndValidationOutcomeController.IdNotFoundFromAuth
+import ParsingAndValidationOutcomeController.IdNotFoundFromAuth
 import org.apache.commons.lang3.RandomUtils
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
 import org.mockito.Mockito._

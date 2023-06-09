@@ -18,6 +18,6 @@ POST       /email-response/:requestId/:email/:psaId                 controllers.
 GET        /file-upload-response/get                                controllers.FileUploadOutcomeController.get
 POST       /file-upload-response/save                               controllers.FileUploadOutcomeController.save
 
-GET        /parsing-and-validation-outcome                          controllers.cache.ParsingAndValidationOutcomeController.get
-POST       /parsing-and-validation-outcome                          controllers.cache.ParsingAndValidationOutcomeController.post
-DELETE     /parsing-and-validation-outcome                          controllers.cache.ParsingAndValidationOutcomeController.delete
+GET        /parsing-and-validation-outcome                          controllers.ParsingAndValidationOutcomeController.get
+POST       /parsing-and-validation-outcome                          controllers.ParsingAndValidationOutcomeController.post
+DELETE     /parsing-and-validation-outcome                          controllers.ParsingAndValidationOutcomeController.delete
