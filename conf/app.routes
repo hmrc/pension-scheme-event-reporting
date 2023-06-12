@@ -8,7 +8,7 @@ GET        /event-summary                                           controllers.
 POST       /compile                                                 controllers.EventReportController.compileEvent
 
 POST       /submit-event-declaration-report                         controllers.EventReportController.submitEventDeclarationReport
-POST       /submit-event20A-declaration-report                      controllers.EventReportController.submitEvent20ADeclarationReport
+POST       /submit-event20a-declaration-report                      controllers.EventReportController.submitEvent20ADeclarationReport
 
 GET        /user-answers                                            controllers.EventReportController.getUserAnswers
 POST       /user-answers                                            controllers.EventReportController.saveUserAnswers
