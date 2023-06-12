@@ -38,7 +38,6 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
 import repositories.{EventReportCacheRepository, GetEventCacheRepository, OverviewCacheRepository}
-import transformations.UserAnswersToETMP.{API1828, API1829}
 import uk.gov.hmrc.http._
 import utils.{GeneratorAPI1828, GeneratorAPI1829, JSONSchemaValidator, JsonFileReader}
 
@@ -356,19 +355,9 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   }
 
   "submitEventDeclarationReport" must {
-    "return valid response where there are changes in both declaration APIs" in {
-      val userAnswers: JsObject = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
-      val submitEvent20ADeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1829.transformToETMPData).get
-      val submitEventDeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1828.transformToETMPData).get
-
+    "return valid response where there are changes" in {
+      val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value
       when(mockEventReportConnector.submitEventDeclarationReport(
-        ArgumentMatchers.eq(pstr),
-        any())(any(), any(), any()))
-        .thenReturn(Future.successful(HttpResponse.apply(
-          status = OK,
-          json = payload,
-          headers = Map.empty)))
-      when(mockEventReportConnector.submitEvent20ADeclarationReport(
         ArgumentMatchers.eq(pstr),
         any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse.apply(
@@ -378,87 +367,26 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly).map { _ =>
         verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
           ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP))(any(), any(), any())
-        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
-          ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP))(any(), any(), any())
         assert(true)
       }
     }
-    "return valid response where there are changes in only API1828" in {
-      val userAnswers: JsObject = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
-      val submitEventDeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1828.transformToETMPData).get
-
-      when(mockEventReportConnector.submitEventDeclarationReport(
-        ArgumentMatchers.eq(pstr),
-        any())(any(), any(), any()))
-        .thenReturn(Future.successful(HttpResponse.apply(
-          status = OK,
-          json = payload,
-          headers = Map.empty)))
-      when(mockEventReportConnector.submitEvent20ADeclarationReport(
-        ArgumentMatchers.eq(pstr),
-        any())(any(), any(), any()))
-        .thenReturn(Future.failed(new BadRequestException("Test"))) //TODO: This needs to change when Sanjay gets back with actual error response
-      eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly).map { _ =>
-        verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
-          ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP))(any(), any(), any())
-        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr), any())(any(), any(), any())
-        assert(true)
-      }
-    }
-    "return valid response where there are changes in only API1829" in {
-      val userAnswers: JsObject = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
-      val submitEvent20ADeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1829.transformToETMPData).get
-
+    "return a 417 error response when there is nothing to submit" in {
+      val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value
       when(mockEventReportConnector.submitEventDeclarationReport(
         ArgumentMatchers.eq(pstr),
         any())(any(), any(), any()))
         .thenReturn(Future.failed(new BadRequestException("Test"))) //TODO: This needs to change when Sanjay gets back with actual error response
-      when(mockEventReportConnector.submitEvent20ADeclarationReport(
-        ArgumentMatchers.eq(pstr),
-        any())(any(), any(), any()))
-        .thenReturn(Future.successful(HttpResponse.apply(
-          status = OK,
-          json = payload,
-          headers = Map.empty)))
-      eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly).map { _ =>
-        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
-          ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP))(any(), any(), any())
-        verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr), any())(any(), any(), any())
-        assert(true)
-      }
-    }
-    "return a 500 error response when there is nothing to submit for either API" in {
-      val userAnswers: JsObject = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
-      val submitEventDeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1828.transformToETMPData).get
-      val submitEvent20ADeclarationReportSuccessResponseETMP: JsObject = userAnswers.transform(API1829.transformToETMPData).get
-
-      when(mockEventReportConnector.submitEventDeclarationReport(
-        ArgumentMatchers.eq(pstr),
-        any())(any(), any(), any()))
-        .thenReturn(Future.failed(new BadRequestException("Test"))) //TODO: This needs to change when Sanjay gets back with actual error response
-      when(mockEventReportConnector.submitEvent20ADeclarationReport(
-        ArgumentMatchers.eq(pstr),
-        any())(any(), any(), any()))
-        .thenReturn(Future.failed(new BadRequestException("Test2"))) //TODO: This needs to change when Sanjay gets back with actual error response
       recoverToExceptionIf[ExpectationFailedException] {
         eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly)
       } map { _ =>
-        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
-          ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP))(any(), any(), any())
         verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
           ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP))(any(), any(), any())
         assert(true)
       }
     }
-
     "return a Future failed when validation fails against the schema for API1828" in {
-
-      val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value
-
-      when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(SchemaPath1828), any()))
-        .thenReturn(Failure(new Exception("Message")))
-      when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(SchemaPath1829), any()))
-        .thenReturn(Success((): Unit))
+      val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value
+      when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(SchemaPath1828), any())).thenReturn(Failure(new Exception("Message")))
       when(mockEventReportConnector.submitEventDeclarationReport(
         ArgumentMatchers.eq(pstr),
         any())(any(), any(), any()))
@@ -466,36 +394,51 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
           status = OK,
           json = payload,
           headers = Map.empty)))
+
+      recoverToExceptionIf[Exception] {
+        eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly)
+      } map { _ =>
+        verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr), any())(any(), any(), any())
+        verify(mockJSONPayloadSchemaValidator, times(1)).validatePayload(ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP),
+          ArgumentMatchers.eq(SchemaPath1828), ArgumentMatchers.eq("submitEventDeclarationReport"))
+        assert(true)
+      }
+    }
+  }
+
+  "submitEvent20ADeclarationReport" must {
+    "return valid response where there are changes" in {
+      val (userAnswers, submitEvent20ADeclarationReportSuccessResponseETMP) = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value
       when(mockEventReportConnector.submitEvent20ADeclarationReport(
         ArgumentMatchers.eq(pstr),
         any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse.apply(
           status = OK,
-          json = submitEventDeclarationReportSuccessResponseETMP,
+          json = payload,
           headers = Map.empty)))
-
-      recoverToExceptionIf[Exception] {
-        eventReportService.submitEventDeclarationReport(pstr, userAnswers)
-      } map {
-        failure =>
-          failure.getMessage mustBe "Message"
+      eventReportService.submitEvent20ADeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly).map { _ =>
+        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
+          ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP))(any(), any(), any())
+        assert(true)
+      }
+    }
+    "return a 417 error response when there is nothing to submit" in {
+      val (userAnswers, submitEvent20ADeclarationReportSuccessResponseETMP) = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value
+      when(mockEventReportConnector.submitEvent20ADeclarationReport(
+        ArgumentMatchers.eq(pstr),
+        any())(any(), any(), any()))
+        .thenReturn(Future.failed(new BadRequestException("Test"))) //TODO: This needs to change when Sanjay gets back with actual error response
+      recoverToExceptionIf[ExpectationFailedException] {
+        eventReportService.submitEvent20ADeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly)
+      } map { _ =>
+        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
+          ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP))(any(), any(), any())
+        assert(true)
       }
     }
     "return a Future failed when validation fails against the schema for API1829" in {
-
-      val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value //TODO: Double check this test
-
-      when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(SchemaPath1828), any()))
-        .thenReturn(Success((): Unit))
-      when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(SchemaPath1829), any()))
-        .thenReturn(Failure(new Exception("Message")))
-      when(mockEventReportConnector.submitEventDeclarationReport(
-        ArgumentMatchers.eq(pstr),
-        any())(any(), any(), any()))
-        .thenReturn(Future.successful(HttpResponse.apply(
-          status = OK,
-          json = submitEventDeclarationReportSuccessResponseETMP,
-          headers = Map.empty)))
+      val (userAnswers, submitEvent20ADeclarationReportSuccessResponseETMP) = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value
+      when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(SchemaPath1829), any())).thenReturn(Failure(new Exception("Message")))
       when(mockEventReportConnector.submitEvent20ADeclarationReport(
         ArgumentMatchers.eq(pstr),
         any())(any(), any(), any()))
@@ -503,12 +446,13 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
           status = OK,
           json = payload,
           headers = Map.empty)))
-
       recoverToExceptionIf[Exception] {
-        eventReportService.submitEventDeclarationReport(pstr, userAnswers)
-      } map {
-        failure =>
-          failure.getMessage mustBe "Message"
+        eventReportService.submitEvent20ADeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly)
+      } map { _ =>
+        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr), any())(any(), any(), any())
+        verify(mockJSONPayloadSchemaValidator, times(1)).validatePayload(ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP),
+          ArgumentMatchers.eq(SchemaPath1829), ArgumentMatchers.eq("submitEvent20ADeclarationReport"))
+        assert(true)
       }
     }
   }

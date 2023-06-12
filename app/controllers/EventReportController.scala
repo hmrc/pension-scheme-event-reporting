@@ -175,6 +175,14 @@ class EventReportController @Inject()(
       }
   }
 
+  def submitEvent20ADeclarationReport: Action[AnyContent] = Action.async {
+    implicit request =>
+      withPstrAndBody { (pstr, userAnswersJson) =>
+        logger.debug(message = s"[Submit Event 20A Declaration Report - Incoming payload]$userAnswersJson")
+        eventReportService.submitEvent20ADeclarationReport(pstr, userAnswersJson).map(_ => NoContent)
+      }
+  }
+
   private def withPstrAndBody(block: (String, JsValue) => Future[Result])
                              (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 

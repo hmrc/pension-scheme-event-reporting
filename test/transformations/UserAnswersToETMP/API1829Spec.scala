@@ -36,12 +36,6 @@ class API1829Spec extends AnyFreeSpec with Matchers
           result.asOpt mustBe expectedResult.asOpt
       }
     }
-    "must not transform a randomly generated valid payload if the schemeMasterTrust node is not present" in {
-      val userAnswers: JsObject = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value._1
-      val result = userAnswers.validate(API1829.transformToETMPData)
-      val expectedResult = JsSuccess(Json.obj())
-      result.asOpt mustBe expectedResult.asOpt
-    }
   }
 }
 

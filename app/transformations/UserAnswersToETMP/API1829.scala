@@ -79,26 +79,22 @@ object API1829 extends Transformer {
       pspDec2Node <- optionalNode(Some("pspDeclaration2"))()
     } yield {
       val schemeMasterTrustDetailsNode = nodes((schemeMasterTrustStartDate ++ schemeMasterTrustCeaseDate).toSeq)
-      if (schemeMasterTrustDetailsNode.fields.isEmpty) {
-        Json.obj()
+      val er20ADetailsNodes = nodes((pstrNode ++ reportStartDateNode ++ reportEndDateNode).toSeq)
+      val erDeclarationDetailsNodes = nodes((submittedByNode ++ submittedIdNode).toSeq)
+      val psaDeclarationKeyAndNodes = ("psaDeclaration", nodes((psaDec1Node ++ psaDec2Node).toSeq))
+      val pspDeclarationKeyAndNodes = ("pspDeclaration", nodes((authorisedPsaIdNode ++ pspDec1Node ++ pspDec2Node).toSeq))
+      val psaOrPsp = if (authorisedPsaIdNode.nonEmpty) {
+        pspDeclarationKeyAndNodes
       } else {
-        val er20ADetailsNodes = nodes((pstrNode ++ reportStartDateNode ++ reportEndDateNode).toSeq)
-        val erDeclarationDetailsNodes = nodes((submittedByNode ++ submittedIdNode).toSeq)
-        val psaDeclarationKeyAndNodes = ("psaDeclaration", nodes((psaDec1Node ++ psaDec2Node).toSeq))
-        val pspDeclarationKeyAndNodes = ("pspDeclaration", nodes((authorisedPsaIdNode ++ pspDec1Node ++ pspDec2Node).toSeq))
-        val psaOrPsp = if (authorisedPsaIdNode.nonEmpty) {
-          pspDeclarationKeyAndNodes
-        } else {
-          psaDeclarationKeyAndNodes
-        }
-        Json.obj(
-          "eventReportDetails" -> Json.obj(
-            "er20aDetails" -> er20ADetailsNodes,
-            "schemeMasterTrustDetails" -> schemeMasterTrustDetailsNode,
-            "erDeclarationDetails" -> (erDeclarationDetailsNodes ++ Json.obj(psaOrPsp._1 -> psaOrPsp._2))
-          )
-        )
+        psaDeclarationKeyAndNodes
       }
+      Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "er20aDetails" -> er20ADetailsNodes,
+          "schemeMasterTrustDetails" -> schemeMasterTrustDetailsNode,
+          "erDeclarationDetails" -> (erDeclarationDetailsNodes ++ Json.obj(psaOrPsp._1 -> psaOrPsp._2))
+        )
+      )
     }
   }
 }

@@ -175,38 +175,20 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
   }
 
-//  "submitEvent20ADeclarationReport" must {
-//    "return OK when valid response" in {
-//      val controller = application.injector.instanceOf[EventReportController]
-//
-//      when(mockEventReportService.submitEvent20ADeclarationReport(any(), any())(any(), any(), any()))
-//        .thenReturn(Future.successful(submitEvent20ADeclarationReportSuccessResponse))
-//      when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
-//        .thenReturn(Success(()))
-//
-//      val result = controller.submitEvent20ADeclarationReport(fakeRequest.withJsonBody(submitEvent20ADeclarationReportSuccessResponse).withHeaders(
-//        newHeaders = "pstr" -> pstr))
-//
-//      status(result) mustBe OK
-//    }
-//
-//    "throw validation exception when validation errors response" in {
-//      val controller = application.injector.instanceOf[EventReportController]
-//
-//      when(mockEventReportService.submitEvent20ADeclarationReport(any(), any())(any(), any(), any()))
-//        .thenReturn(Future.successful(submitEvent20ADeclarationReportSuccessResponse))
-//      when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
-//        .thenReturn(Failure(EventReportValidationFailureException("Test")))
-//
-//      recoverToExceptionIf[EventReportValidationFailureException] {
-//        controller.submitEvent20ADeclarationReport(fakeRequest.withJsonBody(submitEvent20ADeclarationReportSuccessResponse).withHeaders(
-//          newHeaders = "pstr" -> pstr))
-//      } map {
-//        failure =>
-//          failure.getMessage mustBe "Test"
-//      }
-//    }
-//  }
+  "submitEvent20ADeclarationReport" must {
+    "return NoContent when valid response" in {
+      when(mockEventReportService.submitEvent20ADeclarationReport(any(), any())(any(), any(), any()))
+        .thenReturn(Future.successful(submitEvent20ADeclarationReportSuccessResponse))
+      when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
+        .thenReturn(Success(()))
+
+      val result = controller.submitEvent20ADeclarationReport(fakeRequest.withJsonBody(submitEvent20ADeclarationReportSuccessResponse).withHeaders(
+        newHeaders = "pstr" -> pstr))
+
+      status(result) mustBe NO_CONTENT
+    }
+
+  }
 
 
   "getVersions" must {
@@ -534,7 +516,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   "compileEvent" must {
     "return 204 No Content when valid response" in {
       when(mockAuthConnector.authorise[(Option[String] ~ Enrolments)](any(), any())(any(), any())) thenReturn
-        Future.successful(new ~(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"), enrolments))
+        Future.successful(new~(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"), enrolments))
       when(mockEventReportService.compileEventReport(any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(NoContent))
 
