@@ -21,7 +21,7 @@ import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
 import models.ERVersion
 import models.enumeration.ApiType._
-import models.enumeration.EventType.{Event1, Event2, Event22, Event23, Event24, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
+import models.enumeration.EventType.{Event1, Event2, Event20A, Event22, Event23, Event24, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
 import models.enumeration.{ApiType, EventType}
 import play.api.Logging
 import play.api.http.Status.NOT_IMPLEMENTED
@@ -30,7 +30,7 @@ import play.api.libs.json._
 import play.api.mvc.Results._
 import play.api.mvc.{RequestHeader, Result}
 import repositories.{EventReportCacheRepository, GetEventCacheRepository, OverviewCacheRepository}
-import transformations.ETMPToFrontEnd.{EventOneReport, MemberEventReport}
+import transformations.ETMPToFrontEnd.{Event20AReport, EventOneReport, MemberEventReport}
 import transformations.UserAnswersToETMP.{API1826, API1827, API1830}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
@@ -52,11 +52,11 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   private case class APIProcessingInfo(apiType: ApiType,
                                        readsForTransformation: Reads[JsObject],
                                        schemaPath: String,
-                                       connectToAPI: (String, JsValue) => Future[HttpResponse]
+                                       connectToAPI: (String, String, JsValue) => Future[HttpResponse]
                                       )
 
   private def apiProcessingInfo(eventType: EventType, pstr: String)
-                               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Option[APIProcessingInfo] = {
+                               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Option[APIProcessingInfo] = {
     EventType.postApiTypeByEventType(eventType) flatMap {
       case Api1826 =>
         Some(APIProcessingInfo(Api1826, API1826.transformToETMPData, SchemaPath1826, eventReportConnector.compileEventReportSummary))
@@ -91,8 +91,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def getUserAnswers(pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     eventReportCacheRepository.getUserAnswers(pstr, None)
 
-  def compileEventReport(pstr: String, eventType: EventType)
-                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Result] = {
+  def compileEventReport(psaPspId: String, pstr: String, eventType: EventType)
+                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
         eventReportCacheRepository.getUserAnswers(pstr, Some(apiType)).flatMap {
@@ -103,7 +103,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                 for {
                   transformedData <- Future.fromTry(toTry(fullData.validate(reads)))
                   _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, schemaPath, apiType.toString))
-                  response <- connectToAPI(pstr, transformedData)
+                  response <- connectToAPI(psaPspId, pstr, transformedData)
                 } yield {
                   response.status match {
                     case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
@@ -125,6 +125,10 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     val api1832Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
     eventType match {
       case Event1 => data.validate(EventOneReport.rds1833Api) match {
+        case JsSuccess(transformedData, _) => Some(transformedData)
+        case _ => None
+      }
+      case Event20A => data.validate(Event20AReport.rds1831Api) match {
         case JsSuccess(transformedData, _) => Some(transformedData)
         case _ => None
       }
@@ -189,7 +193,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   }
 
   def submitEvent20ADeclarationReport(pstr: String, data: JsValue)
-                                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
+                                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[JsValue] = {
     eventReportConnector.submitEvent20ADeclarationReport(pstr, data).map(_.json)
   }
 
