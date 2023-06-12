@@ -156,7 +156,7 @@ object API1830 extends Transformer {
       (pathToEvent \ Symbol("eventType")).json.put(JsString(s"Event$Event8A")) and
         readsIndividualMemberDetails and
         (pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.copyFrom(readsPaymentTypeEvent8A) and
-        (pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionEvent8A.orElse((Reads.pure(JsString("N/A"))))) and
+        ((pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionEvent8A) orElse doNothing) and
         (pathPaymentDetails \ Symbol("amountLumpSum")).json.copyFrom((pathLumpSumAmountAndDateDetails \ Symbol("lumpSumAmount")).json.pick) and
         (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathLumpSumAmountAndDateDetails \ Symbol("lumpSumDate")).json.pick) and
         ((pathPaymentDetails \ Symbol("freeText")).json.copyFrom((__ \ Symbol("typeOfProtectionReference")).json.pick) orElse doNothing) and
