@@ -484,16 +484,14 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
       ),
       "taxYear" -> map("taxYear")
     )
+
     val keysAndValuesETMP: JsObject = if (map("paymentTypeEvent8A") == "paymentOfAStandAloneLumpSum") {
       Json.obj(
         "typeOfProtection" -> typeOfProtectionETMPEvent8A(map("typeOfProtectionEvent8")),
         "freeText" -> map("typeOfProtectionReference")
       )
     } else {
-      Json.obj(
-        "typeOfProtection" -> "N/A",
-        "freeText" -> "N/A"
-      )
+      Json.obj()
     }
 
     val expected = Json.obj("memberEventsDetails" -> Json.obj(

@@ -88,7 +88,7 @@ object API1830 extends Transformer {
         (pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.copyFrom(readsTypeOfBenefitEvent3) and
         (pathPaymentDetails \ Symbol("amountBenefit")).json.copyFrom((__ \ Symbol("paymentDetails") \ Symbol("amountPaid")).json.pick) and
         (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((__ \ Symbol("paymentDetails") \ Symbol("eventDate")).json.pick) and
-        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom(readsFreeTextEvent3.orElse(Reads.pure(JsString("N/A")))) and
+        ((pathPaymentDetails \ Symbol("freeText")).json.copyFrom((pathBenefitType \ Symbol("freeText")).json.pick) orElse doNothing) and
         pathMemberStatus.json.put(memberStatusNew)
       ).reduce
   }
@@ -156,10 +156,10 @@ object API1830 extends Transformer {
       (pathToEvent \ Symbol("eventType")).json.put(JsString(s"Event$Event8A")) and
         readsIndividualMemberDetails and
         (pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.copyFrom(readsPaymentTypeEvent8A) and
-        (pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionEvent8A.orElse((Reads.pure(JsString("N/A"))))) and
+        ((pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionEvent8A) orElse doNothing) and
         (pathPaymentDetails \ Symbol("amountLumpSum")).json.copyFrom((pathLumpSumAmountAndDateDetails \ Symbol("lumpSumAmount")).json.pick) and
         (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathLumpSumAmountAndDateDetails \ Symbol("lumpSumDate")).json.pick) and
-        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom(readsTypeOfProtectionReferenceEvent8A.orElse(Reads.pure(JsString("N/A")))) and
+        ((pathPaymentDetails \ Symbol("freeText")).json.copyFrom((__ \ Symbol("typeOfProtectionReference")).json.pick) orElse doNothing) and
         pathMemberStatus.json.put(memberStatusNew)
      ).reduce
   }
@@ -209,16 +209,6 @@ object API1830 extends Transformer {
 
   private val readsPaymentTypeEvent8A: Reads[JsString] = (__ \ Symbol("paymentType")).json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString(event8APaymentTypeConversion(str)))
-    case _ => fail[JsString]
-  }
-
-  private val readsTypeOfProtectionReferenceEvent8A: Reads[JsString] = (__ \ Symbol("typeOfProtectionReference")).json.pick.flatMap {
-    case JsString(str) => Reads.pure(JsString(str))
-    case _ => fail[JsString]
-  }
-
-  private val readsFreeTextEvent3: Reads[JsString] = (pathBenefitType \ Symbol("freeText")).json.pick.flatMap {
-    case JsString(str) => Reads.pure(JsString(str))
     case _ => fail[JsString]
   }
 
