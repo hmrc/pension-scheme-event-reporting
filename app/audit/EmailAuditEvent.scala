@@ -21,7 +21,7 @@ import play.api.libs.json.{JsObject, Json}
 
 case class EmailAuditEvent(psaOrPspId: String, submittedBy: String, emailAddress: String, event: Event, requestId: String) extends AuditEvent {
 
-  override def auditType: String = "emailEvent"
+  override def auditType: String = "EventReportingEmailEvent"
 
   override def details: JsObject = {
     Json.obj(fields = "email-initiation-request-id" -> requestId, "emailAddress" -> emailAddress,

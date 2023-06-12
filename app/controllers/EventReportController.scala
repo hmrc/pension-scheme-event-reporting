@@ -18,11 +18,12 @@ package controllers
 
 import models.enumeration.EventType
 import play.api.Logging
+import uk.gov.hmrc.auth.core.retrieve.~
 import play.api.libs.json._
 import play.api.mvc._
 import services.EventReportService
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
-import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, Enrolment}
+import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, Enrolment, Enrolments}
 import uk.gov.hmrc.http.{UnauthorizedException, Request => _, _}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import utils.JSONSchemaValidator
@@ -97,15 +98,6 @@ class EventReportController @Inject()(
       }
   }
 
-  def compileEvent: Action[AnyContent] = Action.async {
-    implicit request =>
-      withPstrAndEventType { (pstr, et) =>
-        EventType.getEventType(et) match {
-          case Some(eventType) => eventReportService.compileEventReport(pstr, eventType)
-          case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
-        }
-      }
-  }
 
   def getEvent: Action[AnyContent] = Action.async {
     implicit request =>
@@ -165,6 +157,17 @@ class EventReportController @Inject()(
       withAuthAndOverviewParameters { (pstr, reportType, startDate, endDate) =>
         eventReportService.getOverview(pstr, reportType, startDate, endDate).map {
           data => Ok(data)
+        }
+      }
+  }
+
+
+  def compileEvent: Action[AnyContent] = Action.async {
+    implicit request =>
+      withPstrPsaPspIDAndEventType { (psaPspId, pstr, et) =>
+        EventType.getEventType(et) match {
+          case Some(eventType) => eventReportService.compileEventReport(psaPspId, pstr, eventType)
+          case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
         }
       }
   }
@@ -254,22 +257,46 @@ class EventReportController @Inject()(
     }
   }
 
-  private def withPstrAndEventType(block: (String, String) => Future[Result])
+
+  private def getPsaId(enrolments: Enrolments): Option[String] =
+    enrolments
+      .getEnrolment(key = "HMRC-PODS-ORG")
+      .flatMap(_.getIdentifier("PSAID"))
+      .map(_.value)
+
+  private def getPspId(enrolments: Enrolments): Option[String] =
+    enrolments
+      .getEnrolment(key = "HMRC-PODSPP-ORG")
+      .flatMap(_.getIdentifier("PSPID"))
+      .map(_.value)
+
+  private def getPsaPspId(enrolments: Enrolments): Option[String] =
+    getPsaId(enrolments) match {
+      case id@Some(_) => id
+      case _ =>
+        getPspId(enrolments) match {
+          case id@Some(_) => id
+          case _ => None
+        }
+    }
+
+  private def withPstrPsaPspIDAndEventType(block: (String, String, String) => Future[Result])
                                   (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
 
-    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
-      case Some(_) =>
+    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId and Retrievals.allEnrolments) {
+      case Some(_) ~ enrolments =>
         (
+          getPsaPspId(enrolments),
           request.headers.get("pstr"),
           request.headers.get("eventType")
         ) match {
-          case (Some(pstr), Some(et)) =>
-            block(pstr, et)
-          case (pstr, et) =>
+          case (Some(psaPspId), Some(pstr), Some(et)) =>
+            block(psaPspId, pstr, et)
+          case (psa, pstr, et) =>
             Future.failed(new BadRequestException(
-              s"Bad Request without pstr ($pstr) or eventType ($et)"))
+              s"Bad Request without psaPspId $psa, pstr ($pstr) or eventType ($et)"))
         }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))

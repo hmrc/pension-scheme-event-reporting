@@ -53,6 +53,7 @@ class AuditServiceImpl @Inject()(
                                 (implicit rh: RequestHeader, ec: ExecutionContext): Unit = {
 
     logger.info(s"[AuditService][sendEvent] sending ${event.auditType}")
+
     val result: Future[AuditResult] = connector.sendExtendedEvent(
       ExtendedDataEvent(
         auditSource = config.appName,

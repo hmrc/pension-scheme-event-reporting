@@ -32,7 +32,7 @@ import play.api.libs.json.{JsArray, JsString, Json}
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
-import services.SubmitEventDeclarationAuditService
+import services.PostToAPIAuditService
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.test.HttpClientSupport
 import utils.{JsonFileReader, UnrecognisedHttpResponseException, WireMockHelper}
@@ -53,7 +53,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
   private val mockHeaderUtils = mock[HeaderUtils]
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
   private val mockOverviewCacheRepository = mock[OverviewCacheRepository]
-  private val mockSubmitEventDeclarationAuditService = mock[SubmitEventDeclarationAuditService]
+  private val mockPostToAPIAuditService = mock[PostToAPIAuditService]
   private lazy val connector: EventReportConnector = injector.instanceOf[EventReportConnector]
 
 
@@ -63,7 +63,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       bind[HeaderUtils].toInstance(mockHeaderUtils),
       bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
       bind[OverviewCacheRepository].toInstance(mockOverviewCacheRepository),
-      bind[SubmitEventDeclarationAuditService].toInstance(mockSubmitEventDeclarationAuditService)
+      bind[PostToAPIAuditService].toInstance(mockPostToAPIAuditService)
     )
 
   private val pfSuccess: PartialFunction[Try[HttpResponse], Unit] = new PartialFunction[Try[HttpResponse], Unit] {
@@ -74,9 +74,9 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
 
 
   override def beforeEach(): Unit = {
-    reset(mockSubmitEventDeclarationAuditService)
+    reset(mockPostToAPIAuditService)
     when(mockHeaderUtils.getCorrelationId).thenReturn(testCorrelationId)
-    when(mockSubmitEventDeclarationAuditService.sendSubmitEventDeclarationAuditEvent(any(), any())(any(), any()))
+    when(mockPostToAPIAuditService.sendSubmitEventDeclarationAuditEvent(any(), any())(any(), any()))
       .thenReturn(pfSuccess)
     super.beforeEach()
   }
@@ -116,7 +116,9 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             ok
           )
       )
-      connector.compileEventReportSummary(pstr, data) map {
+      connector.compileEventReportSummary(psaId, pstr, data) map {
+        verify(mockPostToAPIAuditService, times(1))
+          .sendCompileEventDeclarationAuditEvent(any(), ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data))(any(), any())
         _.status mustBe OK
       }
     }
@@ -131,7 +133,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           )
       )
       recoverToExceptionIf[BadRequestException] {
-        connector.compileEventReportSummary(pstr, data)
+        connector.compileEventReportSummary(psaId, pstr, data)
       } map {
         _.responseCode mustEqual BAD_REQUEST
       }
@@ -147,7 +149,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           )
       )
       recoverToExceptionIf[BadRequestException] {
-        connector.compileEventReportSummary(pstr, data)
+        connector.compileEventReportSummary(psaId, pstr, data)
       } map {
         _.responseCode mustEqual BAD_REQUEST
       }
@@ -164,7 +166,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       )
 
       recoverToExceptionIf[NotFoundException] {
-        connector.compileEventReportSummary(pstr, data)
+        connector.compileEventReportSummary(psaId, pstr, data)
       } map {
         _.responseCode mustEqual NOT_FOUND
       }
@@ -179,7 +181,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             serverError()
           )
       )
-      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventReportSummary(pstr, data)) map {
+      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventReportSummary(psaId, pstr, data)) map {
         _.statusCode mustBe INTERNAL_SERVER_ERROR
       }
     }
@@ -193,7 +195,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             forbidden()
           )
       )
-      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventReportSummary(pstr, data)) map {
+      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventReportSummary(psaId, pstr, data)) map {
         _.statusCode mustBe FORBIDDEN
       }
     }
@@ -207,7 +209,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             noContent()
           )
       )
-      recoverToExceptionIf[UnrecognisedHttpResponseException](connector.compileEventReportSummary(pstr, data)) map { response =>
+      recoverToExceptionIf[UnrecognisedHttpResponseException](connector.compileEventReportSummary(psaId, pstr, data)) map { response =>
         response.getMessage must include("204")
       }
     }
@@ -225,7 +227,9 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             ok
           )
       )
-      connector.compileEventOneReport(pstr, data) map {
+      connector.compileEventOneReport(psaId, pstr, data) map {
+        verify(mockPostToAPIAuditService, times(1))
+          .sendCompileEventDeclarationAuditEvent(any(), ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data))(any(), any())
         _.status mustBe OK
       }
     }
@@ -240,7 +244,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           )
       )
       recoverToExceptionIf[BadRequestException] {
-        connector.compileEventOneReport(pstr, data)
+        connector.compileEventOneReport(psaId, pstr, data)
       } map {
         _.responseCode mustEqual BAD_REQUEST
       }
@@ -256,7 +260,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           )
       )
       recoverToExceptionIf[BadRequestException] {
-        connector.compileEventOneReport(pstr, data)
+        connector.compileEventOneReport(psaId, pstr, data)
       } map {
         _.responseCode mustEqual BAD_REQUEST
       }
@@ -273,7 +277,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       )
 
       recoverToExceptionIf[NotFoundException] {
-        connector.compileEventOneReport(pstr, data)
+        connector.compileEventOneReport(psaId, pstr, data)
       } map {
         _.responseCode mustEqual NOT_FOUND
       }
@@ -288,7 +292,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             serverError()
           )
       )
-      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventOneReport(pstr, data)) map {
+      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventOneReport(psaId, pstr, data)) map {
         _.statusCode mustBe INTERNAL_SERVER_ERROR
       }
     }
@@ -302,7 +306,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             forbidden()
           )
       )
-      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventOneReport(pstr, data)) map {
+      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventOneReport(psaId, pstr, data)) map {
         _.statusCode mustBe FORBIDDEN
       }
     }
@@ -316,7 +320,119 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             noContent()
           )
       )
-      recoverToExceptionIf[UnrecognisedHttpResponseException](connector.compileEventOneReport(pstr, data)) map { response =>
+      recoverToExceptionIf[UnrecognisedHttpResponseException](connector.compileEventOneReport(psaId, pstr, data)) map { response =>
+        response.getMessage must include("204")
+      }
+    }
+  }
+
+
+  "compileMemberEventReport" must {
+
+    "return successfully when ETMP has returned OK" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileMemberEventReportUrl))
+          .withHeader("Content-Type", equalTo("application/json"))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            ok
+          )
+      )
+      connector.compileMemberEventReport(psaId, pstr, data) map {
+        verify(mockPostToAPIAuditService, times(1))
+          .sendCompileEventDeclarationAuditEvent(any(), ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data))(any(), any())
+        _.status mustBe OK
+      }
+    }
+
+    "return BAD REQUEST when ETMP has returned BadRequestException" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileMemberEventReportUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            badRequest().withBody("INVALID_PAYLOAD")
+          )
+      )
+      recoverToExceptionIf[BadRequestException] {
+        connector.compileMemberEventReport(psaId, pstr, data)
+      } map {
+        _.responseCode mustEqual BAD_REQUEST
+      }
+    }
+
+    "return BAD REQUEST when ETMP has returned BadRequestException without Invalid " in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileMemberEventReportUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            badRequest()
+          )
+      )
+      recoverToExceptionIf[BadRequestException] {
+        connector.compileMemberEventReport(psaId, pstr, data)
+      } map {
+        _.responseCode mustEqual BAD_REQUEST
+      }
+    }
+
+    "return NOT FOUND when ETMP has returned NotFoundException" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileMemberEventReportUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            notFound()
+          )
+      )
+
+      recoverToExceptionIf[NotFoundException] {
+        connector.compileMemberEventReport(psaId, pstr, data)
+      } map {
+        _.responseCode mustEqual NOT_FOUND
+      }
+    }
+
+    "return Upstream5xxResponse when ETMP has returned Internal Server Error" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileMemberEventReportUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            serverError()
+          )
+      )
+      recoverToExceptionIf[UpstreamErrorResponse](connector.compileMemberEventReport(psaId, pstr, data)) map {
+        _.statusCode mustBe INTERNAL_SERVER_ERROR
+      }
+    }
+
+    "return 4xx when ETMP has returned Upstream error response" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileMemberEventReportUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            forbidden()
+          )
+      )
+      recoverToExceptionIf[UpstreamErrorResponse](connector.compileMemberEventReport(psaId, pstr, data)) map {
+        _.statusCode mustBe FORBIDDEN
+      }
+    }
+
+    "return 204 when ETMP has returned Unrecognized http response" in {
+      val data = Json.obj(fields = "Id" -> "value")
+      server.stubFor(
+        post(urlEqualTo(compileMemberEventReportUrl))
+          .withRequestBody(equalTo(Json.stringify(data)))
+          .willReturn(
+            noContent()
+          )
+      )
+      recoverToExceptionIf[UnrecognisedHttpResponseException](connector.compileMemberEventReport(psaId, pstr, data)) map { response =>
         response.getMessage must include("204")
       }
     }
@@ -679,7 +795,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       )
 
       connector.submitEventDeclarationReport(pstr, data) map { response =>
-        verify(mockSubmitEventDeclarationAuditService, times(1))
+        verify(mockPostToAPIAuditService, times(1))
           .sendSubmitEventDeclarationAuditEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data))(any(), any())
         response.status mustBe OK
       }
@@ -695,7 +811,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           )
       )
       recoverToExceptionIf[UpstreamErrorResponse](connector.submitEventDeclarationReport(pstr, data)) map { response =>
-        verify(mockSubmitEventDeclarationAuditService, times(1))
+        verify(mockPostToAPIAuditService, times(1))
           .sendSubmitEventDeclarationAuditEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data))(any(), any())
         response.statusCode mustBe INTERNAL_SERVER_ERROR
       }
@@ -811,114 +927,6 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
 
   }
 
-  "compileMemberEventReport" must {
-
-    "return successfully when ETMP has returned OK" in {
-      val data = Json.obj(fields = "Id" -> "value")
-      server.stubFor(
-        post(urlEqualTo(compileMemberEventReportUrl))
-          .withHeader("Content-Type", equalTo("application/json"))
-          .withRequestBody(equalTo(Json.stringify(data)))
-          .willReturn(
-            ok
-          )
-      )
-      connector.compileMemberEventReport(pstr, data) map {
-        _.status mustBe OK
-      }
-    }
-
-    "return BAD REQUEST when ETMP has returned BadRequestException" in {
-      val data = Json.obj(fields = "Id" -> "value")
-      server.stubFor(
-        post(urlEqualTo(compileMemberEventReportUrl))
-          .withRequestBody(equalTo(Json.stringify(data)))
-          .willReturn(
-            badRequest().withBody("INVALID_PAYLOAD")
-          )
-      )
-      recoverToExceptionIf[BadRequestException] {
-        connector.compileMemberEventReport(pstr, data)
-      } map {
-        _.responseCode mustEqual BAD_REQUEST
-      }
-    }
-
-    "return BAD REQUEST when ETMP has returned BadRequestException without Invalid " in {
-      val data = Json.obj(fields = "Id" -> "value")
-      server.stubFor(
-        post(urlEqualTo(compileMemberEventReportUrl))
-          .withRequestBody(equalTo(Json.stringify(data)))
-          .willReturn(
-            badRequest()
-          )
-      )
-      recoverToExceptionIf[BadRequestException] {
-        connector.compileMemberEventReport(pstr, data)
-      } map {
-        _.responseCode mustEqual BAD_REQUEST
-      }
-    }
-
-    "return NOT FOUND when ETMP has returned NotFoundException" in {
-      val data = Json.obj(fields = "Id" -> "value")
-      server.stubFor(
-        post(urlEqualTo(compileMemberEventReportUrl))
-          .withRequestBody(equalTo(Json.stringify(data)))
-          .willReturn(
-            notFound()
-          )
-      )
-
-      recoverToExceptionIf[NotFoundException] {
-        connector.compileMemberEventReport(pstr, data)
-      } map {
-        _.responseCode mustEqual NOT_FOUND
-      }
-    }
-
-    "return Upstream5xxResponse when ETMP has returned Internal Server Error" in {
-      val data = Json.obj(fields = "Id" -> "value")
-      server.stubFor(
-        post(urlEqualTo(compileMemberEventReportUrl))
-          .withRequestBody(equalTo(Json.stringify(data)))
-          .willReturn(
-            serverError()
-          )
-      )
-      recoverToExceptionIf[UpstreamErrorResponse](connector.compileMemberEventReport(pstr, data)) map {
-        _.statusCode mustBe INTERNAL_SERVER_ERROR
-      }
-    }
-
-    "return 4xx when ETMP has returned Upstream error response" in {
-      val data = Json.obj(fields = "Id" -> "value")
-      server.stubFor(
-        post(urlEqualTo(compileMemberEventReportUrl))
-          .withRequestBody(equalTo(Json.stringify(data)))
-          .willReturn(
-            forbidden()
-          )
-      )
-      recoverToExceptionIf[UpstreamErrorResponse](connector.compileMemberEventReport(pstr, data)) map {
-        _.statusCode mustBe FORBIDDEN
-      }
-    }
-
-    "return 204 when ETMP has returned Unrecognized http response" in {
-      val data = Json.obj(fields = "Id" -> "value")
-      server.stubFor(
-        post(urlEqualTo(compileMemberEventReportUrl))
-          .withRequestBody(equalTo(Json.stringify(data)))
-          .willReturn(
-            noContent()
-          )
-      )
-      recoverToExceptionIf[UnrecognisedHttpResponseException](connector.compileMemberEventReport(pstr, data)) map { response =>
-        response.getMessage must include("204")
-      }
-    }
-  }
 
   "submitEvent20ADeclarationReport" must {
 
@@ -933,6 +941,8 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           )
       )
       connector.submitEvent20ADeclarationReport(pstr, data) map {
+        verify(mockPostToAPIAuditService, times(1))
+          .sendSubmitEventDeclarationAuditEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data))(any(), any())
         _.status mustBe OK
       }
     }
@@ -1032,6 +1042,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
 }
 
 object EventReportConnectorSpec {
+  private val psaId = "testpsa"
   private val pstr = "test-pstr"
   private val reportTypeER = "ER"
   private val fromDt = "2022-04-06"
