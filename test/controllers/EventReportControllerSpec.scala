@@ -467,7 +467,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     "return 200 OK" in {
 
       when(mockEventReportService.removeUserAnswers(
-        ArgumentMatchers.eq(externalId),
         ArgumentMatchers.eq(pstr)
       )(any()))
         .thenReturn(Future.successful(()))

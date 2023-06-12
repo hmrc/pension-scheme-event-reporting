@@ -148,11 +148,11 @@ class EventReportCacheRepository @Inject()(
     }
   }
 
-  def removeAllOnSignOut(pstr: String, externalId: String)(implicit ec: ExecutionContext): Future[Unit] = {
-    collection.deleteMany(filterByKeys(Map("pstr" -> pstr, "externalId" -> externalId))).toFuture().map { result =>
-      logger.info(s"Removing all data from collection associated with PSTR: $pstr ExternalId: $externalId")
+  def removeAllOnSignOut(externalId: String)(implicit ec: ExecutionContext): Future[Unit] = {
+    collection.deleteMany(filterByKeys(Map("externalId" -> externalId))).toFuture().map { result =>
+      logger.info(s"Removing all data from collection associated with ExternalId: $externalId")
       if (!result.wasAcknowledged) {
-        logger.warn(s"Issue removing all data from collection associated with PSTR: $pstr ExternalId: $externalId")
+        logger.warn(s"Issue removing all data from collection associated with ExternalId: $externalId")
       }
       ()
     }

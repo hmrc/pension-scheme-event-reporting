@@ -50,7 +50,7 @@ class EventReportController @Inject()(
   def removeUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
       withPstrAndExternalId { case (pstr, externalId) => {
-        eventReportService.removeUserAnswers(pstr, externalId)
+        eventReportService.removeUserAnswers(externalId)
         Future.successful(Ok)
       }
     }
