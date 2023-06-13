@@ -370,6 +370,21 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         assert(true)
       }
     }
+    "return valid an invalid response where an 1829 payload is passed" in {
+      val userAnswers= super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
+      when(mockEventReportConnector.submitEventDeclarationReport(
+        ArgumentMatchers.eq(pstr),
+        any())(any(), any(), any()))
+        .thenReturn(Future.successful(HttpResponse.apply(
+          status = OK,
+          json = payload,
+          headers = Map.empty)))
+      eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly).map { _ =>
+        verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
+          any())(any(), any(), any())
+        assert(true)
+      }
+    }
     "return a 417 error response when there is nothing to submit" in {
       val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value
       when(mockEventReportConnector.submitEventDeclarationReport(
@@ -452,6 +467,21 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr), any())(any(), any(), any())
         verify(mockJSONPayloadSchemaValidator, times(1)).validatePayload(ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP),
           ArgumentMatchers.eq(SchemaPath1829), ArgumentMatchers.eq("submitEvent20ADeclarationReport"))
+        assert(true)
+      }
+    }
+    "return valid an invalid response where an 1828 payload is passed" in {
+      val userAnswers = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value._1
+      when(mockEventReportConnector.submitEvent20ADeclarationReport(
+        ArgumentMatchers.eq(pstr),
+        any())(any(), any(), any()))
+        .thenReturn(Future.successful(HttpResponse.apply(
+          status = OK,
+          json = payload,
+          headers = Map.empty)))
+      eventReportService.submitEvent20ADeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly).map { _ =>
+        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
+          any())(any(), any(), any())
         assert(true)
       }
     }
