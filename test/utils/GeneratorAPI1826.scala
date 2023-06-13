@@ -402,4 +402,64 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
       Tuple2(fullUA, fullExpectedResult)
     }
   }
+  
+  def generateUserAnswersAndPOSTBodyEvent20: Gen[(JsObject, JsObject)] = {
+    for {
+      whatChange <- Gen.oneOf(Seq("becameOccupationalScheme", "ceasedOccupationalScheme"))
+      taxYear <- taxYearGenerator
+    } yield {
+
+      def event20DetailsUA(whatChange: String): JsObject = {
+        whatChange match {
+          case "becameOccupationalScheme" =>
+            Json.obj(
+              "whatChange" -> whatChange,
+              "becameDate" -> Json.obj(
+                "date" -> s"$taxYear-04-06"
+              )
+            )
+          case _ =>
+            Json.obj(
+              "whatChange" -> whatChange,
+              "ceasedDate" -> Json.obj(
+                "date" -> s"$taxYear-04-06"
+              )
+            )
+        }
+      }
+
+      def event20DetailsExpected(whatChange: String): JsObject = {
+        whatChange match {
+          case "becameOccupationalScheme" =>
+            Json.obj(
+                "startDateOfOccScheme" -> s"$taxYear-04-06",
+              )
+          case _ =>
+            Json.obj(
+                "stopDateOfOccScheme" -> s"$taxYear-04-06"
+              )
+        }
+      }
+
+      val ua = Json.obj(
+        "event20" -> event20DetailsUA(whatChange),
+        "taxYear" -> taxYear
+      )
+      val expected = Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "reportStartDate" -> s"$taxYear-04-06",
+          "reportEndDate" -> s"${taxYear.toInt + 1}-04-05"
+        ),
+        "eventDetails" -> Json.obj(
+          "event20" -> Json.arr(
+            Json.obj(
+              "recordVersion" -> "001",
+              "occSchemeDetails" -> event20DetailsExpected(whatChange)
+            )
+          )
+        )
+      )
+      Tuple2(ua, expected)
+    }
+  }
 }

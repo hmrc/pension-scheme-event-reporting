@@ -98,6 +98,14 @@ class API1826Spec extends AnyFreeSpec with Matchers
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
           val result = userAnswers.validate(API1826.transformToETMPData)
           result.asOpt mustBe Some(expectedResponse)
+
+    "must transform a randomly generated valid payload correctly for Event 20" in {
+      forAll(generateUserAnswersAndPOSTBodyEvent20) {
+        case (userAnswers: JsObject, expectedResponse: JsObject) =>
+          val result = userAnswers.validate(API1826.transformToETMPData)
+          val expectedResult = JsSuccess(expectedResponse)
+          result mustBe expectedResult
+
       }
     }
 
@@ -109,9 +117,10 @@ class API1826Spec extends AnyFreeSpec with Matchers
       val ev13 = generateUserAnswersAndPOSTBodyEvent13.sample.get
       val ev14 = generateUserAnswersAndPOSTBodyEvent14.sample.get
       val ev18 = generateUserAnswersAndPOSTBodyEvent18.sample.get
+      val ev20 = generateUserAnswersAndPOSTBodyEvent20.sample.get
       val windUp = generateUserAnswersAndPOSTBodyWindUp.sample.get
 
-      val ua = ev10._1 ++ ev11._1 ++ ev12._1 ++ ev13._1 ++ ev14._1 ++ ev18._1 ++ windUp._1
+      val ua = ev10._1 ++ ev11._1 ++ ev12._1 ++ ev13._1 ++ ev14._1 ++ ev18._1 ++ ev20._1 ++ windUp._1
       val result = ua.validate(API1826.transformToETMPData)
 
       checkExpectation("event10", result, ev10._2)
@@ -120,6 +129,7 @@ class API1826Spec extends AnyFreeSpec with Matchers
       checkExpectation("event13", result, ev13._2)
       checkExpectation("event14", result, ev14._2)
       checkExpectation("event18", result, ev18._2)
+      checkExpectation("event20", result, ev20._2)
       checkExpectation("eventWindup", result, windUp._2)
     }
 
