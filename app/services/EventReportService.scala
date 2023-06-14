@@ -69,7 +69,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def saveUserAnswers(pstr: String, eventType: EventType, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
+  def saveUserAnswers(pstr: String, eventType: EventType, year: Int, version: Int, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     EventType.postApiTypeByEventType(eventType) match {
       case Some(apiType) => eventReportCacheRepository.upsert(pstr, apiType, userAnswersJson)
       case _ => Future.successful(())
@@ -82,7 +82,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def removeUserAnswers(pstr: String)(implicit ec: ExecutionContext): Future[Unit] =
     eventReportCacheRepository.removeAllOnSignOut(pstr)
 
-  def getUserAnswers(pstr: String, eventType: EventType)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
+  def getUserAnswers(pstr: String, eventType: EventType, year: Int, version: Int)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     EventType.postApiTypeByEventType(eventType) match {
       case Some(apiType) => eventReportCacheRepository.getUserAnswers(pstr, Some(apiType))
       case _ => Future.successful(None)
@@ -141,14 +141,14 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def getEvent(pstr: String, startDate: String, version: String, eventType: EventType)
+  def getEvent(pstr: String, startDate: String, version: Int, eventType: EventType)
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsValue]] = {
-    getEventCacheRepository.get(pstr, startDate, version, eventType.toString).flatMap {
+    getEventCacheRepository.get(pstr, startDate, "1", eventType.toString).flatMap {
       case optData@Some(_) => Future.successful(optData)
       case _ => eventReportConnector.getEvent(pstr, startDate, version, Some(eventType)).flatMap {
         case Some(data) =>
           val jsDataOpt = validationCheck(data, eventType)
-          getEventCacheRepository.upsert(pstr, startDate, version, eventType.toString, Json.toJson(jsDataOpt))
+          getEventCacheRepository.upsert(pstr, startDate, "1", eventType.toString, Json.toJson(jsDataOpt))
             .map(_ => Some(Json.toJson(jsDataOpt)))
         case _ =>
           //TODO: will change code later to throw an exception
@@ -157,7 +157,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def getEventSummary(pstr: String, version: String, startDate: String)
+  def getEventSummary(pstr: String, version: Int, startDate: String)
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
     //TODO: Implement for event 20A. I assume API 1831 will need to be used for this. -Pavel Vjalicin

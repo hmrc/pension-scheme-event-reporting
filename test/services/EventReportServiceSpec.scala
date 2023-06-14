@@ -60,8 +60,9 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val psaId = "psa"
   private val pstr = "pstr"
   private val startDate = "startDate"
-  private val version = "version"
   private val payload = Json.obj("test" -> "test")
+  private val year = 1
+  private val version = 1
 
   val modules: Seq[GuiceableModule] =
     Seq(
@@ -264,7 +265,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       )(any()))
         .thenReturn(Future.successful((): Unit))
 
-      eventReportService.saveUserAnswers(pstr, EventType.Event3, payload)(implicitly).map { result =>
+      eventReportService.saveUserAnswers(pstr, EventType.Event3, year, version, payload)(implicitly).map { result =>
         verify(mockEventReportCacheRepository, times(1)).upsert(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(Api1830), any())(any())
         result mustBe()
       }
@@ -290,7 +291,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(Api1830)))(any()))
         .thenReturn(Future.successful(Some(json)))
 
-      eventReportService.getUserAnswers(pstr, EventType.Event3)(implicitly).map { result =>
+      eventReportService.getUserAnswers(pstr, EventType.Event3, year, version)(implicitly).map { result =>
         result mustBe Some(json)
       }
     }

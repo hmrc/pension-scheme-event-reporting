@@ -65,7 +65,7 @@ class EventReportController @Inject()(
           case Some(eventType) =>
             EventType.getEventType(eventType) match {
               case Some(et) =>
-                eventReportService.saveUserAnswers(pstr, et, userAnswersJson).map(_ => Ok)
+                eventReportService.saveUserAnswers(pstr, et, year, version, userAnswersJson).map(_ => Ok)
               case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
             }
           case _ => eventReportService.saveUserAnswers(pstr, userAnswersJson).map(_ => Ok)
@@ -80,7 +80,7 @@ class EventReportController @Inject()(
           case Some(eventType) =>
             EventType.getEventType(eventType) match {
               case Some(et) =>
-                eventReportService.getUserAnswers(pstr, et)
+                eventReportService.getUserAnswers(pstr, et, year, version)
                   .map {
                     case None => NotFound
                     case Some(jsobj) => Ok(jsobj)
@@ -119,7 +119,7 @@ class EventReportController @Inject()(
       }
   }
 
-  private def withAuthAndSummaryParameters(block: (String, String, String) => Future[Result])
+  private def withAuthAndSummaryParameters(block: (String, Int, String) => Future[Result])
                                           (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
@@ -130,7 +130,7 @@ class EventReportController @Inject()(
           request.headers.get("reportStartDate")
         ) match {
           case Tuple3(Some(pstr), Some(version), Some(startDate)) =>
-            block(pstr, version, startDate)
+            block(pstr, version.toInt, startDate)
           case (optPstr, optVersion, optStartDate) =>
             val pstrMissing = prettyMissingParamError(optPstr, "PSTR missing")
             val versionMissing = prettyMissingParamError(optVersion, "version missing")
@@ -329,7 +329,7 @@ class EventReportController @Inject()(
     }
   }
 
-  private def withAuthAndGetEventParameters(block: (String, String, String, String) => Future[Result])
+  private def withAuthAndGetEventParameters(block: (String, String, Int, String) => Future[Result])
                                            (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
@@ -341,7 +341,7 @@ class EventReportController @Inject()(
           request.headers.get("eventType")
         ) match {
           case (Some(pstr), Some(startDate), Some(version), Some(eventType)) =>
-            val versionFormatted = ("00" + version).takeRight(3)
+            val versionFormatted = version.toInt // ("00" + version).takeRight(3)
             block(pstr, startDate, versionFormatted, eventType)
           case (optPstr, optStartDate, optVersion, optEventType) =>
             val pstrMissing = prettyMissingParamError(optPstr, "PSTR missing")

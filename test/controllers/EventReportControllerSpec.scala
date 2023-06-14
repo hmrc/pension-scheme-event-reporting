@@ -264,7 +264,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       when(mockEventReportService.getEvent(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(startDate),
-        ArgumentMatchers.eq(versionString),
+        ArgumentMatchers.eq(version),
         ArgumentMatchers.eq(Event1)
       )(any(), any()))
         .thenReturn(Future.successful(None))
@@ -283,7 +283,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       when(mockEventReportService.getEvent(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(startDate),
-        ArgumentMatchers.eq(versionString),
+        ArgumentMatchers.eq(version),
         ArgumentMatchers.eq(Event1)
       )(any(), any()))
         .thenReturn(Future.successful(Some(dummyJsValue)))
@@ -303,7 +303,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       when(mockEventReportService.getEvent(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(startDate),
-        ArgumentMatchers.eq(versionString),
+        ArgumentMatchers.eq(version),
         ArgumentMatchers.eq(Event2)
       )(any(), any()))
         .thenReturn(Future.successful(Some(dummyJsValue)))
@@ -364,7 +364,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     "return OK with dummy json response" in {
       when(mockEventReportService.getEventSummary(
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(versionString),
+        ArgumentMatchers.eq(version),
         ArgumentMatchers.eq(startDate)
       )(any(), any()))
         .thenReturn(Future.successful(dummyJsValue))
@@ -405,7 +405,9 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
       when(mockEventReportService.getUserAnswers(
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(Event1)
+        ArgumentMatchers.eq(Event1),
+        ArgumentMatchers.eq(2020),
+        ArgumentMatchers.eq(1)
       )(any()))
         .thenReturn(Future.successful(Some(json)))
 
@@ -421,7 +423,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         controller.getUserAnswers(fakeRequest.withHeaders(
           newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> "1", "eventType" -> "test"))
       } map { response =>
-        verify(mockEventReportService, never).getUserAnswers(any(), any())(any())
+        verify(mockEventReportService, never).getUserAnswers(any(), any(), any(), any())(any())
         response.responseCode mustBe NOT_FOUND
         response.message must include("Bad Request: eventType (test) not found")
       }
@@ -431,7 +433,9 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
       when(mockEventReportService.getUserAnswers(
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(Event1)
+        ArgumentMatchers.eq(Event1),
+        ArgumentMatchers.eq(2020),
+        ArgumentMatchers.eq(1)
       )(any()))
         .thenReturn(Future.successful(None))
 
@@ -498,6 +502,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       when(mockEventReportService.saveUserAnswers(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(Event1),
+        ArgumentMatchers.eq(2020),
+        ArgumentMatchers.eq(1),
         any()
       )(any()))
         .thenReturn(Future.successful(()))
@@ -514,7 +520,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         controller.saveUserAnswers(fakeRequest.withJsonBody(saveUserAnswersToCacheSuccessResponse).withHeaders(
           newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> "1", "eventType" -> "test"))
       } map { response =>
-        verify(mockEventReportService, never).saveUserAnswers(any(), any(), any())(any())
+        verify(mockEventReportService, never).saveUserAnswers(any(), any(), any(), any(), any())(any())
         response.responseCode mustBe NOT_FOUND
         response.message must include("Bad Request: eventType (test) not found")
       }
@@ -579,6 +585,7 @@ object EventReportControllerSpec {
 
   private val versionString = "001"
   private val eventType = "1"
+  private val version = 1
 
   private val startDate = "2022-04-06"
   private val endDate = "2023-04-05"
@@ -620,10 +627,10 @@ object EventReportControllerSpec {
     )
   )
 
-  private val version = ERVersion(1,
+  private val erVersion = ERVersion(1,
     LocalDate.of(2022, 4, 6),
     "Compiled")
-  private val erVersions = Seq(version)
+  private val erVersions = Seq(erVersion)
 
   private val saveUserAnswersToCacheSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678955")

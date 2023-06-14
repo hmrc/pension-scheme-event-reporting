@@ -81,12 +81,12 @@ class EventReportConnector @Inject()(
     }
   }
 
-  def getEvent(pstr: String, startDate: String, version: String, eventType: Option[EventType])
+  def getEvent(pstr: String, startDate: String, version: Int, eventType: Option[EventType])
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsValue]] = {
     val headers = integrationFrameworkHeader ++
       Seq(
         "reportStartDate" -> startDate,
-        "reportVersionNumber" -> version
+        "reportVersionNumber" -> version.toString
       )
 
     eventType match {
