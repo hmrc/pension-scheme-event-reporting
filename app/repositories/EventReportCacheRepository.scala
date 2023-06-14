@@ -19,7 +19,6 @@ package repositories
 import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.EventDataIdentifier
-import models.enumeration.ApiType
 import org.joda.time.{DateTime, DateTimeZone}
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
@@ -48,7 +47,9 @@ object EventReportCacheEntry {
   }
 
   implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
+
   implicit val format: Format[EventReportCacheEntry] = Json.format[EventReportCacheEntry]
+
 
   val pstrKey = "pstr"
   val apiTypesKey = "apiTypes"

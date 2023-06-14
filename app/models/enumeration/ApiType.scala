@@ -36,5 +36,12 @@ object ApiType extends Enumerable.Implicits {
 
   case object Api1834 extends WithName("1834") with ApiType
 
+  def values: Seq[ApiType] = {
+    Seq(Api1826, Api1827, Api1829, Api1830, Api1832, Api1833, Api1831, Api1834)
+  }
+
+  implicit val enumerable: Enumerable[ApiType] =
+    Enumerable(values.map(v => v.toString -> v): _*)
+
 }
 

@@ -19,7 +19,7 @@ package services
 
 import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
-import models.ERVersion
+import models.{ERVersion, EventDataIdentifier}
 import models.enumeration.ApiType._
 import models.enumeration.EventType.{Event1, Event2, Event20A, Event22, Event23, Event24, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
 import models.enumeration.{ApiType, EventType}
@@ -71,7 +71,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def saveUserAnswers(pstr: String, eventType: EventType, year: Int, version: Int, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     EventType.postApiTypeByEventType(eventType) match {
-      case Some(apiType) => eventReportCacheRepository.upsert(pstr, apiType, userAnswersJson)
+      case Some(apiType) => eventReportCacheRepository.upsert(pstr, EventDataIdentifier(apiType, year, version), userAnswersJson)
       case _ => Future.successful(())
     }
   }
@@ -84,7 +84,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def getUserAnswers(pstr: String, eventType: EventType, year: Int, version: Int)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     EventType.postApiTypeByEventType(eventType) match {
-      case Some(apiType) => eventReportCacheRepository.getUserAnswers(pstr, Some(apiType))
+      case Some(apiType) => eventReportCacheRepository.getUserAnswers(pstr, Some(EventDataIdentifier(apiType, year, version)))
       case _ => Future.successful(None)
     }
 
@@ -95,7 +95,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
-        eventReportCacheRepository.getUserAnswers(pstr, Some(apiType)).flatMap {
+        // TODO 0,0
+        eventReportCacheRepository.getUserAnswers(pstr, Some(EventDataIdentifier(apiType, 0, 0))).flatMap {
           case Some(data) =>
             eventReportCacheRepository.getUserAnswers(pstr, None).flatMap {
               case Some(header) =>
