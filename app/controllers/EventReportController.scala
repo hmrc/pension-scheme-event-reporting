@@ -59,9 +59,8 @@ class EventReportController @Inject()(
 
   def saveUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
-      withPstrOptionEventTypeAndBody { (pstr, optEventType, userAnswersJson) =>
+      withPstrOptionEventTypeYearAndBody { (pstr, optEventType, year, userAnswersJson) =>
         logger.debug(message = s"[Save Event: Incoming-Payload]$userAnswersJson")
-
         optEventType match {
           case Some(eventType) =>
             EventType.getEventType(eventType) match {
@@ -76,7 +75,7 @@ class EventReportController @Inject()(
 
   def getUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
-      withPstrAndOptionEventType { (pstr, optEventType) =>
+      withPstrAndOptionEventTypeAndYear { (pstr, optEventType, year) =>
         optEventType match {
           case Some(eventType) =>
             EventType.getEventType(eventType) match {
@@ -234,7 +233,7 @@ class EventReportController @Inject()(
     }
   }
 
-  private def withPstrOptionEventTypeAndBody(block: (String, Option[String], JsValue) => Future[Result])
+  private def withPstrOptionEventTypeYearAndBody(block: (String, Option[String], Int, JsValue) => Future[Result])
                                       (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
@@ -244,13 +243,37 @@ class EventReportController @Inject()(
         (
           request.headers.get("pstr"),
           request.headers.get("eventType"),
+          request.headers.get("year"),
           request.body.asJson
         ) match {
-          case (Some(pstr), optET, Some(js)) =>
-            block(pstr, optET, js)
-          case (pstr, _, jsValue) =>
+          case (Some(pstr), optET, Some(year), Some(js)) =>
+            block(pstr, optET, year.toInt, js)
+          case (pstr, _, year, jsValue) =>
             Future.failed(new BadRequestException(
-              s"Bad Request without pstr ($pstr) or request body ($jsValue)"))
+              s"Bad Request without pstr ($pstr) or year ($year) or request body ($jsValue)"))
+        }
+      case _ =>
+        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
+    }
+  }
+
+  private def withPstrAndOptionEventTypeAndYear(block: (String, Option[String], Int) => Future[Result])
+                                        (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+
+    logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
+
+    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
+      case Some(_) =>
+        (
+          request.headers.get("pstr"),
+          request.headers.get("eventType"),
+          request.headers.get("year")
+        ) match {
+          case (Some(pstr), et, Some(year)) =>
+            block(pstr, et, year.toInt)
+          case (pstr, _, year) =>
+            Future.failed(new BadRequestException(
+              s"Bad Request without pstr ($pstr) or year ($year)"))
         }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
@@ -297,28 +320,6 @@ class EventReportController @Inject()(
           case (psa, pstr, et) =>
             Future.failed(new BadRequestException(
               s"Bad Request without psaPspId $psa, pstr ($pstr) or eventType ($et)"))
-        }
-      case _ =>
-        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
-    }
-  }
-
-  private def withPstrAndOptionEventType(block: (String, Option[String]) => Future[Result])
-                                        (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
-
-    logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
-
-    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
-      case Some(_) =>
-        (
-          request.headers.get("pstr"),
-          request.headers.get("eventType")
-        ) match {
-          case (Some(pstr), et) =>
-            block(pstr, et)
-          case (pstr, _) =>
-            Future.failed(new BadRequestException(
-              s"Bad Request without pstr ($pstr)"))
         }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
