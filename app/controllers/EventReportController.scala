@@ -163,7 +163,7 @@ class EventReportController @Inject()(
 
   def compileEvent: Action[AnyContent] = Action.async {
     implicit request =>
-      withPstrPsaPspIDAndEventType { (psaPspId, pstr, et) =>
+      withPstrPsaPspIDEventTypeAndYear { (psaPspId, pstr, et, year) =>
         EventType.getEventType(et) match {
           case Some(eventType) => eventReportService.compileEventReport(psaPspId, pstr, eventType)
           case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
@@ -303,7 +303,7 @@ class EventReportController @Inject()(
         }
     }
 
-  private def withPstrPsaPspIDAndEventType(block: (String, String, String) => Future[Result])
+  private def withPstrPsaPspIDEventTypeAndYear(block: (String, String, String, Int) => Future[Result])
                                   (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
@@ -313,13 +313,14 @@ class EventReportController @Inject()(
         (
           getPsaPspId(enrolments),
           request.headers.get("pstr"),
-          request.headers.get("eventType")
+          request.headers.get("eventType"),
+          request.headers.get("year")
         ) match {
-          case (Some(psaPspId), Some(pstr), Some(et)) =>
-            block(psaPspId, pstr, et)
-          case (psa, pstr, et) =>
+          case (Some(psaPspId), Some(pstr), Some(et), Some(year)) =>
+            block(psaPspId, pstr, et, year.toInt)
+          case (psa, pstr, et, year) =>
             Future.failed(new BadRequestException(
-              s"Bad Request without psaPspId $psa, pstr ($pstr) or eventType ($et)"))
+              s"Bad Request without psaPspId $psa, pstr ($pstr) or eventType ($et) or year ($year)"))
         }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
