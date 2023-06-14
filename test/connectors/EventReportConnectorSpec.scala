@@ -571,6 +571,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       "return the json returned from ETMP for valid event" in {
         server.stubFor(
           get(urlEqualTo(getApi1832Url))
+            .withHeader("reportVersionNumber", equalTo("001"))
             .willReturn(
               ok
                 .withHeader("Content-Type", "application/json")

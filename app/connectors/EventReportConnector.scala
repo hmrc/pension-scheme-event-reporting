@@ -86,7 +86,7 @@ class EventReportConnector @Inject()(
     val headers = integrationFrameworkHeader ++
       Seq(
         "reportStartDate" -> startDate,
-        "reportVersionNumber" -> version.toString
+        "reportVersionNumber" -> ("00" + version.toString).takeRight(3)
       )
 
     eventType match {

@@ -341,7 +341,7 @@ class EventReportController @Inject()(
           request.headers.get("eventType")
         ) match {
           case (Some(pstr), Some(startDate), Some(version), Some(eventType)) =>
-            val versionFormatted = version.toInt // ("00" + version).takeRight(3)
+            val versionFormatted = version.toInt
             block(pstr, startDate, versionFormatted, eventType)
           case (optPstr, optStartDate, optVersion, optEventType) =>
             val pstrMissing = prettyMissingParamError(optPstr, "PSTR missing")
