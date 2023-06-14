@@ -28,7 +28,7 @@ trait ResponseGenerators extends Matchers with OptionValues {
   val ninoGen: Gen[String] = Gen.oneOf(Seq("AB123456C", "CD123456E"))
 
   val pstrGen: Gen[String] = for {
-    numbers <- Gen.chooseNum(1000000, 9999999)
+    numbers <- Gen.chooseNum(10000000, 99999999)
     letters <- Gen.listOfN(2, Gen.alphaChar).map(_.mkString)
   } yield s"${numbers}${letters.toUpperCase}"
 
@@ -37,9 +37,8 @@ trait ResponseGenerators extends Matchers with OptionValues {
   val schemeMasterTrustStartOrCeaseDate: Gen[String] = Gen.oneOf(Seq("startDate", "ceaseDate"))
 
   val psaIdGen: Gen[String] = for {
-    letter <- Gen.alphaChar.map(_.toString)
-    numbers <- Gen.chooseNum(1000000, 9999999)
-  } yield s"${letter.toUpperCase}${numbers}"
+    numbers <- Gen.chooseNum(10000000, 99999999)
+  } yield s"A${numbers}"
 
   val pspIdGen: Gen[String] = for {
     numbers <- Gen.chooseNum(10000000, 99999999)
