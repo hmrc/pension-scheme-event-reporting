@@ -173,24 +173,18 @@ object API1826 extends Transformer {
     }
   }
 
-  private lazy val event20Reads = (__ \ "event20").readNullable[JsArray].map { optJsonArray =>
-    optJsonArray.map { jsonArray =>
-      Json.obj(
-        "event20" -> jsonArray.value.map { json =>
-          Json.obj(
-            "recordVersion" -> JsString((json \ "recordVersion").asOpt[String].getOrElse("001")),
-            "occSchemeDetails" -> {
-              val occSchemeDetailsPath = json \ "occSchemeDetails"
-              JsObject(
-                Seq(
-                  optField("startDateOfOccScheme", (occSchemeDetailsPath \ "startDateOfOccScheme").asOpt[String]),
-                  optField("stopDateOfOccScheme", (occSchemeDetailsPath \ "stopDateOfOccScheme").asOpt[String])
-                ).flatten
-              )
-            }
-          )
-        }
-      )
+    private lazy val event20Reads: Reads[Option[JsObject]] = {
+    mapReadsToOptionArray(eventTypeNodeName = "event20") { uaBaseForEventType =>
+      (uaBaseForEventType \ "whatChange").read[String].flatMap {
+        case "becameOccupationalScheme" =>
+          ((__ \ "occSchemeDetails" \ "startDateOfOccScheme").json
+            .copyFrom((uaBaseForEventType \ "becameDate" \ "date").json.pick) and
+            recordVersionReads).reduce
+        case _ =>
+          ((__ \ "occSchemeDetails" \ "stopDateOfOccScheme").json
+            .copyFrom((uaBaseForEventType \ "ceasedDate" \ "date").json.pick) and
+            recordVersionReads).reduce
+      }
     }
   }
 

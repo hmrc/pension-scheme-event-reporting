@@ -58,6 +58,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val mockGetEventCacheRepository = mock[GetEventCacheRepository]
 
   private val externalId = "externalId"
+  private val psaId = "psa"
   private val pstr = "pstr"
   private val startDate = "startDate"
   private val version = "version"
@@ -91,7 +92,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
   "compileEventReport for unimplemented api type" must {
     "return Bad Request" in {
-      eventReportService.compileEventReport(externalId, "pstr", Event20A)(implicitly, implicitly).map {
+      eventReportService.compileEventReport(psaId, "pstr", Event20A)(implicitly, implicitly, implicitly).map {
         result => result.header.status mustBe BAD_REQUEST
       }
     }
@@ -101,7 +102,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     "return NOT FOUND when no data return from repository" in {
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(Api1827)))(any()))
         .thenReturn(Future.successful(None))
-      eventReportService.compileEventReport(externalId, "pstr", Event1)(implicitly, implicitly).map {
+      eventReportService.compileEventReport(psaId, "pstr", Event1)(implicitly, implicitly, implicitly).map {
         result => result.header.status mustBe NOT_FOUND
       }
     }
@@ -112,10 +113,10 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(None))(any()))
         .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
 
-      when(mockEventReportConnector.compileEventOneReport(any(), any())(any(), any()))
+      when(mockEventReportConnector.compileEventOneReport(any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
-      eventReportService.compileEventReport(externalId, "pstr", Event1).map {
+      eventReportService.compileEventReport("pstr", Event1).map {
         result => result.header.status mustBe NO_CONTENT
       }
     }
@@ -129,7 +130,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Failure(new Exception("Message")))
 
       recoverToExceptionIf[Exception] {
-        eventReportService.compileEventReport(externalId, "pstr", Event1)
+        eventReportService.compileEventReport(psaId, "pstr", Event1)
       } map {
         failure =>
           failure.getMessage mustBe "Message"
@@ -142,11 +143,11 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(None))(any()))
         .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
 
-      when(mockEventReportConnector.compileEventOneReport(any(), any())(any(), any()))
+      when(mockEventReportConnector.compileEventOneReport(any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
 
       recoverToExceptionIf[UpstreamErrorResponse] {
-        eventReportService.compileEventReport(externalId, "pstr", Event1)
+        eventReportService.compileEventReport(psaId, "pstr", Event1)
       } map {
         _.statusCode mustBe INTERNAL_SERVER_ERROR
       }
@@ -157,7 +158,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     "return Not Found when no data returned from repository" in {
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(Api1826)))(any()))
         .thenReturn(Future.successful(None))
-      eventReportService.compileEventReport(externalId, "pstr", WindUp)(implicitly, implicitly).map {
+      eventReportService.compileEventReport(psaId, "pstr", WindUp)(implicitly, implicitly, implicitly).map {
         result => result.header.status mustBe NOT_FOUND
       }
     }
@@ -169,10 +170,10 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(None))(any()))
         .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
 
-      when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
+      when(mockEventReportConnector.compileEventReportSummary(any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
-      eventReportService.compileEventReport(externalId, "pstr", WindUp).map {
+      eventReportService.compileEventReport(psaId, "pstr", WindUp).map {
         result => result.header.status mustBe NO_CONTENT
       }
     }
@@ -187,7 +188,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Failure(new Exception("Message")))
 
       recoverToExceptionIf[Exception] {
-        eventReportService.compileEventReport("externalId", "pstr", WindUp)
+        eventReportService.compileEventReport(psaId, "pstr", WindUp)
       } map {
         failure =>
           failure.getMessage mustBe "Message"
@@ -201,11 +202,11 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(None))(any()))
         .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
 
-      when(mockEventReportConnector.compileEventReportSummary(any(), any())(any(), any()))
+      when(mockEventReportConnector.compileEventReportSummary(any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
 
       recoverToExceptionIf[UpstreamErrorResponse] {
-        eventReportService.compileEventReport("externalId", "pstr", WindUp)
+        eventReportService.compileEventReport(psaId, "pstr", WindUp)
       } map {
         _.statusCode mustBe INTERNAL_SERVER_ERROR
       }
@@ -245,7 +246,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
   "getEventSummary" must {
     "return the payload from the connector for API1834" in {
-      val response = Set("1", "2","3","4","5","6","7","8","8A","10","11","12","13","14","18","19","20","22","23","24","0")
+      val response = Set("1", "2", "3", "4", "5", "6", "7", "8", "8A", "10", "11", "12", "13", "14", "18", "19", "20", "22", "23", "24", "0")
       when(mockEventReportConnector.getEvent(pstr, startDate, version, None)(implicitly, implicitly))
         .thenReturn(Future.successful(responseJsonForAPI1834))
       eventReportService.getEventSummary(pstr, version, startDate).map { result =>
@@ -282,10 +283,10 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         ArgumentMatchers.eq(externalId)
       )(any()))
         .thenReturn(Future.successful((): Unit))
-        eventReportService.removeUserAnswers(externalId)(implicitly).map { result =>
-          verify(mockEventReportCacheRepository, times(1)).removeAllOnSignOut(ArgumentMatchers.eq(externalId))(any())
-          result mustBe()
-        }
+      eventReportService.removeUserAnswers(pstr)(implicitly).map { result =>
+        verify(mockEventReportCacheRepository, times(1)).removeAllOnSignOut(ArgumentMatchers.eq(pstr))(any())
+        result mustBe()
+      }
     }
   }
 
@@ -375,12 +376,13 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     "return valid response" in {
       when(mockEventReportConnector.submitEvent20ADeclarationReport(
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponse))(any(), any()))
+        ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponse))(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse.apply(
           status = OK,
           json = submitEvent20ADeclarationReportSuccessResponse,
           headers = Map.empty)))
-      eventReportService.submitEvent20ADeclarationReport(pstr, submitEvent20ADeclarationReportSuccessResponse)(implicitly, implicitly).map { resultJsValue =>
+      eventReportService.submitEvent20ADeclarationReport(pstr,
+        submitEvent20ADeclarationReportSuccessResponse)(implicitly, implicitly, implicitly).map { resultJsValue =>
         resultJsValue mustBe submitEvent20ADeclarationReportSuccessResponse
       }
     }

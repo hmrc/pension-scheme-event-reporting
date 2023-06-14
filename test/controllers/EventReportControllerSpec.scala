@@ -34,7 +34,8 @@ import play.api.mvc.Results.NoContent
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import services.EventReportService
-import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.auth.core.retrieve.~
+import uk.gov.hmrc.auth.core.{AuthConnector, Enrolment, EnrolmentIdentifier, Enrolments}
 import uk.gov.hmrc.http._
 import utils.JSONSchemaValidator
 
@@ -63,6 +64,13 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false).
     overrides(modules: _*).build()
   private val controller = application.injector.instanceOf[EventReportController]
+
+
+  private val enrolments = Enrolments(Set(
+    Enrolment("HMRC-PODS-ORG", Seq(
+      EnrolmentIdentifier("PSAID", "A0000000")
+    ), "Activated", None)
+  ))
 
   before {
     reset(mockAuthConnector)
@@ -186,7 +194,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     "return OK when valid response" in {
       val controller = application.injector.instanceOf[EventReportController]
 
-      when(mockEventReportService.submitEvent20ADeclarationReport(any(), any())(any(), any()))
+      when(mockEventReportService.submitEvent20ADeclarationReport(any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(submitEvent20ADeclarationReportSuccessResponse))
       when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
         .thenReturn(Success(()))
@@ -200,7 +208,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     "throw validation exception when validation errors response" in {
       val controller = application.injector.instanceOf[EventReportController]
 
-      when(mockEventReportService.submitEvent20ADeclarationReport(any(), any())(any(), any()))
+      when(mockEventReportService.submitEvent20ADeclarationReport(any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(submitEvent20ADeclarationReportSuccessResponse))
       when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
         .thenReturn(Failure(EventReportValidationFailureException("Test")))
@@ -545,7 +553,9 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
   "compileEvent" must {
     "return 204 No Content when valid response" in {
-      when(mockEventReportService.compileEventReport(ArgumentMatchers.eq(externalId), any(), any())(any(), any()))
+      when(mockAuthConnector.authorise[(Option[String] ~ Enrolments)](any(), any())(any(), any())) thenReturn
+        Future.successful(new ~(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"), enrolments))
+      when(mockEventReportService.compileEventReport(any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(NoContent))
 
       val result = controller.compileEvent(fakeRequest.withJsonBody(compileEventSuccessResponse).withHeaders(
@@ -555,8 +565,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw a 401 Unauthorised Exception if auth fails" in {
-      when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
-
+      when(mockAuthConnector.authorise[(Option[String] ~ Enrolments)](any(), any())(any(), any())) thenReturn
+        Future.successful(new~(None, enrolments))
       recoverToExceptionIf[UnauthorizedException] {
         controller.compileEvent()(fakeRequest.withJsonBody(compileEventSuccessResponse)
           .withHeaders(newHeaders = "pstr" -> pstr, "eventType" -> "1", externalId -> externalId))
