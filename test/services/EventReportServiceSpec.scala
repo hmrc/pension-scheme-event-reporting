@@ -371,7 +371,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       }
     }
     "return valid an invalid response where an 1829 payload is passed" in {
-      val userAnswers= super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
+      val userAnswers = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
       when(mockEventReportConnector.submitEventDeclarationReport(
         ArgumentMatchers.eq(pstr),
         any())(any(), any(), any()))
@@ -390,7 +390,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportConnector.submitEventDeclarationReport(
         ArgumentMatchers.eq(pstr),
         any())(any(), any(), any()))
-        .thenReturn(Future.failed(new BadRequestException("Test"))) //TODO: This needs to change when Sanjay gets back with actual error response
+        .thenReturn(Future.failed(new BadRequestException("Test")))
       recoverToExceptionIf[ExpectationFailedException] {
         eventReportService.submitEventDeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly)
       } map { _ =>
@@ -442,7 +442,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportConnector.submitEvent20ADeclarationReport(
         ArgumentMatchers.eq(pstr),
         any())(any(), any(), any()))
-        .thenReturn(Future.failed(new BadRequestException("Test"))) //TODO: This needs to change when Sanjay gets back with actual error response
+        .thenReturn(Future.failed(new BadRequestException("Test")))
       recoverToExceptionIf[ExpectationFailedException] {
         eventReportService.submitEvent20ADeclarationReport(pstr, userAnswers)(implicitly, implicitly, implicitly)
       } map { _ =>

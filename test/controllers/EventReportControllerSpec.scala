@@ -173,6 +173,24 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
       status(result) mustBe NO_CONTENT
     }
+    "throw a Bad Request Exception when the body is missing" in {
+      recoverToExceptionIf[BadRequestException] {
+        controller.submitEventDeclarationReport(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+
+        response.message must include("Bad Request without pstr (Some(pstr)) or request body (None)")
+      }
+    }
+    "throw a Bad Request Exception when the pstr is missing from the header" in {
+      recoverToExceptionIf[BadRequestException] {
+        controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+
+        response.message must include("""Bad Request without pstr (None) or request body (Some({"processingDate":"2023-06-14","formBundleNumber":"12345678933"}))""")
+      }
+    }
   }
 
   "submitEvent20ADeclarationReport" must {
@@ -187,7 +205,24 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
       status(result) mustBe NO_CONTENT
     }
+    "throw a Bad Request Exception when the pstr is missing from the header" in {
+      recoverToExceptionIf[BadRequestException] {
+        controller.submitEvent20ADeclarationReport(fakeRequest.withJsonBody(submitEvent20ADeclarationReportSuccessResponse))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
 
+        response.message must include("""Bad Request without pstr (None) or request body (Some({"processingDate":"2023-06-14","formBundleNumber":"12345670811"}))""")
+      }
+    }
+    "throw a Bad Request Exception when the body is missing" in {
+      recoverToExceptionIf[BadRequestException] {
+        controller.submitEvent20ADeclarationReport(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+
+        response.message must include("Bad Request without pstr (Some(pstr)) or request body (None)")
+      }
+    }
   }
 
 
@@ -573,10 +608,10 @@ object EventReportControllerSpec {
       )),
   )
 
-  private val submitEventDeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+  private val submitEventDeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> "2023-06-14",
     "formBundleNumber" -> "12345678933")
 
-  private val submitEvent20ADeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+  private val submitEvent20ADeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> "2023-06-14",
     "formBundleNumber" -> "12345670811")
 
   private val erVersionResponseJson: JsArray = Json.arr(

@@ -189,30 +189,30 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  private def validatePayloadAgainstSchema(payload: JsObject, schemePath: String, eventName: String)
+  private def validatePayloadAgainstSchema(payload: JsObject, schemaPath: String, eventName: String)
                                           (implicit ec: ExecutionContext): Future[Unit] = {
-    Future.fromTry(jsonPayloadSchemaValidator.validatePayload(payload, schemePath, eventName)).map(_ => (): Unit)
+    Future.fromTry(jsonPayloadSchemaValidator.validatePayload(payload, schemaPath, eventName)).map(_ => (): Unit)
   }
 
   def submitEventDeclarationReport(pstr: String, userAnswersJson: JsValue)
                                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Unit] = {
 
-    def recoverAndValidatePayload(transform1828toETMP: JsObject): Future[Unit] = {
-      val recoveredConnectorCallForAPI1828 = eventReportConnector.submitEventDeclarationReport(pstr, transform1828toETMP).map(_.json.as[JsObject]).recover {
+    def recoverAndValidatePayload(transformed1828Payload: JsObject): Future[Unit] = {
+      val recoveredConnectorCallForAPI1828 = eventReportConnector.submitEventDeclarationReport(pstr, transformed1828Payload).map(_.json.as[JsObject]).recover {
         case _: BadRequestException =>
           throw new ExpectationFailedException("Nothing to submit")
       }
       for {
         _ <- recoveredConnectorCallForAPI1828
-        _ <- validatePayloadAgainstSchema(transform1828toETMP, SchemaPath1828, "submitEventDeclarationReport")
+        _ <- validatePayloadAgainstSchema(transformed1828Payload, SchemaPath1828, "submitEventDeclarationReport")
       } yield {
         ()
       }
     }
 
     for {
-      transform1828toETMP <- Future.fromTry(toTry(userAnswersJson.transform(API1828.transformToETMPData)))
-      _ <- recoverAndValidatePayload(transform1828toETMP)
+      transformed1828Payload <- Future.fromTry(toTry(userAnswersJson.transform(API1828.transformToETMPData)))
+      _ <- recoverAndValidatePayload(transformed1828Payload)
     } yield {
       ()
     }
@@ -222,23 +222,23 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Unit] = {
 
 
-    def recoverAndValidatePayload(transform1829toETMP: JsObject): Future[Unit] = {
+    def recoverAndValidatePayload(transformed1829Payload: JsObject): Future[Unit] = {
 
-      val recoveredConnectorCallForAPI1829 = eventReportConnector.submitEvent20ADeclarationReport(pstr, transform1829toETMP).map(_.json.as[JsObject]).recover {
+      val recoveredConnectorCallForAPI1829 = eventReportConnector.submitEvent20ADeclarationReport(pstr, transformed1829Payload).map(_.json.as[JsObject]).recover {
         case _: BadRequestException =>
           throw new ExpectationFailedException("Nothing to submit")
       }
       for {
         _ <- recoveredConnectorCallForAPI1829
-        _ <- validatePayloadAgainstSchema(transform1829toETMP, SchemaPath1829, "submitEvent20ADeclarationReport")
+        _ <- validatePayloadAgainstSchema(transformed1829Payload, SchemaPath1829, "submitEvent20ADeclarationReport")
       } yield {
         ()
       }
     }
 
     for {
-      transform1829toETMP <- Future.fromTry(toTry(userAnswersJson.transform(API1829.transformToETMPData)))
-      _ <- recoverAndValidatePayload(transform1829toETMP)
+      transformed1829Payload <- Future.fromTry(toTry(userAnswersJson.transform(API1829.transformToETMPData)))
+      _ <- recoverAndValidatePayload(transformed1829Payload)
     } yield {
       ()
     }
