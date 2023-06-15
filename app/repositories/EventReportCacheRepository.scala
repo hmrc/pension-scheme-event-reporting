@@ -26,7 +26,7 @@ import org.mongodb.scala.model._
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
-import repositories.EventReportCacheEntry.{apiTypesKey, expireAtKey, pstrKey, versionKey, yearKey}
+import repositories.EventReportCacheEntry.{apiTypeKey, expireAtKey, pstrKey, versionKey, yearKey}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
@@ -39,7 +39,7 @@ case class EventReportCacheEntry(pstr: String, edi: EventDataIdentifier, data: J
 
 object EventReportCacheEntry {
   val pstrKey = "pstr"
-  val apiTypesKey = "apiType"
+  val apiTypeKey = "apiType"
   val yearKey = "year"
   val versionKey = "version"
   val expireAtKey = "expireAt"
@@ -58,7 +58,7 @@ object EventReportCacheEntry {
     override def reads(json: JsValue): JsResult[EventReportCacheEntry] = {
       (
         (JsPath \ "pstr").read[String] and
-          (JsPath \ apiTypesKey).read[ApiType](ApiType.formats) and
+          (JsPath \ apiTypeKey).read[ApiType](ApiType.formats) and
           (JsPath \ yearKey).read[Int] and
           (JsPath \ versionKey).read[Int] and
           (JsPath \ dataKey).read[JsValue] and
@@ -87,8 +87,8 @@ class EventReportCacheRepository @Inject()(
         IndexOptions().name("dataExpiry").expireAfter(0, TimeUnit.SECONDS).background(true)
       ),
       IndexModel(
-        Indexes.ascending(pstrKey, apiTypesKey, yearKey, versionKey),
-        IndexOptions().name(pstrKey + apiTypesKey + yearKey + versionKey).background(true).unique(true)
+        Indexes.ascending(pstrKey, apiTypeKey, yearKey, versionKey),
+        IndexOptions().name(pstrKey + apiTypeKey + yearKey + versionKey).background(true).unique(true)
       )
     ),
     extraCodecs = Seq(
@@ -106,7 +106,7 @@ class EventReportCacheRepository @Inject()(
   def upsert(pstr: String, edi: EventDataIdentifier, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val modifier = Updates.combine(
       Updates.set(pstrKey, pstr),
-      Updates.set(apiTypesKey, edi.apiType.toString),
+      Updates.set(apiTypeKey, edi.apiType.toString),
       Updates.set(yearKey, edi.year),
       Updates.set(versionKey, edi.version),
       Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
@@ -115,7 +115,7 @@ class EventReportCacheRepository @Inject()(
     )
     val selector = Filters.and(
       Filters.equal(pstrKey, pstr),
-      Filters.equal(apiTypesKey, edi.apiType.toString),
+      Filters.equal(apiTypeKey, edi.apiType.toString),
       Filters.equal(yearKey, edi.year),
       Filters.equal(versionKey, edi.version)
     )
@@ -127,14 +127,14 @@ class EventReportCacheRepository @Inject()(
   def upsert(pstr: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val modifier = Updates.combine(
       Updates.set(pstrKey, pstr),
-      Updates.set(apiTypesKey, "None"),
+      Updates.set(apiTypeKey, "None"),
       Updates.set(yearKey, 0),
       Updates.set(versionKey, 0),
       Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
       Updates.set(lastUpdatedKey, Codecs.toBson(DateTime.now(DateTimeZone.UTC))),
       Updates.set(expireAtKey, Codecs.toBson(evaluatedExpireAt))
     )
-    val selector = Filters.and(Filters.equal(pstrKey, pstr), Filters.equal(apiTypesKey, "None"))
+    val selector = Filters.and(Filters.equal(pstrKey, pstr), Filters.equal(apiTypeKey, "None"))
 
     collection.findOneAndUpdate(
       filter = selector,
@@ -154,7 +154,7 @@ class EventReportCacheRepository @Inject()(
     collection.find[EventReportCacheEntry](
       Filters.and(
         Filters.equal(pstrKey, pstr),
-        Filters.equal(apiTypesKey, edi.apiType.toString),
+        Filters.equal(apiTypeKey, edi.apiType.toString),
         Filters.equal(yearKey, edi.year),
         Filters.equal(versionKey, edi.version)
       )
