@@ -37,6 +37,7 @@ object ApiType extends Enumerable.Implicits {
   case object Api1831 extends WithName("1831") with ApiType
 
   case object Api1834 extends WithName("1834") with ApiType
+
   case object ApiNone extends WithName("None") with ApiType
 
   def values: Seq[ApiType] = {
@@ -49,19 +50,12 @@ object ApiType extends Enumerable.Implicits {
   implicit val formats: Format[ApiType] = new Format[ApiType] {
     override def writes(o: ApiType): JsValue = JsString(o.toString)
 
-    override def reads(json: JsValue): JsResult[ApiType] = json match {
-      case JsString("1826") => JsSuccess(Api1826)
-      case JsString("1827") => JsSuccess(Api1827)
-      case JsString("1829") => JsSuccess(Api1829)
-      case JsString("1830") => JsSuccess(Api1830)
-      case JsString("1832") => JsSuccess(Api1832)
-      case JsString("1833") => JsSuccess(Api1833)
-      case JsString("1831") => JsSuccess(Api1831)
-      case JsString("1834") => JsSuccess(Api1834)
-      case JsString("None") => JsSuccess(ApiNone)
-      case _ => JsError(s"Unknown api type: ${json.toString()}")
+    override def reads(json: JsValue): JsResult[ApiType] = {
+      val jsonAsString = json.as[String]
+      values.find(_.toString == jsonAsString) match {
+        case Some(apiType) => JsSuccess(apiType)
+        case None => JsError(s"Unknown api type: $jsonAsString")
+      }
     }
   }
-
 }
-
