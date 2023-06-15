@@ -370,6 +370,39 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
+  def generateUserAnswersAndPOSTBodyEvent19: Gen[(JsObject, JsObject)] = {
+    for {
+      taxYear <- taxYearGenerator
+      countryOrTerritory <- Gen.listOfN(2, nonEmptyString).map(_.mkString)
+    } yield {
+      val endTaxYear = (taxYear.toInt + 1).toString
+      val fullUA = Json.obj(
+        "event19" -> Json.obj(
+          "CountryOrTerritory" -> countryOrTerritory,
+          "dateChangeMade" -> s"$taxYear-12-21"
+        ),
+        "taxYear" -> taxYear
+      )
+
+      val fullExpectedResult = Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "reportStartDate" -> s"$taxYear-04-06",
+          "reportEndDate" -> s"$endTaxYear-04-05"
+        ),
+        "eventDetails" -> Json.obj(
+          "event19" -> Json.arr(
+            Json.obj(
+              "recordVersion" -> "001",
+              "countryCode" -> countryOrTerritory,
+              "dateOfChange" -> s"$taxYear-12-21"
+            )
+          )
+        )
+      )
+      Tuple2(fullUA, fullExpectedResult)
+    }
+  }
+  
   def generateUserAnswersAndPOSTBodyEvent20: Gen[(JsObject, JsObject)] = {
     for {
       whatChange <- Gen.oneOf(Seq("becameOccupationalScheme", "ceasedOccupationalScheme"))

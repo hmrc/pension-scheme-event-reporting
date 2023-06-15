@@ -162,7 +162,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   }
 
   "submitEventDeclarationReport" must {
-    "return OK when valid response" in {
+    "return NoContent when valid response" in {
       when(mockEventReportService.submitEventDeclarationReport(any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(submitEventDeclarationReportSuccessResponse))
       when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
@@ -171,29 +171,30 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       val result = controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse).withHeaders(
         newHeaders = "pstr" -> pstr))
 
-      status(result) mustBe OK
+      status(result) mustBe NO_CONTENT
     }
+    "throw a Bad Request Exception when the body is missing" in {
+      recoverToExceptionIf[BadRequestException] {
+        controller.submitEventDeclarationReport(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
 
-    "throw validation exception when validation errors response" in {
-      val controller = application.injector.instanceOf[EventReportController]
+        response.message must include("Bad Request without pstr (Some(pstr)) or request body (None)")
+      }
+    }
+    "throw a Bad Request Exception when the pstr is missing from the header" in {
+      recoverToExceptionIf[BadRequestException] {
+        controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
 
-      when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
-        .thenReturn(Failure(EventReportValidationFailureException("Test")))
-
-      recoverToExceptionIf[EventReportValidationFailureException] {
-        controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse).withHeaders(
-          newHeaders = "pstr" -> pstr))
-      } map {
-        failure =>
-          failure.getMessage mustBe "Test"
+        response.message must include("""Bad Request without pstr (None) or request body (Some({"processingDate":"2023-06-14","formBundleNumber":"12345678933"}))""")
       }
     }
   }
 
   "submitEvent20ADeclarationReport" must {
-    "return OK when valid response" in {
-      val controller = application.injector.instanceOf[EventReportController]
-
+    "return NoContent when valid response" in {
       when(mockEventReportService.submitEvent20ADeclarationReport(any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(submitEvent20ADeclarationReportSuccessResponse))
       when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
@@ -202,23 +203,24 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       val result = controller.submitEvent20ADeclarationReport(fakeRequest.withJsonBody(submitEvent20ADeclarationReportSuccessResponse).withHeaders(
         newHeaders = "pstr" -> pstr))
 
-      status(result) mustBe OK
+      status(result) mustBe NO_CONTENT
     }
+    "throw a Bad Request Exception when the pstr is missing from the header" in {
+      recoverToExceptionIf[BadRequestException] {
+        controller.submitEvent20ADeclarationReport(fakeRequest.withJsonBody(submitEvent20ADeclarationReportSuccessResponse))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
 
-    "throw validation exception when validation errors response" in {
-      val controller = application.injector.instanceOf[EventReportController]
+        response.message must include("""Bad Request without pstr (None) or request body (Some({"processingDate":"2023-06-14","formBundleNumber":"12345670811"}))""")
+      }
+    }
+    "throw a Bad Request Exception when the body is missing" in {
+      recoverToExceptionIf[BadRequestException] {
+        controller.submitEvent20ADeclarationReport(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
 
-      when(mockEventReportService.submitEvent20ADeclarationReport(any(), any())(any(), any(), any()))
-        .thenReturn(Future.successful(submitEvent20ADeclarationReportSuccessResponse))
-      when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
-        .thenReturn(Failure(EventReportValidationFailureException("Test")))
-
-      recoverToExceptionIf[EventReportValidationFailureException] {
-        controller.submitEvent20ADeclarationReport(fakeRequest.withJsonBody(submitEvent20ADeclarationReportSuccessResponse).withHeaders(
-          newHeaders = "pstr" -> pstr))
-      } map {
-        failure =>
-          failure.getMessage mustBe "Test"
+        response.message must include("Bad Request without pstr (Some(pstr)) or request body (None)")
       }
     }
   }
@@ -554,7 +556,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   "compileEvent" must {
     "return 204 No Content when valid response" in {
       when(mockAuthConnector.authorise[(Option[String] ~ Enrolments)](any(), any())(any(), any())) thenReturn
-        Future.successful(new ~(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"), enrolments))
+        Future.successful(new~(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"), enrolments))
       when(mockEventReportService.compileEventReport(any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(NoContent))
 
@@ -612,10 +614,10 @@ object EventReportControllerSpec {
       )),
   )
 
-  private val submitEventDeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+  private val submitEventDeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> "2023-06-14",
     "formBundleNumber" -> "12345678933")
 
-  private val submitEvent20ADeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
+  private val submitEvent20ADeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> "2023-06-14",
     "formBundleNumber" -> "12345670811")
 
   private val erVersionResponseJson: JsArray = Json.arr(
