@@ -33,15 +33,13 @@ object EventDataIdentifier {
     }
 
     override def reads(json: JsValue): JsResult[EventDataIdentifier] = {
-      val tt: Reads[EventDataIdentifier] = (
+      (
       (JsPath \ "apiTypes").read[ApiType](ApiType.formats) and
       (JsPath \ "year").read[Int] and
       (JsPath \ "version").read[Int]
         )(
         (apiType, year, version) => EventDataIdentifier(apiType, year, version)
-      )
-      tt.reads(json)
+      ).reads(json)
     }
   }
-
 }

@@ -59,11 +59,11 @@ object EventReportCacheEntry {
       (
         (JsPath \ "pstr").read[String] and
           (JsPath \ apiTypesKey).read[ApiType](ApiType.formats) and
-          (JsPath \ "year").read[Int] and
-          (JsPath \ "version").read[Int] and
-          (JsPath \ "data").read[JsValue] and
-          (JsPath \ "lastUpdated").read[DateTime] and
-          (JsPath \ "expireAt").read[DateTime]
+          (JsPath \ yearKey).read[Int] and
+          (JsPath \ versionKey).read[Int] and
+          (JsPath \ dataKey).read[JsValue] and
+          (JsPath \ lastUpdatedKey).read[DateTime] and
+          (JsPath \ expireAtKey).read[DateTime]
         )(
         (pstr, apiType, year, version, data, lastUpdated, expireAt) =>
           EventReportCacheEntry(pstr, EventDataIdentifier(apiType, year, version), data, lastUpdated, expireAt)
