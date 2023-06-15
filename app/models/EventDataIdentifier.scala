@@ -26,7 +26,7 @@ object EventDataIdentifier {
   implicit val formats: Format[EventDataIdentifier] = new Format[EventDataIdentifier] {
     override def writes(o: EventDataIdentifier): JsValue = {
       Json.obj(
-        "apiTypes" -> o.apiType.toString,
+        "apiType" -> o.apiType.toString,
         "year" -> o.year,
         "version" -> o.version
       )
@@ -34,7 +34,7 @@ object EventDataIdentifier {
 
     override def reads(json: JsValue): JsResult[EventDataIdentifier] = {
       (
-      (JsPath \ "apiTypes").read[ApiType](ApiType.formats) and
+      (JsPath \ "apiType").read[ApiType](ApiType.formats) and
       (JsPath \ "year").read[Int] and
       (JsPath \ "version").read[Int]
         )(

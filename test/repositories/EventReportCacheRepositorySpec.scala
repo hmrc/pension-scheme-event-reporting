@@ -53,7 +53,7 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
   }
 
   private val pstrKey = "pstr"
-  private val apiTypesKey = "apiTypes"
+  private val apiTypesKey = "apiType"
   private val yearKey = "year"
   private val versionKey = "version"
   private val pstr1 = "pstr-1"
@@ -128,7 +128,7 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
     "save a new event report cache in Mongo collection when collection is empty" in {
 
       val record = ("pstr-1", noEventType, Json.parse("""{"data":"1"}"""))
-      val filters = Filters.and(Filters.eq("pstr", record._1), Filters.eq("apiTypes", record._2))
+      val filters = Filters.and(Filters.eq("pstr", record._1), Filters.eq("apiType", record._2))
 
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
@@ -146,7 +146,7 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
 
       val record1 = ("pstr-1", noEventType, Json.parse("""{"data":"1"}"""))
       val record2 = ("pstr-1", noEventType, Json.parse("""{"data":"2"}"""))
-      val filters = Filters.and(Filters.eq("pstr", record1._1), Filters.eq("apiTypes", record1._2))
+      val filters = Filters.and(Filters.eq("pstr", record1._1), Filters.eq("apiType", record1._2))
 
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()

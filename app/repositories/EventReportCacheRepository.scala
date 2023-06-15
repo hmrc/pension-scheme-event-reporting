@@ -39,7 +39,7 @@ case class EventReportCacheEntry(pstr: String, edi: EventDataIdentifier, data: J
 
 object EventReportCacheEntry {
   val pstrKey = "pstr"
-  val apiTypesKey = "apiTypes"
+  val apiTypesKey = "apiType"
   val yearKey = "year"
   val versionKey = "version"
   val expireAtKey = "expireAt"
@@ -145,7 +145,7 @@ class EventReportCacheRepository @Inject()(
     optEventDataIdentifier match {
       case Some(edi) => getByEDI(pstr, edi).map(_.map(_.as[JsObject]))
       case None =>
-        getByKeys(Map("pstr" -> pstr, "apiTypes" -> ApiType.ApiNone.toString))
+        getByKeys(Map("pstr" -> pstr, "apiType" -> ApiType.ApiNone.toString))
           .map(_.map(_.as[JsObject]))
     }
   }
