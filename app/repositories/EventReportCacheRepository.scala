@@ -90,7 +90,7 @@ class EventReportCacheRepository @Inject()(
   def upsert(pstr: String, edi:EventDataIdentifier, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val modifier = Updates.combine(
       Updates.set(pstrKey, pstr),
-      Updates.set(apiTypesKey, edi.apiType),
+      Updates.set(apiTypesKey, edi.apiType.toString),
       Updates.set(yearKey, edi.year),
       Updates.set(versionKey, edi.version),
       Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
