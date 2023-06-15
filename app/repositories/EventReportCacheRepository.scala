@@ -134,7 +134,12 @@ class EventReportCacheRepository @Inject()(
       Updates.set(lastUpdatedKey, Codecs.toBson(DateTime.now(DateTimeZone.UTC))),
       Updates.set(expireAtKey, Codecs.toBson(evaluatedExpireAt))
     )
-    val selector = Filters.and(Filters.equal(pstrKey, pstr), Filters.equal(apiTypeKey, "None"))
+    val selector = Filters.and(
+      Filters.equal(pstrKey, pstr),
+      Filters.equal(apiTypeKey, "None"),
+      Filters.equal(yearKey, 0),
+      Filters.equal(versionKey, 0)
+    )
 
     collection.findOneAndUpdate(
       filter = selector,
@@ -145,8 +150,7 @@ class EventReportCacheRepository @Inject()(
     optEventDataIdentifier match {
       case Some(edi) => getByEDI(pstr, edi).map(_.map(_.as[JsObject]))
       case None =>
-        getByKeys(Map("pstr" -> pstr, "apiType" -> ApiType.ApiNone.toString))
-          .map(_.map(_.as[JsObject]))
+        getByEDI(pstr, EventDataIdentifier(ApiType.ApiNone, 0, 0)).map(_.map(_.as[JsObject]))
     }
   }
 
@@ -159,15 +163,6 @@ class EventReportCacheRepository @Inject()(
         Filters.equal(versionKey, edi.version)
       )
     ).headOption().map {
-      _.map {
-        dataEntry =>
-          dataEntry.data
-      }
-    }
-  }
-
-  private def getByKeys(mapOfKeys: Map[String, String])(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
-    collection.find[EventReportCacheEntry](filterByKeys(mapOfKeys)).headOption().map {
       _.map {
         dataEntry =>
           dataEntry.data
