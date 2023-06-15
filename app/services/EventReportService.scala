@@ -91,12 +91,11 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def getUserAnswers(pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     eventReportCacheRepository.getUserAnswers(pstr, None)
 
-  def compileEventReport(psaPspId: String, pstr: String, eventType: EventType)
+  def compileEventReport(psaPspId: String, pstr: String, eventType: EventType, year: Int, version: Int)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
-        // TODO 0,0
-        eventReportCacheRepository.getUserAnswers(pstr, Some(EventDataIdentifier(apiType, 0, 0))).flatMap {
+        eventReportCacheRepository.getUserAnswers(pstr, Some(EventDataIdentifier(apiType, year, version))).flatMap {
           case Some(data) =>
             eventReportCacheRepository.getUserAnswers(pstr, None).flatMap {
               case Some(header) =>

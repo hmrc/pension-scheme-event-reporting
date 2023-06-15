@@ -163,9 +163,9 @@ class EventReportController @Inject()(
 
   def compileEvent: Action[AnyContent] = Action.async {
     implicit request =>
-      withPstrPsaPspIDEventTypeAndYear { (psaPspId, pstr, et, year) =>
+      withPstrPsaPspIDEventTypeYearAndVersion { (psaPspId, pstr, et, year, version) =>
         EventType.getEventType(et) match {
-          case Some(eventType) => eventReportService.compileEventReport(psaPspId, pstr, eventType)
+          case Some(eventType) => eventReportService.compileEventReport(psaPspId, pstr, eventType, year, version)
           case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
         }
       }
@@ -305,7 +305,7 @@ class EventReportController @Inject()(
         }
     }
 
-  private def withPstrPsaPspIDEventTypeAndYear(block: (String, String, String, Int) => Future[Result])
+  private def withPstrPsaPspIDEventTypeYearAndVersion(block: (String, String, String, Int, Int) => Future[Result])
                                   (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
@@ -316,13 +316,14 @@ class EventReportController @Inject()(
           getPsaPspId(enrolments),
           request.headers.get("pstr"),
           request.headers.get("eventType"),
-          request.headers.get("year")
+          request.headers.get("year"),
+          request.headers.get("version")
         ) match {
-          case (Some(psaPspId), Some(pstr), Some(et), Some(year)) =>
-            block(psaPspId, pstr, et, year.toInt)
-          case (psa, pstr, et, year) =>
+          case (Some(psaPspId), Some(pstr), Some(et), Some(year), Some(version)) =>
+            block(psaPspId, pstr, et, year.toInt, version.toInt)
+          case (psa, pstr, et, year, version) =>
             Future.failed(new BadRequestException(
-              s"Bad Request without psaPspId $psa, pstr ($pstr) or eventType ($et) or year ($year)"))
+              s"Bad Request without psaPspId $psa, pstr ($pstr) or eventType ($et) or year ($year) or version ($version)"))
         }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))

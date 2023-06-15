@@ -37,9 +37,10 @@ object ApiType extends Enumerable.Implicits {
   case object Api1831 extends WithName("1831") with ApiType
 
   case object Api1834 extends WithName("1834") with ApiType
+  case object ApiNone extends WithName("None") with ApiType
 
   def values: Seq[ApiType] = {
-    Seq(Api1826, Api1827, Api1829, Api1830, Api1832, Api1833, Api1831, Api1834)
+    Seq(Api1826, Api1827, Api1829, Api1830, Api1832, Api1833, Api1831, Api1834, ApiNone)
   }
 
   implicit val enumerable: Enumerable[ApiType] =
@@ -57,6 +58,7 @@ object ApiType extends Enumerable.Implicits {
       case JsString("1833") => JsSuccess(Api1833)
       case JsString("1831") => JsSuccess(Api1831)
       case JsString("1834") => JsSuccess(Api1834)
+      case JsString("None") => JsSuccess(ApiNone)
       case _ => JsError(s"Unknown api type: ${json.toString()}")
     }
   }

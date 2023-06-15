@@ -92,7 +92,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
   "compileEventReport for unimplemented api type" must {
     "return Bad Request" in {
-      eventReportService.compileEventReport(psaId, "pstr", Event20A)(implicitly, implicitly, implicitly).map {
+      eventReportService.compileEventReport(psaId, "pstr", Event20A, year, version)(implicitly, implicitly, implicitly).map {
         result => result.header.status mustBe BAD_REQUEST
       }
     }
@@ -102,7 +102,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     "return NOT FOUND when no data return from repository" in {
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(EventDataIdentifier(Api1827, 2020, 1))))(any()))
         .thenReturn(Future.successful(None))
-      eventReportService.compileEventReport(psaId, "pstr", Event1)(implicitly, implicitly, implicitly).map {
+      eventReportService.compileEventReport(psaId, "pstr", Event1, year, version)(implicitly, implicitly, implicitly).map {
         result => result.header.status mustBe NOT_FOUND
       }
     }
@@ -116,7 +116,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportConnector.compileEventOneReport(any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
-      eventReportService.compileEventReport(psaId, "pstr", Event1).map {
+      eventReportService.compileEventReport(psaId, "pstr", Event1, year, version).map {
         result => result.header.status mustBe NO_CONTENT
       }
     }
@@ -130,7 +130,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Failure(new Exception("Message")))
 
       recoverToExceptionIf[Exception] {
-        eventReportService.compileEventReport(psaId, "pstr", Event1)
+        eventReportService.compileEventReport(psaId, "pstr", Event1, year, version)
       } map {
         failure =>
           failure.getMessage mustBe "Message"
@@ -147,7 +147,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
 
       recoverToExceptionIf[UpstreamErrorResponse] {
-        eventReportService.compileEventReport(psaId, "pstr", Event1)
+        eventReportService.compileEventReport(psaId, "pstr", Event1, year, version)
       } map {
         _.statusCode mustBe INTERNAL_SERVER_ERROR
       }
@@ -158,7 +158,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     "return Not Found when no data returned from repository" in {
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(EventDataIdentifier(Api1826, 2020, 1))))(any()))
         .thenReturn(Future.successful(None))
-      eventReportService.compileEventReport(psaId, "pstr", WindUp)(implicitly, implicitly, implicitly).map {
+      eventReportService.compileEventReport(psaId, "pstr", WindUp, year, version)(implicitly, implicitly, implicitly).map {
         result => result.header.status mustBe NOT_FOUND
       }
     }
@@ -173,7 +173,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportConnector.compileEventReportSummary(any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
-      eventReportService.compileEventReport(psaId, "pstr", WindUp).map {
+      eventReportService.compileEventReport(psaId, "pstr", WindUp, year, version).map {
         result => result.header.status mustBe NO_CONTENT
       }
     }
@@ -188,7 +188,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Failure(new Exception("Message")))
 
       recoverToExceptionIf[Exception] {
-        eventReportService.compileEventReport(psaId, "pstr", WindUp)
+        eventReportService.compileEventReport(psaId, "pstr", WindUp, year, version)
       } map {
         failure =>
           failure.getMessage mustBe "Message"
@@ -206,7 +206,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
 
       recoverToExceptionIf[UpstreamErrorResponse] {
-        eventReportService.compileEventReport(psaId, "pstr", WindUp)
+        eventReportService.compileEventReport(psaId, "pstr", WindUp, year, version)
       } map {
         _.statusCode mustBe INTERNAL_SERVER_ERROR
       }

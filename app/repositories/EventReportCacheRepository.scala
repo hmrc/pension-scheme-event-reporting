@@ -145,7 +145,7 @@ class EventReportCacheRepository @Inject()(
     optEventDataIdentifier match {
       case Some(edi) => getByEDI(pstr, edi).map(_.map(_.as[JsObject]))
       case None =>
-        getByKeys(Map("pstr" -> pstr, "apiTypes" -> "None"))
+        getByKeys(Map("pstr" -> pstr, "apiTypes" -> ApiType.ApiNone.toString))
           .map(_.map(_.as[JsObject]))
     }
   }
