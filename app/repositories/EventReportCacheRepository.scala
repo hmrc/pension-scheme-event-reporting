@@ -19,9 +19,11 @@ package repositories
 import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.EventDataIdentifier
+import models.enumeration.ApiType
 import org.joda.time.{DateTime, DateTimeZone}
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
 import repositories.EventReportCacheEntry.{apiTypesKey, expireAtKey, pstrKey, versionKey, yearKey}
@@ -33,24 +35,9 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
 
-case class EventReportCacheEntry(pstr: String, edi:EventDataIdentifier, data: JsValue, lastUpdated: DateTime, expireAt: DateTime)
+case class EventReportCacheEntry(pstr: String, edi: EventDataIdentifier, data: JsValue, lastUpdated: DateTime, expireAt: DateTime)
 
 object EventReportCacheEntry {
-
-  def applyEventReportCacheEntry(pstr: String,
-                                 edi: EventDataIdentifier,
-                                 data: JsValue,
-                                 lastUpdated: DateTime = DateTime.now(DateTimeZone.UTC),
-                                 expireAt: DateTime): EventReportCacheEntry = {
-
-    EventReportCacheEntry(pstr, edi, data, lastUpdated, expireAt)
-  }
-
-  implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
-
-  implicit val format: Format[EventReportCacheEntry] = Json.format[EventReportCacheEntry]
-
-
   val pstrKey = "pstr"
   val apiTypesKey = "apiTypes"
   val yearKey = "year"
@@ -58,6 +45,31 @@ object EventReportCacheEntry {
   val expireAtKey = "expireAt"
   val lastUpdatedKey = "lastUpdated"
   val dataKey = "data"
+
+  implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
+
+  implicit val formats: Format[EventReportCacheEntry] = new Format[EventReportCacheEntry] {
+    override def writes(o: EventReportCacheEntry): JsValue = {
+      Json.obj(
+        "pstr" -> o.pstr
+      ) ++ EventDataIdentifier.formats.writes(o.edi).as[JsObject]
+    }
+
+    override def reads(json: JsValue): JsResult[EventReportCacheEntry] = {
+      (
+        (JsPath \ "pstr").read[String] and
+          (JsPath \ apiTypesKey).read[ApiType](ApiType.formats) and
+          (JsPath \ "year").read[Int] and
+          (JsPath \ "version").read[Int] and
+          (JsPath \ "data").read[JsValue] and
+          (JsPath \ "lastUpdated").read[DateTime] and
+          (JsPath \ "expireAt").read[DateTime]
+        )(
+        (pstr, apiType, year, version, data, lastUpdated, expireAt) =>
+          EventReportCacheEntry(pstr, EventDataIdentifier(apiType, year, version), data, lastUpdated, expireAt)
+      ).reads(json)
+    }
+  }
 }
 
 @Singleton
@@ -68,7 +80,7 @@ class EventReportCacheRepository @Inject()(
   extends PlayMongoRepository[EventReportCacheEntry](
     collectionName = config.underlying.getString("mongodb.event-reporting-data.name"),
     mongoComponent = mongoComponent,
-    domainFormat = EventReportCacheEntry.format,
+    domainFormat = EventReportCacheEntry.formats,
     indexes = Seq(
       IndexModel(
         Indexes.ascending(expireAtKey),
@@ -78,6 +90,10 @@ class EventReportCacheRepository @Inject()(
         Indexes.ascending(pstrKey, apiTypesKey, yearKey, versionKey),
         IndexOptions().name(pstrKey + apiTypesKey + yearKey + versionKey).background(true).unique(true)
       )
+    ),
+    extraCodecs = Seq(
+      Codecs.playFormatCodec(EventDataIdentifier.formats),
+      Codecs.playFormatCodec(ApiType.formats)
     )
   ) with Logging {
 
@@ -87,7 +103,7 @@ class EventReportCacheRepository @Inject()(
 
   private def evaluatedExpireAt: DateTime = DateTime.now(DateTimeZone.UTC).toLocalDate.plusDays(expireInDays + 1).toDateTimeAtStartOfDay()
 
-  def upsert(pstr: String, edi:EventDataIdentifier, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
+  def upsert(pstr: String, edi: EventDataIdentifier, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val modifier = Updates.combine(
       Updates.set(pstrKey, pstr),
       Updates.set(apiTypesKey, edi.apiType.toString),
@@ -99,11 +115,10 @@ class EventReportCacheRepository @Inject()(
     )
     val selector = Filters.and(
       Filters.equal(pstrKey, pstr),
-      Filters.equal(apiTypesKey, edi.apiType),
+      Filters.equal(apiTypesKey, edi.apiType.toString),
       Filters.equal(yearKey, edi.year),
       Filters.equal(versionKey, edi.version)
     )
-
     collection.findOneAndUpdate(
       filter = selector,
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
@@ -143,7 +158,7 @@ class EventReportCacheRepository @Inject()(
         Filters.equal(yearKey, edi.year),
         Filters.equal(versionKey, edi.version)
       )
-    ).headOption().map{
+    ).headOption().map {
       _.map {
         dataEntry =>
           dataEntry.data

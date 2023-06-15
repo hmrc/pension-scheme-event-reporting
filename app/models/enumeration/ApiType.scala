@@ -16,6 +16,8 @@
 
 package models.enumeration
 
+import play.api.libs.json.{Format, JsError, JsResult, JsString, JsSuccess, JsValue}
+
 sealed trait ApiType
 
 object ApiType extends Enumerable.Implicits {
@@ -42,6 +44,22 @@ object ApiType extends Enumerable.Implicits {
 
   implicit val enumerable: Enumerable[ApiType] =
     Enumerable(values.map(v => v.toString -> v): _*)
+
+  implicit val formats: Format[ApiType] = new Format[ApiType] {
+    override def writes(o: ApiType): JsValue = JsString(o.toString)
+
+    override def reads(json: JsValue): JsResult[ApiType] = json match {
+      case JsString("1826") => JsSuccess(Api1826)
+      case JsString("1827") => JsSuccess(Api1827)
+      case JsString("1829") => JsSuccess(Api1829)
+      case JsString("1830") => JsSuccess(Api1830)
+      case JsString("1832") => JsSuccess(Api1832)
+      case JsString("1833") => JsSuccess(Api1833)
+      case JsString("1831") => JsSuccess(Api1831)
+      case JsString("1834") => JsSuccess(Api1834)
+      case _ => JsError(s"Unknown api type: ${json.toString()}")
+    }
+  }
 
 }
 
