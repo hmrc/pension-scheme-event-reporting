@@ -53,8 +53,11 @@ class EventReportController @Inject()(
 
   def saveUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
-      withPstrOptionEventTypeAndBodyAndExternalId { (pstr, optEventType, userAnswersJson, externalId) =>
-        logger.debug(message = s"[Save Event: Incoming-Payload]$userAnswersJson")
+
+      withAuth.flatMap { case Credentials(externalId, psaPspId) =>
+        val pstr = requiredHeaders("pstr").head
+        val userAnswersJson = requiredBody
+        val optEventType = request.headers.get("eventType")
 
         optEventType match {
           case Some(eventType) =>
@@ -71,29 +74,32 @@ class EventReportController @Inject()(
   def getUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
 
-      withAuth.flatMap { case Credentials(externalId, psaPspId) =>
-        requiredHeaders("pstr") match {
-          case Seq(pstr) =>
-            val optEventType = request.headers.get("eventType")
-            optEventType match {
-              case Some(eventType) =>
-                EventType.getEventType(eventType) match {
-                  case Some(et) =>
-                    eventReportService.getUserAnswers(externalId, pstr, et)
-                      .map {
-                        case None => NotFound
-                        case Some(jsobj) => Ok(jsobj)
-                      }
-                  case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
-                }
-              case None =>
-                eventReportService.getUserAnswers(externalId, pstr)
+      def process(externalId: String, pstr: String, optEventType: Option[String]) = {
+        optEventType match {
+          case Some(eventType) =>
+            EventType.getEventType(eventType) match {
+              case Some(et) =>
+                eventReportService.getUserAnswers(externalId, pstr, et)
                   .map {
                     case None => NotFound
                     case Some(jsobj) => Ok(jsobj)
                   }
+              case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
             }
+          case None =>
+            eventReportService.getUserAnswers(externalId, pstr)
+              .map {
+                case None => NotFound
+                case Some(jsobj) => Ok(jsobj)
+              }
+        }
+      }
 
+      withAuth.flatMap { case Credentials(externalId, psaPspId) =>
+        requiredHeaders("pstr") match {
+          case Seq(pstr) =>
+            val optEventType = request.headers.get("eventType")
+            process(externalId, pstr, optEventType)
         }
       }
   }
@@ -130,6 +136,9 @@ class EventReportController @Inject()(
       throw new BadRequestException("Bad Request with missing parameters: " + errorString)
     }
   }
+
+  private def requiredBody(implicit request:Request[AnyContent]) =
+    request.body.asJson.getOrElse(throw new BadRequestException("Request does not contain required Json body"))
 
   def getEventSummary: Action[AnyContent] = Action.async {
     implicit request =>
@@ -180,7 +189,9 @@ class EventReportController @Inject()(
 
   def submitEventDeclarationReport: Action[AnyContent] = Action.async {
     implicit request =>
-      withPstrAndBody { (pstr, userAnswersJson) =>
+      withAuth.flatMap { _ =>
+        val pstr = requiredHeaders("pstr").head
+        val userAnswersJson = requiredBody
         logger.debug(message = s"[Submit Event Declaration Report - Incoming payload]$userAnswersJson")
         eventReportService.submitEventDeclarationReport(pstr, userAnswersJson).map(_ => NoContent)
       }
@@ -188,76 +199,14 @@ class EventReportController @Inject()(
 
   def submitEvent20ADeclarationReport: Action[AnyContent] = Action.async {
     implicit request =>
-      withPstrAndBody { (pstr, userAnswersJson) =>
+      withAuth.flatMap { _ =>
+        val pstr = requiredHeaders("pstr").head
+        val userAnswersJson = requiredBody
+
         logger.debug(message = s"[Submit Event 20A Declaration Report - Incoming payload]$userAnswersJson")
         eventReportService.submitEvent20ADeclarationReport(pstr, userAnswersJson).map(_ => NoContent)
       }
   }
-
-  private def withPstrAndBody(block: (String, JsValue) => Future[Result])
-                             (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
-
-    logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
-
-    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
-      case Some(_) =>
-        (
-          request.headers.get("pstr"),
-          request.body.asJson
-        ) match {
-          case (Some(pstr), Some(js)) =>
-            block(pstr, js)
-          case (pstr, jsValue) =>
-            Future.failed(new BadRequestException(
-              s"Bad Request without pstr ($pstr) or request body ($jsValue)"))
-        }
-      case _ =>
-        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
-    }
-  }
-
-  private def withPstrAndExternalId(pstrAndExternalId: (String, String) => Future[Result])
-                                            (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
-
-    logger.debug(message = "Logger message TBC")
-
-    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
-      case Some(externalId) =>
-          request.headers.get("pstr") match {
-          case Some(pstr) =>
-            pstrAndExternalId(pstr, externalId)
-          case _ =>
-            Future.failed(new BadRequestException(s"Bad Request, no pstr in headers"))
-        }
-      case _ =>
-        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
-    }
-  }
-
-  private def withPstrOptionEventTypeAndBodyAndExternalId(block: (String, Option[String], JsValue, String) => Future[Result])
-                                      (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
-
-    logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
-
-    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
-      case Some(externalId) =>
-        (
-          request.headers.get("pstr"),
-          request.headers.get("eventType"),
-          request.body.asJson,
-          externalId
-        ) match {
-          case (Some(pstr), optET, Some(js), externalId) =>
-            block(pstr, optET, js, externalId)
-          case (pstr, _, jsValue, externalId) =>
-            Future.failed(new BadRequestException(
-              s"Bad Request without pstr ($pstr) or request body ($jsValue)"))
-        }
-      case _ =>
-        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
-    }
-  }
-
 
   private def getPsaId(enrolments: Enrolments): Option[String] =
     enrolments
