@@ -97,9 +97,10 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
         eventReportCacheRepository.getUserAnswers(pstr, Some(EventDataIdentifier(apiType, year, version))).flatMap {
           case Some(data) =>
-            eventReportCacheRepository.getUserAnswers(pstr, None).flatMap {
-              case Some(header) =>
-                val fullData = header ++ data
+                val header = Json.obj(
+                  "taxYear" -> year.toString
+                )
+                val fullData = data ++ header
                 for {
                   transformedData <- Future.fromTry(toTry(fullData.validate(reads)))
                   _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, schemaPath, apiType.toString))
@@ -113,7 +114,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                   }
                 }
               case None => Future.successful(NotFound)
-            }
+
           case _ => Future.successful(NotFound)
         }
       case _ => Future.successful(BadRequest(s"Compile unimplemented for event type $eventType"))
@@ -196,12 +197,4 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[JsValue] = {
     eventReportConnector.submitEvent20ADeclarationReport(pstr, data).map(_.json)
   }
-
-  private val sortEventTypes: (JsValue, JsValue) => Boolean = (a, b) =>
-    (a, b) match {
-      case (JsString("0"), _) => false
-      case (_, JsString("0")) => true
-      case (a: JsString, b: JsString) if EventType.getEventType(a.value).get.order < EventType.getEventType(b.value).get.order => true
-      case _ => false
-    }
 }
