@@ -54,46 +54,44 @@ class EventReportController @Inject()(
         eventReportService.removeUserAnswers(pstr)
         Future.successful(Ok)
       }
-    }
+      }
   }
 
   def saveUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
-      withPstrOptionEventTypeYearVersionAndBody { (pstr, optEventType, year, version, userAnswersJson) =>
-        logger.debug(message = s"[Save Event: Incoming-Payload]$userAnswersJson")
-        optEventType match {
-          case Some(eventType) =>
-            EventType.getEventType(eventType) match {
-              case Some(et) =>
-                eventReportService.saveUserAnswers(pstr, et, year, version, userAnswersJson).map(_ => Ok)
-              case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
-            }
-          case _ => eventReportService.saveUserAnswers(pstr, userAnswersJson).map(_ => Ok)
-        }
+      withPstrOptionEventTypeYearVersionAndBody {
+        case (pstr, Some(Tuple3(eventType, year, version)), userAnswersJson) =>
+          logger.debug(message = s"[Save Event: Incoming-Payload]$userAnswersJson")
+          EventType.getEventType(eventType) match {
+            case Some(et) =>
+              eventReportService.saveUserAnswers(pstr, et, year, version, userAnswersJson).map(_ => Ok)
+            case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
+          }
+        case (pstr, None, userAnswersJson) =>
+          eventReportService.saveUserAnswers(pstr, userAnswersJson).map(_ => Ok)
       }
   }
 
   def getUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
-      withPstrAndOptionEventTypeYearAndVersion { (pstr, optEventType, year, version) =>
-        optEventType match {
-          case Some(eventType) =>
-            EventType.getEventType(eventType) match {
-              case Some(et) =>
-                eventReportService.getUserAnswers(pstr, et, year, version)
-                  .map {
-                    case None => NotFound
-                    case Some(jsobj) => Ok(jsobj)
-                  }
-              case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
+      withPstrAndOptionEventTypeYearAndVersion {
+        case (pstr, Some(Tuple3(eventType, year, version))) =>
+          EventType.getEventType(eventType) match {
+            case Some(et) =>
+              eventReportService.getUserAnswers(pstr, et, year, version)
+                .map {
+                  case None => NotFound
+                  case Some(jsobj) => Ok(jsobj)
+                }
+            case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
+          }
+        case (pstr, _) =>
+          eventReportService.getUserAnswers(pstr)
+            .map {
+              case None => NotFound
+              case Some(jsobj) => Ok(jsobj)
             }
-          case None =>
-            eventReportService.getUserAnswers(pstr)
-              .map {
-                case None => NotFound
-                case Some(jsobj) => Ok(jsobj)
-              }
-        }
+
       }
   }
 
@@ -216,13 +214,13 @@ class EventReportController @Inject()(
   }
 
   private def withPstr(block: (String) => Future[Result])
-                                            (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+                      (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = "Logger message TBC")
 
     authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
       case Some(_) =>
-          request.headers.get("pstr") match {
+        request.headers.get("pstr") match {
           case Some(pstr) =>
             block(pstr)
           case _ =>
@@ -233,8 +231,8 @@ class EventReportController @Inject()(
     }
   }
 
-  private def withPstrOptionEventTypeYearVersionAndBody(block: (String, Option[String], Int, Int, JsValue) => Future[Result])
-                                      (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+  private def withPstrOptionEventTypeYearVersionAndBody(block: (String, Option[Tuple3[String, Int, Int]], JsValue) => Future[Result])
+                                                       (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
 
@@ -247,8 +245,10 @@ class EventReportController @Inject()(
           request.headers.get("version"),
           request.body.asJson
         ) match {
-          case (Some(pstr), optET, Some(year), Some(version), Some(js)) =>
-            block(pstr, optET, year.toInt, version.toInt, js)
+          case (Some(pstr), Some(eventType), Some(year), Some(version), Some(js)) =>
+            val f: Option[(String, Int, Int)] = Option(Tuple3(eventType, year.toInt, version.toInt))
+            block(pstr, f, js)
+          case (Some(pstr), _, _, _, Some(js)) => block(pstr, None, js)
           case (pstr, _, year, version, jsValue) =>
             Future.failed(new BadRequestException(
               s"Bad Request without pstr ($pstr) or year ($year) or request body ($jsValue) or version ($version)"))
@@ -258,8 +258,8 @@ class EventReportController @Inject()(
     }
   }
 
-  private def withPstrAndOptionEventTypeYearAndVersion(block: (String, Option[String], Int, Int) => Future[Result])
-                                        (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+  private def withPstrAndOptionEventTypeYearAndVersion(block: (String, Option[Tuple3[String, Int, Int]]) => Future[Result])
+                                                      (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
 
@@ -271,8 +271,11 @@ class EventReportController @Inject()(
           request.headers.get("year"),
           request.headers.get("version")
         ) match {
-          case (Some(pstr), et, Some(year), Some(version)) =>
-            block(pstr, et, year.toInt, version.toInt)
+          case (Some(pstr), Some(et), Some(year), Some(version)) =>
+            val f: Option[(String, Int, Int)] = Option(Tuple3(et, year.toInt, version.toInt))
+            block.apply(pstr, f)
+          case (Some(pstr), _, _, _) =>
+            block.apply(pstr, None)
           case (pstr, _, year, version) =>
             Future.failed(new BadRequestException(
               s"Bad Request without pstr ($pstr) or year ($year) or version ($version)"))
@@ -306,7 +309,7 @@ class EventReportController @Inject()(
     }
 
   private def withPstrPsaPspIDEventTypeYearAndVersion(block: (String, String, String, Int, Int) => Future[Result])
-                                  (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+                                                     (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
 
