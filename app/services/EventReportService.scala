@@ -91,7 +91,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def getUserAnswers(externalId:String, pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     eventReportCacheRepository.getUserAnswers(externalId, pstr, None)
 
-  def compileEventReport(psaPspId: String, pstr: String, eventType: EventType)
+  def compileEventReport(externalId:String, psaPspId: String, pstr: String, eventType: EventType)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>

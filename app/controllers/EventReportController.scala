@@ -50,11 +50,10 @@ class EventReportController @Inject()(
 
   def removeUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
-      withPstrAndExternalId { case (pstr, externalId) => {
+      withAuth.map { case Credentials(externalId, psaPspId) =>
         eventReportService.removeUserAnswers(externalId)
-        Future.successful(Ok)
+        Ok
       }
-    }
   }
 
   def saveUserAnswers: Action[AnyContent] = Action.async {
@@ -76,100 +75,112 @@ class EventReportController @Inject()(
 
   def getUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
-      withPstrAndOptionEventTypeAndExternalId { (pstr, optEventType, externalId) =>
-        optEventType match {
-          case Some(eventType) =>
-            EventType.getEventType(eventType) match {
-              case Some(et) =>
-                eventReportService.getUserAnswers(externalId, pstr, et)
+
+      withAuth.flatMap { case Credentials(externalId, psaPspId) =>
+        requiredHeaders("pstr") match {
+          case Seq(pstr) =>
+            val optEventType = request.headers.get("eventType")
+            optEventType match {
+              case Some(eventType) =>
+                EventType.getEventType(eventType) match {
+                  case Some(et) =>
+                    eventReportService.getUserAnswers(externalId, pstr, et)
+                      .map {
+                        case None => NotFound
+                        case Some(jsobj) => Ok(jsobj)
+                      }
+                  case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
+                }
+              case None =>
+                eventReportService.getUserAnswers(externalId, pstr)
                   .map {
                     case None => NotFound
                     case Some(jsobj) => Ok(jsobj)
                   }
-              case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
             }
-          case None =>
-            eventReportService.getUserAnswers(externalId, pstr)
-              .map {
-                case None => NotFound
-                case Some(jsobj) => Ok(jsobj)
-              }
+
         }
       }
   }
 
 
-  def getEvent: Action[AnyContent] = Action.async {
-    implicit request =>
-      withAuthAndGetEventParameters { (pstr, startDate, version, eventType) =>
-        EventType.getEventType(eventType) match {
-          case Some(et) =>
-            eventReportService.getEvent(pstr, startDate, version, et).map {
-              case Some(ee) => Ok(ee)
-              case _ => NotFound
-            }
-          case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($eventType)"))
-        }
+  def getEvent: Action[AnyContent] = Action.async { implicit request =>
+    withAuth.flatMap { _ =>
+      requiredHeaders("pstr", "startDate", "version", "eventType") match {
+        case Seq(pstr, startDate, version, eventType) =>
+          val versionFormatted = ("00" + version).takeRight(3)
+          EventType.getEventType(eventType) match {
+            case Some(et) =>
+              eventReportService.getEvent(pstr, startDate, versionFormatted, et).map {
+                case Some(ee) => Ok(ee)
+                case _ => NotFound
+              }
+            case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($eventType)"))
+          }
       }
+    }
+  }
+
+
+
+  private def requiredHeaders(headers:String*)(implicit request: Request[AnyContent]) = {
+    val headerData = headers.map(request.headers.get)
+    val allHeadersDefined = headerData.forall(_.isDefined)
+    if(allHeadersDefined) headerData.collect { case Some(value) => value }
+    else {
+      val missingHeaders = headers.zip(headerData)
+      val errorString = missingHeaders.map { case (headerName, data) =>
+        prettyMissingParamError(data, headerName + " missing")
+      }.mkString(" ")
+      throw new BadRequestException("Bad Request with missing parameters: " + errorString)
+    }
   }
 
   def getEventSummary: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuthAndSummaryParameters { (pstr, version, startDate) =>
-        eventReportService.getEventSummary(pstr, version, startDate).map(Ok(_))
-      }
-  }
-
-  private def withAuthAndSummaryParameters(block: (String, String, String) => Future[Result])
-                                          (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
-
-    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
-      case Some(_) =>
-        Tuple3(
-          request.headers.get("pstr"),
-          request.headers.get("reportVersionNumber"),
-          request.headers.get("reportStartDate")
-        ) match {
-          case Tuple3(Some(pstr), Some(version), Some(startDate)) =>
-            block(pstr, version, startDate)
-          case (optPstr, optVersion, optStartDate) =>
-            val pstrMissing = prettyMissingParamError(optPstr, "PSTR missing")
-            val versionMissing = prettyMissingParamError(optVersion, "version missing")
-            val startDateMissing = prettyMissingParamError(optStartDate, "start date missing")
-            Future.failed(new BadRequestException(s"Bad Request with missing parameters: $pstrMissing$versionMissing$startDateMissing"))
+      withAuth.flatMap { _ =>
+        requiredHeaders("pstr", "reportVersionNumber", "reportStartDate") match {
+          case Seq(pstr, version, startDate) =>
+            eventReportService.getEventSummary(pstr, version, startDate).map(Ok(_))
         }
-      case _ =>
-        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
-    }
+      }
   }
 
   def getVersions: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuthAndVersionParameters { (pstr, reportType, startDate) =>
-        eventReportService.getVersions(pstr, reportType, startDate).map {
-          data => Ok(Json.toJson(data))
+      withAuth.flatMap { _ =>
+        requiredHeaders("pstr", "reportType", "startDate") match {
+          case Seq(pstr, reportType, startDate) =>
+            eventReportService.getVersions(pstr, reportType, startDate).map {
+              data => Ok(Json.toJson(data))
+            }
         }
       }
   }
 
   def getOverview: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuthAndOverviewParameters { (pstr, reportType, startDate, endDate) =>
-        eventReportService.getOverview(pstr, reportType, startDate, endDate).map {
-          data => Ok(data)
+      withAuth.flatMap { _ =>
+        requiredHeaders("pstr", "reportType", "startDate", "endDate") match {
+          case Seq(pstr, reportType, startDate, endDate) =>
+            eventReportService.getOverview(pstr, reportType, startDate, endDate).map {
+              data => Ok(data)
+            }
         }
       }
   }
 
 
-  def compileEvent: Action[AnyContent] = Action.async {
-    implicit request =>
-      withPstrPsaPspIDAndEventType { (psaPspId, pstr, et) =>
-        EventType.getEventType(et) match {
-          case Some(eventType) => eventReportService.compileEventReport(psaPspId, pstr, eventType)
-          case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
-        }
+  def compileEvent: Action[AnyContent] = Action.async { implicit request =>
+    withAuth.flatMap { case Credentials(externalId, psaPspId) =>
+      requiredHeaders("pstr", "eventType") match {
+        case Seq(pstr, et) =>
+          EventType.getEventType(et) match {
+            case Some(eventType) => eventReportService.compileEventReport(externalId, psaPspId, pstr, eventType)
+            case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
+          }
       }
+    }
   }
 
   def submitEventDeclarationReport: Action[AnyContent] = Action.async {
@@ -281,128 +292,18 @@ class EventReportController @Inject()(
         }
     }
 
-  private def withPstrPsaPspIDAndEventType(block: (String, String, String) => Future[Result])
-                                  (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
-
-    logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
-
-    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
-      case Some(externalId) =>
+  private case class Credentials(externalId: String, psaPspId:String)
+  private def withAuth(implicit hc: HeaderCarrier) = {
     authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId and Retrievals.allEnrolments) {
-      case Some(_) ~ enrolments =>
-        (
-          getPsaPspId(enrolments),
-          request.headers.get("pstr"),
-          request.headers.get("eventType")
-        ) match {
-          case (Some(psaPspId), Some(pstr), Some(et)) =>
-            block(psaPspId, pstr, et)
-          case (psa, pstr, et) =>
-            Future.failed(new BadRequestException(
-              s"Bad Request without psaPspId $psa, pstr ($pstr) or eventType ($et)"))
-        }
+      case Some(externalId) ~ enrolments =>
+          getPsaPspId(enrolments) match {
+            case Some(psaPspId) => Future.successful(Credentials(externalId, psaPspId))
+            case psa => Future.failed(new BadRequestException(s"Bad Request without psaPspId $psa"))
+          }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
     }
   }
-
-  private def withPstrAndOptionEventTypeAndExternalId(block: (String, Option[String], String) => Future[Result])
-                                        (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
-
-    logger.debug(message = s"[Compile Event Report: Incoming-Payload]${request.body.asJson}")
-
-    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
-      case Some(externalId) =>
-        (
-          request.headers.get("pstr"),
-          request.headers.get("eventType")
-        ) match {
-          case (Some(pstr), et) =>
-            block(pstr, et, externalId)
-          case (pstr, _) =>
-            Future.failed(new BadRequestException(
-              s"Bad Request without pstr ($pstr)"))
-        }
-      case _ =>
-        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
-    }
-  }
-
-  private def withAuthAndGetEventParameters(block: (String, String, String, String) => Future[Result])
-                                           (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
-
-    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
-      case Some(_) =>
-        (
-          request.headers.get("pstr"),
-          request.headers.get("startDate"),
-          request.headers.get("version"),
-          request.headers.get("eventType")
-        ) match {
-          case (Some(pstr), Some(startDate), Some(version), Some(eventType)) =>
-            val versionFormatted = ("00" + version).takeRight(3)
-            block(pstr, startDate, versionFormatted, eventType)
-          case (optPstr, optStartDate, optVersion, optEventType) =>
-            val pstrMissing = prettyMissingParamError(optPstr, "PSTR missing")
-            val startDateMissing = prettyMissingParamError(optStartDate, "start date missing")
-            val versionMissing = prettyMissingParamError(optVersion, "version missing")
-            val eventTypeMissing = prettyMissingParamError(optEventType, "event type missing")
-            Future.failed(new BadRequestException(
-              s"Bad Request with missing parameters: $pstrMissing $eventTypeMissing $startDateMissing $versionMissing"))
-        }
-      case _ =>
-        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
-    }
-  }
-
-  private def withAuthAndOverviewParameters(block: (String, String, String, String) => Future[Result])
-                                           (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
-
-    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
-      case Some(_) =>
-        (
-          request.headers.get("pstr"),
-          request.headers.get("reportType"),
-          request.headers.get("startDate"),
-          request.headers.get("endDate")
-        ) match {
-          case (Some(pstr), Some(reportType), Some(startDate), Some(endDate)) =>
-            block(pstr, reportType, startDate, endDate)
-          case (optPstr, optReportType, optStartDate, optEndDate) =>
-            val pstrMissing = prettyMissingParamError(optPstr, "PSTR missing")
-            val reportTypeMissing = prettyMissingParamError(optReportType, "report type missing")
-            val startDateMissing = prettyMissingParamError(optStartDate, "start date missing")
-            val endDateMissing = prettyMissingParamError(optEndDate, "end date missing")
-            Future.failed(new BadRequestException(s"Bad Request with missing parameters: $pstrMissing$reportTypeMissing$startDateMissing$endDateMissing"))
-        }
-      case _ =>
-        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
-    }
-  }
-
-  private def withAuthAndVersionParameters(block: (String, String, String) => Future[Result])
-                                          (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
-
-    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
-      case Some(_) =>
-        (
-          request.headers.get("pstr"),
-          request.headers.get("reportType"),
-          request.headers.get("startDate")
-        ) match {
-          case (Some(pstr), Some(reportType), Some(startDate)) =>
-            block(pstr, reportType, startDate)
-          case (optPstr, optReportType, optStartDate) =>
-            val pstrMissing = prettyMissingParamError(optPstr, "PSTR missing")
-            val reportTypeMissing = prettyMissingParamError(optReportType, "report type missing")
-            val startDateMissing = prettyMissingParamError(optStartDate, "start date missing")
-            Future.failed(new BadRequestException(s"Bad Request for version with missing parameters: $pstrMissing $reportTypeMissing $startDateMissing"))
-        }
-      case _ =>
-        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
-    }
-  }
-
   private def prettyMissingParamError(param: Option[String], error: String) = if (param.isEmpty) s"$error " else ""
 }
 
