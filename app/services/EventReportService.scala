@@ -177,9 +177,9 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     eventReportConnector.getVersions(pstr, reportType, startDate)
   }
 
-  def getOverview(pstr: String, reportType: String, startDate: String, endDate: String)
+  def getOverview(pstr: String, startDate: String, endDate: String)
                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    overviewCacheRepository.get(pstr, reportType, startDate, endDate).flatMap {
+    overviewCacheRepository.get(pstr, startDate, endDate).flatMap {
       case Some(data) => Future.successful(data)
       case _ =>
         val erOverview = eventReportConnector.getOverview(pstr, reportType = "ER", startDate, endDate)
@@ -188,7 +188,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
         combinedEROverview.flatMap {
         data =>
-          overviewCacheRepository.upsert(pstr, reportType, startDate, endDate, Json.toJson(data))
+          overviewCacheRepository.upsert(pstr, startDate, endDate, Json.toJson(data))
             .map { _ => Json.toJson(data) }
       }
     }

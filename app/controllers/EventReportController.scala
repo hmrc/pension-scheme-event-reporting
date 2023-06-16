@@ -149,8 +149,8 @@ class EventReportController @Inject()(
 
   def getOverview: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuthAndOverviewParameters { (pstr, reportType, startDate, endDate) =>
-        eventReportService.getOverview(pstr, reportType, startDate, endDate).map {
+      withAuthAndOverviewParameters { (pstr, startDate, endDate) =>
+        eventReportService.getOverview(pstr, startDate, endDate).map {
           data => Ok(data)
         }
       }
@@ -341,25 +341,23 @@ class EventReportController @Inject()(
     }
   }
 
-  private def withAuthAndOverviewParameters(block: (String, String, String, String) => Future[Result])
+  private def withAuthAndOverviewParameters(block: (String, String, String) => Future[Result])
                                            (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
       case Some(_) =>
         (
           request.headers.get("pstr"),
-          request.headers.get("reportType"),
           request.headers.get("startDate"),
           request.headers.get("endDate")
         ) match {
-          case (Some(pstr), Some(reportType), Some(startDate), Some(endDate)) =>
-            block(pstr, reportType, startDate, endDate)
-          case (optPstr, optReportType, optStartDate, optEndDate) =>
+          case (Some(pstr), Some(startDate), Some(endDate)) =>
+            block(pstr, startDate, endDate)
+          case (optPstr, optStartDate, optEndDate) =>
             val pstrMissing = prettyMissingParamError(optPstr, "PSTR missing")
-            val reportTypeMissing = prettyMissingParamError(optReportType, "report type missing")
             val startDateMissing = prettyMissingParamError(optStartDate, "start date missing")
             val endDateMissing = prettyMissingParamError(optEndDate, "end date missing")
-            Future.failed(new BadRequestException(s"Bad Request with missing parameters: $pstrMissing$reportTypeMissing$startDateMissing$endDateMissing"))
+            Future.failed(new BadRequestException(s"Bad Request with missing parameters: $pstrMissing$startDateMissing$endDateMissing"))
         }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
