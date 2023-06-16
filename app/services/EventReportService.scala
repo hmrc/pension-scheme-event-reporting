@@ -86,12 +86,15 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def getUserAnswers(pstr: String, eventType: EventType, year: Int, version: Int)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] =
     EventType.postApiTypeByEventType(eventType) match {
       case Some(apiType) =>
+
         eventReportCacheRepository.getUserAnswers(pstr, Some(EventDataIdentifier(apiType, year, version))).flatMap {
-          case x@Some(_) => Future.successful(x)
+          case x@Some(_) =>
+            Future.successful(x)
           case None =>
             val startDate = year.toString + "04/06"
             getEvent(pstr, startDate, version, eventType).flatMap{
-              case None => Future.successful(None)
+              case None =>
+                Future.successful(None)
               case optUAData@Some(userAnswersDataToStore) =>
                 saveUserAnswers(pstr, eventType, year, version, userAnswersDataToStore).map( _ => optUAData)
             }
@@ -147,7 +150,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case evType1832 if api1832Events.contains(evType1832) =>
         data.validate(MemberEventReport.rds1832Api(evType1832)) match {
           case JsSuccess(transformedData, _) => Some(transformedData)
-          case _ => None
+          case JsError(e) =>
+            throw JsResultException(e)
         }
       case _ => Some(data)
     }

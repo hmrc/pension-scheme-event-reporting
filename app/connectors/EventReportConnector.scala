@@ -111,7 +111,8 @@ class EventReportConnector @Inject()(
 
     http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
       response.status match {
-        case OK => Some(response.json.as[JsObject])
+        case OK =>
+          Some(response.json.as[JsObject])
         case _ => handleErrorResponse("GET", apiUrl)(response)
       }
     }
