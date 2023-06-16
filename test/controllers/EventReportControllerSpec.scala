@@ -266,7 +266,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       when(mockEventReportService.getEvent(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(startDate),
-        ArgumentMatchers.eq(versionString),
+        ArgumentMatchers.eq(version),
         ArgumentMatchers.eq(Event1)
       )(any(), any()))
         .thenReturn(Future.successful(None))
@@ -285,7 +285,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       when(mockEventReportService.getEvent(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(startDate),
-        ArgumentMatchers.eq(versionString),
+        ArgumentMatchers.eq(version),
         ArgumentMatchers.eq(Event1)
       )(any(), any()))
         .thenReturn(Future.successful(Some(dummyJsValue)))
@@ -305,7 +305,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       when(mockEventReportService.getEvent(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(startDate),
-        ArgumentMatchers.eq(versionString),
+        ArgumentMatchers.eq(version),
         ArgumentMatchers.eq(Event2)
       )(any(), any()))
         .thenReturn(Future.successful(Some(dummyJsValue)))
@@ -366,7 +366,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     "return OK with dummy json response" in {
       when(mockEventReportService.getEventSummary(
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(versionString),
+        ArgumentMatchers.eq(version),
         ArgumentMatchers.eq(startDate)
       )(any(), any()))
         .thenReturn(Future.successful(dummyJsValue))
@@ -407,12 +407,14 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
       when(mockEventReportService.getUserAnswers(
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(Event1)
+        ArgumentMatchers.eq(Event1),
+        ArgumentMatchers.eq(2020),
+        ArgumentMatchers.eq(1)
       )(any()))
         .thenReturn(Future.successful(Some(json)))
 
       val result = controller.getUserAnswers(fakeRequest.withHeaders(
-        newHeaders = "pstr" -> pstr, "eventType" -> eventType))
+        newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> "1", "eventType" -> eventType))
 
       status(result) mustBe OK
     }
@@ -421,9 +423,9 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
       recoverToExceptionIf[NotFoundException] {
         controller.getUserAnswers(fakeRequest.withHeaders(
-          newHeaders = "pstr" -> pstr, "eventType" -> "test"))
+          newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> "1", "eventType" -> "test"))
       } map { response =>
-        verify(mockEventReportService, never).getUserAnswers(any(), any())(any())
+        verify(mockEventReportService, never).getUserAnswers(any(), any(), any(), any())(any())
         response.responseCode mustBe NOT_FOUND
         response.message must include("Bad Request: eventType (test) not found")
       }
@@ -433,12 +435,14 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
       when(mockEventReportService.getUserAnswers(
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(Event1)
+        ArgumentMatchers.eq(Event1),
+        ArgumentMatchers.eq(2020),
+        ArgumentMatchers.eq(1)
       )(any()))
         .thenReturn(Future.successful(None))
 
       val result = controller.getUserAnswers(fakeRequest.withHeaders(
-        newHeaders = "pstr" -> pstr, "eventType" -> eventType))
+        newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> "1", "eventType" -> eventType))
 
       status(result) mustBe NOT_FOUND
 
@@ -452,7 +456,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         .thenReturn(Future.successful(Some(json)))
 
       val result = controller.getUserAnswers(fakeRequest.withHeaders(
-        newHeaders = "pstr" -> pstr))
+        newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> "1"))
 
       status(result) mustBe OK
     }
@@ -462,7 +466,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
       recoverToExceptionIf[UnauthorizedException] {
         controller.getUserAnswers(fakeRequest.withHeaders(
-          newHeaders = "pstr" -> pstr, "eventType" -> eventType))
+          newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> "1", "eventType" -> eventType))
       } map { response =>
         response.responseCode mustBe UNAUTHORIZED
         response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
@@ -500,12 +504,14 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       when(mockEventReportService.saveUserAnswers(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(Event1),
+        ArgumentMatchers.eq(2020),
+        ArgumentMatchers.eq(1),
         any()
       )(any()))
         .thenReturn(Future.successful(()))
 
       val result = controller.saveUserAnswers(fakeRequest.withJsonBody(saveUserAnswersToCacheSuccessResponse).withHeaders(
-        newHeaders = "pstr" -> pstr, "eventType" -> eventType))
+        newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> "1", "eventType" -> eventType))
 
       status(result) mustBe OK
     }
@@ -514,9 +520,9 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
       recoverToExceptionIf[NotFoundException] {
         controller.saveUserAnswers(fakeRequest.withJsonBody(saveUserAnswersToCacheSuccessResponse).withHeaders(
-          newHeaders = "pstr" -> pstr, "eventType" -> "test"))
+          newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> "1", "eventType" -> "test"))
       } map { response =>
-        verify(mockEventReportService, never).saveUserAnswers(any(), any(), any())(any())
+        verify(mockEventReportService, never).saveUserAnswers(any(), any(), any(), any(), any())(any())
         response.responseCode mustBe NOT_FOUND
         response.message must include("Bad Request: eventType (test) not found")
       }
@@ -530,7 +536,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         .thenReturn(Future.successful(()))
 
       val result = controller.saveUserAnswers(fakeRequest.withJsonBody(saveUserAnswersToCacheSuccessResponse).withHeaders(
-        newHeaders = "pstr" -> pstr))
+        newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> "1"))
 
       status(result) mustBe OK
     }
@@ -551,12 +557,12 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   "compileEvent" must {
     "return 204 No Content when valid response" in {
       when(mockAuthConnector.authorise[(Option[String] ~ Enrolments)](any(), any())(any(), any())) thenReturn
-        Future.successful(new~(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"), enrolments))
-      when(mockEventReportService.compileEventReport(any(), any(), any())(any(), any(), any()))
+        Future.successful(new ~(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"), enrolments))
+      when(mockEventReportService.compileEventReport(any(), any(), any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(NoContent))
 
       val result = controller.compileEvent(fakeRequest.withJsonBody(compileEventSuccessResponse).withHeaders(
-        newHeaders = "pstr" -> pstr, "eventType" -> "1"))
+        newHeaders = "pstr" -> pstr, "eventType" -> "1", "year" -> "2020", "version" -> "1"))
 
       status(result) mustBe NO_CONTENT
     }
@@ -581,6 +587,7 @@ object EventReportControllerSpec {
 
   private val versionString = "001"
   private val eventType = "1"
+  private val version = 1
 
   private val startDate = "2022-04-06"
   private val endDate = "2023-04-05"
@@ -622,10 +629,10 @@ object EventReportControllerSpec {
     )
   )
 
-  private val version = ERVersion(1,
+  private val erVersion = ERVersion(1,
     LocalDate.of(2022, 4, 6),
     "Compiled")
-  private val erVersions = Seq(version)
+  private val erVersions = Seq(erVersion)
 
   private val saveUserAnswersToCacheSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678955")

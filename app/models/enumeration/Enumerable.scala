@@ -30,6 +30,7 @@ object Enumerable {
 
   trait Implicits {
 
+
     implicit def reads[A](implicit ev: Enumerable[A]): Reads[A] = {
       Reads {
         case JsString(str) =>
