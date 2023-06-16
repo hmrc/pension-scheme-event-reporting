@@ -229,7 +229,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
     def recoverAndValidatePayload(transformed1829Payload: JsObject): Future[Unit] = {
 
-      val recoveredConnectorCallForAPI1829 = eventReportConnector.submitEvent20ADeclarationReport(pstr, transformed1829Payload).map(_.json.as[JsObject]).recover {
+      val recoveredConnectorCallForAPI1829 =
+        eventReportConnector.submitEvent20ADeclarationReport(pstr, transformed1829Payload).map(_.json.as[JsObject]).recover {
         case _: BadRequestException =>
           throw new ExpectationFailedException("Nothing to submit")
       }
