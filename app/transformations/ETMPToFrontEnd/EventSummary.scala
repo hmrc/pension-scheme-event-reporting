@@ -21,13 +21,10 @@ import models.enumeration.EventType._
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json.{JsArray, _}
 
-import scala.language.implicitConversions
-
 
 object EventSummary {
 
   private val fieldNameRecordVersion = "recordVersion"
-  private val memberEvents: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
 
   private val readsIsEventTypePresentFromSeq: Reads[Boolean] = {
     Reads {

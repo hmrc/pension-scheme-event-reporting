@@ -52,7 +52,7 @@ object API1829 extends Transformer {
       }
     }
 
-    def optionalDateNode(optNode: Option[String])(nodeName: String = optNode.getOrElse(""), startOrEndDate: String): Reads[Option[JsObject]] = {
+    def optionalDateNode(nodeName: String, startOrEndDate: String): Reads[Option[JsObject]] = {
       (__ \ nodeName).readNullable[String].map {
         case Some(node) =>
           Some(
@@ -68,8 +68,8 @@ object API1829 extends Transformer {
       pstrNode <- requiredNode("pstr")("pSTR")
       reportStartDateNode <- requiredNode("reportStartDate")()
       reportEndDateNode <- requiredNode("reportEndDate")()
-      schemeMasterTrustStartDate <- optionalDateNode(Some("startDate"))("schemeMasterTrustStartDate", "startDate")
-      schemeMasterTrustCeaseDate <- optionalDateNode(Some("ceaseDate"))("schemeMasterTrustCeaseDate", "ceaseDate")
+      schemeMasterTrustStartDate <- optionalDateNode("schemeMasterTrustStartDate", "startDate")
+      schemeMasterTrustCeaseDate <- optionalDateNode("schemeMasterTrustCeaseDate", "ceaseDate")
       submittedByNode <- requiredNode("submittedBy")()
       submittedIdNode <- requiredNode("submittedID")()
       psaDec1Node <- optionalNode(Some("psaDeclaration1"))()
