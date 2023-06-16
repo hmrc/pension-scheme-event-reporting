@@ -19,7 +19,7 @@ package services
 
 import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
-import models.ERVersion
+import models.{EROverview, ERVersion}
 import models.enumeration.ApiType._
 import models.enumeration.EventType.{Event1, Event2, Event20A, Event22, Event23, Event24, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
 import models.enumeration.{ApiType, EventType}
@@ -181,7 +181,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
     overviewCacheRepository.get(pstr, reportType, startDate, endDate).flatMap {
       case Some(data) => Future.successful(data)
-      case _ => eventReportConnector.getOverview(pstr, reportType, startDate, endDate).flatMap {
+      case _ =>
+        val erOverview = eventReportConnector.getOverview(pstr, reportType = "ER", startDate, endDate)
+        val er20AOverview = eventReportConnector.getOverview(pstr, reportType = "ER20A", startDate, endDate)
+        val combinedEROverview: Future[Seq[EROverview]] = Future.sequence(Seq(erOverview, er20AOverview)).map(_.flatten)
+
+        combinedEROverview.flatMap {
         data =>
           overviewCacheRepository.upsert(pstr, reportType, startDate, endDate, Json.toJson(data))
             .map { _ => Json.toJson(data) }
