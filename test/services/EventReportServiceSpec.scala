@@ -277,7 +277,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(EventDataIdentifier(Api1830, 2020, 1))))(any()))
         .thenReturn(Future.successful(Some(json)))
 
-      eventReportService.getUserAnswers(pstr, EventType.Event3, year, version)(implicitly).map { result =>
+      eventReportService.getUserAnswers(pstr, EventType.Event3, year, version)(implicitly, implicitly).map { result =>
         result mustBe Some(json)
       }
     }
@@ -511,7 +511,7 @@ object EventReportServiceSpec {
       submittedVersionAvailable = true,
       compiledVersionAvailable = true)))
 
-  private val getEvent22PayLoadData: Option[JsValue] = Some(Json.parse(
+  private val getEvent22PayLoadData: Option[JsObject] = Some(Json.parse(
     """
       |    {
       |    "eventDetails": [
@@ -535,7 +535,7 @@ object EventReportServiceSpec {
       |      }
       |    ]
       |} """.stripMargin
-  ))
+  ).as[JsObject])
 
   private val getEvent22UAData: Option[JsValue] = Some(Json.parse(
     """
@@ -557,7 +557,7 @@ object EventReportServiceSpec {
   ))
 
   private val erOverview = Seq(overview1, overview2)
-  private val responseJsonForAPI1834: Option[JsValue] = Some(Json.parse(
+  private val responseJsonForAPI1834: Option[JsObject] = Some(Json.parse(
     """
       |{
       |    "schemeDetails": {
@@ -691,7 +691,7 @@ object EventReportServiceSpec {
       |        }
       |    }
       |}
-      |""".stripMargin))
+      |""".stripMargin).as[JsObject])
 }
 
 

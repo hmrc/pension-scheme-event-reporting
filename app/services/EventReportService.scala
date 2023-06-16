@@ -70,7 +70,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def saveUserAnswers(pstr: String, eventType: EventType, year: Int, version: Int, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
+  def saveUserAnswers(pstr: String, eventType: EventType, year: Int, version: Int, userAnswersJson: JsObject)(implicit ec: ExecutionContext): Future[Unit] = {
     EventType.postApiTypeByEventType(eventType) match {
       case Some(apiType) => eventReportCacheRepository.upsert(pstr, EventDataIdentifier(apiType, year, version), userAnswersJson)
       case _ => Future.successful(())
@@ -83,9 +83,19 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def removeUserAnswers(pstr: String)(implicit ec: ExecutionContext): Future[Unit] =
     eventReportCacheRepository.removeAllOnSignOut(pstr)
 
-  def getUserAnswers(pstr: String, eventType: EventType, year: Int, version: Int)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
+  def getUserAnswers(pstr: String, eventType: EventType, year: Int, version: Int)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] =
     EventType.postApiTypeByEventType(eventType) match {
-      case Some(apiType) => eventReportCacheRepository.getUserAnswers(pstr, Some(EventDataIdentifier(apiType, year, version)))
+      case Some(apiType) =>
+        eventReportCacheRepository.getUserAnswers(pstr, Some(EventDataIdentifier(apiType, year, version))).flatMap {
+          case x@Some(_) => Future.successful(x)
+          case None =>
+            val startDate = year.toString + "04/06"
+            getEvent(pstr, startDate, version, eventType).flatMap{
+              case None => Future.successful(None)
+              case optUAData@Some(userAnswersDataToStore) =>
+                saveUserAnswers(pstr, eventType, year, version, userAnswersDataToStore).map( _ => optUAData)
+            }
+        }
       case _ => Future.successful(None)
     }
 
@@ -122,7 +132,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  private def validationCheck(data: JsValue, eventType: EventType): Option[JsValue] = {
+  private def validationCheck(data: JsObject, eventType: EventType): Option[JsObject] = {
 
     val api1832Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
     eventType match {
@@ -144,11 +154,11 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   }
 
   def getEvent(pstr: String, startDate: String, version: Int, eventType: EventType)
-              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsValue]] = {
+              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] = {
     eventReportConnector.getEvent(pstr, startDate, version, Some(eventType)).flatMap {
       case Some(data) =>
         val jsDataOpt = validationCheck(data, eventType)
-        Future.successful(Some(Json.toJson(jsDataOpt)))
+        Future.successful(jsDataOpt)
       case _ =>
         Future.successful(None)
     }

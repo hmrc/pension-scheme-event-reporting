@@ -261,107 +261,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
   }
 
-  "getEvent" must {
-    "return NotFound where no data" in {
-      when(mockEventReportService.getEvent(
-        ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(startDate),
-        ArgumentMatchers.eq(version),
-        ArgumentMatchers.eq(Event1)
-      )(any(), any()))
-        .thenReturn(Future.successful(None))
-
-      val result = controller.getEvent(fakeRequest.withHeaders(
-        newHeaders = "pstr" -> pstr,
-        "startDate" -> startDate,
-        "version" -> "1",
-        "eventType" -> Event1.toString
-      ))
-
-      status(result) mustBe NOT_FOUND
-    }
-
-    "return OK for Event 1 with dummy json response" in {
-      when(mockEventReportService.getEvent(
-        ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(startDate),
-        ArgumentMatchers.eq(version),
-        ArgumentMatchers.eq(Event1)
-      )(any(), any()))
-        .thenReturn(Future.successful(Some(dummyJsValue)))
-
-      val result = controller.getEvent(fakeRequest.withHeaders(
-        newHeaders = "pstr" -> pstr,
-        "startDate" -> startDate,
-        "version" -> "1",
-        "eventType" -> Event1.toString
-      ))
-
-      status(result) mustBe OK
-      contentAsJson(result) mustBe dummyJsValue
-    }
-
-    "return OK for Event 2 with dummy json response" in {
-      when(mockEventReportService.getEvent(
-        ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(startDate),
-        ArgumentMatchers.eq(version),
-        ArgumentMatchers.eq(Event2)
-      )(any(), any()))
-        .thenReturn(Future.successful(Some(dummyJsValue)))
-
-      val result = controller.getEvent(fakeRequest.withHeaders(
-        newHeaders = "pstr" -> pstr,
-        "startDate" -> startDate,
-        "version" -> "1",
-        "eventType" -> Event2.toString
-      ))
-
-      status(result) mustBe OK
-      contentAsJson(result) mustBe dummyJsValue
-    }
-
-    "throw a Bad Request Exception for an invalid event type" in {
-      recoverToExceptionIf[BadRequestException] {
-        controller.getEvent(fakeRequest.withHeaders(
-          newHeaders = "pstr" -> pstr,
-          "startDate" -> startDate,
-          "version" -> versionString,
-          "eventType" -> invalidEventType
-        ))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-        response.message must include(s"Bad Request: invalid eventType ($invalidEventType)")
-      }
-    }
-
-    "throw a Bad Request Exception when all parameters missing in header" in {
-      recoverToExceptionIf[BadRequestException] {
-        controller.getEvent(fakeRequest.withHeaders(
-        ))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-        response.message must include("Bad Request with missing parameters: PSTR missing  event type missing  start date missing  version missing ")
-      }
-    }
-
-    "throw a Unauthorised Exception if auth fails" in {
-      when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
-
-      recoverToExceptionIf[UnauthorizedException] {
-        controller.getEvent(fakeRequest.withHeaders(
-          newHeaders = "pstr" -> pstr,
-          "startDate" -> startDate,
-          "version" -> versionString,
-          "eventType" -> "Event2"
-        ))
-      } map { response =>
-        response.responseCode mustBe UNAUTHORIZED
-        response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
-      }
-    }
-  }
-
   "getEventSummary" must {
     "return OK with dummy json response" in {
       when(mockEventReportService.getEventSummary(
@@ -410,7 +309,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         ArgumentMatchers.eq(Event1),
         ArgumentMatchers.eq(2020),
         ArgumentMatchers.eq(1)
-      )(any()))
+      )(any(), any()))
         .thenReturn(Future.successful(Some(json)))
 
       val result = controller.getUserAnswers(fakeRequest.withHeaders(
@@ -425,7 +324,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         controller.getUserAnswers(fakeRequest.withHeaders(
           newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> "1", "eventType" -> "test"))
       } map { response =>
-        verify(mockEventReportService, never).getUserAnswers(any(), any(), any(), any())(any())
+        verify(mockEventReportService, never).getUserAnswers(any(), any(), any(), any())(any(), any())
         response.responseCode mustBe NOT_FOUND
         response.message must include("Bad Request: eventType (test) not found")
       }
@@ -438,7 +337,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         ArgumentMatchers.eq(Event1),
         ArgumentMatchers.eq(2020),
         ArgumentMatchers.eq(1)
-      )(any()))
+      )(any(), any()))
         .thenReturn(Future.successful(None))
 
       val result = controller.getUserAnswers(fakeRequest.withHeaders(

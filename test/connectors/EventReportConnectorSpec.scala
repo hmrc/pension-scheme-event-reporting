@@ -19,6 +19,7 @@ package connectors
 import com.github.tomakehurst.wiremock.client.WireMock._
 import models.enumeration.EventType._
 import models.{EROverview, EROverviewVersion, ERVersion}
+import netscape.javascript.JSObject
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, times, verify, when}
@@ -28,7 +29,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status._
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
-import play.api.libs.json.{JsArray, JsString, Json}
+import play.api.libs.json.{JsArray, JsObject, JsString, Json}
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
@@ -1062,7 +1063,9 @@ object EventReportConnectorSpec {
 
   private val submitEventDeclarationReportUrl = s"/pension-online/event-declaration-reports/$pstr"
 
-  private val expectedGetEventResponse: JsString = JsString("test")
+  private val expectedGetEventResponse: JsObject = Json.obj(
+    "a" -> "b"
+  )
 
   private val overview1 = EROverview(
     LocalDate.of(2022, 4, 6),
