@@ -287,8 +287,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         ArgumentMatchers.eq(externalId)
       )(any()))
         .thenReturn(Future.successful((): Unit))
-      eventReportService.removeUserAnswers(pstr)(implicitly).map { result =>
-        verify(mockEventReportCacheRepository, times(1)).removeAllOnSignOut(ArgumentMatchers.eq(pstr))(any())
+      eventReportService.removeUserAnswers(externalId)(implicitly).map { result =>
+        verify(mockEventReportCacheRepository, times(1)).removeAllOnSignOut(ArgumentMatchers.eq(externalId))(any())
         result mustBe()
       }
     }
