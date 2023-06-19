@@ -241,7 +241,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       eventReportService.getEvent(pstr, startDate, version, Event1)(implicitly, implicitly).map { resultJsValue =>
         verify(mockGetEventCacheRepository, times(1)).get(any(), any(), any(), any())(any())
         verify(mockGetEventCacheRepository, never).upsert(any(), any(), any(), any(), any())(any())
-        verify(mockEventReportConnector, never).getOverview(any(), any(), any())(any(), any())
+        verify(mockEventReportConnector, never).getOverview(any(), any(), any(), any())(any(), any())
         resultJsValue mustBe Some(Json.toJson(getEvent22PayLoadData))
       }
     }
@@ -316,10 +316,18 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     "return the payload from the connector when valid event type" in {
       when(mockEventReportConnector.getVersions(
         ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq("ER"),
         ArgumentMatchers.eq(startDate))(any(), any()))
         .thenReturn(Future.successful(erVersions))
-      whenReady(eventReportService.getVersions(pstr, "ER", startDate)(implicitly, implicitly)) { result =>
-        result mustBe erVersions
+
+      when(mockEventReportConnector.getVersions(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq("ER20A"),
+        ArgumentMatchers.eq(startDate))(any(), any()))
+        .thenReturn(Future.successful(erVersionsER20A))
+
+      whenReady(eventReportService.getVersions(pstr, startDate)(implicitly, implicitly)) { result =>
+        result mustBe (erVersions ++ erVersionsER20A)
       }
     }
   }
@@ -329,6 +337,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportConnector.getOverview(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(startDate),
+        ArgumentMatchers.eq("ER"),
         ArgumentMatchers.eq(endDate))(any(), any()))
         .thenReturn(Future.successful(erOverview))
       when(mockOverviewCacheRepository.get(any(), any(), any())(any())).thenReturn(Future.successful(None))
@@ -337,7 +346,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       eventReportService.getOverview(pstr, startDate, endDate)(implicitly, implicitly).map { resultJsValue =>
         verify(mockOverviewCacheRepository, times(1)).get(any(), any(), any())(any())
         verify(mockOverviewCacheRepository, times(1)).upsert(any(), any(), any(), any())(any())
-        verify(mockEventReportConnector, times(1)).getOverview(any(), any(), any())(any(), any())
+        verify(mockEventReportConnector, times(1)).getOverview(any(), any(), any(), any())(any(), any())
         resultJsValue mustBe Json.toJson(erOverview)
       }
     }
@@ -347,7 +356,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       eventReportService.getOverview(pstr, startDate, endDate)(implicitly, implicitly).map { resultJsValue =>
         verify(mockOverviewCacheRepository, times(1)).get(any(), any(), any())(any())
         verify(mockOverviewCacheRepository, never).upsert(any(), any(), any(), any())(any())
-        verify(mockEventReportConnector, never).getOverview(any(), any(), any())(any(), any())
+        verify(mockEventReportConnector, never).getOverview(any(), any(), any(), any())(any(), any())
         resultJsValue mustBe Json.toJson(erOverview)
       }
     }
@@ -505,7 +514,11 @@ object EventReportServiceSpec {
   private val version = ERVersion(1,
     LocalDate.of(2022, 4, 6),
     "Compiled")
+  private val versionER20A = ERVersion(2,
+    LocalDate.of(2022, 6, 4),
+    "Compiled")
   private val erVersions = Seq(version)
+  private val erVersionsER20A = Seq(versionER20A)
 
   private val overview1 = EROverview(
     LocalDate.of(2022, 4, 6),

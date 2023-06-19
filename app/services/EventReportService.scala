@@ -21,7 +21,7 @@ import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
 import models.{EROverview, ERVersion}
 import models.enumeration.ApiType._
-import models.enumeration.EventType.{Event1, Event2, Event20A, Event22, Event23, Event24, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
+import models.enumeration.EventType._
 import models.enumeration.{ApiType, EventType}
 import play.api.Logging
 import play.api.http.Status.NOT_IMPLEMENTED
@@ -173,8 +173,10 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def getVersions(pstr: String, reportType: String, startDate: String)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[ERVersion]] = {
-    eventReportConnector.getVersions(pstr, reportType, startDate)
+  def getVersions(pstr: String, startDate: String)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[ERVersion]] = {
+    val erVersions = eventReportConnector.getVersions(pstr, reportType = "ER", startDate)
+    val er20AVersions = eventReportConnector.getVersions(pstr, reportType = "ER20A", startDate)
+    Future.sequence(Seq(erVersions, er20AVersions)).map(_.flatten)
   }
 
   def getOverview(pstr: String, startDate: String, endDate: String)

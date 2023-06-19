@@ -134,7 +134,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       } map { response =>
         response.responseCode mustBe BAD_REQUEST
 
-        response.message must include("Bad Request with missing parameters: PSTR missing report type missing start date missing end date missing")
+        response.message must include("Bad Request with missing parameters: PSTR missing missing start date missing end date missing")
       }
     }
 
@@ -201,7 +201,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       } map { response =>
         response.responseCode mustBe BAD_REQUEST
 
-        response.message must include("""Bad Request without pstr (None) or request body (Some({"processingDate":"2023-06-14","formBundleNumber":"12345670811"}))""")
+        response.message must
+          include("""Bad Request without pstr (None) or request body (Some({"processingDate":"2023-06-14","formBundleNumber":"12345670811"}))""")
       }
     }
     "throw a Bad Request Exception when the body is missing" in {
@@ -220,7 +221,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     "return OK with the Seq of Version" in {
       when(mockEventReportService.getVersions(
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(reportTypeER),
         ArgumentMatchers.eq(startDate))(any(), any()))
         .thenReturn(Future.successful(erVersions))
 

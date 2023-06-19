@@ -140,8 +140,8 @@ class EventReportController @Inject()(
 
   def getVersions: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuthAndVersionParameters { (pstr, reportType, startDate) =>
-        eventReportService.getVersions(pstr, reportType, startDate).map {
+      withAuthAndVersionParameters { (pstr, startDate) =>
+        eventReportService.getVersions(pstr, startDate).map {
           data => Ok(Json.toJson(data))
         }
       }
@@ -364,23 +364,21 @@ class EventReportController @Inject()(
     }
   }
 
-  private def withAuthAndVersionParameters(block: (String, String, String) => Future[Result])
+  private def withAuthAndVersionParameters(block: (String, String) => Future[Result])
                                           (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
 
     authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
       case Some(_) =>
         (
           request.headers.get("pstr"),
-          request.headers.get("reportType"),
           request.headers.get("startDate")
         ) match {
-          case (Some(pstr), Some(reportType), Some(startDate)) =>
-            block(pstr, reportType, startDate)
-          case (optPstr, optReportType, optStartDate) =>
+          case (Some(pstr), Some(startDate)) =>
+            block(pstr,  startDate)
+          case (optPstr, optStartDate) =>
             val pstrMissing = prettyMissingParamError(optPstr, "PSTR missing")
-            val reportTypeMissing = prettyMissingParamError(optReportType, "report type missing")
             val startDateMissing = prettyMissingParamError(optStartDate, "start date missing")
-            Future.failed(new BadRequestException(s"Bad Request for version with missing parameters: $pstrMissing $reportTypeMissing $startDateMissing"))
+            Future.failed(new BadRequestException(s"Bad Request for version with missing parameters: $pstrMissing $startDateMissing"))
         }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
