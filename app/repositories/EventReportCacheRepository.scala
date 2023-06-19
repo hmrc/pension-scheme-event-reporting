@@ -31,11 +31,12 @@ import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
+import java.time.{LocalDateTime, ZoneId}
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
 
-case class EventReportCacheEntry(pstr: String, edi: EventDataIdentifier, data: JsValue, lastUpdated: DateTime, expireAt: DateTime)
+case class EventReportCacheEntry(pstr: String, edi: EventDataIdentifier, data: JsValue, lastUpdated: LocalDateTime, expireAt: LocalDateTime)
 
 object EventReportCacheEntry {
   val pstrKey = "pstr"
@@ -62,8 +63,8 @@ object EventReportCacheEntry {
           (JsPath \ yearKey).read[Int] and
           (JsPath \ versionKey).read[Int] and
           (JsPath \ dataKey).read[JsValue] and
-          (JsPath \ lastUpdatedKey).read[DateTime] and
-          (JsPath \ expireAtKey).read[DateTime]
+          (JsPath \ lastUpdatedKey).read[LocalDateTime] and
+          (JsPath \ expireAtKey).read[LocalDateTime]
         )(
         (pstr, apiType, year, version, data, lastUpdated, expireAt) =>
           EventReportCacheEntry(pstr, EventDataIdentifier(apiType, year, version), data, lastUpdated, expireAt)
@@ -99,9 +100,11 @@ class EventReportCacheRepository @Inject()(
 
   import EventReportCacheEntry._
 
-  private val expireInDays = config.get[Int](path = "mongodb.event-reporting-data.timeToLiveInDays")
+  private val expireInSeconds = config.get[Int](path = "mongodb.event-reporting-data.timeToLiveInSeconds")
 
-  private def evaluatedExpireAt: DateTime = DateTime.now(DateTimeZone.UTC).toLocalDate.plusDays(expireInDays + 1).toDateTimeAtStartOfDay()
+  private def evaluatedExpireAt: LocalDateTime = {
+    LocalDateTime.now(ZoneId.of("UTC")).plusSeconds(expireInSeconds)
+  }
 
   def upsert(pstr: String, edi: EventDataIdentifier, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val modifier = Updates.combine(
@@ -110,7 +113,7 @@ class EventReportCacheRepository @Inject()(
       Updates.set(yearKey, edi.year),
       Updates.set(versionKey, edi.version),
       Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
-      Updates.set(lastUpdatedKey, Codecs.toBson(DateTime.now(DateTimeZone.UTC))),
+      Updates.set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC")))),
       Updates.set(expireAtKey, Codecs.toBson(evaluatedExpireAt))
     )
     val selector = Filters.and(
@@ -131,7 +134,7 @@ class EventReportCacheRepository @Inject()(
       Updates.set(yearKey, 0),
       Updates.set(versionKey, 0),
       Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
-      Updates.set(lastUpdatedKey, Codecs.toBson(DateTime.now(DateTimeZone.UTC))),
+      Updates.set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC")))),
       Updates.set(expireAtKey, Codecs.toBson(evaluatedExpireAt))
     )
     val selector = Filters.and(
