@@ -37,7 +37,7 @@ import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
-import repositories.{EventReportCacheRepository, GetEventCacheRepository, OverviewCacheRepository}
+import repositories.{EventReportCacheRepository, OverviewCacheRepository}
 import uk.gov.hmrc.http._
 import utils.{GeneratorAPI1828, GeneratorAPI1829, JSONSchemaValidator, JsonFileReader}
 
@@ -58,7 +58,6 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val mockJSONPayloadSchemaValidator = mock[JSONSchemaValidator]
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
   private val mockOverviewCacheRepository = mock[OverviewCacheRepository]
-  private val mockGetEventCacheRepository = mock[GetEventCacheRepository]
 
   private val psaId = "psa"
   private val pstr = "pstr"
@@ -73,7 +72,6 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       inject.bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
       inject.bind[JSONSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
       inject.bind[OverviewCacheRepository].toInstance(mockOverviewCacheRepository),
-      inject.bind[GetEventCacheRepository].toInstance(mockGetEventCacheRepository)
     )
 
   val application: Application = new GuiceApplicationBuilder()
@@ -85,12 +83,10 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   override def beforeEach(): Unit = {
     reset(mockEventReportConnector)
     reset(mockOverviewCacheRepository)
-    reset(mockGetEventCacheRepository)
     reset(mockEventReportCacheRepository)
     reset(mockJSONPayloadSchemaValidator)
     when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any())).thenReturn(Success(()))
     when(mockOverviewCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
-    when(mockGetEventCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
   }
 
   "compileEventReport for unimplemented api type" must {
@@ -218,31 +214,17 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
 
   "getEvent" must {
-    "return OK and save the data in cache if no data was found in the cache to begin with" in {
+    "return OK if no data was found in the cache to begin with" in {
       when(mockEventReportConnector.getEvent(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(startDate),
         ArgumentMatchers.eq(version),
         ArgumentMatchers.eq(Some(Event22)))(any(), any()))
         .thenReturn(Future.successful(getEvent22PayLoadData))
-      when(mockGetEventCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
-      when(mockGetEventCacheRepository.upsert(any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(()))
 
       eventReportService.getEvent(pstr, startDate, version, Event22)(implicitly, implicitly).map { resultJsValue =>
-        verify(mockGetEventCacheRepository, times(1)).get(any(), any(), any(), any())(any())
-        verify(mockGetEventCacheRepository, times(1)).upsert(any(), any(), any(), any(), any())(any())
         verify(mockEventReportConnector, times(1)).getEvent(any(), any(), any(), any())(any(), any())
         resultJsValue mustBe Some(Json.toJson(getEvent22UAData))
-      }
-    }
-
-    "return OK with the event details and don't try to save the data in cache if the data already exists in the cache" in {
-      when(mockGetEventCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(Some(Json.toJson(getEvent22PayLoadData))))
-      eventReportService.getEvent(pstr, startDate, version, Event1)(implicitly, implicitly).map { resultJsValue =>
-        verify(mockGetEventCacheRepository, times(1)).get(any(), any(), any(), any())(any())
-        verify(mockGetEventCacheRepository, never).upsert(any(), any(), any(), any(), any())(any())
-        verify(mockEventReportConnector, never).getOverview(any(), any(), any(), any())(any(), any())
-        resultJsValue mustBe Some(Json.toJson(getEvent22PayLoadData))
       }
     }
   }
@@ -295,7 +277,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(pstr), eqTo(Some(EventDataIdentifier(Api1830, 2020, 1))))(any()))
         .thenReturn(Future.successful(Some(json)))
 
-      eventReportService.getUserAnswers(pstr, EventType.Event3, year, version)(implicitly).map { result =>
+      eventReportService.getUserAnswers(pstr, EventType.Event3, year, version)(implicitly, implicitly).map { result =>
         result mustBe Some(json)
       }
     }
@@ -529,7 +511,7 @@ object EventReportServiceSpec {
       submittedVersionAvailable = true,
       compiledVersionAvailable = true)))
 
-  private val getEvent22PayLoadData: Option[JsValue] = Some(Json.parse(
+  private val getEvent22PayLoadData: Option[JsObject] = Some(Json.parse(
     """
       |    {
       |    "eventDetails": [
@@ -553,7 +535,7 @@ object EventReportServiceSpec {
       |      }
       |    ]
       |} """.stripMargin
-  ))
+  ).as[JsObject])
 
   private val getEvent22UAData: Option[JsValue] = Some(Json.parse(
     """
@@ -575,7 +557,7 @@ object EventReportServiceSpec {
   ))
 
   private val erOverview = Seq(overview1, overview2)
-  private val responseJsonForAPI1834: Option[JsValue] = Some(Json.parse(
+  private val responseJsonForAPI1834: Option[JsObject] = Some(Json.parse(
     """
       |{
       |    "schemeDetails": {
@@ -709,7 +691,7 @@ object EventReportServiceSpec {
       |        }
       |    }
       |}
-      |""".stripMargin))
+      |""".stripMargin).as[JsObject])
 }
 
 
