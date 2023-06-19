@@ -28,7 +28,6 @@ import uk.gov.hmrc.http.{UnauthorizedException, Request => _, _}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
-import scala.collection.immutable.Seq
 import scala.concurrent.{ExecutionContext, Future}
 
 
@@ -102,24 +101,6 @@ class EventReportController @Inject()(
         process(externalId, pstr, optEventType)
       }
   }
-
-
-  def getEvent: Action[AnyContent] = Action.async { implicit request =>
-    withAuth.flatMap { _ =>
-      val Seq(pstr, startDate, version, eventType) = requiredHeaders("pstr", "startDate", "version", "eventType")
-      val versionFormatted = ("00" + version).takeRight(3)
-      EventType.getEventType(eventType) match {
-        case Some(et) =>
-          eventReportService.getEvent(pstr, startDate, versionFormatted, et).map {
-            case Some(ee) => Ok(ee)
-            case _ => NotFound
-          }
-        case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($eventType)"))
-      }
-    }
-  }
-
-
 
   private def requiredHeaders(headers:String*)(implicit request: Request[AnyContent]) = {
     val headerData = headers.map(request.headers.get)

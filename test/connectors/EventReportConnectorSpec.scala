@@ -19,6 +19,7 @@ package connectors
 import com.github.tomakehurst.wiremock.client.WireMock._
 import models.enumeration.EventType._
 import models.{EROverview, EROverviewVersion, ERVersion}
+import netscape.javascript.JSObject
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, times, verify, when}
@@ -28,7 +29,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status._
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
-import play.api.libs.json.{JsArray, JsString, Json}
+import play.api.libs.json.{JsArray, JsObject, JsString, Json}
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
@@ -571,6 +572,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       "return the json returned from ETMP for valid event" in {
         server.stubFor(
           get(urlEqualTo(getApi1832Url))
+            .withHeader("reportVersionNumber", equalTo("001"))
             .willReturn(
               ok
                 .withHeader("Content-Type", "application/json")
@@ -578,7 +580,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             )
         )
 
-        connector.getEvent(pstr, fromDt, "001", Some(Event3)).map { actualResponse =>
+        connector.getEvent(pstr, fromDt, 1, Some(Event3)).map { actualResponse =>
           actualResponse mustBe Some(expectedGetEventResponse)
         }
       }
@@ -593,7 +595,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         )
 
         recoverToExceptionIf[NotFoundException] {
-          connector.getEvent(pstr, fromDt, "001", Some(Event3))
+          connector.getEvent(pstr, fromDt, 1, Some(Event3))
         } map { response =>
           response.responseCode mustEqual NOT_FOUND
           response.message must include("NOT_FOUND")
@@ -611,7 +613,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         )
 
         recoverToExceptionIf[UpstreamErrorResponse] {
-          connector.getEvent(pstr, fromDt, "001", Some(Event3))
+          connector.getEvent(pstr, fromDt, 1, Some(Event3))
         } map {
           _.statusCode mustBe INTERNAL_SERVER_ERROR
         }
@@ -629,7 +631,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             )
         )
 
-        connector.getEvent(pstr, fromDt, "001", Some(Event1)).map { actualResponse =>
+        connector.getEvent(pstr, fromDt, 1, Some(Event1)).map { actualResponse =>
 
           actualResponse mustBe Some(expectedGetEventResponse)
         }
@@ -645,7 +647,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         )
 
         recoverToExceptionIf[NotFoundException] {
-          connector.getEvent(pstr, fromDt, "001", Some(Event1))
+          connector.getEvent(pstr, fromDt, 1, Some(Event1))
         } map { response =>
           response.responseCode mustEqual NOT_FOUND
           response.message must include("NOT_FOUND")
@@ -663,7 +665,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         )
 
         recoverToExceptionIf[UpstreamErrorResponse] {
-          connector.getEvent(pstr, fromDt, "001", Some(Event1))
+          connector.getEvent(pstr, fromDt, 1, Some(Event1))
         } map {
           _.statusCode mustBe INTERNAL_SERVER_ERROR
         }
@@ -681,7 +683,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             )
         )
 
-        connector.getEvent(pstr, fromDt, "001", None).map { actualResponse =>
+        connector.getEvent(pstr, fromDt, 1, None).map { actualResponse =>
 
           actualResponse mustBe Some(expectedGetEventResponse)
         }
@@ -697,7 +699,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         )
 
         recoverToExceptionIf[NotFoundException] {
-          connector.getEvent(pstr, fromDt, "001", Some(Event10))
+          connector.getEvent(pstr, fromDt, 1, Some(Event10))
         } map { response =>
           response.responseCode mustEqual NOT_FOUND
           response.message must include("NOT_FOUND")
@@ -715,7 +717,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         )
 
         recoverToExceptionIf[UpstreamErrorResponse] {
-          connector.getEvent(pstr, fromDt, "001", Some(Event10))
+          connector.getEvent(pstr, fromDt, 1, Some(Event10))
         } map {
           _.statusCode mustBe INTERNAL_SERVER_ERROR
         }
@@ -733,7 +735,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             )
         )
 
-        connector.getEvent(pstr, fromDt, "001", Some(Event20A)).map { actualResponse =>
+        connector.getEvent(pstr, fromDt, 1, Some(Event20A)).map { actualResponse =>
           actualResponse mustBe Some(expectedGetEventResponse)
         }
       }
@@ -748,7 +750,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         )
 
         recoverToExceptionIf[NotFoundException] {
-          connector.getEvent(pstr, fromDt, "001", Some(Event20A))
+          connector.getEvent(pstr, fromDt, 1, Some(Event20A))
         } map { response =>
           response.responseCode mustEqual NOT_FOUND
           response.message must include("NOT_FOUND")
@@ -766,7 +768,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         )
 
         recoverToExceptionIf[UpstreamErrorResponse] {
-          connector.getEvent(pstr, fromDt, "001", Some(Event20A))
+          connector.getEvent(pstr, fromDt, 1, Some(Event20A))
         } map {
           _.statusCode mustBe INTERNAL_SERVER_ERROR
         }
@@ -775,7 +777,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
 
     "No Get API for this Event Type" must {
       "return None for invalid event" in {
-        connector.getEvent(pstr, fromDt, "001", Some(DummyForTest)).map { t =>
+        connector.getEvent(pstr, fromDt, 1, Some(DummyForTest)).map { t =>
           t mustBe None
         }
       }
@@ -1061,7 +1063,9 @@ object EventReportConnectorSpec {
 
   private val submitEventDeclarationReportUrl = s"/pension-online/event-declaration-reports/$pstr"
 
-  private val expectedGetEventResponse: JsString = JsString("test")
+  private val expectedGetEventResponse: JsObject = Json.obj(
+    "a" -> "b"
+  )
 
   private val overview1 = EROverview(
     LocalDate.of(2022, 4, 6),
