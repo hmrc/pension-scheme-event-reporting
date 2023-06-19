@@ -18,6 +18,7 @@ package repositories
 
 import com.typesafe.config.Config
 import models.EventDataIdentifier
+import models.enumeration.ApiType
 import models.enumeration.ApiType.{Api1826, Api1827}
 import org.mockito.Mockito.when
 import org.mongodb.scala.model.Filters
@@ -197,7 +198,7 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
       whenReady(documentsInDB) { documentsInDB =>
         val doc1 = documentsInDB.head
         documentsInDB.size mustBe 1
-        (doc1.pstr, doc1.apiTypes, doc1.data) mustBe ("pstr-1", "1826", Json.parse("""{"data":"2"}"""))
+        (doc1.pstr, doc1.edi.apiType, doc1.data) mustBe ("pstr-2", ApiType.Api1826, Json.parse("""{"data":"2"}"""))
       }
     }
   }

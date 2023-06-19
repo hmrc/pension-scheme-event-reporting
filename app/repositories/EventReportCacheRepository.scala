@@ -26,7 +26,7 @@ import org.mongodb.scala.model._
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
-import repositories.EventReportCacheEntry.{apiTypeKey, expireAtKey, externalIdKey, pstrKey}
+import repositories.EventReportCacheEntry.{apiTypeKey, expireAtKey, externalIdKey, pstrKey, versionKey, yearKey}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
@@ -92,7 +92,7 @@ class EventReportCacheRepository @Inject()(
       ),
       IndexModel(
         Indexes.ascending(pstrKey, apiTypeKey, yearKey, versionKey, externalIdKey),
-        IndexOptions().name(pstrKey + apiTypeKey + yearKey + versionKey + enternalIdKey).background(true).unique(true)
+        IndexOptions().name(pstrKey + apiTypeKey + yearKey + versionKey + externalIdKey).background(true).unique(true)
       )
     ),
     extraCodecs = Seq(
@@ -155,7 +155,8 @@ class EventReportCacheRepository @Inject()(
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
   }
 
-  def getUserAnswers(externalId:String, pstr: String, optEventDataIdentifier: Option[EventDataIdentifier])(implicit ec: ExecutionContext): Future[Option[JsObject]] = {
+  def getUserAnswers(externalId:String, pstr: String, optEventDataIdentifier: Option[EventDataIdentifier])
+                    (implicit ec: ExecutionContext): Future[Option[JsObject]] = {
     optEventDataIdentifier match {
       case Some(edi) => getByEDI(pstr, edi).map(_.map(_.as[JsObject]))
       case None =>
