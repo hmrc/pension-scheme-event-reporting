@@ -112,6 +112,8 @@ class EventReportConnector @Inject()(
       response.status match {
         case OK =>
           Some(response.json.as[JsObject])
+        case UNPROCESSABLE_ENTITY =>
+          None
         case _ => handleErrorResponse("GET", apiUrl)(response)
       }
     }
