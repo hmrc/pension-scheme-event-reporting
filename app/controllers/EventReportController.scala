@@ -56,15 +56,18 @@ class EventReportController @Inject()(
     implicit request =>
 
       withAuth.flatMap { case Credentials(externalId, psaPspId) =>
-        val Seq(pstr, year, version) = requiredHeaders("pstr", "year", "version")
         val userAnswersJson = requiredBody.validate[JsObject].getOrElse(throw new RuntimeException("Expected JsObject body"))
-        val optEventType = request.headers.get("eventType")
+        val pstr = requiredHeaders("pstr").head
+        val etVersionYear = (request.headers.get("eventType"), request.headers.get("version"), request.headers.get("year")) match {
+          case (Some(et), Some(version), Some(year)) => Some(et, version.toInt, year.toInt)
+          case _ => None
+        }
 
-        optEventType match {
-          case Some(eventType) =>
+        etVersionYear match {
+          case Some((eventType, version, year)) =>
             EventType.getEventType(eventType) match {
               case Some(et) =>
-                eventReportService.saveUserAnswers(externalId, pstr, et, year.toInt, version.toInt, userAnswersJson).map(_ => Ok)
+                eventReportService.saveUserAnswers(externalId, pstr, et, year, version, userAnswersJson).map(_ => Ok)
               case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
             }
           case _ => eventReportService.saveUserAnswers(externalId, pstr, userAnswersJson).map(_ => Ok)
