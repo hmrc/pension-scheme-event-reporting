@@ -325,8 +325,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         ArgumentMatchers.eq(startDate))(any(), any()))
         .thenReturn(Future.successful(erVersionsER20A))
 
-      whenReady(eventReportService.getVersions(pstr, startDate)(implicitly, implicitly)) { result =>
-        result mustBe (erVersions ++ erVersionsER20A)
+      eventReportService.getVersions(pstr, startDate)(implicitly, implicitly).map { result =>
+        result mustBe erVersions ++ erVersionsER20A
       }
     }
   }
@@ -335,28 +335,28 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     "return OK with the Seq of overview details and save the data in cache if no data was found in the cache to begin with" in {
       when(mockEventReportConnector.getOverview(
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(startDate),
         ArgumentMatchers.eq("ER"),
+        ArgumentMatchers.eq(startDate),
         ArgumentMatchers.eq(endDate))(any(), any()))
         .thenReturn(Future.successful(erOverview))
+
+      when(mockEventReportConnector.getOverview(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq("ER20A"),
+        ArgumentMatchers.eq(startDate),
+        ArgumentMatchers.eq(endDate))(any(), any()))
+        .thenReturn(Future.successful(er20AOverview))
+
       when(mockOverviewCacheRepository.get(any(), any(), any())(any())).thenReturn(Future.successful(None))
       when(mockOverviewCacheRepository.upsert(any(), any(), any(), any())(any())).thenReturn(Future.successful(()))
 
       eventReportService.getOverview(pstr, startDate, endDate)(implicitly, implicitly).map { resultJsValue =>
 
-        println("\n\n\n\n **************** result JsValue")
-        println(resultJsValue)
-
         verify(mockOverviewCacheRepository, times(1)).get(any(), any(), any())(any())
         verify(mockOverviewCacheRepository, times(1)).upsert(any(), any(), any(), any())(any())
-        verify(mockEventReportConnector, times(1)).getOverview(any(), any(), any(), any())(any(), any())
+        verify(mockEventReportConnector, times(2)).getOverview(any(), any(), any(), any())(any(), any())
 
-        println("\n\n\n\n **************** erOverview")
-        println(erOverview)
-
-        println("\n\n\n\n **************** Json.toJson(erOverview)")
-        println(Json.toJson(erOverview))
-        resultJsValue mustBe Json.toJson(erOverview)
+        resultJsValue mustBe Json.toJson(erOverview ++ er20AOverview)
       }
     }
 
@@ -523,10 +523,13 @@ object EventReportServiceSpec {
   private val version = ERVersion(1,
     LocalDate.of(2022, 4, 6),
     "Compiled")
+
+  private val erVersions = Seq(version)
+
   private val versionER20A = ERVersion(2,
     LocalDate.of(2022, 6, 4),
     "Compiled")
-  private val erVersions = Seq(version)
+
   private val erVersionsER20A = Seq(versionER20A)
 
   private val overview1 = EROverview(
@@ -593,6 +596,7 @@ object EventReportServiceSpec {
   ))
 
   private val erOverview = Seq(overview1, overview2)
+  private val er20AOverview = Seq(overview1, overview2)
   private val responseJsonForAPI1834: Option[JsValue] = Some(Json.parse(
     """
       |{
