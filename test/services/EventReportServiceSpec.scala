@@ -26,7 +26,6 @@ import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import org.scalacheck.Gen
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.concurrent.ScalaFutures.whenReady
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 import org.scalatestplus.mockito.MockitoSugar
