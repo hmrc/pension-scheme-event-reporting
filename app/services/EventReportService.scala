@@ -91,7 +91,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           case x@Some(_) =>
             Future.successful(x)
           case None =>
-            val startDate = year.toString + "04/06"
+            val startDate = year.toString + "/04/06"
             getEvent(pstr, startDate, version, eventType).flatMap{
               case None =>
                 Future.successful(None)

@@ -108,7 +108,6 @@ class EventReportConnector @Inject()(
     val apiUrl: String = s"${config.getApiUrlByApiNum(api.toString).format(pstr)}"
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = headers: _*)
     logger.info(s"Get $api.toString (IF) called - URL: $apiUrl with headers: $headers")
-
     http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
       response.status match {
         case OK =>
