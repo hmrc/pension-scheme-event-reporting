@@ -216,7 +216,6 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
   }
 
-
   "getEvent" must {
     "return OK and save the data in cache if no data was found in the cache to begin with" in {
       when(mockEventReportConnector.getEvent(
@@ -344,9 +343,19 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockOverviewCacheRepository.upsert(any(), any(), any(), any())(any())).thenReturn(Future.successful(()))
 
       eventReportService.getOverview(pstr, startDate, endDate)(implicitly, implicitly).map { resultJsValue =>
+
+        println("\n\n\n\n **************** result JsValue")
+        println(resultJsValue)
+
         verify(mockOverviewCacheRepository, times(1)).get(any(), any(), any())(any())
         verify(mockOverviewCacheRepository, times(1)).upsert(any(), any(), any(), any())(any())
         verify(mockEventReportConnector, times(1)).getOverview(any(), any(), any(), any())(any(), any())
+
+        println("\n\n\n\n **************** erOverview")
+        println(erOverview)
+
+        println("\n\n\n\n **************** Json.toJson(erOverview)")
+        println(Json.toJson(erOverview))
         resultJsValue mustBe Json.toJson(erOverview)
       }
     }

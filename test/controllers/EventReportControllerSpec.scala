@@ -134,7 +134,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       } map { response =>
         response.responseCode mustBe BAD_REQUEST
 
-        response.message must include("Bad Request with missing parameters: PSTR missing missing start date missing end date missing")
+        response.message must include("Bad Request with missing parameters: PSTR missing start date missing end date missing")
       }
     }
 
@@ -236,7 +236,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         controller.getVersions()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
       } map { response =>
         response.responseCode mustBe BAD_REQUEST
-        response.message must include("Bad Request for version with missing parameters:   start date missing ")
+        response.message must include("Bad Request for version with missing parameters:  start date missing ")
       }
     }
     "throw a Unauthorised Exception if auth fails" in {
@@ -331,7 +331,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         ))
       } map { response =>
         response.responseCode mustBe BAD_REQUEST
-        response.message must include("Bad Request with missing parameters: PSTR missing  event type missing  start date missing  version missing ")
+        response.message must include("Bad Request with missing parameters: PSTR missing  event type missing  start date missing  version missing")
       }
     }
 
