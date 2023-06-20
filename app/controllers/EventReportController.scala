@@ -16,6 +16,7 @@
 
 package controllers
 
+import models.EventDataIdentifier
 import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json._
@@ -74,9 +75,10 @@ class EventReportController @Inject()(
   def getUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
 
-      def process(externalId: String, pstr: String, optEventType: Option[String], version:Int, year:Int) = {
-        optEventType match {
-          case Some(eventType) =>
+      def process(externalId: String, pstr: String, optEtVersionYear: Option[(String, Int, Int)]):Future[Result] = {
+
+        optEtVersionYear match {
+          case Some((eventType, version, year)) =>
             EventType.getEventType(eventType) match {
               case Some(et) =>
                 eventReportService.getUserAnswers(externalId, pstr, et, version, year)
@@ -86,7 +88,7 @@ class EventReportController @Inject()(
                   }
               case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
             }
-          case None =>
+          case _ =>
             eventReportService.getUserAnswers(externalId, pstr)
               .map {
                 case None => NotFound
@@ -96,9 +98,12 @@ class EventReportController @Inject()(
       }
 
       withAuth.flatMap { case Credentials(externalId, psaPspId) =>
-        val Seq(pstr, version, year) = requiredHeaders("pstr", "version", "year")
-        val optEventType = request.headers.get("eventType")
-        process(externalId, pstr, optEventType, version.toInt, year.toInt)
+        val pstr = requiredHeaders("pstr").head
+        val etVersionYear = (request.headers.get("eventType"), request.headers.get("version"), request.headers.get("year")) match {
+          case (Some(et), Some(version), Some(year)) => Some(et, version.toInt, year.toInt)
+          case _ => None
+        }
+        process(externalId, pstr, etVersionYear)
       }
   }
 
