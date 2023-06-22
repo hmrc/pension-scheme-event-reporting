@@ -19,8 +19,9 @@ package services
 
 import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
+import models.{EROverview, ERVersion}
 import models.enumeration.ApiType._
-import models.enumeration.EventType.{Event1, Event2, Event20A, Event22, Event23, Event24, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
+import models.enumeration.EventType._
 import models.enumeration.{ApiType, EventType}
 import models.{ERVersion, EventDataIdentifier}
 import play.api.Logging
@@ -182,17 +183,24 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def getVersions(pstr: String, reportType: String, startDate: String)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[ERVersion]] = {
-    eventReportConnector.getVersions(pstr, reportType, startDate)
+  def getVersions(pstr: String, startDate: String)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[ERVersion]] = {
+    val erVersions = eventReportConnector.getVersions(pstr, reportType = "ER", startDate)
+    val er20AVersions = eventReportConnector.getVersions(pstr, reportType = "ER20A", startDate)
+    Future.sequence(Seq(erVersions, er20AVersions)).map(_.flatten)
   }
 
-  def getOverview(pstr: String, reportType: String, startDate: String, endDate: String)
+  def getOverview(pstr: String, startDate: String, endDate: String)
                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    overviewCacheRepository.get(pstr, reportType, startDate, endDate).flatMap {
+    overviewCacheRepository.get(pstr, startDate, endDate).flatMap {
       case Some(data) => Future.successful(data)
-      case _ => eventReportConnector.getOverview(pstr, reportType, startDate, endDate).flatMap {
+      case _ =>
+        val erOverview = eventReportConnector.getOverview(pstr, reportType = "ER", startDate, endDate)
+        val er20AOverview = eventReportConnector.getOverview(pstr, reportType = "ER20A", startDate, endDate)
+        val combinedEROverview: Future[Seq[EROverview]] = Future.sequence(Seq(erOverview, er20AOverview)).map(_.flatten)
+
+        combinedEROverview.flatMap {
         data =>
-          overviewCacheRepository.upsert(pstr, reportType, startDate, endDate, Json.toJson(data))
+          overviewCacheRepository.upsert(pstr, startDate, endDate, Json.toJson(data))
             .map { _ => Json.toJson(data) }
       }
     }
@@ -234,7 +242,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
     def recoverAndValidatePayload(transformed1829Payload: JsObject): Future[Unit] = {
 
-      val recoveredConnectorCallForAPI1829 = eventReportConnector.submitEvent20ADeclarationReport(pstr, transformed1829Payload).map(_.json.as[JsObject]).recover {
+      val recoveredConnectorCallForAPI1829 =
+        eventReportConnector.submitEvent20ADeclarationReport(pstr, transformed1829Payload).map(_.json.as[JsObject]).recover {
         case _: BadRequestException =>
           throw new ExpectationFailedException("Nothing to submit")
       }

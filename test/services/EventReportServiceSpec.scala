@@ -26,7 +26,6 @@ import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import org.scalacheck.Gen
 import org.scalatest.BeforeAndAfterEach
-import org.scalatest.concurrent.ScalaFutures.whenReady
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 import org.scalatestplus.mockito.MockitoSugar
@@ -45,7 +44,8 @@ import java.time.LocalDate
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
-class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSugar with BeforeAndAfterEach with JsonFileReader with GeneratorAPI1828 with GeneratorAPI1829 {
+class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSugar with BeforeAndAfterEach
+                                                   with JsonFileReader with GeneratorAPI1828 with GeneratorAPI1829 {
 
   override def generateUserAnswersAndPOSTBody: Gen[(JsObject, JsObject)] = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody
 
@@ -86,7 +86,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     reset(mockEventReportCacheRepository)
     reset(mockJSONPayloadSchemaValidator)
     when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any())).thenReturn(Success(()))
-    when(mockOverviewCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
+    when(mockOverviewCacheRepository.get(any(), any(), any())(any())).thenReturn(Future.successful(None))
+    when(mockOverviewCacheRepository.get(any(), any(), any())(any())).thenReturn(Future.successful(None))
   }
 
   "compileEventReport for unimplemented api type" must {
@@ -212,7 +213,6 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
   }
 
-
   "getEvent" must {
     "return OK if no data was found in the cache to begin with" in {
       when(mockEventReportConnector.getEvent(
@@ -299,11 +299,18 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     "return the payload from the connector when valid event type" in {
       when(mockEventReportConnector.getVersions(
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(reportTypeER),
+        ArgumentMatchers.eq("ER"),
         ArgumentMatchers.eq(startDate))(any(), any()))
         .thenReturn(Future.successful(erVersions))
-      whenReady(eventReportService.getVersions(pstr, "ER", startDate)(implicitly, implicitly)) { result =>
-        result mustBe erVersions
+
+      when(mockEventReportConnector.getVersions(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq("ER20A"),
+        ArgumentMatchers.eq(startDate))(any(), any()))
+        .thenReturn(Future.successful(erVersionsER20A))
+
+      eventReportService.getVersions(pstr, startDate)(implicitly, implicitly).map { result =>
+        result mustBe erVersions ++ erVersionsER20A
       }
     }
   }
@@ -312,26 +319,36 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     "return OK with the Seq of overview details and save the data in cache if no data was found in the cache to begin with" in {
       when(mockEventReportConnector.getOverview(
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(reportTypeER),
+        ArgumentMatchers.eq("ER"),
         ArgumentMatchers.eq(startDate),
         ArgumentMatchers.eq(endDate))(any(), any()))
         .thenReturn(Future.successful(erOverview))
-      when(mockOverviewCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(None))
-      when(mockOverviewCacheRepository.upsert(any(), any(), any(), any(), any())(any())).thenReturn(Future.successful(()))
 
-      eventReportService.getOverview(pstr, reportTypeER, startDate, endDate)(implicitly, implicitly).map { resultJsValue =>
-        verify(mockOverviewCacheRepository, times(1)).get(any(), any(), any(), any())(any())
-        verify(mockOverviewCacheRepository, times(1)).upsert(any(), any(), any(), any(), any())(any())
-        verify(mockEventReportConnector, times(1)).getOverview(any(), any(), any(), any())(any(), any())
-        resultJsValue mustBe Json.toJson(erOverview)
+      when(mockEventReportConnector.getOverview(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq("ER20A"),
+        ArgumentMatchers.eq(startDate),
+        ArgumentMatchers.eq(endDate))(any(), any()))
+        .thenReturn(Future.successful(er20AOverview))
+
+      when(mockOverviewCacheRepository.get(any(), any(), any())(any())).thenReturn(Future.successful(None))
+      when(mockOverviewCacheRepository.upsert(any(), any(), any(), any())(any())).thenReturn(Future.successful(()))
+
+      eventReportService.getOverview(pstr, startDate, endDate)(implicitly, implicitly).map { resultJsValue =>
+
+        verify(mockOverviewCacheRepository, times(1)).get(any(), any(), any())(any())
+        verify(mockOverviewCacheRepository, times(1)).upsert(any(), any(), any(), any())(any())
+        verify(mockEventReportConnector, times(2)).getOverview(any(), any(), any(), any())(any(), any())
+
+        resultJsValue mustBe Json.toJson(erOverview ++ er20AOverview)
       }
     }
 
     "return OK with the Seq of overview details and don't try to save the data in cache if the data already exists in the cache" in {
-      when(mockOverviewCacheRepository.get(any(), any(), any(), any())(any())).thenReturn(Future.successful(Some(Json.toJson(erOverview))))
-      eventReportService.getOverview(pstr, reportTypeER, startDate, endDate)(implicitly, implicitly).map { resultJsValue =>
-        verify(mockOverviewCacheRepository, times(1)).get(any(), any(), any(), any())(any())
-        verify(mockOverviewCacheRepository, never).upsert(any(), any(), any(), any(), any())(any())
+      when(mockOverviewCacheRepository.get(any(), any(), any())(any())).thenReturn(Future.successful(Some(Json.toJson(erOverview))))
+      eventReportService.getOverview(pstr, startDate, endDate)(implicitly, implicitly).map { resultJsValue =>
+        verify(mockOverviewCacheRepository, times(1)).get(any(), any(), any())(any())
+        verify(mockOverviewCacheRepository, never).upsert(any(), any(), any(), any())(any())
         verify(mockEventReportConnector, never).getOverview(any(), any(), any(), any())(any(), any())
         resultJsValue mustBe Json.toJson(erOverview)
       }
@@ -486,12 +503,18 @@ object EventReportServiceSpec {
   private final val SchemaPath1829 = "/resources.schemas/api-1829-submit-event20a-declaration-report-request-schema-v1.0.0.json"
 
   private val endDate = "2023-04-05"
-  private val reportTypeER = "ER"
 
   private val version = ERVersion(1,
     LocalDate.of(2022, 4, 6),
     "Compiled")
+
   private val erVersions = Seq(version)
+
+  private val versionER20A = ERVersion(2,
+    LocalDate.of(2022, 6, 4),
+    "Compiled")
+
+  private val erVersionsER20A = Seq(versionER20A)
 
   private val overview1 = EROverview(
     LocalDate.of(2022, 4, 6),
@@ -557,6 +580,7 @@ object EventReportServiceSpec {
   ))
 
   private val erOverview = Seq(overview1, overview2)
+  private val er20AOverview = Seq(overview1, overview2)
   private val responseJsonForAPI1834: Option[JsObject] = Some(Json.parse(
     """
       |{
