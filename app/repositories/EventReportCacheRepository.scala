@@ -67,10 +67,11 @@ object EventReportCacheEntry {
           (JsPath \ versionKey).read[Int] and
           (JsPath \ dataKey).read[JsValue] and
           (JsPath \ lastUpdatedKey).read[LocalDateTime] and
-          (JsPath \ expireAtKey).read[LocalDateTime]
+          (JsPath \ expireAtKey).read[LocalDateTime] and
+          (JsPath \ externalIdKey).read[String]
         )(
-        (pstr, apiType, year, version, data, lastUpdated, expireAt) =>
-          EventReportCacheEntry(pstr, EventDataIdentifier(apiType, year, version), data, lastUpdated, expireAt)
+        (pstr, apiType, year, version, data, lastUpdated, expireAt, externalId) =>
+          EventReportCacheEntry(pstr, EventDataIdentifier(apiType, year, version, externalId), data, lastUpdated, expireAt)
       ).reads(json)
     }
   }
@@ -160,7 +161,7 @@ class EventReportCacheRepository @Inject()(
     optEventDataIdentifier match {
       case Some(edi) => getByEDI(pstr, edi).map(_.map(_.as[JsObject]))
       case None =>
-        getByEDI(pstr, EventDataIdentifier(ApiType.ApiNone, 0, 0)).map(_.map(_.as[JsObject]))
+        getByEDI(pstr, EventDataIdentifier(ApiType.ApiNone, 0, 0, externalId)).map(_.map(_.as[JsObject]))
     }
   }
 
@@ -170,7 +171,8 @@ class EventReportCacheRepository @Inject()(
         Filters.equal(pstrKey, pstr),
         Filters.equal(apiTypeKey, edi.apiType.toString),
         Filters.equal(yearKey, edi.year),
-        Filters.equal(versionKey, edi.version)
+        Filters.equal(versionKey, edi.version),
+        Filters.equal(externalIdKey, edi.externalId)
       )
     ).headOption().map {
       _.map {

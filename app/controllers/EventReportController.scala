@@ -16,7 +16,6 @@
 
 package controllers
 
-import models.EventDataIdentifier
 import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json._
