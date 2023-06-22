@@ -18,42 +18,59 @@ package repositories
 
 import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
+import models.EventDataIdentifier
 import models.enumeration.ApiType
 import org.joda.time.{DateTime, DateTimeZone}
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
-import repositories.EventReportCacheEntry.{apiTypesKey, expireAtKey, pstrKey}
+import repositories.EventReportCacheEntry.{apiTypeKey, expireAtKey, pstrKey, versionKey, yearKey}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
+import java.time.{LocalDateTime, ZoneId}
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
 
-case class EventReportCacheEntry(pstr: String, apiTypes: String, data: JsValue, lastUpdated: DateTime, expireAt: DateTime)
+case class EventReportCacheEntry(pstr: String, edi: EventDataIdentifier, data: JsValue, lastUpdated: LocalDateTime, expireAt: LocalDateTime)
 
 object EventReportCacheEntry {
-
-  def applyEventReportCacheEntry(pstr: String,
-                                 apiTypes: ApiType,
-                                 data: JsValue,
-                                 lastUpdated: DateTime = DateTime.now(DateTimeZone.UTC),
-                                 expireAt: DateTime): EventReportCacheEntry = {
-
-    EventReportCacheEntry(pstr, apiTypes.toString, data, lastUpdated, expireAt)
-  }
-
-  implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
-  implicit val format: Format[EventReportCacheEntry] = Json.format[EventReportCacheEntry]
-
   val pstrKey = "pstr"
-  val apiTypesKey = "apiTypes"
+  val apiTypeKey = "apiType"
+  val yearKey = "year"
+  val versionKey = "version"
   val expireAtKey = "expireAt"
   val lastUpdatedKey = "lastUpdated"
   val dataKey = "data"
+
+  implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
+
+  implicit val formats: Format[EventReportCacheEntry] = new Format[EventReportCacheEntry] {
+    override def writes(o: EventReportCacheEntry): JsValue = {
+      Json.obj(
+        "pstr" -> o.pstr
+      ) ++ EventDataIdentifier.formats.writes(o.edi).as[JsObject]
+    }
+
+    override def reads(json: JsValue): JsResult[EventReportCacheEntry] = {
+      (
+        (JsPath \ "pstr").read[String] and
+          (JsPath \ apiTypeKey).read[ApiType](ApiType.formats) and
+          (JsPath \ yearKey).read[Int] and
+          (JsPath \ versionKey).read[Int] and
+          (JsPath \ dataKey).read[JsValue] and
+          (JsPath \ lastUpdatedKey).read[LocalDateTime] and
+          (JsPath \ expireAtKey).read[LocalDateTime]
+        )(
+        (pstr, apiType, year, version, data, lastUpdated, expireAt) =>
+          EventReportCacheEntry(pstr, EventDataIdentifier(apiType, year, version), data, lastUpdated, expireAt)
+      ).reads(json)
+    }
+  }
 }
 
 @Singleton
@@ -64,73 +81,91 @@ class EventReportCacheRepository @Inject()(
   extends PlayMongoRepository[EventReportCacheEntry](
     collectionName = config.underlying.getString("mongodb.event-reporting-data.name"),
     mongoComponent = mongoComponent,
-    domainFormat = EventReportCacheEntry.format,
+    domainFormat = EventReportCacheEntry.formats,
     indexes = Seq(
       IndexModel(
         Indexes.ascending(expireAtKey),
         IndexOptions().name("dataExpiry").expireAfter(0, TimeUnit.SECONDS).background(true)
       ),
       IndexModel(
-        Indexes.ascending(pstrKey, apiTypesKey),
-        IndexOptions().name(pstrKey + apiTypesKey).background(true)
+        Indexes.ascending(pstrKey, apiTypeKey, yearKey, versionKey),
+        IndexOptions().name(pstrKey + apiTypeKey + yearKey + versionKey).background(true).unique(true)
       )
+    ),
+    extraCodecs = Seq(
+      Codecs.playFormatCodec(EventDataIdentifier.formats),
+      Codecs.playFormatCodec(ApiType.formats)
     )
   ) with Logging {
 
   import EventReportCacheEntry._
 
-  private val expireInDays = config.get[Int](path = "mongodb.event-reporting-data.timeToLiveInDays")
+  private val expireInSeconds = config.get[Int](path = "mongodb.event-reporting-data.timeToLiveInSeconds")
 
-  private def evaluatedExpireAt: DateTime = DateTime.now(DateTimeZone.UTC).toLocalDate.plusDays(expireInDays + 1).toDateTimeAtStartOfDay()
+  private def evaluatedExpireAt: LocalDateTime = {
+    LocalDateTime.now(ZoneId.of("UTC")).plusSeconds(expireInSeconds)
+  }
 
-  def upsert(pstr: String, apiType: ApiType, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
-    val record = EventReportCacheEntry.applyEventReportCacheEntry(
-      pstr, apiType, Json.toJson(data),
-      expireAt = evaluatedExpireAt)
-
+  def upsert(pstr: String, edi: EventDataIdentifier, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val modifier = Updates.combine(
-      Updates.set(pstrKey, record.pstr),
-      Updates.set(apiTypesKey, record.apiTypes),
-      Updates.set(dataKey, Codecs.toBson(record.data)),
-      Updates.set(lastUpdatedKey, Codecs.toBson(record.lastUpdated)),
-      Updates.set(expireAtKey, Codecs.toBson(record.expireAt))
+      Updates.set(pstrKey, pstr),
+      Updates.set(apiTypeKey, edi.apiType.toString),
+      Updates.set(yearKey, edi.year),
+      Updates.set(versionKey, edi.version),
+      Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
+      Updates.set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC")))),
+      Updates.set(expireAtKey, Codecs.toBson(evaluatedExpireAt))
     )
-    val selector = Filters.and(Filters.equal(pstrKey, record.pstr), Filters.equal(apiTypesKey, record.apiTypes))
-
+    val selector = Filters.and(
+      Filters.equal(pstrKey, pstr),
+      Filters.equal(apiTypeKey, edi.apiType.toString),
+      Filters.equal(yearKey, edi.year),
+      Filters.equal(versionKey, edi.version)
+    )
     collection.findOneAndUpdate(
       filter = selector,
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
   }
 
   def upsert(pstr: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
-    val lastUpdated = DateTime.now(DateTimeZone.UTC)
     val modifier = Updates.combine(
       Updates.set(pstrKey, pstr),
-      Updates.set(apiTypesKey, "None"),
+      Updates.set(apiTypeKey, "None"),
+      Updates.set(yearKey, 0),
+      Updates.set(versionKey, 0),
       Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
-      Updates.set(lastUpdatedKey, Codecs.toBson(lastUpdated)),
+      Updates.set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC")))),
       Updates.set(expireAtKey, Codecs.toBson(evaluatedExpireAt))
     )
-    val selector = Filters.and(Filters.equal(pstrKey, pstr), Filters.equal(apiTypesKey, "None"))
+    val selector = Filters.and(
+      Filters.equal(pstrKey, pstr),
+      Filters.equal(apiTypeKey, "None"),
+      Filters.equal(yearKey, 0),
+      Filters.equal(versionKey, 0)
+    )
 
     collection.findOneAndUpdate(
       filter = selector,
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
   }
 
-  def getUserAnswers(pstr: String, optApiType: Option[ApiType])(implicit ec: ExecutionContext): Future[Option[JsObject]] = {
-    optApiType match {
-      case Some(apiType) =>
-        getByKeys(Map("pstr" -> pstr, "apiTypes" -> apiType.toString))
-          .map(_.map(_.as[JsObject]))
+  def getUserAnswers(pstr: String, optEventDataIdentifier: Option[EventDataIdentifier])(implicit ec: ExecutionContext): Future[Option[JsObject]] = {
+    optEventDataIdentifier match {
+      case Some(edi) => getByEDI(pstr, edi).map(_.map(_.as[JsObject]))
       case None =>
-        getByKeys(Map("pstr" -> pstr, "apiTypes" -> "None"))
-          .map(_.map(_.as[JsObject]))
+        getByEDI(pstr, EventDataIdentifier(ApiType.ApiNone, 0, 0)).map(_.map(_.as[JsObject]))
     }
   }
 
-  private def getByKeys(mapOfKeys: Map[String, String])(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
-    collection.find[EventReportCacheEntry](filterByKeys(mapOfKeys)).headOption().map {
+  private def getByEDI(pstr: String, edi: EventDataIdentifier)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
+    collection.find[EventReportCacheEntry](
+      Filters.and(
+        Filters.equal(pstrKey, pstr),
+        Filters.equal(apiTypeKey, edi.apiType.toString),
+        Filters.equal(yearKey, edi.year),
+        Filters.equal(versionKey, edi.version)
+      )
+    ).headOption().map {
       _.map {
         dataEntry =>
           dataEntry.data

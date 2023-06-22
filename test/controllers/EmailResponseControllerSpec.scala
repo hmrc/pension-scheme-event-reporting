@@ -32,7 +32,7 @@ import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import repositories.{EventReportCacheRepository, GetEventCacheRepository, OverviewCacheRepository, ToggleDataRepository}
+import repositories.{EventReportCacheRepository, OverviewCacheRepository, ToggleDataRepository}
 import services.AuditService
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.crypto.{ApplicationCrypto, PlainText}
@@ -52,7 +52,6 @@ class EmailResponseControllerSpec extends AsyncWordSpec with Matchers with Mocki
       bind[AuthConnector].toInstance(mockAuthConnector),
       bind[AuditService].toInstance(mockAuditService),
       bind[EventReportCacheRepository].toInstance(mock[EventReportCacheRepository]),
-      bind[GetEventCacheRepository].toInstance(mock[GetEventCacheRepository]),
       bind[OverviewCacheRepository].toInstance(mock[OverviewCacheRepository]),
       bind[ToggleDataRepository].toInstance(mock[ToggleDataRepository])
     )).build()

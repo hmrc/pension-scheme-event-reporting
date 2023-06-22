@@ -81,12 +81,12 @@ class EventReportConnector @Inject()(
     }
   }
 
-  def getEvent(pstr: String, startDate: String, version: String, eventType: Option[EventType])
-              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsValue]] = {
+  def getEvent(pstr: String, startDate: String, version: Int, eventType: Option[EventType])
+              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] = {
     val headers = integrationFrameworkHeader ++
       Seq(
         "reportStartDate" -> startDate,
-        "reportVersionNumber" -> version
+        "reportVersionNumber" -> ("00" + version.toString).takeRight(3)
       )
 
     eventType match {
@@ -103,15 +103,17 @@ class EventReportConnector @Inject()(
   }
 
   private def getForApi(headers: Seq[(String, String)], pstr: String, api: ApiType)
-                       (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsValue]] = {
+                       (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] = {
 
     val apiUrl: String = s"${config.getApiUrlByApiNum(api.toString).format(pstr)}"
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = headers: _*)
     logger.info(s"Get $api.toString (IF) called - URL: $apiUrl with headers: $headers")
-
     http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
       response.status match {
-        case OK => Some(response.json)
+        case OK =>
+          Some(response.json.as[JsObject])
+        case UNPROCESSABLE_ENTITY =>
+          None
         case _ => handleErrorResponse("GET", apiUrl)(response)
       }
     }
