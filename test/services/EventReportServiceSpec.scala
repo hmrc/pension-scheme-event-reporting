@@ -312,6 +312,39 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
   "getOverview" must {
     "return OK with the Seq of overview details and save the data in cache if no data was found in the cache to begin with" in {
+
+      val overview1 = EROverview(
+        LocalDate.of(2022, 4, 6),
+        LocalDate.of(2023, 4, 5),
+        tpssReportPresent = false,
+        Some(EROverviewVersion(
+          3,
+          submittedVersionAvailable = false,
+          compiledVersionAvailable = true)))
+
+      val overview2 = EROverview(
+        LocalDate.of(2022, 4, 6),
+        LocalDate.of(2023, 4, 5),
+        tpssReportPresent = false,
+        Some(EROverviewVersion(
+          2,
+          submittedVersionAvailable = true,
+          compiledVersionAvailable = true)))
+
+      val erOverview = Seq(overview1)
+      val er20AOverview = Seq(overview2)
+
+      val expected = Seq(
+        EROverview(
+          LocalDate.of(2022, 4, 6),
+          LocalDate.of(2023, 4, 5),
+          tpssReportPresent = false,
+          Some(EROverviewVersion(
+            3,
+            submittedVersionAvailable = true,
+            compiledVersionAvailable = true)))
+      )
+
       when(mockEventReportConnector.getOverview(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq("ER"),
@@ -330,7 +363,9 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
         verify(mockEventReportConnector, times(2)).getOverview(any(), any(), any(), any())(any(), any())
 
-        resultJsValue mustBe Json.toJson(erOverview ++ er20AOverview)
+
+
+        resultJsValue mustBe Json.toJson(expected)
       }
     }
   }
@@ -496,24 +531,6 @@ object EventReportServiceSpec {
 
   private val erVersionsER20A = Seq(versionER20A)
 
-  private val overview1 = EROverview(
-    LocalDate.of(2022, 4, 6),
-    LocalDate.of(2023, 4, 5),
-    tpssReportPresent = false,
-    Some(EROverviewVersion(
-      3,
-      submittedVersionAvailable = false,
-      compiledVersionAvailable = true)))
-
-  private val overview2 = EROverview(
-    LocalDate.of(2022, 4, 6),
-    LocalDate.of(2023, 4, 5),
-    tpssReportPresent = false,
-    Some(EROverviewVersion(
-      2,
-      submittedVersionAvailable = true,
-      compiledVersionAvailable = true)))
-
   private val getEvent22PayLoadData: Option[JsObject] = Some(Json.parse(
     """
       |    {
@@ -559,8 +576,7 @@ object EventReportServiceSpec {
       |} """.stripMargin
   ))
 
-  private val erOverview = Seq(overview1, overview2)
-  private val er20AOverview = Seq(overview1, overview2)
+
   private val responseJsonForAPI1834: Option[JsObject] = Some(Json.parse(
     """
       |{

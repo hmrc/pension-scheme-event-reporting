@@ -8,7 +8,8 @@ object AppDependencies {
     "uk.gov.hmrc"                   %% "bootstrap-backend-play-28"  % "7.13.0",
     "uk.gov.hmrc.mongo"             %% "hmrc-mongo-play-28"         % mongoVersion,
     "com.github.java-json-tools"    %  "json-schema-validator"      % "2.2.14",
-    "com.fasterxml.jackson.module"  %% "jackson-module-scala"       % "2.14.2"
+    "com.fasterxml.jackson.module"  %% "jackson-module-scala"       % "2.14.2",
+    "org.typelevel" %% "cats-core" % "2.9.0",
   )
 
   val test = Seq(
