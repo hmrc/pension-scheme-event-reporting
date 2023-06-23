@@ -230,12 +230,15 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   }
 
   "getEventSummary" must {
-    "return the payload from the connector for API1834" in {
-      val response = Set("1", "2", "3", "4", "5", "6", "7", "8", "8A", "10", "11", "12", "13", "14", "18", "19", "20", "22", "23", "24", "0")
+    "return the payload from the connector for API1834 and API1831" in {
+      val response = Set("1", "2", "3", "4", "5", "6", "7", "8", "8A", "10", "11", "12", "13", "14", "18", "19", "20", "22", "23", "24", "0", "20A")
       when(mockEventReportConnector.getEvent(pstr, startDate, version, None)(implicitly, implicitly))
         .thenReturn(Future.successful(responseJsonForAPI1834))
+      when(mockEventReportConnector.getEvent(pstr, startDate, version, Some(Event20A))(implicitly, implicitly))
+        .thenReturn(Future.successful(responseJsonForAPI1831))
       eventReportService.getEventSummary(pstr, version, startDate).map { result =>
         verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, version, None)(implicitly, implicitly)
+        verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, version, Some(Event20A))(implicitly, implicitly)
         result.value.map(_.validate[String].get).toSet mustBe response
       }
     }
@@ -715,6 +718,35 @@ object EventReportServiceSpec {
       |        }
       |    }
       |}
+      |""".stripMargin).as[JsObject])
+
+  private val responseJsonForAPI1831: Option[JsObject] = Some(Json.parse(
+    """
+      |{
+      |    "schemeDetails": {
+      |        "pSTR": "87219363YN",
+      |        "schemeName": "Abc Ltd"
+      |    },
+      |    "er20aDetails": {
+      |       "reportStartDate": "2021-04-06",
+      |       "reportEndDate": "2022-04-05",
+      |       "reportVersionNumber": "001",
+      |       "reportSubmittedDateAndTime": "2023-12-13T12:12:12Z"
+      |     },
+      |    "schemeMasterTrustDetails": {
+      |       "startDate": "2021-06-08"
+      |    },
+      |    "erDeclarationDetails": {
+      |       "submittedBy": "PSP",
+      |       "submittedID": "20000001",
+      |       "submittedName": "ABCDEFGHIJKLMNOPQRSTUV",
+      |       "pspDeclaration": {
+      |         "authorisedPSAID": "A4045157",
+      |         "pspDeclaration1": "Selected",
+      |         "pspDeclaration2": "Selected"
+      |         }
+      |     }
+      | }
       |""".stripMargin).as[JsObject])
 }
 
