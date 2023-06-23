@@ -21,7 +21,8 @@ case class SubmitEventDeclarationAuditEvent(pstr: String,
                                             maybeStatus: Option[Int],
                                             request: JsValue,
                                             response: Option[JsValue],
-                                            maybeErrorMessage: Option[String]
+                                            maybeErrorMessage: Option[String],
+                                            reportVersion: String
                                            ) extends AuditEvent {
   override def auditType: String = "EventReportTaxReturnSubmitted"
 
@@ -32,6 +33,7 @@ case class SubmitEventDeclarationAuditEvent(pstr: String,
 
     Json.obj(
       "pstr" -> pstr,
+      "reportVersion" -> reportVersion,
       "request" -> request
     ) ++ statusJson ++ responseJson ++ errorMessageJson
   }

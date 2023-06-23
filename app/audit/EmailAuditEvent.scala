@@ -19,12 +19,17 @@ package audit
 import models.Event
 import play.api.libs.json.{JsObject, Json}
 
-case class EmailAuditEvent(psaOrPspId: String, submittedBy: String, emailAddress: String, event: Event, requestId: String) extends AuditEvent {
+case class EmailAuditEvent(psaOrPspId: String,
+                           submittedBy: String,
+                           emailAddress: String,
+                           event: Event,
+                           requestId: String,
+                           reportVersion: String) extends AuditEvent {
 
   override def auditType: String = "EventReportingEmailEvent"
 
   override def details: JsObject = {
     Json.obj(fields = "email-initiation-request-id" -> requestId, "emailAddress" -> emailAddress,
-      "event" -> event.toString, "submittedBy" -> submittedBy) ++ Json.obj("psaId" -> psaOrPspId)
+      "event" -> event.toString, "submittedBy" -> submittedBy) ++ Json.obj("psaId" -> psaOrPspId) ++ Json.obj("reportVersion" -> reportVersion)
   }
 }
