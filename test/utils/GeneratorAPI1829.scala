@@ -74,15 +74,14 @@ trait GeneratorAPI1829 extends Matchers with OptionValues with ResponseGenerator
           "reportStartDate" -> startDate,
           "reportEndDate" -> startDate.plusDays(1),
           "submittedBy" -> psaOrPsp,
-          "submittedID" -> psaOrPspId(psaOrPsp),
-          "psaDeclaration1" -> selected,
-          "psaDeclaration2" -> selected
+          "submittedID" -> psaOrPspId(psaOrPsp)
         ) ++ startOrCeaseDate
 
         psaOrPsp match {
-          case "PSA" => commonFieldsUA
-          case "PSP" =>
-            commonFieldsUA ++ Json.obj("authorisedPSAID" -> psaId) ++
+          case "PSA" => commonFieldsUA ++ Json.obj("psaDeclaration1" -> selected) ++
+            Json.obj("psaDeclaration2" -> selected)
+
+          case "PSP" => commonFieldsUA ++ Json.obj("authorisedPSAID" -> psaId) ++
               Json.obj("pspDeclaration1" -> selected) ++ Json.obj("pspDeclaration2" -> selected)
 
         }
