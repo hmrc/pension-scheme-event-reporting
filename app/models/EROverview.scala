@@ -112,39 +112,4 @@ object EROverview {
     }
     (abc ++ xyz).sortBy(_.periodStartDate)
   }
-
-
-
-  //    def
-  //
-  //      val combinedEROverview = erOverview.map{ first =>
-  //        er20AOverview.map{ second =>
-  //          first.map{ item =>
-  //            second.find(
-  //              z => z.periodStartDate == item.periodStartDate
-  //            ) match {
-  //              case Some(foundInSecond) =>
-  //              item.versionDetails.map{ uuu =>
-  //                EROverviewVersion(
-  //                  numberOfVersions = ,
-  //                  submittedVersionAvailable = ,
-  //                  compiledVersionAvailable =
-  //                )
-  //
-  //              }
-  //                EROverview(
-  //                periodStartDate = item.periodStartDate,
-  //                periodEndDate = item.periodEndDate,
-  //                tpssReportPresent = item.tpssReportPresent || foundInSecond.tpssReportPresent,
-  //                versionDetails = None
-  //              )
-  //            }
-  //
-  //          }
-  //
-  //        }
-  //
-  //      }
-  //      combinedEROverview.map( data => Json.toJson(data))
-
 }
