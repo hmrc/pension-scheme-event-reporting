@@ -19,18 +19,17 @@ package services
 
 import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
-import models.{EROverview, ERVersion}
 import models.enumeration.ApiType._
 import models.enumeration.EventType._
 import models.enumeration.{ApiType, EventType}
-import models.{ERVersion, EventDataIdentifier}
+import models.{EROverview, ERVersion, EventDataIdentifier}
 import play.api.Logging
 import play.api.http.Status.NOT_IMPLEMENTED
 import play.api.libs.json.JsResult.toTry
 import play.api.libs.json._
 import play.api.mvc.Results._
 import play.api.mvc.{RequestHeader, Result}
-import repositories.{EventReportCacheRepository, OverviewCacheRepository}
+import repositories.EventReportCacheRepository
 import transformations.ETMPToFrontEnd.{Event20AReport, EventOneReport, MemberEventReport}
 import transformations.UserAnswersToETMP._
 import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, HeaderCarrier, HttpResponse}
@@ -42,8 +41,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton()
 class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    eventReportCacheRepository: EventReportCacheRepository,
-                                   jsonPayloadSchemaValidator: JSONSchemaValidator,
-                                   overviewCacheRepository: OverviewCacheRepository
+                                   jsonPayloadSchemaValidator: JSONSchemaValidator
                                   ) extends Logging {
   private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private final val SchemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.4.json"
@@ -93,11 +91,11 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
             Future.successful(x)
           case None =>
             val startDate = year.toString + "-04-06"
-            getEvent(pstr, startDate, version, eventType).flatMap{
+            getEvent(pstr, startDate, version, eventType).flatMap {
               case None =>
                 Future.successful(None)
               case optUAData@Some(userAnswersDataToStore) =>
-                saveUserAnswers(pstr, eventType, year, version, userAnswersDataToStore).map( _ => optUAData)
+                saveUserAnswers(pstr, eventType, year, version, userAnswersDataToStore).map(_ => optUAData)
             }
         }
       case _ => Future.successful(None)
@@ -191,19 +189,10 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def getOverview(pstr: String, startDate: String, endDate: String)
                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    overviewCacheRepository.get(pstr, startDate, endDate).flatMap {
-      case Some(data) => Future.successful(data)
-      case _ =>
-        val erOverview = eventReportConnector.getOverview(pstr, reportType = "ER", startDate, endDate)
-        val er20AOverview = eventReportConnector.getOverview(pstr, reportType = "ER20A", startDate, endDate)
-        val combinedEROverview: Future[Seq[EROverview]] = Future.sequence(Seq(erOverview, er20AOverview)).map(_.flatten)
-
-        combinedEROverview.flatMap {
-        data =>
-          overviewCacheRepository.upsert(pstr, startDate, endDate, Json.toJson(data))
-            .map { _ => Json.toJson(data) }
-      }
-    }
+      val erOverview = eventReportConnector.getOverview(pstr, reportType = "ER", startDate, endDate)
+      val er20AOverview = eventReportConnector.getOverview(pstr, reportType = "ER20A", startDate, endDate)
+      val combinedEROverview: Future[Seq[EROverview]] = Future.sequence(Seq(erOverview, er20AOverview)).map(_.flatten)
+      combinedEROverview.map( data => Json.toJson(data))
   }
 
   private def validatePayloadAgainstSchema(payload: JsObject, schemaPath: String, eventName: String)
@@ -244,9 +233,9 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
       val recoveredConnectorCallForAPI1829 =
         eventReportConnector.submitEvent20ADeclarationReport(pstr, transformed1829Payload).map(_.json.as[JsObject]).recover {
-        case _: BadRequestException =>
-          throw new ExpectationFailedException("Nothing to submit")
-      }
+          case _: BadRequestException =>
+            throw new ExpectationFailedException("Nothing to submit")
+        }
       for {
         _ <- recoveredConnectorCallForAPI1829
         _ <- validatePayloadAgainstSchema(transformed1829Payload, SchemaPath1829, "submitEvent20ADeclarationReport")

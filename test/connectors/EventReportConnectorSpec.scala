@@ -19,7 +19,6 @@ package connectors
 import com.github.tomakehurst.wiremock.client.WireMock._
 import models.enumeration.EventType._
 import models.{EROverview, EROverviewVersion, ERVersion}
-import netscape.javascript.JSObject
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, times, verify, when}
@@ -29,10 +28,10 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status._
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
-import play.api.libs.json.{JsArray, JsObject, JsString, Json}
+import play.api.libs.json.{JsArray, JsObject, Json}
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
-import repositories.{EventReportCacheRepository, OverviewCacheRepository}
+import repositories.EventReportCacheRepository
 import services.PostToAPIAuditService
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.test.HttpClientSupport
@@ -53,7 +52,6 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
 
   private val mockHeaderUtils = mock[HeaderUtils]
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
-  private val mockOverviewCacheRepository = mock[OverviewCacheRepository]
   private val mockPostToAPIAuditService = mock[PostToAPIAuditService]
   private lazy val connector: EventReportConnector = injector.instanceOf[EventReportConnector]
 
@@ -63,7 +61,6 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       bind[HttpClient].toInstance(httpClient),
       bind[HeaderUtils].toInstance(mockHeaderUtils),
       bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
-      bind[OverviewCacheRepository].toInstance(mockOverviewCacheRepository),
       bind[PostToAPIAuditService].toInstance(mockPostToAPIAuditService)
     )
 
