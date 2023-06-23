@@ -45,7 +45,7 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSugar with BeforeAndAfterEach
-                                                   with JsonFileReader with GeneratorAPI1828 with GeneratorAPI1829 {
+  with JsonFileReader with GeneratorAPI1828 with GeneratorAPI1829 {
 
   override def generateUserAnswersAndPOSTBody: Gen[(JsObject, JsObject)] = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody
 
@@ -311,8 +311,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   }
 
   "getOverview" must {
-    "return OK with the Seq of overview details and save the data in cache if no data was found in the cache to begin with" in {
-
+    "return OK with the Seq of overview details" in {
       val overview1 = EROverview(
         LocalDate.of(2022, 4, 6),
         LocalDate.of(2023, 4, 5),
@@ -362,8 +361,6 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       eventReportService.getOverview(pstr, startDate, endDate)(implicitly, implicitly).map { resultJsValue =>
 
         verify(mockEventReportConnector, times(2)).getOverview(any(), any(), any(), any())(any(), any())
-
-
 
         resultJsValue mustBe Json.toJson(expected)
       }

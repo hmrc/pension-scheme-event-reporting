@@ -25,20 +25,211 @@ import java.time.LocalDate
 class EROverviewSpec extends AnyWordSpec with OptionValues with Matchers {
 
   "EROverview combine" must {
-    "work" in {
+    "combine values correctly when both versions present with overlapping values" in {
       val a = EROverview(
         LocalDate.of(2022, 4, 6),
         LocalDate.of(2023, 4, 5),
         tpssReportPresent = false,
-        Some(EROverviewVersion(2, submittedVersionAvailable = true, compiledVersionAvailable = true))
+        Some(EROverviewVersion(numberOfVersions = 2, submittedVersionAvailable = false, compiledVersionAvailable = true))
       )
+
+      val b = EROverview(
+        LocalDate.of(2022, 4, 6),
+        LocalDate.of(2023, 4, 5),
+        tpssReportPresent = true,
+        Some(EROverviewVersion(numberOfVersions = 1, submittedVersionAvailable = false, compiledVersionAvailable = true))
+      )
+      EROverview.combine(a, b) mustBe EROverview(
+        LocalDate.of(2022, 4, 6),
+        LocalDate.of(2023, 4, 5),
+        tpssReportPresent = true,
+        Some(EROverviewVersion(numberOfVersions = 2, submittedVersionAvailable = false, compiledVersionAvailable = true))
+      )
+    }
+
+    "combine values correctly when both versions present with mutex values" in {
+      val a = EROverview(
+        LocalDate.of(2022, 4, 6),
+        LocalDate.of(2023, 4, 5),
+        tpssReportPresent = false,
+        Some(EROverviewVersion(numberOfVersions = 2, submittedVersionAvailable = false, compiledVersionAvailable = true))
+      )
+
+      val b = EROverview(
+        LocalDate.of(2022, 4, 6),
+        LocalDate.of(2023, 4, 5),
+        tpssReportPresent = true,
+        Some(EROverviewVersion(numberOfVersions = 1, submittedVersionAvailable = true, compiledVersionAvailable = false))
+      )
+      EROverview.combine(a, b) mustBe EROverview(
+        LocalDate.of(2022, 4, 6),
+        LocalDate.of(2023, 4, 5),
+        tpssReportPresent = true,
+        Some(EROverviewVersion(numberOfVersions = 2, submittedVersionAvailable = true, compiledVersionAvailable = true))
+      )
+    }
+
+    "combine values correctly when one version present (first)" in {
+      val a = EROverview(
+        LocalDate.of(2022, 4, 6),
+        LocalDate.of(2023, 4, 5),
+        tpssReportPresent = false,
+        Some(EROverviewVersion(numberOfVersions = 2, submittedVersionAvailable = false, compiledVersionAvailable = true))
+      )
+
+      val b = EROverview(
+        LocalDate.of(2022, 4, 6),
+        LocalDate.of(2023, 4, 5),
+        tpssReportPresent = true,
+        None
+      )
+      EROverview.combine(a, b) mustBe EROverview(
+        LocalDate.of(2022, 4, 6),
+        LocalDate.of(2023, 4, 5),
+        tpssReportPresent = true,
+        Some(EROverviewVersion(numberOfVersions = 2, submittedVersionAvailable = false, compiledVersionAvailable = true))
+      )
+    }
+
+    "combine values correctly when both versions present (second)" in {
+      val a = EROverview(
+        LocalDate.of(2022, 4, 6),
+        LocalDate.of(2023, 4, 5),
+        tpssReportPresent = false,
+        None
+      )
+
+      val b = EROverview(
+        LocalDate.of(2022, 4, 6),
+        LocalDate.of(2023, 4, 5),
+        tpssReportPresent = true,
+        Some(EROverviewVersion(numberOfVersions = 1, submittedVersionAvailable = false, compiledVersionAvailable = true))
+      )
+      EROverview.combine(a, b) mustBe EROverview(
+        LocalDate.of(2022, 4, 6),
+        LocalDate.of(2023, 4, 5),
+        tpssReportPresent = true,
+        Some(EROverviewVersion(numberOfVersions = 1, submittedVersionAvailable = false, compiledVersionAvailable = true))
+      )
+    }
+
+    "combine values correctly when neither versions present" in {
+      val a = EROverview(
+        LocalDate.of(2022, 4, 6),
+        LocalDate.of(2023, 4, 5),
+        tpssReportPresent = false,
+        None
+      )
+
+      val b = EROverview(
+        LocalDate.of(2022, 4, 6),
+        LocalDate.of(2023, 4, 5),
+        tpssReportPresent = true,
+        None
+      )
+      EROverview.combine(a, b) mustBe EROverview(
+        LocalDate.of(2022, 4, 6),
+        LocalDate.of(2023, 4, 5),
+        tpssReportPresent = true,
+        None
+      )
+    }
+
+    "Seq of EROverview combine" must {
+      "combine values correctly when both versions present with overlapping values where more values in first than second" in {
+        val a = Seq(
+          EROverview(LocalDate.of(2020, 4, 6), LocalDate.of(2021, 4, 5),
+            tpssReportPresent = false,
+            Some(EROverviewVersion(numberOfVersions = 2, submittedVersionAvailable = false, compiledVersionAvailable = true))
+          ),
+          EROverview(LocalDate.of(2022, 4, 6), LocalDate.of(2023, 4, 5),
+            tpssReportPresent = false,
+            Some(EROverviewVersion(numberOfVersions = 2, submittedVersionAvailable = false, compiledVersionAvailable = true))
+          ),
+          EROverview(LocalDate.of(2023, 4, 6), LocalDate.of(2024, 4, 5),
+            tpssReportPresent = false,
+            Some(EROverviewVersion(numberOfVersions = 2, submittedVersionAvailable = false, compiledVersionAvailable = true))
+          )
+        )
+
+        val b = Seq(
+          EROverview(LocalDate.of(2020, 4, 6), LocalDate.of(2021, 4, 5),
+            tpssReportPresent = true,
+            Some(EROverviewVersion(numberOfVersions = 1, submittedVersionAvailable = true, compiledVersionAvailable = false))
+          ),
+          EROverview(LocalDate.of(2023, 4, 6), LocalDate.of(2024, 4, 5),
+            tpssReportPresent = false,
+            Some(EROverviewVersion(numberOfVersions = 5, submittedVersionAvailable = false, compiledVersionAvailable = false))
+          )
+        )
+
+        EROverview.combine(a, b) mustBe Seq(
+          EROverview(LocalDate.of(2020, 4, 6), LocalDate.of(2021, 4, 5),
+            tpssReportPresent = true,
+            Some(EROverviewVersion(numberOfVersions = 2, submittedVersionAvailable = true, compiledVersionAvailable = true))
+          ),
+          EROverview(LocalDate.of(2022, 4, 6), LocalDate.of(2023, 4, 5),
+            tpssReportPresent = false,
+            Some(EROverviewVersion(numberOfVersions = 2, submittedVersionAvailable = false, compiledVersionAvailable = true))
+          ),
+          EROverview(LocalDate.of(2023, 4, 6), LocalDate.of(2024, 4, 5),
+            tpssReportPresent = false,
+            Some(EROverviewVersion(numberOfVersions = 5, submittedVersionAvailable = false, compiledVersionAvailable = true))
+          )
+        )
+
+      }
+
+      "combine values correctly when both versions present with overlapping values where more values in second than first" in {
+        val a = Seq(
+          EROverview(LocalDate.of(2020, 4, 6), LocalDate.of(2021, 4, 5),
+            tpssReportPresent = true,
+            Some(EROverviewVersion(numberOfVersions = 1, submittedVersionAvailable = true, compiledVersionAvailable = false))
+          ),
+          EROverview(LocalDate.of(2023, 4, 6), LocalDate.of(2024, 4, 5),
+            tpssReportPresent = false,
+            Some(EROverviewVersion(numberOfVersions = 5, submittedVersionAvailable = false, compiledVersionAvailable = false))
+          )
+        )
+        val b = Seq(
+          EROverview(LocalDate.of(2020, 4, 6), LocalDate.of(2021, 4, 5),
+            tpssReportPresent = false,
+            Some(EROverviewVersion(numberOfVersions = 2, submittedVersionAvailable = false, compiledVersionAvailable = true))
+          ),
+          EROverview(LocalDate.of(2022, 4, 6), LocalDate.of(2023, 4, 5),
+            tpssReportPresent = false,
+            Some(EROverviewVersion(numberOfVersions = 2, submittedVersionAvailable = false, compiledVersionAvailable = true))
+          ),
+          EROverview(LocalDate.of(2023, 4, 6), LocalDate.of(2024, 4, 5),
+            tpssReportPresent = false,
+            Some(EROverviewVersion(numberOfVersions = 2, submittedVersionAvailable = false, compiledVersionAvailable = true))
+          )
+        )
+
+        EROverview.combine(a, b) mustBe Seq(
+          EROverview(LocalDate.of(2020, 4, 6), LocalDate.of(2021, 4, 5),
+            tpssReportPresent = true,
+            Some(EROverviewVersion(numberOfVersions = 2, submittedVersionAvailable = true, compiledVersionAvailable = true))
+          ),
+          EROverview(LocalDate.of(2022, 4, 6), LocalDate.of(2023, 4, 5),
+            tpssReportPresent = false,
+            Some(EROverviewVersion(numberOfVersions = 2, submittedVersionAvailable = false, compiledVersionAvailable = true))
+          ),
+          EROverview(LocalDate.of(2023, 4, 6), LocalDate.of(2024, 4, 5),
+            tpssReportPresent = false,
+            Some(EROverviewVersion(numberOfVersions = 5, submittedVersionAvailable = false, compiledVersionAvailable = true))
+          )
+        )
+
+      }
     }
   }
 
   "EROverviewVersion combine" must {
-    "work" in {
-      val a = EROverviewVersion(2, submittedVersionAvailable = true, compiledVersionAvailable = true)
-      )
+    "combine values correctly" in {
+      val a = EROverviewVersion(numberOfVersions = 3, submittedVersionAvailable = true, compiledVersionAvailable = false)
+      val b = EROverviewVersion(numberOfVersions = 2, submittedVersionAvailable = false, compiledVersionAvailable = true)
+      EROverviewVersion.combine(a, b) mustBe EROverviewVersion(numberOfVersions = 3, submittedVersionAvailable = true, compiledVersionAvailable = true)
     }
   }
 }

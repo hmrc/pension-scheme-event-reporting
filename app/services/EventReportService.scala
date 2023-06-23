@@ -189,10 +189,15 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def getOverview(pstr: String, startDate: String, endDate: String)
                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-      val erOverview = eventReportConnector.getOverview(pstr, reportType = "ER", startDate, endDate)
-      val er20AOverview = eventReportConnector.getOverview(pstr, reportType = "ER20A", startDate, endDate)
-      val combinedEROverview: Future[Seq[EROverview]] = Future.sequence(Seq(erOverview, er20AOverview)).map(_.flatten)
-      combinedEROverview.map( data => Json.toJson(data))
+    val erOverview = eventReportConnector.getOverview(pstr, reportType = "ER", startDate, endDate)
+    val er20AOverview = eventReportConnector.getOverview(pstr, reportType = "ER20A", startDate, endDate)
+
+    val combinedEROverview = erOverview.flatMap { a =>
+      er20AOverview.map { b =>
+        EROverview.combine(a, b)
+      }
+    }
+    combinedEROverview.map(data => Json.toJson(data))
   }
 
   private def validatePayloadAgainstSchema(payload: JsObject, schemaPath: String, eventName: String)
