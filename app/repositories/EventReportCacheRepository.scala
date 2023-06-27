@@ -26,7 +26,7 @@ import org.mongodb.scala.model._
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
-import repositories.EventReportCacheEntry.{apiTypeKey, expireAtKey, pstrKey, versionKey, yearKey}
+import repositories.EventReportCacheEntry.{apiTypeKey, expireAtKey, externalIdKey, pstrKey, versionKey, yearKey}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
@@ -39,6 +39,9 @@ import scala.concurrent.{ExecutionContext, Future}
 case class EventReportCacheEntry(pstr: String, edi: EventDataIdentifier, data: JsValue, lastUpdated: LocalDateTime, expireAt: LocalDateTime)
 
 object EventReportCacheEntry {
+  implicit val format: Format[EventReportCacheEntry] = Json.format[EventReportCacheEntry]
+
+  val externalIdKey = "externalId"
   val pstrKey = "pstr"
   val apiTypeKey = "apiType"
   val yearKey = "year"
@@ -64,10 +67,11 @@ object EventReportCacheEntry {
           (JsPath \ versionKey).read[Int] and
           (JsPath \ dataKey).read[JsValue] and
           (JsPath \ lastUpdatedKey).read[LocalDateTime] and
-          (JsPath \ expireAtKey).read[LocalDateTime]
+          (JsPath \ expireAtKey).read[LocalDateTime] and
+          (JsPath \ externalIdKey).read[String]
         )(
-        (pstr, apiType, year, version, data, lastUpdated, expireAt) =>
-          EventReportCacheEntry(pstr, EventDataIdentifier(apiType, year, version), data, lastUpdated, expireAt)
+        (pstr, apiType, year, version, data, lastUpdated, expireAt, externalId) =>
+          EventReportCacheEntry(pstr, EventDataIdentifier(apiType, year, version, externalId), data, lastUpdated, expireAt)
       ).reads(json)
     }
   }
@@ -88,8 +92,8 @@ class EventReportCacheRepository @Inject()(
         IndexOptions().name("dataExpiry").expireAfter(0, TimeUnit.SECONDS).background(true)
       ),
       IndexModel(
-        Indexes.ascending(pstrKey, apiTypeKey, yearKey, versionKey),
-        IndexOptions().name(pstrKey + apiTypeKey + yearKey + versionKey).background(true).unique(true)
+        Indexes.ascending(pstrKey, apiTypeKey, yearKey, versionKey, externalIdKey),
+        IndexOptions().name(pstrKey + apiTypeKey + yearKey + versionKey + externalIdKey).background(true).unique(true)
       )
     ),
     extraCodecs = Seq(
@@ -125,15 +129,17 @@ class EventReportCacheRepository @Inject()(
       Filters.equal(pstrKey, pstr),
       Filters.equal(apiTypeKey, edi.apiType.toString),
       Filters.equal(yearKey, edi.year),
-      Filters.equal(versionKey, edi.version)
+      Filters.equal(versionKey, edi.version),
+      Filters.equal(externalIdKey, edi.externalId)
     )
     collection.findOneAndUpdate(
       filter = selector,
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
   }
 
-  def upsert(pstr: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
+  def upsert(externalId:String, pstr: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val modifier = Updates.combine(
+      Updates.set(externalIdKey, externalId),
       Updates.set(pstrKey, pstr),
       Updates.set(apiTypeKey, "None"),
       Updates.set(yearKey, 0),
@@ -146,7 +152,8 @@ class EventReportCacheRepository @Inject()(
       Filters.equal(pstrKey, pstr),
       Filters.equal(apiTypeKey, "None"),
       Filters.equal(yearKey, 0),
-      Filters.equal(versionKey, 0)
+      Filters.equal(versionKey, 0),
+      Filters.equal(externalIdKey, externalId)
     )
 
     collection.findOneAndUpdate(
@@ -154,11 +161,13 @@ class EventReportCacheRepository @Inject()(
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
   }
 
-  def getUserAnswers(pstr: String, optEventDataIdentifier: Option[EventDataIdentifier])(implicit ec: ExecutionContext): Future[Option[JsObject]] = {
+  def getUserAnswers(externalId:String, pstr: String, optEventDataIdentifier: Option[EventDataIdentifier])
+                    (implicit ec: ExecutionContext): Future[Option[JsObject]] = {
     optEventDataIdentifier match {
-      case Some(edi) => getByEDI(pstr, edi).map(_.map(_.as[JsObject]))
+      case Some(edi) =>
+        getByEDI(pstr, edi).map(_.map(_.as[JsObject]))
       case None =>
-        getByEDI(pstr, EventDataIdentifier(ApiType.ApiNone, 0, 0)).map(_.map(_.as[JsObject]))
+        getByEDI(pstr, EventDataIdentifier(ApiType.ApiNone, 0, 0, externalId)).map(_.map(_.as[JsObject]))
     }
   }
 
@@ -168,7 +177,8 @@ class EventReportCacheRepository @Inject()(
         Filters.equal(pstrKey, pstr),
         Filters.equal(apiTypeKey, edi.apiType.toString),
         Filters.equal(yearKey, edi.year),
-        Filters.equal(versionKey, edi.version)
+        Filters.equal(versionKey, edi.version),
+        Filters.equal(externalIdKey, edi.externalId)
       )
     ).headOption().map {
       _.map {
@@ -185,11 +195,11 @@ class EventReportCacheRepository @Inject()(
     }
   }
 
-  def removeAllOnSignOut(pstr: String)(implicit ec: ExecutionContext): Future[Unit] = {
-    collection.deleteMany(filterByKeys(Map("pstr" -> pstr))).toFuture().map { result =>
-      logger.info(s"Removing all data from collection associated with $pstr")
+  def removeAllOnSignOut(externalId: String)(implicit ec: ExecutionContext): Future[Unit] = {
+    collection.deleteMany(filterByKeys(Map("externalId" -> externalId))).toFuture().map { result =>
+      logger.info(s"Removing all data from collection associated with ExternalId: $externalId")
       if (!result.wasAcknowledged) {
-        logger.warn(s"Issue removing all data from collection associated with $pstr")
+        logger.warn(s"Issue removing all data from collection associated with ExternalId: $externalId")
       }
       ()
     }

@@ -27,7 +27,7 @@ import play.api.libs.json.Json
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import services.AuditServiceSpec.mock
-import uk.gov.hmrc.http.{HttpException, HttpResponse, Upstream4xxResponse}
+import uk.gov.hmrc.http.{HttpException, HttpResponse, UpstreamErrorResponse}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
@@ -69,7 +69,7 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
       val reportAs = 202
       val message = "The request was not found"
       val status = Status.NOT_FOUND
-      pf(Failure(Upstream4xxResponse.apply(message, status, reportAs, Map.empty)))
+      pf(Failure(UpstreamErrorResponse.apply(message, status, reportAs, Map.empty)))
       val expectedAuditEvent = SubmitEventDeclarationAuditEvent(
         pstr = pstr,
         maybeStatus = Some(status),
@@ -104,7 +104,6 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
       val pf = service.sendSubmitEventDeclarationAuditEvent(pstr, requestData)
 
       val message = "The request had a network error"
-      val status = Status.SERVICE_UNAVAILABLE
       pf(Failure(new RuntimeException(message)))
       val expectedAuditEvent = SubmitEventDeclarationAuditEvent(
         pstr = pstr,
@@ -142,7 +141,7 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
       val reportAs = 202
       val message = "The request was not found"
       val status = Status.NOT_FOUND
-      pf(Failure(Upstream4xxResponse.apply(message, status, reportAs, Map.empty)))
+      pf(Failure(UpstreamErrorResponse.apply(message, status, reportAs, Map.empty)))
       val expectedAuditEvent = CompileEventAuditEvent(
         psaPspIdentifier = psaId,
         pstr = pstr,
@@ -179,7 +178,6 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
       val pf = service.sendCompileEventDeclarationAuditEvent(psaId, pstr, requestData)
 
       val message = "The request had a network error"
-      val status = Status.SERVICE_UNAVAILABLE
       pf(Failure(new RuntimeException(message)))
       val expectedAuditEvent = CompileEventAuditEvent(
         psaPspIdentifier = psaId,
@@ -213,7 +211,6 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
     }
 
     "render when all optional values are absent" in {
-      val errorMessage = "error message"
       SubmitEventDeclarationAuditEvent(
         pstr = pstr,
         maybeStatus = None,
@@ -249,7 +246,6 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
     }
 
     "render when all optional values are absent" in {
-      val errorMessage = "error message"
       CompileEventAuditEvent(
         psaPspIdentifier = psaId,
         pstr = pstr,

@@ -232,11 +232,14 @@ private object API1833ReadsUtilities extends Transformer {
         pathEtmpUnAuthorisedPaymentDetailsUnAuthorisedPmtType1.readNullable[JsString].map {
           case Some(paymentNature) =>
             dynamicPathFreeTxtIndividual(paymentNature.value).json.copyFrom(pathEtmpUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName.json.pick).orElse(doNothing)
+          case _ => Reads.failed("Unknown EventOneReport behaviour")
         }
       case JsString("Employer") =>
         pathEtmpUnAuthorisedPaymentDetailsUnAuthorisedPmtType1.readNullable[JsString].map {
           case Some(paymentNature) => dynamicPathFreeTxtEmployer(paymentNature.value).json.copyFrom(pathEtmpUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName.json.pick).orElse(doNothing)
+          case _ => Reads.failed("Unknown EventOneReport behaviour")
         }
+      case _ => Reads.failed("Unknown EventOneReport behaviour")
     }
   }
 

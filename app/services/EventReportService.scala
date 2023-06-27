@@ -69,24 +69,25 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def saveUserAnswers(pstr: String, eventType: EventType, year: Int, version: Int, userAnswersJson: JsObject)(implicit ec: ExecutionContext): Future[Unit] = {
+  def saveUserAnswers(externalId:String, pstr: String, eventType: EventType, year: Int, version: Int, userAnswersJson: JsObject)
+                     (implicit ec: ExecutionContext): Future[Unit] = {
     EventType.postApiTypeByEventType(eventType) match {
-      case Some(apiType) => eventReportCacheRepository.upsert(pstr, EventDataIdentifier(apiType, year, version), userAnswersJson)
+      case Some(apiType) => eventReportCacheRepository.upsert(pstr, EventDataIdentifier(apiType, year, version, externalId), userAnswersJson)
       case _ => Future.successful(())
     }
   }
 
-  def saveUserAnswers(pstr: String, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] =
-    eventReportCacheRepository.upsert(pstr, userAnswersJson)
+  def saveUserAnswers(externalId:String, pstr: String, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] =
+    eventReportCacheRepository.upsert(externalId, pstr, userAnswersJson)
 
-  def removeUserAnswers(pstr: String)(implicit ec: ExecutionContext): Future[Unit] =
-    eventReportCacheRepository.removeAllOnSignOut(pstr)
+  def removeUserAnswers(externalId:String)(implicit ec: ExecutionContext): Future[Unit] =
+    eventReportCacheRepository.removeAllOnSignOut( externalId)
 
-  def getUserAnswers(pstr: String, eventType: EventType, year: Int, version: Int)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] =
+  def getUserAnswers(externalId: String, pstr: String, eventType: EventType, year: Int, version: Int)
+                    (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] =
     EventType.postApiTypeByEventType(eventType) match {
       case Some(apiType) =>
-
-        eventReportCacheRepository.getUserAnswers(pstr, Some(EventDataIdentifier(apiType, year, version))).flatMap {
+        eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(apiType, year, version, externalId))).flatMap {
           case x@Some(_) =>
             Future.successful(x)
           case None =>
@@ -95,20 +96,20 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               case None =>
                 Future.successful(None)
               case optUAData@Some(userAnswersDataToStore) =>
-                saveUserAnswers(pstr, eventType, year, version, userAnswersDataToStore).map(_ => optUAData)
+                saveUserAnswers(externalId, pstr, eventType, year, version, userAnswersDataToStore).map( _ => optUAData)
             }
         }
       case _ => Future.successful(None)
     }
 
-  def getUserAnswers(pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
-    eventReportCacheRepository.getUserAnswers(pstr, None)
+  def getUserAnswers(externalId:String, pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
+    eventReportCacheRepository.getUserAnswers(externalId, pstr, None)
 
-  def compileEventReport(psaPspId: String, pstr: String, eventType: EventType, year: Int, version: Int)
+  def compileEventReport(externalId:String, psaPspId: String, pstr: String, eventType: EventType, year: Int, version: Int)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
-        eventReportCacheRepository.getUserAnswers(pstr, Some(EventDataIdentifier(apiType, year, version))).flatMap {
+        eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(apiType, year, version, externalId))).flatMap {
           case Some(data) =>
             val header = Json.obj(
               "taxYear" -> year.toString
