@@ -23,13 +23,13 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json._
 import utils.{GeneratorAPI1831, JsonFileReader}
 
-class Event20AReportSpec extends AnyFreeSpec
+class API1831Spec extends AnyFreeSpec
   with Matchers with MockitoSugar with JsonFileReader with ScalaCheckPropertyChecks with GeneratorAPI1831 {
   "Reads" - {
     "transform a valid payload from API 1831 correctly" in {
       forAll(generateUserAnswersAndPOSTBody){
         case (payload: JsObject, expectedResponse: JsObject) =>
-            val result = payload.validate(Event20AReport.rds1831Api).asOpt
+            val result = payload.validate(API1831.rds1831Api).asOpt
             result mustBe Some(expectedResponse)
         }
       }

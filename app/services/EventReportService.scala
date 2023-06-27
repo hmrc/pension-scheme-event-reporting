@@ -31,7 +31,7 @@ import play.api.libs.json._
 import play.api.mvc.Results._
 import play.api.mvc.{RequestHeader, Result}
 import repositories.{EventReportCacheRepository, OverviewCacheRepository}
-import transformations.ETMPToFrontEnd.{Event20AReport, EventOneReport, MemberEventReport}
+import transformations.ETMPToFrontEnd.{API1831, API1833, API1832}
 import transformations.UserAnswersToETMP._
 import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
@@ -140,16 +140,16 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
     val api1832Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
     eventType match {
-      case Event1 => data.validate(EventOneReport.rds1833Api) match {
+      case Event1 => data.validate(API1833.rds1833Api) match {
         case JsSuccess(transformedData, _) => Some(transformedData)
         case _ => None
       }
-      case Event20A => data.validate(Event20AReport.rds1831Api) match {
+      case Event20A => data.validate(API1831.rds1831Api) match {
         case JsSuccess(transformedData, _) => Some(transformedData)
         case _ => None
       }
       case evType1832 if api1832Events.contains(evType1832) =>
-        data.validate(MemberEventReport.rds1832Api(evType1832)) match {
+        data.validate(API1832.rds1832Api(evType1832)) match {
           case JsSuccess(transformedData, _) => Some(transformedData)
           case JsError(e) =>
             throw JsResultException(e)
@@ -175,7 +175,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     //TODO: Implement for event 20A. I assume API 1831 will need to be used for this. -Pavel Vjalicin
     eventReportConnector.getEvent(pstr, startDate, version, None).map { etmpJsonOpt =>
       etmpJsonOpt.map { etmpJson =>
-        etmpJson.transform(transformations.ETMPToFrontEnd.EventSummary.rdsFor1834) match {
+        etmpJson.transform(transformations.ETMPToFrontEnd.API1834Summary.rdsFor1834) match {
           case JsSuccess(seqOfEventTypes, _) => seqOfEventTypes
           case JsError(errors) => throw JsResultException(errors)
         }

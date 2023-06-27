@@ -24,7 +24,7 @@ import play.api.libs.json.{JsArray, _}
 import scala.language.implicitConversions
 
 
-object EventSummary {
+object API1834Summary {
 
   private val fieldNameRecordVersion = "recordVersion"
   private val memberEvents: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
