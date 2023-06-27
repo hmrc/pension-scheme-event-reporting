@@ -21,10 +21,10 @@ import transformations.Transformer
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 
-object EventOneReport {
+object API1833 {
 
   import EventOneReportPaths._
-  import EventOneReportReadsUtilities._
+  import API1833ReadsUtilities._
 
   implicit val rds1833Api: Reads[JsObject] =
     pathUAEvent1MembersOrEmployers.json.copyFrom(pathEtmpEvent1Details.read(readsEvent1Details))
@@ -39,7 +39,7 @@ object EventOneReport {
     ).map(JsArray(_)))
 }
 
-private object EventOneReportReadsUtilities extends Transformer {
+private object API1833ReadsUtilities extends Transformer {
 
   import EventOneReportPaths._
 
