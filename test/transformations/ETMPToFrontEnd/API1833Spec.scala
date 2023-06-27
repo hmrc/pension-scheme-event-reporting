@@ -23,17 +23,17 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json._
 import utils.{GeneratorAPI1832, GeneratorAPI1834, JsonFileReader}
 
-class EventOneReportSpec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader
+class API1833Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader
   with GeneratorAPI1834 with GeneratorAPI1832 with ScalaCheckPropertyChecks {
 
-  import EventOneReportSpec._
+  import API1833Spec._
 
   "Reads" - {
     "transform a valid individual payload from API 1833 correctly" in {
 
       (individualPayload, expectedIndividualResponse) match {
         case (payload: JsObject, expectedResponse: JsObject) =>
-          val result = payload.validate(EventOneReport.rds1833Api).asOpt
+          val result = payload.validate(API1833.rds1833Api).asOpt
           result mustBe Some(expectedResponse)
       }
     }
@@ -42,14 +42,14 @@ class EventOneReportSpec extends AnyFreeSpec with Matchers with MockitoSugar wit
 
       (employerPayload, expectedEmployerResponse) match {
         case (payload: JsObject, expectedResponse: JsObject) =>
-          val result = payload.validate(EventOneReport.rds1833Api).asOpt
+          val result = payload.validate(API1833.rds1833Api).asOpt
           result mustBe Some(expectedResponse)
       }
     }
   }
 }
 
-object EventOneReportSpec {
+object API1833Spec {
 
   val individualPayload: JsValue = Json.parse(
     """

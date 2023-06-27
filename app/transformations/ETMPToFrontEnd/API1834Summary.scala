@@ -22,7 +22,7 @@ import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json.{JsArray, _}
 
 
-object EventSummary {
+object API1834Summary {
 
   private val fieldNameRecordVersion = "recordVersion"
 

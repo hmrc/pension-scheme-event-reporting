@@ -88,13 +88,12 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     "return OK with the overview payload returned from service" in {
       when(mockEventReportService.getOverview(
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(reportTypeER),
         ArgumentMatchers.eq(startDate),
         ArgumentMatchers.eq(endDate))(any(), any()))
         .thenReturn(Future.successful(erOverviewResponseJson))
 
       val result = controller.getOverview(fakeRequest.withHeaders(
-        newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDate, "endDate" -> endDate))
+        newHeaders = "pstr" -> pstr, "startDate" -> startDate, "endDate" -> endDate))
 
       whenReady(result) { _ =>
         status(result) mustBe OK
@@ -105,7 +104,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
     "throw a Bad Request Exception when endDate parameter is missing in header" in {
       recoverToExceptionIf[BadRequestException] {
-        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "startDate" -> "2022-04-06", "reportType" -> "er"))
+        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "startDate" -> "2022-04-06"))
       } map { response =>
         response.responseCode mustBe BAD_REQUEST
 
@@ -115,7 +114,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
     "throw a Bad Request Exception when startDate parameter is missing in header" in {
       recoverToExceptionIf[BadRequestException] {
-        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "endDate" -> "2022-04-06", "reportType" -> "er"))
+        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "endDate" -> "2022-04-06"))
       } map { response =>
         response.responseCode mustBe BAD_REQUEST
 
@@ -125,21 +124,11 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
     "throw a Bad Request Exception when pstr parameter is missing in header" in {
       recoverToExceptionIf[BadRequestException] {
-        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "startDate" -> "2022-04-06", "endDate" -> "2022-04-06", "reportType" -> "er"))
+        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "startDate" -> "2022-04-06", "endDate" -> "2022-04-06"))
       } map { response =>
         response.responseCode mustBe BAD_REQUEST
 
         response.message must include("pstr missing")
-      }
-    }
-
-    "throw a Bad Request Exception when reportType parameter is missing in header" in {
-      recoverToExceptionIf[BadRequestException] {
-        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "startDate" -> "2022-04-06", "endDate" -> "2022-04-06"))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-
-        response.message must include("reportType missing")
       }
     }
 
@@ -150,7 +139,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         response.responseCode mustBe BAD_REQUEST
 
         response.message must include("pstr missing")
-        response.message must include("reportType missing")
         response.message must include("startDate missing")
         response.message must include("endDate missing")
       }
@@ -237,12 +225,11 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     "return OK with the Seq of Version" in {
       when(mockEventReportService.getVersions(
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(reportTypeER),
         ArgumentMatchers.eq(startDate))(any(), any()))
         .thenReturn(Future.successful(erVersions))
 
       val result = controller.getVersions(fakeRequest.withHeaders(
-        newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> startDate))
+        newHeaders = "pstr" -> pstr, "startDate" -> startDate))
 
       status(result) mustBe OK
       contentAsJson(result) mustBe erVersionResponseJson
@@ -250,17 +237,17 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
     "throw a Bad Request Exception when startDate parameter is missing in header" in {
       recoverToExceptionIf[BadRequestException] {
-        controller.getVersions()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "reportType" -> "ER"))
+        controller.getVersions()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
       } map { response =>
         response.responseCode mustBe BAD_REQUEST
-        response.message must include("startDate missing ")
+        response.message must include("startDate missing")
       }
     }
     "throw a Unauthorised Exception if auth fails" in {
       when(mockAuthConnector.authorise[Option[String] ~ Enrolments](any(), any())(any(), any())) thenReturn Future.successful(emptyCredentials)
 
       recoverToExceptionIf[UnauthorizedException] {
-        controller.getVersions()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "reportType" -> "ER", "startDate" -> "2021-04-06"))
+        controller.getVersions()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "startDate" -> "2021-04-06"))
       } map { response =>
         response.responseCode mustBe UNAUTHORIZED
         response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
@@ -481,7 +468,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw a 401 Unauthorised Exception if auth fails" in {
-      when(mockAuthConnector.authorise[(Option[String] ~ Enrolments)](any(), any())(any(), any())) thenReturn
+      when(mockAuthConnector.authorise[Option[String] ~ Enrolments](any(), any())(any(), any())) thenReturn
         Future.successful(new~(None, enrolments))
       recoverToExceptionIf[UnauthorizedException] {
         controller.compileEvent()(fakeRequest.withJsonBody(compileEventSuccessResponse)
@@ -505,7 +492,6 @@ object EventReportControllerSpec {
 
   private val startDate = "2022-04-06"
   private val endDate = "2023-04-05"
-  private val reportTypeER = "ER"
   private val invalidEventType = "invalidEventType"
 
   private val erOverviewResponseJson: JsArray = Json.arr(

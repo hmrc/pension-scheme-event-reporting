@@ -136,8 +136,8 @@ class EventReportController @Inject()(
   def getVersions: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { _ =>
-        val Seq(pstr, reportType, startDate) = requiredHeaders("pstr", "reportType", "startDate")
-        eventReportService.getVersions(pstr, reportType, startDate).map {
+        val Seq(pstr, startDate) = requiredHeaders("pstr", "startDate")
+        eventReportService.getVersions(pstr, startDate).map {
           data => Ok(Json.toJson(data))
         }
       }
@@ -146,8 +146,8 @@ class EventReportController @Inject()(
   def getOverview: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { _ =>
-        val Seq(pstr, reportType, startDate, endDate) = requiredHeaders("pstr", "reportType", "startDate", "endDate")
-        eventReportService.getOverview(pstr, reportType, startDate, endDate).map {
+        val Seq(pstr, startDate, endDate) = requiredHeaders("pstr", "startDate", "endDate")
+        eventReportService.getOverview(pstr, startDate, endDate).map {
           data => Ok(data)
         }
       }

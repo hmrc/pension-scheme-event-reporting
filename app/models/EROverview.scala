@@ -35,7 +35,7 @@ object EROverviewVersion {
         (JsPath \ "numberOfVersions").read[Int] and
           (JsPath \ "submittedVersionAvailable").read[String] and
           (JsPath \ "compiledVersionAvailable").read[String]
-        ) (
+        )(
         (noOfVersions, isSubmitted, isCompiled) =>
           Some(EROverviewVersion(
             noOfVersions,
@@ -44,7 +44,15 @@ object EROverviewVersion {
           )))
     }
   }
-    implicit val formats: Format[EROverviewVersion] = Json.format[EROverviewVersion]
+  implicit val formats: Format[EROverviewVersion] = Json.format[EROverviewVersion]
+
+  def combine(a: EROverviewVersion, b: EROverviewVersion): EROverviewVersion = {
+    EROverviewVersion(
+      numberOfVersions = Math.max(a.numberOfVersions, b.numberOfVersions),
+      submittedVersionAvailable = a.submittedVersionAvailable || b.submittedVersionAvailable,
+      compiledVersionAvailable = a.compiledVersionAvailable || b.compiledVersionAvailable
+    )
+  }
 }
 
 case class EROverview(
@@ -62,7 +70,7 @@ object EROverview {
         case Some("Yes") => Reads(_ => JsSuccess(true))
         case _ => Reads(_ => JsSuccess(false))
       } and EROverviewVersion.rds
-    ) (
+    )(
     (startDate, endDate, tpssReport, versionDetails) =>
       EROverview(
         LocalDate.parse(startDate),
@@ -71,4 +79,37 @@ object EROverview {
         versionDetails))
 
   implicit val formats: Format[EROverview] = Json.format[EROverview]
+
+  def combine(a: EROverview, b: EROverview): EROverview = {
+    val combined =
+      (a.versionDetails, b.versionDetails) match {
+        case (Some(c), Some(d)) => Some(EROverviewVersion.combine(c, d))
+        case (None, c@Some(_)) => c
+        case (c@Some(_), None) => c
+        case (None, None) => None
+      }
+    EROverview(
+      periodStartDate = a.periodStartDate,
+      periodEndDate = a.periodEndDate,
+      tpssReportPresent = a.tpssReportPresent || b.tpssReportPresent,
+      versionDetails = combined
+    )
+  }
+
+  def combine(a: Seq[EROverview], b: Seq[EROverview]): Seq[EROverview] = {
+    val abc = a.map { c =>
+      b.find(_.periodStartDate == c.periodStartDate) match {
+        case Some(d) =>
+          EROverview.combine(c, d)
+        case _ => c
+      }
+    }
+    val xyz = b.flatMap { c =>
+      a.find(_.periodStartDate == c.periodStartDate) match {
+        case Some(d) => Nil
+        case _ => Seq(c)
+      }
+    }
+    (abc ++ xyz).sortBy(_.periodStartDate)
+  }
 }

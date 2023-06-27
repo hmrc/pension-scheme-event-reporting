@@ -105,12 +105,17 @@ class EventReportCacheRepository @Inject()(
   import EventReportCacheEntry._
 
   private val expireInSeconds = config.get[Int](path = "mongodb.event-reporting-data.timeToLiveInSeconds")
+  private val nonEventTypeExpireInSeconds = config.get[Int](path = "mongodb.event-reporting-data.nonEventTypeTimeToLiveInSeconds")
 
   private def evaluatedExpireAt: LocalDateTime = {
     LocalDateTime.now(ZoneId.of("UTC")).plusSeconds(expireInSeconds)
   }
 
-  def upsert(externalId:String, pstr: String, edi: EventDataIdentifier, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
+  private def nonEventTypeEvaluatedExpireAt: LocalDateTime = {
+    LocalDateTime.now(ZoneId.of("UTC")).plusSeconds(nonEventTypeExpireInSeconds)
+  }
+
+  def upsert(pstr: String, edi: EventDataIdentifier, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val modifier = Updates.combine(
       Updates.set(pstrKey, pstr),
       Updates.set(apiTypeKey, edi.apiType.toString),
@@ -125,7 +130,7 @@ class EventReportCacheRepository @Inject()(
       Filters.equal(apiTypeKey, edi.apiType.toString),
       Filters.equal(yearKey, edi.year),
       Filters.equal(versionKey, edi.version),
-      Filters.equal(externalIdKey, externalId)
+      Filters.equal(externalIdKey, edi.externalId)
     )
     collection.findOneAndUpdate(
       filter = selector,
@@ -141,7 +146,7 @@ class EventReportCacheRepository @Inject()(
       Updates.set(versionKey, 0),
       Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
       Updates.set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC")))),
-      Updates.set(expireAtKey, Codecs.toBson(evaluatedExpireAt))
+      Updates.set(expireAtKey, Codecs.toBson(nonEventTypeEvaluatedExpireAt))
     )
     val selector = Filters.and(
       Filters.equal(pstrKey, pstr),
