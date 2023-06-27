@@ -16,6 +16,7 @@
 
 package repositories
 
+import akka.http.scaladsl.model.HttpHeader.ParsingResult.Ok
 import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.EventDataIdentifier
@@ -23,8 +24,11 @@ import models.enumeration.EventType
 import org.joda.time.{DateTime, DateTimeZone}
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
+import play.api.http.Status
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
+import play.api.mvc.Result
+import play.api.mvc.Results.{NoContent, NotFound}
 import play.api.{Configuration, Logging}
 import repositories.EventReportCacheEntry.{eventTypeKey, expireAtKey, externalIdKey, pstrKey, versionKey, yearKey}
 import uk.gov.hmrc.mongo.MongoComponent
@@ -135,6 +139,31 @@ class EventReportCacheRepository @Inject()(
     collection.findOneAndUpdate(
       filter = selector,
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
+  }
+
+  def changeVersion(pstr: String, edi: EventDataIdentifier, newVersion: Int)(implicit ec: ExecutionContext): Future[Result] = {
+    val modifier = Updates.combine(
+      Updates.set(versionKey, newVersion),
+      Updates.set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC"))))
+    )
+    val selector = Filters.and(
+      Filters.equal(pstrKey, pstr),
+      Filters.equal(eventTypeKey, edi.eventType.toString),
+      Filters.equal(yearKey, edi.year),
+      Filters.equal(versionKey, edi.version),
+      Filters.equal(externalIdKey, edi.externalId)
+    )
+
+    collection.find(filter = selector).headOption().flatMap { foundItem =>
+      if (foundItem.isDefined) {
+        collection.findOneAndUpdate(
+          filter = selector,
+          update = modifier, new FindOneAndUpdateOptions().upsert(false)).toFuture().map(_ => NoContent)
+      } else {
+        Future.successful(NotFound)
+      }
+
+    }
   }
 
   def upsert(externalId:String, pstr: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {

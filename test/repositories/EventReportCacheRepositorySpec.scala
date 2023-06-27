@@ -30,6 +30,7 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
+import play.api.http.Status.{NOT_FOUND, NO_CONTENT}
 import play.api.libs.json.Json
 import uk.gov.hmrc.mongo.MongoComponent
 
@@ -184,6 +185,49 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
       }
     }
   }
+
+
+  "changeVersion" must {
+    "update version when present" in {
+      val edi2 = EventDataIdentifier(EventType.Event22, 2020, 2, externalId)
+      val filters2 = searchFilter(pstr1, edi2)
+
+      val data = Json.parse("""{"data":"1"}""")
+      val documentsInDB = for {
+        _ <- eventReportCacheRepository.collection.drop().toFuture()
+        _ <- eventReportCacheRepository.upsert(pstr1, edi, data)
+        result <- eventReportCacheRepository.changeVersion(pstr1, edi, 2)
+        documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry](filters).toFuture()
+        documentsInDB2 <- eventReportCacheRepository.collection.find[EventReportCacheEntry](filters2).toFuture()
+      } yield Tuple3(documentsInDB, documentsInDB2, result)
+
+      whenReady(documentsInDB) {
+        case (documentsInDB, documentsInDB2, result) =>
+          documentsInDB.size mustBe 0
+          documentsInDB2.size mustBe 1
+          result.header.status mustBe NO_CONTENT
+      }
+    }
+
+    "not insert if original not present" in {
+      val edi2 = EventDataIdentifier(EventType.Event22, 2020, 2, externalId)
+      val filters2 = searchFilter(pstr1, edi2)
+      val documentsInDB = for {
+        _ <- eventReportCacheRepository.collection.drop().toFuture()
+        result <- eventReportCacheRepository.changeVersion(pstr1, edi, 2)
+        documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry](filters2).toFuture()
+      } yield Tuple2(documentsInDB, result)
+
+      whenReady(documentsInDB) {
+        case (documentsInDB, result) =>
+          documentsInDB.size mustBe 0
+          result.header.status mustBe NOT_FOUND
+      }
+    }
+  }
+
+
+
 
   "removeAllOnSignOut" must {
     "remove all records for a given pstr without affecting other data" in {

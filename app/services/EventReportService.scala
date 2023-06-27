@@ -69,43 +69,40 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def saveUserAnswers(externalId:String, pstr: String, eventType: EventType, year: Int, version: Int, userAnswersJson: JsObject)
-                     (implicit ec: ExecutionContext): Future[Unit] = {
-    EventType.postApiTypeByEventType(eventType) match {
-      case Some(apiType) => eventReportCacheRepository.upsert(pstr, EventDataIdentifier(eventType, year, version, externalId), userAnswersJson)
-      case _ => Future.successful(())
-    }
-  }
+  def saveUserAnswers(externalId: String, pstr: String, eventType: EventType, year: Int, version: Int, userAnswersJson: JsObject)
+                     (implicit ec: ExecutionContext): Future[Unit] =
+    eventReportCacheRepository.upsert(pstr, EventDataIdentifier(eventType, year, version, externalId), userAnswersJson)
 
-  def saveUserAnswers(externalId:String, pstr: String, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] =
+  def saveUserAnswers(externalId: String, pstr: String, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] =
     eventReportCacheRepository.upsert(externalId, pstr, userAnswersJson)
 
-  def removeUserAnswers(externalId:String)(implicit ec: ExecutionContext): Future[Unit] =
-    eventReportCacheRepository.removeAllOnSignOut( externalId)
+  def changeVersion(externalId: String, pstr: String, eventType: EventType, year: Int, currentVersion: Int, newVersion: Int)
+                     (implicit ec: ExecutionContext): Future[Result] =
+    eventReportCacheRepository.changeVersion(pstr, EventDataIdentifier(eventType, year, currentVersion, externalId), newVersion)
+
+  def removeUserAnswers(externalId: String)(implicit ec: ExecutionContext): Future[Unit] =
+    eventReportCacheRepository.removeAllOnSignOut(externalId)
 
   def getUserAnswers(externalId: String, pstr: String, eventType: EventType, year: Int, version: Int)
                     (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] =
-    EventType.postApiTypeByEventType(eventType) match {
-      case Some(apiType) =>
-        eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(eventType, year, version, externalId))).flatMap {
-          case x@Some(_) =>
-            Future.successful(x)
+    eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(eventType, year, version, externalId))).flatMap {
+      case x@Some(_) =>
+        Future.successful(x)
+      case None =>
+        val startDate = year.toString + "-04-06"
+        getEvent(pstr, startDate, version, eventType).flatMap {
           case None =>
-            val startDate = year.toString + "-04-06"
-            getEvent(pstr, startDate, version, eventType).flatMap {
-              case None =>
-                Future.successful(None)
-              case optUAData@Some(userAnswersDataToStore) =>
-                saveUserAnswers(externalId, pstr, eventType, year, version, userAnswersDataToStore).map( _ => optUAData)
-            }
+            Future.successful(None)
+          case optUAData@Some(userAnswersDataToStore) =>
+            saveUserAnswers(externalId, pstr, eventType, year, version, userAnswersDataToStore).map(_ => optUAData)
         }
-      case _ => Future.successful(None)
     }
 
-  def getUserAnswers(externalId:String, pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
+
+  def getUserAnswers(externalId: String, pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     eventReportCacheRepository.getUserAnswers(externalId, pstr, None)
 
-  def compileEventReport(externalId:String, psaPspId: String, pstr: String, eventType: EventType, year: Int, version: Int)
+  def compileEventReport(externalId: String, psaPspId: String, pstr: String, eventType: EventType, year: Int, version: Int)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
