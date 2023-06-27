@@ -164,7 +164,8 @@ class EventReportCacheRepository @Inject()(
   def getUserAnswers(externalId:String, pstr: String, optEventDataIdentifier: Option[EventDataIdentifier])
                     (implicit ec: ExecutionContext): Future[Option[JsObject]] = {
     optEventDataIdentifier match {
-      case Some(edi) => getByEDI(pstr, edi).map(_.map(_.as[JsObject]))
+      case Some(edi) =>
+        getByEDI(pstr, edi).map(_.map(_.as[JsObject]))
       case None =>
         getByEDI(pstr, EventDataIdentifier(ApiType.ApiNone, 0, 0, externalId)).map(_.map(_.as[JsObject]))
     }

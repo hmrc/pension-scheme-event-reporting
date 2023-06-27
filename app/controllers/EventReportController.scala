@@ -83,7 +83,7 @@ class EventReportController @Inject()(
           case Some((eventType, version, year)) =>
             EventType.getEventType(eventType) match {
               case Some(et) =>
-                eventReportService.getUserAnswers(externalId, pstr, et, version, year)
+                eventReportService.getUserAnswers(externalId, pstr, et, year, version)
                   .map {
                     case None => NotFound
                     case Some(jsobj) => Ok(jsobj)

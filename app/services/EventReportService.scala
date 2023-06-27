@@ -87,7 +87,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                     (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] =
     EventType.postApiTypeByEventType(eventType) match {
       case Some(apiType) =>
-
         eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(apiType, year, version, externalId))).flatMap {
           case x@Some(_) =>
             Future.successful(x)

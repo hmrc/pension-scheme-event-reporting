@@ -304,8 +304,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         ArgumentMatchers.eq(externalId),
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(Event1:EventType),
-        ArgumentMatchers.eq(1),
-        ArgumentMatchers.eq(2020)
+        ArgumentMatchers.eq(2020),
+        ArgumentMatchers.eq(1)
       )(any(), any()))
         .thenReturn(Future.successful(Some(json)))
 
@@ -333,8 +333,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         ArgumentMatchers.eq(externalId),
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(Event1),
-        ArgumentMatchers.eq(1),
-        ArgumentMatchers.eq(2020)
+        ArgumentMatchers.eq(2020),
+        ArgumentMatchers.eq(1)
       )(any(), any()))
         .thenReturn(Future.successful(None))
 
