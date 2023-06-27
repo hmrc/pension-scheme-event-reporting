@@ -72,7 +72,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def saveUserAnswers(externalId:String, pstr: String, eventType: EventType, year: Int, version: Int, userAnswersJson: JsObject)
                      (implicit ec: ExecutionContext): Future[Unit] = {
     EventType.postApiTypeByEventType(eventType) match {
-      case Some(apiType) => eventReportCacheRepository.upsert(pstr, EventDataIdentifier(apiType, year, version, externalId), userAnswersJson)
+      case Some(apiType) => eventReportCacheRepository.upsert(pstr, EventDataIdentifier(eventType, year, version, externalId), userAnswersJson)
       case _ => Future.successful(())
     }
   }
@@ -87,7 +87,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                     (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] =
     EventType.postApiTypeByEventType(eventType) match {
       case Some(apiType) =>
-        eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(apiType, year, version, externalId))).flatMap {
+        eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(eventType, year, version, externalId))).flatMap {
           case x@Some(_) =>
             Future.successful(x)
           case None =>
@@ -109,7 +109,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
-        eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(apiType, year, version, externalId))).flatMap {
+        eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(eventType, year, version, externalId))).flatMap {
           case Some(data) =>
             val header = Json.obj(
               "taxYear" -> year.toString

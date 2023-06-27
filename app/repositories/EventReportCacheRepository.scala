@@ -19,14 +19,14 @@ package repositories
 import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.EventDataIdentifier
-import models.enumeration.ApiType
+import models.enumeration.EventType
 import org.joda.time.{DateTime, DateTimeZone}
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
-import repositories.EventReportCacheEntry.{apiTypeKey, expireAtKey, externalIdKey, pstrKey, versionKey, yearKey}
+import repositories.EventReportCacheEntry.{eventTypeKey, expireAtKey, externalIdKey, pstrKey, versionKey, yearKey}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
@@ -43,7 +43,7 @@ object EventReportCacheEntry {
 
   val externalIdKey = "externalId"
   val pstrKey = "pstr"
-  val apiTypeKey = "apiType"
+  val eventTypeKey = "eventType"
   val yearKey = "year"
   val versionKey = "version"
   val expireAtKey = "expireAt"
@@ -62,7 +62,7 @@ object EventReportCacheEntry {
     override def reads(json: JsValue): JsResult[EventReportCacheEntry] = {
       (
         (JsPath \ "pstr").read[String] and
-          (JsPath \ apiTypeKey).read[ApiType](ApiType.formats) and
+          (JsPath \ eventTypeKey).read[EventType](EventType.formats) and
           (JsPath \ yearKey).read[Int] and
           (JsPath \ versionKey).read[Int] and
           (JsPath \ dataKey).read[JsValue] and
@@ -70,8 +70,8 @@ object EventReportCacheEntry {
           (JsPath \ expireAtKey).read[LocalDateTime] and
           (JsPath \ externalIdKey).read[String]
         )(
-        (pstr, apiType, year, version, data, lastUpdated, expireAt, externalId) =>
-          EventReportCacheEntry(pstr, EventDataIdentifier(apiType, year, version, externalId), data, lastUpdated, expireAt)
+        (pstr, eventType, year, version, data, lastUpdated, expireAt, externalId) =>
+          EventReportCacheEntry(pstr, EventDataIdentifier(eventType, year, version, externalId), data, lastUpdated, expireAt)
       ).reads(json)
     }
   }
@@ -92,13 +92,13 @@ class EventReportCacheRepository @Inject()(
         IndexOptions().name("dataExpiry").expireAfter(0, TimeUnit.SECONDS).background(true)
       ),
       IndexModel(
-        Indexes.ascending(pstrKey, apiTypeKey, yearKey, versionKey, externalIdKey),
-        IndexOptions().name(pstrKey + apiTypeKey + yearKey + versionKey + externalIdKey).background(true).unique(true)
+        Indexes.ascending(pstrKey, eventTypeKey, yearKey, versionKey, externalIdKey),
+        IndexOptions().name(pstrKey + eventTypeKey + yearKey + versionKey + externalIdKey).background(true).unique(true)
       )
     ),
     extraCodecs = Seq(
       Codecs.playFormatCodec(EventDataIdentifier.formats),
-      Codecs.playFormatCodec(ApiType.formats)
+      Codecs.playFormatCodec(EventType.formats)
     )
   ) with Logging {
 
@@ -118,7 +118,7 @@ class EventReportCacheRepository @Inject()(
   def upsert(pstr: String, edi: EventDataIdentifier, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val modifier = Updates.combine(
       Updates.set(pstrKey, pstr),
-      Updates.set(apiTypeKey, edi.apiType.toString),
+      Updates.set(eventTypeKey, edi.eventType.toString),
       Updates.set(yearKey, edi.year),
       Updates.set(versionKey, edi.version),
       Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
@@ -127,7 +127,7 @@ class EventReportCacheRepository @Inject()(
     )
     val selector = Filters.and(
       Filters.equal(pstrKey, pstr),
-      Filters.equal(apiTypeKey, edi.apiType.toString),
+      Filters.equal(eventTypeKey, edi.eventType.toString),
       Filters.equal(yearKey, edi.year),
       Filters.equal(versionKey, edi.version),
       Filters.equal(externalIdKey, edi.externalId)
@@ -141,7 +141,7 @@ class EventReportCacheRepository @Inject()(
     val modifier = Updates.combine(
       Updates.set(externalIdKey, externalId),
       Updates.set(pstrKey, pstr),
-      Updates.set(apiTypeKey, "None"),
+      Updates.set(eventTypeKey, "None"),
       Updates.set(yearKey, 0),
       Updates.set(versionKey, 0),
       Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
@@ -150,7 +150,7 @@ class EventReportCacheRepository @Inject()(
     )
     val selector = Filters.and(
       Filters.equal(pstrKey, pstr),
-      Filters.equal(apiTypeKey, "None"),
+      Filters.equal(eventTypeKey, "None"),
       Filters.equal(yearKey, 0),
       Filters.equal(versionKey, 0),
       Filters.equal(externalIdKey, externalId)
@@ -167,7 +167,7 @@ class EventReportCacheRepository @Inject()(
       case Some(edi) =>
         getByEDI(pstr, edi).map(_.map(_.as[JsObject]))
       case None =>
-        getByEDI(pstr, EventDataIdentifier(ApiType.ApiNone, 0, 0, externalId)).map(_.map(_.as[JsObject]))
+        getByEDI(pstr, EventDataIdentifier(EventType.EventTypeNone, 0, 0, externalId)).map(_.map(_.as[JsObject]))
     }
   }
 
@@ -175,7 +175,7 @@ class EventReportCacheRepository @Inject()(
     collection.find[EventReportCacheEntry](
       Filters.and(
         Filters.equal(pstrKey, pstr),
-        Filters.equal(apiTypeKey, edi.apiType.toString),
+        Filters.equal(eventTypeKey, edi.eventType.toString),
         Filters.equal(yearKey, edi.year),
         Filters.equal(versionKey, edi.version),
         Filters.equal(externalIdKey, edi.externalId)
