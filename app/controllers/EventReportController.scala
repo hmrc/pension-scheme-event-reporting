@@ -54,7 +54,7 @@ class EventReportController @Inject()(
   def saveUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
 
-      withAuth.flatMap { case Credentials(externalId, psaPspId) =>
+      withAuth.flatMap { case Credentials(externalId, _) =>
         val userAnswersJson = requiredBody.validate[JsObject].getOrElse(throw new RuntimeException("Expected JsObject body"))
         val pstr = requiredHeaders("pstr").head
         val etVersionYear = (request.headers.get("eventType"), request.headers.get("version"), request.headers.get("year")) match {
