@@ -23,7 +23,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.Application
 import play.api.inject.bind
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
-import repositories.{EventReportCacheRepository, OverviewCacheRepository}
+import repositories.EventReportCacheRepository
 
 class JSONSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with JsonFileReader with TryValues {
   val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
@@ -34,12 +34,10 @@ class JSONSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with Matcher
   val testEventName = "testEventName"
 
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
-  private val mockOverviewCacheRepository = mock[OverviewCacheRepository]
 
   val modules: Seq[GuiceableModule] =
     Seq(
       bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
-      bind[OverviewCacheRepository].toInstance(mockOverviewCacheRepository)
     )
 
   val app: Application = new GuiceApplicationBuilder()

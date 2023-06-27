@@ -36,7 +36,7 @@ import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
-import repositories.{EventReportCacheRepository, OverviewCacheRepository}
+import repositories.EventReportCacheRepository
 import uk.gov.hmrc.http._
 import utils.{GeneratorAPI1828, GeneratorAPI1829, JSONSchemaValidator, JsonFileReader}
 
@@ -45,7 +45,7 @@ import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSugar with BeforeAndAfterEach
-                                                   with JsonFileReader with GeneratorAPI1828 with GeneratorAPI1829 {
+  with JsonFileReader with GeneratorAPI1828 with GeneratorAPI1829 {
 
   override def generateUserAnswersAndPOSTBody: Gen[(JsObject, JsObject)] = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody
 
@@ -57,7 +57,6 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val mockEventReportConnector = mock[EventReportConnector]
   private val mockJSONPayloadSchemaValidator = mock[JSONSchemaValidator]
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
-  private val mockOverviewCacheRepository = mock[OverviewCacheRepository]
 
   private val psaId = "psa"
   private val pstr = "pstr"
@@ -70,8 +69,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     Seq(
       inject.bind[EventReportConnector].toInstance(mockEventReportConnector),
       inject.bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
-      inject.bind[JSONSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
-      inject.bind[OverviewCacheRepository].toInstance(mockOverviewCacheRepository),
+      inject.bind[JSONSchemaValidator].toInstance(mockJSONPayloadSchemaValidator)
     )
 
   val application: Application = new GuiceApplicationBuilder()
@@ -82,12 +80,9 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
   override def beforeEach(): Unit = {
     reset(mockEventReportConnector)
-    reset(mockOverviewCacheRepository)
     reset(mockEventReportCacheRepository)
     reset(mockJSONPayloadSchemaValidator)
     when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any())).thenReturn(Success(()))
-    when(mockOverviewCacheRepository.get(any(), any(), any())(any())).thenReturn(Future.successful(None))
-    when(mockOverviewCacheRepository.get(any(), any(), any())(any())).thenReturn(Future.successful(None))
   }
 
   "compileEventReport for unimplemented api type" must {
@@ -316,7 +311,39 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   }
 
   "getOverview" must {
-    "return OK with the Seq of overview details and save the data in cache if no data was found in the cache to begin with" in {
+    "return OK with the Seq of overview details" in {
+      val overview1 = EROverview(
+        LocalDate.of(2022, 4, 6),
+        LocalDate.of(2023, 4, 5),
+        tpssReportPresent = false,
+        Some(EROverviewVersion(
+          3,
+          submittedVersionAvailable = false,
+          compiledVersionAvailable = true)))
+
+      val overview2 = EROverview(
+        LocalDate.of(2022, 4, 6),
+        LocalDate.of(2023, 4, 5),
+        tpssReportPresent = false,
+        Some(EROverviewVersion(
+          2,
+          submittedVersionAvailable = true,
+          compiledVersionAvailable = true)))
+
+      val erOverview = Seq(overview1)
+      val er20AOverview = Seq(overview2)
+
+      val expected = Seq(
+        EROverview(
+          LocalDate.of(2022, 4, 6),
+          LocalDate.of(2023, 4, 5),
+          tpssReportPresent = false,
+          Some(EROverviewVersion(
+            3,
+            submittedVersionAvailable = true,
+            compiledVersionAvailable = true)))
+      )
+
       when(mockEventReportConnector.getOverview(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq("ER"),
@@ -331,26 +358,11 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         ArgumentMatchers.eq(endDate))(any(), any()))
         .thenReturn(Future.successful(er20AOverview))
 
-      when(mockOverviewCacheRepository.get(any(), any(), any())(any())).thenReturn(Future.successful(None))
-      when(mockOverviewCacheRepository.upsert(any(), any(), any(), any())(any())).thenReturn(Future.successful(()))
-
       eventReportService.getOverview(pstr, startDate, endDate)(implicitly, implicitly).map { resultJsValue =>
 
-        verify(mockOverviewCacheRepository, times(1)).get(any(), any(), any())(any())
-        verify(mockOverviewCacheRepository, times(1)).upsert(any(), any(), any(), any())(any())
         verify(mockEventReportConnector, times(2)).getOverview(any(), any(), any(), any())(any(), any())
 
-        resultJsValue mustBe Json.toJson(erOverview ++ er20AOverview)
-      }
-    }
-
-    "return OK with the Seq of overview details and don't try to save the data in cache if the data already exists in the cache" in {
-      when(mockOverviewCacheRepository.get(any(), any(), any())(any())).thenReturn(Future.successful(Some(Json.toJson(erOverview))))
-      eventReportService.getOverview(pstr, startDate, endDate)(implicitly, implicitly).map { resultJsValue =>
-        verify(mockOverviewCacheRepository, times(1)).get(any(), any(), any())(any())
-        verify(mockOverviewCacheRepository, never).upsert(any(), any(), any(), any())(any())
-        verify(mockEventReportConnector, never).getOverview(any(), any(), any(), any())(any(), any())
-        resultJsValue mustBe Json.toJson(erOverview)
+        resultJsValue mustBe Json.toJson(expected)
       }
     }
   }
@@ -516,24 +528,6 @@ object EventReportServiceSpec {
 
   private val erVersionsER20A = Seq(versionER20A)
 
-  private val overview1 = EROverview(
-    LocalDate.of(2022, 4, 6),
-    LocalDate.of(2023, 4, 5),
-    tpssReportPresent = false,
-    Some(EROverviewVersion(
-      3,
-      submittedVersionAvailable = false,
-      compiledVersionAvailable = true)))
-
-  private val overview2 = EROverview(
-    LocalDate.of(2022, 4, 6),
-    LocalDate.of(2023, 4, 5),
-    tpssReportPresent = false,
-    Some(EROverviewVersion(
-      2,
-      submittedVersionAvailable = true,
-      compiledVersionAvailable = true)))
-
   private val getEvent22PayLoadData: Option[JsObject] = Some(Json.parse(
     """
       |    {
@@ -579,8 +573,7 @@ object EventReportServiceSpec {
       |} """.stripMargin
   ))
 
-  private val erOverview = Seq(overview1, overview2)
-  private val er20AOverview = Seq(overview1, overview2)
+
   private val responseJsonForAPI1834: Option[JsObject] = Some(Json.parse(
     """
       |{

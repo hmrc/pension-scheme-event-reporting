@@ -101,9 +101,14 @@ class EventReportCacheRepository @Inject()(
   import EventReportCacheEntry._
 
   private val expireInSeconds = config.get[Int](path = "mongodb.event-reporting-data.timeToLiveInSeconds")
+  private val nonEventTypeExpireInSeconds = config.get[Int](path = "mongodb.event-reporting-data.nonEventTypeTimeToLiveInSeconds")
 
   private def evaluatedExpireAt: LocalDateTime = {
     LocalDateTime.now(ZoneId.of("UTC")).plusSeconds(expireInSeconds)
+  }
+
+  private def nonEventTypeEvaluatedExpireAt: LocalDateTime = {
+    LocalDateTime.now(ZoneId.of("UTC")).plusSeconds(nonEventTypeExpireInSeconds)
   }
 
   def upsert(pstr: String, edi: EventDataIdentifier, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
@@ -135,7 +140,7 @@ class EventReportCacheRepository @Inject()(
       Updates.set(versionKey, 0),
       Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
       Updates.set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC")))),
-      Updates.set(expireAtKey, Codecs.toBson(evaluatedExpireAt))
+      Updates.set(expireAtKey, Codecs.toBson(nonEventTypeEvaluatedExpireAt))
     )
     val selector = Filters.and(
       Filters.equal(pstrKey, pstr),
