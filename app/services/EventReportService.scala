@@ -182,7 +182,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
     val resp1831Seq = eventReportConnector.getEvent(pstr, startDate, version, Some(Event20A)).map { etmpJsonOpt =>
       etmpJsonOpt.map { etmpJson =>
-        etmpJson.transform(transformations.ETMPToFrontEnd.EventSummary.rdsFor1831) match {
+        etmpJson.transform(transformations.ETMPToFrontEnd.API1834Summary.rdsFor1831) match {
           case JsSuccess(seqOfEventTypes, _) => seqOfEventTypes
           case JsError(errors) => throw JsResultException(errors)
         }
