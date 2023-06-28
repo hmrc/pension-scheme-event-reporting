@@ -24,7 +24,7 @@ case class EmailAuditEvent(psaOrPspId: String,
                            emailAddress: String,
                            event: Event,
                            requestId: String,
-                           reportVersion: String) extends AuditEvent {
+                           reportVersion: Int) extends AuditEvent {
 
   override def auditType: String = "EventReportingEmailEvent"
 

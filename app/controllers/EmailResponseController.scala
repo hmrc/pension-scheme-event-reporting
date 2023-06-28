@@ -18,7 +18,7 @@ package controllers
 
 import audit.EmailAuditEvent
 import com.google.inject.Inject
-import models.{EmailEvents, Opened}
+import models.{EmailEvents, EventDataIdentifier, Opened}
 import play.api.Logger
 import play.api.libs.json.JsValue
 import play.api.mvc._
@@ -34,7 +34,8 @@ class EmailResponseController @Inject()(
                                          cc: ControllerComponents,
                                          crypto: ApplicationCrypto,
                                          parser: PlayBodyParsers,
-                                         val authConnector: AuthConnector
+                                         val authConnector: AuthConnector,
+                                         eventDataIdentifier: EventDataIdentifier
                                        )(implicit ec: ExecutionContext) extends BackendController(cc) with AuthorisedFunctions {
   private val logger = Logger(classOf[EmailResponseController])
 
@@ -53,7 +54,7 @@ class EmailResponseController @Inject()(
                 _.event == Opened
               ).foreach { event =>
                 logger.debug(s"Email Audit event is $event")
-                auditService.sendEvent(EmailAuditEvent(psaOrPspId, "PSA", emailAddress, event.event, requestId))(request, implicitly)
+                auditService.sendEvent(EmailAuditEvent(psaOrPspId, "PSA", emailAddress, event.event, requestId, eventDataIdentifier.version))(request, implicitly)
               }
               Ok
             }

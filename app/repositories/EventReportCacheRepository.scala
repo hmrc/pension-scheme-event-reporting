@@ -16,15 +16,13 @@
 
 package repositories
 
-import akka.http.scaladsl.model.HttpHeader.ParsingResult.Ok
 import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.EventDataIdentifier
 import models.enumeration.EventType
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.{DateTime}
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
-import play.api.http.Status
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import play.api.mvc.Result

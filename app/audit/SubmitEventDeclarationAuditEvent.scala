@@ -22,7 +22,7 @@ case class SubmitEventDeclarationAuditEvent(pstr: String,
                                             request: JsValue,
                                             response: Option[JsValue],
                                             maybeErrorMessage: Option[String],
-                                            reportVersion: String
+                                            reportVersion: Int
                                            ) extends AuditEvent {
   override def auditType: String = "EventReportTaxReturnSubmitted"
 

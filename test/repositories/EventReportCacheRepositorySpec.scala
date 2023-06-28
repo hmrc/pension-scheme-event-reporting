@@ -20,7 +20,6 @@ import com.typesafe.config.Config
 import models.EventDataIdentifier
 import models.enumeration.ApiType.Api1826
 import models.enumeration.EventType
-import models.enumeration.EventType.Event22
 import org.mockito.Mockito.when
 import org.mongodb.scala.model.Filters
 import org.scalatest.concurrent.ScalaFutures
