@@ -20,7 +20,6 @@ import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.enumeration.ApiType
 import org.joda.time.{DateTime, DateTimeZone}
-import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
@@ -106,10 +105,5 @@ class FileUploadResponseCacheRepository @Inject()(
     ).headOption().map{ a => a.flatMap{ jsValue =>
      (jsValue.as[JsObject] \ "data").asOpt[JsValue]
    }}
-  }
-
-  private def filterByKeys(mapOfKeys: Map[String, String]): Bson = {
-    val filters = mapOfKeys.map(t => Filters.equal(t._1, t._2)).toList
-    Filters.and(filters: _*)
   }
 }

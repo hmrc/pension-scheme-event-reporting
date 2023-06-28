@@ -23,13 +23,13 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json._
 import utils.{GeneratorAPI1832, GeneratorAPI1834, JsonFileReader}
 
-class EventSummarySpec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader
+class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader
   with GeneratorAPI1834 with GeneratorAPI1832 with ScalaCheckPropertyChecks {
 
   "Reads" - {
     "transform a valid payload correctly when read from sample file from API 1834" in {
       val json = readJsonFromFile("/api-1834-valid-example.json")
-      val result = json.validate(EventSummary.rdsFor1834).asOpt
+      val result = json.validate(API1834Summary.rdsFor1834).asOpt
 
       val expectedResult = Some(
         Seq("1","2","3","4","5","6","7","8","8A","10","11","12","13","14","19","20","22","23","24","0")
@@ -41,7 +41,7 @@ class EventSummarySpec extends AnyFreeSpec with Matchers with MockitoSugar with 
     "transform a randomly generated API 1834 events valid payload correctly" in {
       forAll(generateGET1834ResponseAndUserAnswers) {
         case (json: JsObject, eventTypes: Seq[String]) =>
-          val result = json.validate(EventSummary.rdsFor1834).asOpt
+          val result = json.validate(API1834Summary.rdsFor1834).asOpt
           val expectedResult = Some(eventTypes)
           result.map(_.validate[Seq[String]].get) mustBe expectedResult
       }

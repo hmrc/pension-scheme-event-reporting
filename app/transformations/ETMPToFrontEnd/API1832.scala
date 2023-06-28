@@ -24,10 +24,10 @@ import play.api.libs.json._
 import transformations.Transformer
 
 
-object MemberEventReport {
+object API1832 {
 
   import transformations.ETMPToFrontEnd.MemberEventReportPaths._
-  import transformations.ETMPToFrontEnd.MemberEventReportReadsUtilities._
+  import transformations.ETMPToFrontEnd.API1832ReadsUtilities._
 
   def rds1832Api(eventType: EventType): Reads[JsObject] =
     pathUaEventDetailsForEventType(eventType).json.copyFrom(pathEtmpEventDetails.read(readsMembers(eventType)))
@@ -57,7 +57,7 @@ object MemberEventReport {
   private val rdsMemberDetailsEvent22And23:  Reads[JsObject] = (readsMemberDetails and readsEvent22Or23PaymentDetails).reduce
 }
 
-private object MemberEventReportReadsUtilities extends Transformer {
+private object API1832ReadsUtilities extends Transformer {
 
   import transformations.ETMPToFrontEnd.MemberEventReportPaths._
 

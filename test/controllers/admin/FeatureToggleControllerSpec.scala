@@ -95,7 +95,7 @@ class FeatureToggleControllerSpec
         .thenReturn(Future.successful(()))
 
       when(mockFeatureToggleService.deleteToggle(any()))
-        .thenReturn(Future.successful())
+        .thenReturn(Future.successful(()))
 
       val controller = new FeatureToggleController(controllerComponents, mockFeatureToggleService)
 
