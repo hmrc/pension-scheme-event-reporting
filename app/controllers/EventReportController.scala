@@ -74,10 +74,23 @@ class EventReportController @Inject()(
       }
   }
 
+
+  def changeVersion: Action[AnyContent] = Action.async {
+    implicit request =>
+      withAuth.flatMap { case Credentials(externalId, _) =>
+        val Seq(pstr, eventType, version, year, newVersion) = requiredHeaders("pstr", "eventType", "version", "year", "newVersion")
+        EventType.getEventType(eventType) match {
+          case Some(et) =>
+            eventReportService.changeVersion(externalId, pstr, et, year.toInt, version.toInt, newVersion.toInt)
+          case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
+        }
+      }
+  }
+
   def getUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
 
-      def process(externalId: String, pstr: String, optEtVersionYear: Option[(String, Int, Int)]):Future[Result] = {
+      def process(externalId: String, pstr: String, optEtVersionYear: Option[(String, Int, Int)]): Future[Result] = {
 
         optEtVersionYear match {
           case Some((eventType, version, year)) =>
@@ -109,10 +122,10 @@ class EventReportController @Inject()(
       }
   }
 
-  private def requiredHeaders(headers:String*)(implicit request: Request[AnyContent]) = {
+  private def requiredHeaders(headers: String*)(implicit request: Request[AnyContent]) = {
     val headerData = headers.map(request.headers.get)
     val allHeadersDefined = headerData.forall(_.isDefined)
-    if(allHeadersDefined) headerData.collect { case Some(value) => value }
+    if (allHeadersDefined) headerData.collect { case Some(value) => value }
     else {
       val missingHeaders = headers.zip(headerData)
       val errorString = missingHeaders.map { case (headerName, data) =>
@@ -122,7 +135,7 @@ class EventReportController @Inject()(
     }
   }
 
-  private def requiredBody(implicit request:Request[AnyContent]) =
+  private def requiredBody(implicit request: Request[AnyContent]) =
     request.body.asJson.getOrElse(throw new BadRequestException("Request does not contain required Json body"))
 
   def getEventSummary: Action[AnyContent] = Action.async {
@@ -207,18 +220,20 @@ class EventReportController @Inject()(
         }
     }
 
-  private case class Credentials(externalId: String, psaPspId:String)
+  private case class Credentials(externalId: String, psaPspId: String)
+
   private def withAuth(implicit hc: HeaderCarrier) = {
     authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId and Retrievals.allEnrolments) {
       case Some(externalId) ~ enrolments =>
-          getPsaPspId(enrolments) match {
-            case Some(psaPspId) => Future.successful(Credentials(externalId, psaPspId))
-            case psa => Future.failed(new BadRequestException(s"Bad Request without psaPspId $psa"))
-          }
+        getPsaPspId(enrolments) match {
+          case Some(psaPspId) => Future.successful(Credentials(externalId, psaPspId))
+          case psa => Future.failed(new BadRequestException(s"Bad Request without psaPspId $psa"))
+        }
       case _ =>
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
     }
   }
+
   private def prettyMissingParamError(param: Option[String], error: String) = if (param.isEmpty) s"$error " else ""
 }
 

@@ -31,7 +31,7 @@ import play.api.Application
 import play.api.inject.bind
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json._
-import play.api.mvc.Results.NoContent
+import play.api.mvc.Results.{NoContent, NotFound}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import services.EventReportService
@@ -66,7 +66,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     overrides(modules: _*).build()
   private val controller = application.injector.instanceOf[EventReportController]
 
-  private val emptyEnrolments = Enrolments(Set():Set[Enrolment])
+  private val emptyEnrolments = Enrolments(Set(): Set[Enrolment])
 
   private val emptyCredentials = new~(None, emptyEnrolments)
 
@@ -303,7 +303,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       when(mockEventReportService.getUserAnswers(
         ArgumentMatchers.eq(externalId),
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(Event1:EventType),
+        ArgumentMatchers.eq(Event1: EventType),
         ArgumentMatchers.eq(2020),
         ArgumentMatchers.eq(1)
       )(any(), any()))
@@ -454,10 +454,46 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
   }
 
+
+  "changeVersion" must {
+    "return 204 OK when valid response" in {
+      when(mockEventReportService.changeVersion(
+        ArgumentMatchers.eq(externalId),
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(Event1),
+        ArgumentMatchers.eq(2020),
+        ArgumentMatchers.eq(1),
+        ArgumentMatchers.eq(2)
+      )(any()))
+        .thenReturn(Future.successful(NoContent))
+      val result = controller.changeVersion(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> "1", "eventType" -> eventType, externalId -> externalId, "newVersion" -> "2"))
+
+      status(result) mustBe NO_CONTENT
+    }
+
+    "return 400 OK when not found" in {
+      when(mockEventReportService.changeVersion(
+        ArgumentMatchers.eq(externalId),
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(Event1),
+        ArgumentMatchers.eq(2020),
+        ArgumentMatchers.eq(1),
+        ArgumentMatchers.eq(2)
+      )(any()))
+        .thenReturn(Future.successful(NotFound))
+      val result = controller.changeVersion(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> "1", "eventType" -> eventType, externalId -> externalId, "newVersion" -> "2"))
+
+      status(result) mustBe NOT_FOUND
+    }
+  }
+
+
   "compileEvent" must {
     "return 204 No Content when valid response" in {
       when(mockAuthConnector.authorise[(Option[String] ~ Enrolments)](any(), any())(any(), any())) thenReturn
-        Future.successful(new ~(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"), enrolments))
+        Future.successful(new~(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"), enrolments))
       when(mockEventReportService.compileEventReport(any(), any(), any(), any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(NoContent))
 
