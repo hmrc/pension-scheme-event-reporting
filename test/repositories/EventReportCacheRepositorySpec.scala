@@ -18,6 +18,7 @@ package repositories
 
 import com.typesafe.config.Config
 import models.EventDataIdentifier
+import models.enumeration.ApiType
 import models.enumeration.ApiType.{Api1826, Api1827}
 import org.mockito.Mockito.when
 import org.mongodb.scala.model.Filters
@@ -40,6 +41,7 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
 
   import EventReportCacheRepositorySpec._
 
+  private val externalId = "externalId"
   var eventReportCacheRepository: EventReportCacheRepository = _
 
   override def beforeAll(): Unit = {
@@ -59,7 +61,7 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
   private val pstr1 = "pstr-1"
   private val pstr2 = "pstr-2"
   private val pstr3 = "pstr-3"
-  private val edi = EventDataIdentifier(Api1826, 2020, 1)
+  private val edi = EventDataIdentifier(Api1826, 2020, 1, externalId)
   private val filters = searchFilter(pstr1, edi)
   private val data1 = Json.parse("""{"data":"1"}""")
   private val data2 = Json.parse("""{"data":"2"}""")
@@ -96,8 +98,8 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
     "update an existing event report cache in Mongo collection" in {
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
-        _ <- eventReportCacheRepository.upsert(pstr1, edi, data1)
-        _ <- eventReportCacheRepository.upsert(pstr1, edi, data2)
+        _ <- eventReportCacheRepository.upsert( pstr1, edi, data1)
+        _ <- eventReportCacheRepository.upsert( pstr1, edi, data2)
         documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry](filters).toFuture()
       } yield documentsInDB
 
@@ -111,8 +113,8 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
     "save a new event report cache in Mongo collection when one of filter is different" in {
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
-        _ <- eventReportCacheRepository.upsert(pstr1, edi, data1)
-        _ <- eventReportCacheRepository.upsert(pstr2, edi, data2)
+        _ <- eventReportCacheRepository.upsert( pstr1, edi, data1)
+        _ <- eventReportCacheRepository.upsert( pstr2, edi, data2)
         documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry]().toFuture()
       } yield documentsInDB
 
@@ -132,7 +134,7 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
 
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
-        _ <- eventReportCacheRepository.upsert(record._1, record._3)
+        _ <- eventReportCacheRepository.upsert(externalId, record._1, record._3)
         documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry](filters).toFuture()
       } yield documentsInDB
 
@@ -150,8 +152,8 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
 
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
-        _ <- eventReportCacheRepository.upsert(record1._1, record1._3)
-        _ <- eventReportCacheRepository.upsert(record2._1, record2._3)
+        _ <- eventReportCacheRepository.upsert(externalId, record1._1, record1._3)
+        _ <- eventReportCacheRepository.upsert(externalId, record2._1, record2._3)
         documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry](filters).toFuture()
       } yield documentsInDB
 
@@ -169,14 +171,15 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
 
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
-        _ <- eventReportCacheRepository.upsert(record1._1, record1._3)
-        _ <- eventReportCacheRepository.upsert(record2._1, record2._3)
+        _ <- eventReportCacheRepository.upsert(externalId, record1._1, record1._3)
+        _ <- eventReportCacheRepository.upsert(externalId, record2._1, record2._3)
+        _ <- eventReportCacheRepository.upsert(externalId + "other", record1._1, record1._3)
         documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry]().toFuture()
       } yield documentsInDB
 
       whenReady(documentsInDB) {
         documentsInDB =>
-          documentsInDB.size mustBe 2
+          documentsInDB.size mustBe 3
       }
     }
   }
@@ -185,15 +188,17 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
     "remove all records for a given pstr without affecting other data" in {
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
-        _ <- eventReportCacheRepository.upsert(pstr1, edi, data1)
-        _ <- eventReportCacheRepository.upsert(pstr2, edi, data2)
-        _ <- eventReportCacheRepository.upsert(pstr3, edi, data3)
-        _ <- eventReportCacheRepository.removeAllOnSignOut(pstr2)
+        _ <- eventReportCacheRepository.upsert( pstr1, edi, data1)
+        _ <- eventReportCacheRepository.upsert( pstr2, edi.copy(externalId = edi.externalId + "other"), data2)
+        _ <- eventReportCacheRepository.upsert( pstr3, edi, data3)
+        _ <- eventReportCacheRepository.removeAllOnSignOut(externalId)
         documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry]().toFuture()
       } yield documentsInDB
 
       whenReady(documentsInDB) { documentsInDB =>
-        documentsInDB.size mustBe 2
+        val doc1 = documentsInDB.head
+        documentsInDB.size mustBe 1
+        (doc1.pstr, doc1.edi.apiType, doc1.data) mustBe ("pstr-2", ApiType.Api1826, Json.parse("""{"data":"2"}"""))
       }
     }
   }
@@ -202,8 +207,8 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
     "retrieve existing event report cache in Mongo collection when API type specified" in {
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
-        _ <- eventReportCacheRepository.upsert(pstr1, edi, data1)
-        documentsInDB <- eventReportCacheRepository.getUserAnswers(pstr1, Some(edi))
+        _ <- eventReportCacheRepository.upsert( pstr1, edi, data1)
+        documentsInDB <- eventReportCacheRepository.getUserAnswers(externalId, pstr1, Some(edi))
       } yield documentsInDB
 
       whenReady(documentsInDB) { documentsInDB =>
@@ -214,8 +219,8 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
     "return None when nothing present for API type specified" in {
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
-        _ <- eventReportCacheRepository.upsert(pstr1, edi, data1)
-        documentsInDB <- eventReportCacheRepository.getUserAnswers(pstr1, Some(EventDataIdentifier(Api1827, 2020, 1)))
+        _ <- eventReportCacheRepository.upsert( pstr1, edi, data1)
+        documentsInDB <- eventReportCacheRepository.getUserAnswers(externalId, pstr1, Some(EventDataIdentifier(Api1827, 2020, 1, externalId)))
       } yield documentsInDB
 
       whenReady(documentsInDB) { documentsInDB =>
@@ -227,8 +232,8 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
       val record = ("pstr-1", Json.parse("""{"data":"1"}"""))
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
-        _ <- eventReportCacheRepository.upsert(record._1, record._2)
-        documentsInDB <- eventReportCacheRepository.getUserAnswers(record._1, None)
+        _ <- eventReportCacheRepository.upsert(externalId, record._1, record._2)
+        documentsInDB <- eventReportCacheRepository.getUserAnswers(externalId, record._1, None)
       } yield documentsInDB
 
       whenReady(documentsInDB) { documentsInDB =>
@@ -240,8 +245,8 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
       val record = ("pstr-1", Api1826, Json.parse("""{"data":"1"}"""))
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
-        _ <- eventReportCacheRepository.upsert(pstr1, edi, data1)
-        documentsInDB <- eventReportCacheRepository.getUserAnswers(pstr1, None)
+        _ <- eventReportCacheRepository.upsert( pstr1, edi, data1)
+        documentsInDB <- eventReportCacheRepository.getUserAnswers(externalId, pstr1, None)
       } yield documentsInDB
 
       whenReady(documentsInDB) { documentsInDB =>

@@ -20,7 +20,7 @@ import models.enumeration.ApiType
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json.{Format, JsPath, JsResult, JsString, JsValue, Json, Reads}
 
-case class EventDataIdentifier(apiType: ApiType, year: Int, version: Int)
+case class EventDataIdentifier(apiType: ApiType, year: Int, version: Int, externalId:String)
 
 object EventDataIdentifier {
   implicit val formats: Format[EventDataIdentifier] = new Format[EventDataIdentifier] {
@@ -28,7 +28,8 @@ object EventDataIdentifier {
       Json.obj(
         "apiType" -> o.apiType.toString,
         "year" -> o.year,
-        "version" -> o.version
+        "version" -> o.version,
+        "externalId" -> o.externalId
       )
     }
 
@@ -36,9 +37,10 @@ object EventDataIdentifier {
       (
       (JsPath \ "apiType").read[ApiType](ApiType.formats) and
       (JsPath \ "year").read[Int] and
-      (JsPath \ "version").read[Int]
+      (JsPath \ "version").read[Int] and
+      (JsPath \ "externalId").read[String]
         )(
-        (apiType, year, version) => EventDataIdentifier(apiType, year, version)
+        (apiType, year, version, externalId) => EventDataIdentifier(apiType, year, version, externalId)
       ).reads(json)
     }
   }

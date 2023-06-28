@@ -39,14 +39,17 @@ trait ErrorHandler {
       Future.failed(new NotFoundException(e.message))
     case e: UpstreamErrorResponse =>
       e match {
-        case Upstream4xxResponse(message, statusCode, reportAs, headers) =>
+        case UpstreamErrorResponse.Upstream4xxResponse(UpstreamErrorResponse(message, statusCode, reportAs, headers)) =>
           Future.failed(
             throwAppropriateException(UpstreamErrorResponse(message, statusCode, reportAs, headers))
           )
-        case Upstream5xxResponse(message, statusCode, reportAs, headers) =>
+        case UpstreamErrorResponse.Upstream5xxResponse(UpstreamErrorResponse(message, statusCode, reportAs, headers)) =>
           Future.failed(
             UpstreamErrorResponse(message, statusCode, reportAs, headers)
           )
+        case e: Exception => Future.failed(
+          UpstreamErrorResponse(e.message, e.statusCode, e.reportAs, e.headers)
+        )
       }
     case e: Exception =>
       Future.failed(new Exception(e.getMessage))

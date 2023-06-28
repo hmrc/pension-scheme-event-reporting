@@ -22,9 +22,9 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 
 
-object Event20AReport {
+object API1831 {
 
-  import Event20AReportPaths._
+  import API1831Paths._
   import transformations.ETMPToFrontEnd.Event20AReadsUtilities._
 
   implicit val rds1831Api: Reads[JsObject] = (
@@ -43,7 +43,7 @@ object Event20AReport {
     ).reduce
 }
 
-private object Event20AReportPaths {
+private object API1831Paths {
   // UA
   val uaPstr:                                 JsPath = __ \ "pstr"
   val uaReportStartDate:                      JsPath = __ \ "reportStartDate"
