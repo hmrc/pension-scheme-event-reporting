@@ -33,8 +33,8 @@ case class SubmitEventDeclarationAuditEvent(pstr: String,
 
     Json.obj(
       "pstr" -> pstr,
+      "request" -> request,
       "reportVersion" -> reportVersion,
-      "request" -> request
     ) ++ statusJson ++ responseJson ++ errorMessageJson
   }
 }

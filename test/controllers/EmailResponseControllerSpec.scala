@@ -74,7 +74,7 @@ class EmailResponseControllerSpec extends AsyncWordSpec with Matchers with Mocki
 
       status(result) mustBe OK
       verify(mockAuditService, times(4)).sendEvent(eventCaptor.capture())(any(), any())
-      eventCaptor.getValue mustEqual EmailAuditEvent(psa, schemeAdministratorType, email, Complained, requestId)
+      eventCaptor.getValue mustEqual EmailAuditEvent(psa, schemeAdministratorType, email, Complained, requestId, 1)
     }
 
     "respond with BAD_REQUEST when not given EmailEvents" in {
