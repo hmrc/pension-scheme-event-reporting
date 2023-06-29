@@ -16,15 +16,13 @@
 
 package repositories
 
-import akka.http.scaladsl.model.HttpHeader.ParsingResult.Ok
 import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.EventDataIdentifier
 import models.enumeration.EventType
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.DateTime
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
-import play.api.http.Status
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import play.api.mvc.Result
@@ -217,10 +215,14 @@ class EventReportCacheRepository @Inject()(
     }
   }
 
-  def remove(mapOfKeys: Map[String, String])(implicit ec: ExecutionContext): Future[Boolean] = {
-    collection.deleteOne(filterByKeys(mapOfKeys)).toFuture().map { result =>
-      logger.info(s"Removing row from collection $collectionName")
-      result.wasAcknowledged
+  def removeAllButVersion(externalId: String, version: Int)(implicit ec: ExecutionContext): Future[Unit] = {
+    val filter = Filters.and(
+      Filters.equal(externalIdKey, externalId),
+      Filters.notEqual(versionKey, version)
+    )
+    collection.deleteMany(filter).toFuture().map { _ =>
+      logger.info(s"Removing rows from collection $collectionName")
+      ()
     }
   }
 

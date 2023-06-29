@@ -82,6 +82,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def removeUserAnswers(externalId: String)(implicit ec: ExecutionContext): Future[Unit] =
     eventReportCacheRepository.removeAllOnSignOut(externalId)
+  def removeUserAnswersAllButVersion(externalId: String, version: Int)(implicit ec: ExecutionContext): Future[Unit] =
+    eventReportCacheRepository.removeAllButVersion(externalId, version)
 
   def getUserAnswers(externalId: String, pstr: String, eventType: EventType, year: Int, version: Int)
                     (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] =

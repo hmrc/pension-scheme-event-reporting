@@ -45,9 +45,15 @@ class EventReportController @Inject()(
 
   def removeUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuth.map { case Credentials(externalId, psaPspId) =>
-        eventReportService.removeUserAnswers(externalId)
-        Ok
+      withAuth.flatMap { case Credentials(externalId, psaPspId) =>
+        // if version present remove all except this version
+        val futureResponse = request.headers.get("version") match {
+          case Some(version) =>
+            eventReportService.removeUserAnswersAllButVersion(externalId, version.toInt)
+          case _ =>
+            eventReportService.removeUserAnswers(externalId)
+        }
+        futureResponse.map{_=>Ok}
       }
   }
 

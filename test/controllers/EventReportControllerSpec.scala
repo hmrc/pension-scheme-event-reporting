@@ -373,15 +373,29 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   }
 
   "removeUserAnswers" must {
-    "return 200 OK" in {
+    "return 200 OK when no version" in {
 
       when(mockEventReportService.removeUserAnswers(
-        ArgumentMatchers.eq(pstr)
+        ArgumentMatchers.eq(externalId)
       )(any()))
         .thenReturn(Future.successful(()))
 
       val result = controller.removeUserAnswers(fakeRequest.withHeaders(
         newHeaders = "pstr" -> pstr, externalId -> externalId))
+
+      status(result) mustBe OK
+    }
+
+    "return 200 OK when version present" in {
+      val v = 1
+      when(mockEventReportService.removeUserAnswersAllButVersion(
+        ArgumentMatchers.eq(externalId),
+        ArgumentMatchers.eq(v)
+      )(any()))
+        .thenReturn(Future.successful(()))
+
+      val result = controller.removeUserAnswers(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr, externalId -> externalId, "version" -> v.toString))
 
       status(result) mustBe OK
     }
