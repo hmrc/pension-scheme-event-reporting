@@ -39,7 +39,7 @@ trait EmbeddedMongoDBSupport {
   def initMongoDExecutable(): Unit =
     mongodExecutable = MongodStarter.getDefaultInstance
       .prepare(MongodConfig.builder()
-        .version(Version.Main.V4_2)
+        .version(Version.Main.V4_4)
         .net(new Net(mongoHost, mongoPort, Network.localhostIsIPv6()))
         .build()
       )

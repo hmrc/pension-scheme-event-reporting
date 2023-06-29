@@ -16,29 +16,31 @@
 
 package models
 
-import models.enumeration.ApiType
+import models.enumeration.EventType
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json.{Format, JsPath, JsResult, JsString, JsValue, Json, Reads}
+import play.api.libs.json._
 
-case class EventDataIdentifier(apiType: ApiType, year: Int, version: Int)
+case class EventDataIdentifier(eventType: EventType, year: Int, version: Int, externalId:String)
 
 object EventDataIdentifier {
   implicit val formats: Format[EventDataIdentifier] = new Format[EventDataIdentifier] {
     override def writes(o: EventDataIdentifier): JsValue = {
       Json.obj(
-        "apiType" -> o.apiType.toString,
+        "eventType" -> o.eventType.toString,
         "year" -> o.year,
-        "version" -> o.version
+        "version" -> o.version,
+        "externalId" -> o.externalId
       )
     }
 
     override def reads(json: JsValue): JsResult[EventDataIdentifier] = {
       (
-      (JsPath \ "apiType").read[ApiType](ApiType.formats) and
+      (JsPath \ "eventType").read[EventType](EventType.formats) and
       (JsPath \ "year").read[Int] and
-      (JsPath \ "version").read[Int]
+      (JsPath \ "version").read[Int] and
+      (JsPath \ "externalId").read[String]
         )(
-        (apiType, year, version) => EventDataIdentifier(apiType, year, version)
+        (eventType, year, version, externalId) => EventDataIdentifier(eventType, year, version, externalId)
       ).reads(json)
     }
   }

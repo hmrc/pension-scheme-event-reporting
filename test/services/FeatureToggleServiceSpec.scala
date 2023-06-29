@@ -50,8 +50,7 @@ class FeatureToggleServiceSpec
   override protected def bindings: Seq[GuiceableModule] =
     Seq(
       bind[ToggleDataRepository].toInstance(toggleDataRepository),
-      bind[EventReportCacheRepository].toInstance(mock[EventReportCacheRepository]),
-      bind[OverviewCacheRepository].toInstance(mock[OverviewCacheRepository]),
+      bind[EventReportCacheRepository].toInstance(mock[EventReportCacheRepository])
     )
 
   "When upsertFeatureToggle works in the repo, it returns a success result for the toggle data" in {

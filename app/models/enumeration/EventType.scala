@@ -16,6 +16,8 @@
 
 package models.enumeration
 
+import play.api.libs.json.{Format, JsError, JsResult, JsString, JsSuccess, JsValue}
+
 sealed trait EventType {
   val order: Int
 }
@@ -114,8 +116,12 @@ object EventType extends Enumerable.Implicits {
     override val order = -1
   }
 
+  case object EventTypeNone extends WithName("None") with EventType {
+    override val order = -1
+  }
+
   private val values: List[EventType] = List(WindUp, Event1, Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A,
-    Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, Event20A, Event22, Event23, Event24)
+    Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, Event20A, Event22, Event23, Event24, EventTypeNone)
 
   private val api1826Events: List[EventType] = List(Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, WindUp)
   private val api1827Events: List[EventType] = List(Event1)
@@ -145,6 +151,18 @@ object EventType extends Enumerable.Implicits {
       case evType1831 if api1831Events.contains(evType1831) => Some(ApiType.Api1831)
       case evType1834 if api1834Events.contains(evType1834) => Some(ApiType.Api1834)
       case _ => None
+    }
+  }
+
+  implicit val formats: Format[EventType] = new Format[EventType] {
+    override def writes(o: EventType): JsValue = JsString(o.toString)
+
+    override def reads(json: JsValue): JsResult[EventType] = {
+      val jsonAsString = json.as[String]
+      values.find(_.toString == jsonAsString) match {
+        case Some(eventType) => JsSuccess(eventType)
+        case None => JsError(s"Unknown event type: $jsonAsString")
+      }
     }
   }
 
