@@ -20,7 +20,6 @@ import com.typesafe.config.Config
 import models.EventDataIdentifier
 import models.enumeration.ApiType.Api1826
 import models.enumeration.EventType
-import models.enumeration.EventType.Event22
 import org.mockito.Mockito.when
 import org.mongodb.scala.model.Filters
 import org.scalatest.concurrent.ScalaFutures
@@ -64,6 +63,8 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
   private val pstr2 = "pstr-2"
   private val pstr3 = "pstr-3"
   private val edi = EventDataIdentifier(EventType.Event22, 2020, 1, externalId)
+  private val edi2 = EventDataIdentifier(EventType.Event22, 2020, 2, externalId)
+  private val edi3 = EventDataIdentifier(EventType.Event22, 2020, 3, externalId + "other")
   private val filters = searchFilter(pstr1, edi)
   private val data1 = Json.parse("""{"data":"1"}""")
   private val data2 = Json.parse("""{"data":"2"}""")
@@ -100,8 +101,8 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
     "update an existing event report cache in Mongo collection" in {
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
-        _ <- eventReportCacheRepository.upsert( pstr1, edi, data1)
-        _ <- eventReportCacheRepository.upsert( pstr1, edi, data2)
+        _ <- eventReportCacheRepository.upsert(pstr1, edi, data1)
+        _ <- eventReportCacheRepository.upsert(pstr1, edi, data2)
         documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry](filters).toFuture()
       } yield documentsInDB
 
@@ -115,8 +116,8 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
     "save a new event report cache in Mongo collection when one of filter is different" in {
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
-        _ <- eventReportCacheRepository.upsert( pstr1, edi, data1)
-        _ <- eventReportCacheRepository.upsert( pstr2, edi, data2)
+        _ <- eventReportCacheRepository.upsert(pstr1, edi, data1)
+        _ <- eventReportCacheRepository.upsert(pstr2, edi, data2)
         documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry]().toFuture()
       } yield documentsInDB
 
@@ -196,7 +197,7 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
         _ <- eventReportCacheRepository.upsert(pstr1, edi, data)
-        result <- eventReportCacheRepository.changeVersion(pstr1, edi, 2)
+        result <- eventReportCacheRepository.changeVersion(externalId, pstr1, 1, 2)
         documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry](filters).toFuture()
         documentsInDB2 <- eventReportCacheRepository.collection.find[EventReportCacheEntry](filters2).toFuture()
       } yield Tuple3(documentsInDB, documentsInDB2, result)
@@ -214,7 +215,7 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
       val filters2 = searchFilter(pstr1, edi2)
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
-        result <- eventReportCacheRepository.changeVersion(pstr1, edi, 2)
+        result <- eventReportCacheRepository.changeVersion(externalId, pstr1, 1, 2)
         documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry](filters2).toFuture()
       } yield Tuple2(documentsInDB, result)
 
@@ -227,15 +228,13 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
   }
 
 
-
-
   "removeAllOnSignOut" must {
     "remove all records for a given pstr without affecting other data" in {
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
-        _ <- eventReportCacheRepository.upsert( pstr1, edi, data1)
-        _ <- eventReportCacheRepository.upsert( pstr2, edi.copy(externalId = edi.externalId + "other"), data2)
-        _ <- eventReportCacheRepository.upsert( pstr3, edi, data3)
+        _ <- eventReportCacheRepository.upsert(pstr1, edi, data1)
+        _ <- eventReportCacheRepository.upsert(pstr2, edi.copy(externalId = edi.externalId + "other"), data2)
+        _ <- eventReportCacheRepository.upsert(pstr3, edi, data3)
         _ <- eventReportCacheRepository.removeAllOnSignOut(externalId)
         documentsInDB <- eventReportCacheRepository.collection.find[EventReportCacheEntry]().toFuture()
       } yield documentsInDB
@@ -243,36 +242,12 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
       whenReady(documentsInDB) { documentsInDB =>
         val doc1 = documentsInDB.head
         documentsInDB.size mustBe 1
-        (doc1.pstr, doc1.edi.eventType, doc1.data) mustBe ("pstr-2", EventType.Event22, Json.parse("""{"data":"2"}"""))
+        (doc1.pstr, doc1.edi.eventType, doc1.data) mustBe("pstr-2", EventType.Event22, Json.parse("""{"data":"2"}"""))
       }
     }
   }
 
   "getUserAnswers" must {
-//    "retrieve existing event report cache in Mongo collection when API type specified" in {
-//      val documentsInDB = for {
-//        _ <- eventReportCacheRepository.collection.drop().toFuture()
-//        _ <- eventReportCacheRepository.upsert( pstr1, edi, data1)
-//        documentsInDB <- eventReportCacheRepository.getUserAnswers(externalId, pstr1, Some(edi))
-//      } yield documentsInDB
-//
-//      whenReady(documentsInDB) { documentsInDB =>
-//        documentsInDB.isDefined mustBe true
-//      }
-//    }
-//
-//    "return None when nothing present for API type specified" in {
-//      val documentsInDB = for {
-//        _ <- eventReportCacheRepository.collection.drop().toFuture()
-//        _ <- eventReportCacheRepository.upsert( pstr1, edi, data1)
-//        documentsInDB <- eventReportCacheRepository.getUserAnswers(externalId, pstr1, Some(EventDataIdentifier(Event22, 2020, 1, externalId)))
-//      } yield documentsInDB
-//
-//      whenReady(documentsInDB) { documentsInDB =>
-//        documentsInDB.isDefined mustBe false
-//      }
-//    }
-
     "retrieve existing event report cache in Mongo collection when NO API type specified" in {
       val record = ("pstr-1", Json.parse("""{"data":"1"}"""))
       val documentsInDB = for {
@@ -290,7 +265,7 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
       val record = ("pstr-1", Api1826, Json.parse("""{"data":"1"}"""))
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
-        _ <- eventReportCacheRepository.upsert( pstr1, edi, data1)
+        _ <- eventReportCacheRepository.upsert(pstr1, edi, data1)
         documentsInDB <- eventReportCacheRepository.getUserAnswers(externalId, pstr1, None)
       } yield documentsInDB
 

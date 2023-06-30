@@ -373,10 +373,10 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   }
 
   "removeUserAnswers" must {
-    "return 200 OK" in {
+    "return 200 OK when no version" in {
 
       when(mockEventReportService.removeUserAnswers(
-        ArgumentMatchers.eq(pstr)
+        ArgumentMatchers.eq(externalId)
       )(any()))
         .thenReturn(Future.successful(()))
 
@@ -460,8 +460,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       when(mockEventReportService.changeVersion(
         ArgumentMatchers.eq(externalId),
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(Event1),
-        ArgumentMatchers.eq(2020),
         ArgumentMatchers.eq(1),
         ArgumentMatchers.eq(2)
       )(any()))
@@ -476,8 +474,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       when(mockEventReportService.changeVersion(
         ArgumentMatchers.eq(externalId),
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(Event1),
-        ArgumentMatchers.eq(2020),
         ArgumentMatchers.eq(1),
         ArgumentMatchers.eq(2)
       )(any()))

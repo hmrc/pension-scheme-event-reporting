@@ -16,15 +16,13 @@
 
 package repositories
 
-import akka.http.scaladsl.model.HttpHeader.ParsingResult.Ok
 import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.EventDataIdentifier
 import models.enumeration.EventType
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.DateTime
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
-import play.api.http.Status
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import play.api.mvc.Result
@@ -141,24 +139,22 @@ class EventReportCacheRepository @Inject()(
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
   }
 
-  def changeVersion(pstr: String, edi: EventDataIdentifier, newVersion: Int)(implicit ec: ExecutionContext): Future[Result] = {
+  def changeVersion(externalId: String, pstr: String, version: Int, newVersion: Int)(implicit ec: ExecutionContext): Future[Result] = {
     val modifier = Updates.combine(
       Updates.set(versionKey, newVersion),
       Updates.set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC"))))
     )
     val selector = Filters.and(
       Filters.equal(pstrKey, pstr),
-      Filters.equal(eventTypeKey, edi.eventType.toString),
-      Filters.equal(yearKey, edi.year),
-      Filters.equal(versionKey, edi.version),
-      Filters.equal(externalIdKey, edi.externalId)
+      Filters.equal(versionKey, version),
+      Filters.equal(externalIdKey, externalId)
     )
 
     collection.find(filter = selector).headOption().flatMap { foundItem =>
       if (foundItem.isDefined) {
-        collection.findOneAndUpdate(
+        collection.updateMany(
           filter = selector,
-          update = modifier, new FindOneAndUpdateOptions().upsert(false)).toFuture().map(_ => NoContent)
+          update = modifier).toFuture().map(_ => NoContent)
       } else {
         Future.successful(NotFound)
       }
@@ -214,13 +210,6 @@ class EventReportCacheRepository @Inject()(
         dataEntry =>
           dataEntry.data
       }
-    }
-  }
-
-  def remove(mapOfKeys: Map[String, String])(implicit ec: ExecutionContext): Future[Boolean] = {
-    collection.deleteOne(filterByKeys(mapOfKeys)).toFuture().map { result =>
-      logger.info(s"Removing row from collection $collectionName")
-      result.wasAcknowledged
     }
   }
 
