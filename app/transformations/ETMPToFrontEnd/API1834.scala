@@ -17,7 +17,7 @@
 package transformations.ETMPToFrontEnd
 
 import models.enumeration.EventType
-import models.enumeration.EventType.{Event10, Event11}
+import models.enumeration.EventType.{Event10, Event11, Event12, Event13}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
@@ -31,37 +31,99 @@ object API1834 {
     eventType match {
       case Event10 => event10Reads
       case Event11 => event11Reads
+      case Event12 => event12Reads
+      case Event13 => event13Reads
       case e => Reads.failed(s"Unknown event type $e")
     }
   }
 
   /*
-  "eventDetails" -> Json.obj(
-    "event11" -> Json.obj(
-      "recordVersion" -> "001",
-      "unauthorisedPmtsDate" -> date1,
-      "contractsOrPoliciesDate" -> date2
+  val payload: JsObject = Json.obj(
+    "eventDetails" -> Json.obj(
+      "event12" -> Json.obj(
+        "recordVersion" -> "001",
+        "twoOrMoreSchemesDate" -> date
+      )
     )
   )
-)
 
-val expected = Json.obj(
-  "event11" -> Json.obj(
-    "hasSchemeChangedRulesUnAuthPayments" -> true,
-    "unAuthPaymentsRuleChangeDate" -> Json.obj(
-      "date" -> date1
-    ),
-    "hasSchemeChangedRulesInvestmentsInAssets" -> true,
-    "investmentsInAssetsRuleChangeDate" -> Json.obj {
-      "date" -> date2
-    }
+  val expected = Json.obj(
+    "event12" -> Json.obj(
+      "hasSchemeChangedRules" -> true,
+      "dateOfChange" -> Json.obj {
+        "dateOfChange" -> date
+      }
+    )
   )
-)
    */
 
+  private val event12Reads: Reads[JsObject] = {
+    (__ \ "eventDetails" \ "event12" \ "twoOrMoreSchemesDate").readNullable[String].map {
+      case Some(date) =>
+        ((__ \ "event12" \ "hasSchemeChangedRules").json.put(JsBoolean(true)) and
+          (__ \ "event12" \ "dateOfChange" \ "dateOfChange").json.put(JsString(date))).reduce
+      case _ => Reads.pure(Json.obj())
+    }.flatMap(identity)
+  }
+
+  private val event13Reads: Reads[JsObject] = {
+
+    def mapStructure(s: String) = s match {
+      case "A single trust under which all of the assets are held for the benefit of all members of the scheme" => "single"
+      case "A group life/death in service scheme" => "group"
+      case "A body corporate" => "corporate"
+      case "Other" => "other"
+    }
+
+    (
+      (__ \ "eventDetails" \ "event13" \ "dateOfChange").readNullable[String] and
+        (__ \ "eventDetails" \ "event13" \ "schemeStructure").readNullable[String]
+      )(
+      (date, structure) => {
+        (date, structure) match {
+          case (Some(d), Some(s)) =>
+            (
+              (__ \ "event13" \ "schemeStructure").json.put(JsString(mapStructure(s))) and
+                (__ \ "event13" \ "changeDate").json.put(JsString(d))
+              ).reduce
+          case _ => Reads.pure(Json.obj())
+        }
+      }
+    ).flatMap(identity)
+  }
+
   private val event11Reads: Reads[JsObject] = {
-    (__ \ "event11" \ "hasSchemeChangedRulesUnAuthPayments")
-    //(__ \ "eventDetails" \ "event11")
+    (
+      (__ \ "eventDetails" \ "event11" \ "unauthorisedPmtsDate").readNullable[String] and
+        (__ \ "eventDetails" \ "event11" \ "contractsOrPoliciesDate").readNullable[String]
+      )(
+      (unAuthDate, contractsDate) => {
+        (unAuthDate, contractsDate) match {
+          case (Some(date1), Some(date2)) =>
+            (
+              (__ \ "event11" \ "hasSchemeChangedRulesUnAuthPayments").json.put(JsBoolean(true)) and
+                (__ \ "event11" \ "unAuthPaymentsRuleChangeDate").json.put(JsString(date1)) and
+                (__ \ "event11" \ "hasSchemeChangedRulesInvestmentsInAssets").json.put(JsBoolean(true)) and
+                (__ \ "event11" \ "investmentsInAssetsRuleChangeDate").json.put(JsString(date2))
+              ).reduce
+          case (Some(date1), _) =>
+            (
+              (__ \ "event11" \ "hasSchemeChangedRulesUnAuthPayments").json.put(JsBoolean(true)) and
+                (__ \ "event11" \ "unAuthPaymentsRuleChangeDate").json.put(JsString(date1)) and
+                (__ \ "event11" \ "hasSchemeChangedRulesInvestmentsInAssets").json.put(JsBoolean(false))
+              ).reduce
+          case (_, Some(date2)) =>
+            (
+              (__ \ "event11" \ "hasSchemeChangedRulesUnAuthPayments").json.put(JsBoolean(false)) and
+                (__ \ "event11" \ "hasSchemeChangedRulesInvestmentsInAssets").json.put(JsBoolean(true)) and
+                (__ \ "event11" \ "investmentsInAssetsRuleChangeDate").json.put(JsString(date2))
+              ).reduce
+          case _ => Reads.pure(Json.obj())
+
+        }
+
+      }
+    ) flatMap (identity)
   }
 
 

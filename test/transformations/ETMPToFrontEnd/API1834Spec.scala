@@ -28,7 +28,8 @@ class API1834Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
   with GeneratorAPI1834 with ScalaCheckPropertyChecks {
 
   "Reads" - {
-    val api1834Events = List(/*Event10,*/ Event11/*, Event12, Event13, Event14, Event18, Event19, Event20, WindUp*/)
+    //Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, WindUp
+    val api1834Events = List(Event13)
     api1834Events.foreach { eventType =>
       s"transform a randomly generated valid payload from API 1834 correctly (Event ${eventType.toString})" in {
         forAll(generateUserAnswersAndPOSTBodyByEvent(eventType)) {
@@ -37,7 +38,7 @@ class API1834Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
             println("\nexp ua = " + expectedResponse)
             val result = payload.validate(API1834.reads(eventType))
             println("\nactual = " + result)
-            result mustBe JsSuccess(expectedResponse, __ \ "eventDetails" \ "event10")
+            result.asOpt mustBe Some(expectedResponse)
 
         }
       }
