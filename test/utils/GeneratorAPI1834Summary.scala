@@ -21,7 +21,7 @@ import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
 import play.api.libs.json.{JsObject, Json}
 
-trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerators {
+trait GeneratorAPI1834Summary extends Matchers with OptionValues with ResponseGenerators {
   def generateGET1834ResponseAndUserAnswers: Gen[Tuple2[JsObject, Seq[String]]] = {
     val sortEventTypes: (String, String) => Boolean = (a, b) => {
       def toNum(str:String) = {
