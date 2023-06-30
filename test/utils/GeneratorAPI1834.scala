@@ -46,36 +46,54 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
   private def generateForEvent10: Gen[(JsObject, JsObject)] = {
     for {
       boolean <- Gen.oneOf(Seq(false, true))
+      hasBecome <- Gen.oneOf(false, true)
       date <- dateGeneratorYMD
     } yield {
+
+      val invRegSection = if (hasBecome) {
+        Json.obj(
+          "startDateDetails" -> Json.obj(
+            "startDateOfInvReg" -> date,
+            "contractsOrPolicies" -> toYesNo(boolean)
+          )
+        )
+      } else {
+        Json.obj(
+          "ceaseDateDetails" -> Json.obj(
+            "ceaseDateOfInvReg" -> date
+          )
+        )
+      }
+
       val payload: JsObject = Json.obj(
         "eventDetails" -> Json.obj(
           "event10" -> Json.arr(
             Json.obj(
               "recordVersion" -> "001",
-              "invRegScheme" -> Json.obj(
-                "startDateDetails" -> Json.obj(
-                  "startDateOfInvReg" -> date,
-                  "contractsOrPolicies" -> toYesNo(boolean)
-                )
-              )
+              "invRegScheme" -> invRegSection
             )
           )
         )
       )
 
+      val whatChangedUA = if (hasBecome) {
+        "itBecameAnInvestmentRegulatedPensionScheme"
+      } else {
+        "itHasCeasedToBeAnInvestmentRegulatedPensionScheme"
+      }
+
+      val conditionalJson = if (hasBecome) Json.obj("contractsOrPolicies" -> boolean) else Json.obj()
+
       val expected = Json.obj(
-        "event10" -> Json.obj(
-          "becomeOrCeaseScheme" -> "itBecameAnInvestmentRegulatedPensionScheme",
+        "event10" -> (Json.obj(
+          "becomeOrCeaseScheme" -> whatChangedUA,
           "schemeChangeDate" -> Json.obj(
             "schemeChangeDate" -> date
-          ),
-          "contractsOrPolicies" -> boolean
-        )
+          )
+        ) ++ conditionalJson)
       )
 
       Tuple2(payload, expected)
-
     }
   }
 
@@ -204,20 +222,20 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
 
   private def generateForEvent18: Gen[(JsObject, JsObject)] = {
     for {
-      date <- dateGeneratorYMD
+      boolean <- Gen.oneOf(Seq(false, true))
     } yield {
       val payload: JsObject = Json.obj(
         "eventDetails" -> Json.obj(
           "event18" -> Json.obj(
             "recordVersion" -> "001",
-            "chargeablePmt" -> "Yes"
+            "chargeablePmt" -> toYesNo(boolean)
           )
         )
       )
 
       val expected = Json.obj(
         "event18" -> Json.obj(
-          "event18Confirmation" -> true
+          "event18Confirmation" -> boolean
         )
       )
       Tuple2(payload, expected)
@@ -234,15 +252,15 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
           "event19" -> Json.obj(
             "recordVersion" -> "001",
             "countryCode" -> "GB",
-            "dateOfChange" -> "2024-01-01"
+            "dateOfChange" -> date
           )
         )
       )
 
       val expected = Json.obj(
         "event19" -> Json.obj(
-          "CountryOrTerritory" -> "GB",
-          "dateChangeMade" -> "2024-01-01"
+          "CountryOrTerritory" -> "GB", // TODO: other countries
+          "dateChangeMade" -> date
         )
       )
       Tuple2(payload, expected)
@@ -259,7 +277,7 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
           "event20" -> Json.obj(
             "recordVersion" -> "001",
             "occSchemeDetails" -> Json.obj(
-              "startDateOfOccScheme" -> "2024-01-01"
+              "startDateOfOccScheme" -> date
             )
           )
         )
@@ -269,7 +287,7 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
         "event20" -> Json.obj(
           "whatChange" -> "becameOccupationalScheme",
           "becameDate" -> Json.obj {
-            "date" -> "2024-01-01"
+            "date" -> date
           }
         )
       )
@@ -286,14 +304,14 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
         "eventDetails" -> Json.obj(
           "eventWindUp" -> Json.obj(
             "recordVersion" -> "001",
-            "dateOfWindUp" -> "2024-01-01"
+            "dateOfWindUp" -> date
           )
         )
       )
 
       val expected = Json.obj(
         "eventWindUp" -> Json.obj(
-          "schemeWindUpDate" -> "2024-01-01"
+          "schemeWindUpDate" -> date
         )
       )
       Tuple2(payload, expected)
