@@ -56,7 +56,7 @@ class API1832Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
     val api1832Events = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23)
 
     api1832Events.foreach(
-      event => {
+      event =>
         s"transform a randomly generated valid payload from API 1832 correctly (Event ${event.toString})" in {
           forAll(generateUserAnswersAndPOSTBodyByEvent(event)) {
             case (payload: JsObject, expectedResponse: JsObject) =>
@@ -64,7 +64,6 @@ class API1832Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
               result mustBe Some(expectedResponse)
           }
         }
-      }
     )
   }
 }

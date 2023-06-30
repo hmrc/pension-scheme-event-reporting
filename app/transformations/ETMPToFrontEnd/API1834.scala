@@ -16,13 +16,14 @@
 
 package transformations.ETMPToFrontEnd
 
+import models.enumeration.EventType
 import play.api.libs.json._
 
 
 object API1834 {
 
-//  implicit val reads: Reads[JsObject] = {
-//
-//  }
+  implicit def reads(eventType: EventType): Reads[JsObject] = {
+
+  }
 
 }
