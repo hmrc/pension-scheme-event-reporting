@@ -386,20 +386,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       status(result) mustBe OK
     }
 
-    "return 200 OK when version present" in {
-      val v = 1
-      when(mockEventReportService.removeUserAnswersAllButVersion(
-        ArgumentMatchers.eq(externalId),
-        ArgumentMatchers.eq(v)
-      )(any()))
-        .thenReturn(Future.successful(()))
-
-      val result = controller.removeUserAnswers(fakeRequest.withHeaders(
-        newHeaders = "pstr" -> pstr, externalId -> externalId, "version" -> v.toString))
-
-      status(result) mustBe OK
-    }
-
     "throw a UnauthorizedException when not authorized" in {
       when(mockAuthConnector.authorise[Option[String] ~ Enrolments](any(), any())(any(), any())) thenReturn Future.successful(emptyCredentials)
       recoverToExceptionIf[UnauthorizedException] {
@@ -474,8 +460,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       when(mockEventReportService.changeVersion(
         ArgumentMatchers.eq(externalId),
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(Event1),
-        ArgumentMatchers.eq(2020),
         ArgumentMatchers.eq(1),
         ArgumentMatchers.eq(2)
       )(any()))
@@ -490,8 +474,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       when(mockEventReportService.changeVersion(
         ArgumentMatchers.eq(externalId),
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(Event1),
-        ArgumentMatchers.eq(2020),
         ArgumentMatchers.eq(1),
         ArgumentMatchers.eq(2)
       )(any()))

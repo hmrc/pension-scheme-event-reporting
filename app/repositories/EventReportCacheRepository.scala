@@ -139,24 +139,22 @@ class EventReportCacheRepository @Inject()(
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
   }
 
-  def changeVersion(pstr: String, edi: EventDataIdentifier, newVersion: Int)(implicit ec: ExecutionContext): Future[Result] = {
+  def changeVersion(externalId: String, pstr: String, version: Int, newVersion: Int)(implicit ec: ExecutionContext): Future[Result] = {
     val modifier = Updates.combine(
       Updates.set(versionKey, newVersion),
       Updates.set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC"))))
     )
     val selector = Filters.and(
       Filters.equal(pstrKey, pstr),
-      Filters.equal(eventTypeKey, edi.eventType.toString),
-      Filters.equal(yearKey, edi.year),
-      Filters.equal(versionKey, edi.version),
-      Filters.equal(externalIdKey, edi.externalId)
+      Filters.equal(versionKey, version),
+      Filters.equal(externalIdKey, externalId)
     )
 
     collection.find(filter = selector).headOption().flatMap { foundItem =>
       if (foundItem.isDefined) {
-        collection.findOneAndUpdate(
+        collection.updateMany(
           filter = selector,
-          update = modifier, new FindOneAndUpdateOptions().upsert(false)).toFuture().map(_ => NoContent)
+          update = modifier).toFuture().map(_ => NoContent)
       } else {
         Future.successful(NotFound)
       }
@@ -212,17 +210,6 @@ class EventReportCacheRepository @Inject()(
         dataEntry =>
           dataEntry.data
       }
-    }
-  }
-
-  def removeAllButVersion(externalId: String, version: Int)(implicit ec: ExecutionContext): Future[Unit] = {
-    val filter = Filters.and(
-      Filters.equal(externalIdKey, externalId),
-      Filters.notEqual(versionKey, version)
-    )
-    collection.deleteMany(filter).toFuture().map { _ =>
-      logger.info(s"Removing rows from collection $collectionName")
-      ()
     }
   }
 

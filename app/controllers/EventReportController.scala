@@ -45,15 +45,9 @@ class EventReportController @Inject()(
 
   def removeUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuth.flatMap { case Credentials(externalId, psaPspId) =>
-        // if version present remove all except this version
-        val futureResponse = request.headers.get("version") match {
-          case Some(version) =>
-            eventReportService.removeUserAnswersAllButVersion(externalId, version.toInt)
-          case _ =>
-            eventReportService.removeUserAnswers(externalId)
-        }
-        futureResponse.map{_=>Ok}
+      withAuth.map { case Credentials(externalId, psaPspId) =>
+        eventReportService.removeUserAnswers(externalId)
+        Ok
       }
   }
 
@@ -84,12 +78,9 @@ class EventReportController @Inject()(
   def changeVersion: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { case Credentials(externalId, _) =>
-        val Seq(pstr, eventType, version, year, newVersion) = requiredHeaders("pstr", "eventType", "version", "year", "newVersion")
-        EventType.getEventType(eventType) match {
-          case Some(et) =>
-            eventReportService.changeVersion(externalId, pstr, et, year.toInt, version.toInt, newVersion.toInt)
-          case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
-        }
+        val Seq(pstr, version, newVersion) = requiredHeaders("pstr", "version", "newVersion")
+            eventReportService.changeVersion(externalId, pstr, version.toInt, newVersion.toInt)
+
       }
   }
 
