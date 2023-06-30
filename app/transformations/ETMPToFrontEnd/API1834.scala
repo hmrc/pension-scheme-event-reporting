@@ -17,7 +17,7 @@
 package transformations.ETMPToFrontEnd
 
 import models.enumeration.EventType
-import models.enumeration.EventType.{Event10, Event11, Event12, Event13}
+import models.enumeration.EventType.{Event10, Event11, Event12, Event13, WindUp}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
@@ -33,6 +33,7 @@ object API1834 {
       case Event11 => event11Reads
       case Event12 => event12Reads
       case Event13 => event13Reads
+      case WindUp => eventWindUpReads
       case e => Reads.failed(s"Unknown event type $e")
     }
   }
@@ -62,6 +63,13 @@ object API1834 {
       case Some(date) =>
         ((__ \ "event12" \ "hasSchemeChangedRules").json.put(JsBoolean(true)) and
           (__ \ "event12" \ "dateOfChange" \ "dateOfChange").json.put(JsString(date))).reduce
+      case _ => Reads.pure(Json.obj())
+    }.flatMap(identity)
+  }
+
+  private val eventWindUpReads: Reads[JsObject] = {
+    (__ \ "eventDetails" \ "eventWindUp" \ "dateOfWindUp").readNullable[String].map {
+      case Some(data) => (__ \ "eventWindUp" \ "schemeWindUpDate").json.put(JsString(data))
       case _ => Reads.pure(Json.obj())
     }.flatMap(identity)
   }
