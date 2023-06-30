@@ -45,7 +45,8 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
 
   private def generateForEvent10: Gen[(JsObject, JsObject)] = {
     for {
-      map <- randomValues()
+      boolean <- Gen.oneOf(Seq(false, true))
+      date <- dateGeneratorYMD
     } yield {
       val payload: JsObject = Json.obj(
         "eventDetails" -> Json.obj(
@@ -54,8 +55,8 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
               "recordVersion" -> "001",
               "invRegScheme" -> Json.obj(
                 "startDateDetails" -> Json.obj(
-                  "startDateOfInvReg" -> "2022-01-31",
-                  "contractsOrPolicies" -> "Yes"
+                  "startDateOfInvReg" -> date,
+                  "contractsOrPolicies" -> toYesNo(boolean)
                 )
               )
             )
@@ -67,9 +68,9 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
         "event10" -> Json.obj(
           "becomeOrCeaseScheme" -> "itBecameAnInvestmentRegulatedPensionScheme",
           "schemeChangeDate" -> Json.obj(
-            "schemeChangeDate" -> "2024-01-01"
+            "schemeChangeDate" -> date
           ),
-          "contractsOrPolicies" -> true
+          "contractsOrPolicies" -> boolean
         )
       )
 
@@ -80,14 +81,15 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
 
   private def generateForEvent11: Gen[(JsObject, JsObject)] = {
     for {
-      map <- randomValues()
+      date1 <- dateGeneratorYMD
+      date2 <- dateGeneratorYMD
     } yield {
       val payload: JsObject = Json.obj(
         "eventDetails" -> Json.obj(
           "event11" -> Json.obj(
             "recordVersion" -> "001",
-            "unauthorisedPmtsDate" -> "2022-01-31",
-            "contractsOrPoliciesDate" -> "2022-01-31"
+            "unauthorisedPmtsDate" -> date1,
+            "contractsOrPoliciesDate" -> date2
           )
         )
       )
@@ -96,11 +98,11 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
         "event11" -> Json.obj(
           "hasSchemeChangedRulesUnAuthPayments" -> true,
           "unAuthPaymentsRuleChangeDate" -> Json.obj(
-            "date" -> "2024-01-01"
+            "date" -> date1
           ),
           "hasSchemeChangedRulesInvestmentsInAssets" -> true,
           "investmentsInAssetsRuleChangeDate" -> Json.obj {
-            "date" -> "2024-01-01"
+            "date" -> date2
           }
         )
       )
@@ -110,13 +112,13 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
 
   private def generateForEvent12: Gen[(JsObject, JsObject)] = {
     for {
-      map <- randomValues()
+      date <- dateGeneratorYMD
     } yield {
       val payload: JsObject = Json.obj(
         "eventDetails" -> Json.obj(
           "event12" -> Json.obj(
             "recordVersion" -> "001",
-            "twoOrMoreSchemesDate" -> "2022-01-31"
+            "twoOrMoreSchemesDate" -> date
           )
         )
       )
@@ -125,7 +127,7 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
         "event12" -> Json.obj(
           "hasSchemeChangedRules" -> true,
           "dateOfChange" -> Json.obj {
-            "dateOfChange" -> "2024-01-01"
+            "dateOfChange" -> date
           }
         )
       )
@@ -135,22 +137,34 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
 
   private def generateForEvent13: Gen[(JsObject, JsObject)] = {
     for {
-      map <- randomValues()
+      date <- dateGeneratorYMD
+      schemeStructure <- Gen.oneOf(
+        "A single trust under which all of the assets are held for the benefit of all members of the scheme",
+        "A group life/death in service scheme",
+        "A body corporate",
+        "Other")
     } yield {
       val payload: JsObject = Json.obj(
         "eventDetails" -> Json.obj(
           "event13" -> Json.obj(
             "recordVersion" -> "001",
-            "schemeStructure" -> "A single trust under which all of the assets are held for the benefit of all members of the scheme",
-            "dateOfChange" -> "2024-01-01"
+            "schemeStructure" -> schemeStructure,
+            "dateOfChange" -> date
           )
         )
       )
 
+      def mapStructure(s: String): String = s match {
+        case "A single trust under which all of the assets are held for the benefit of all members of the scheme" => "single"
+        case "A group life/death in service scheme" => "group"
+        case "A body corporate" => "corporate"
+        case _ => "other"
+      }
+
       val expected = Json.obj(
         "event13" -> Json.obj(
-          "schemeStructure" -> "single",
-          "changeDate" -> "2024-01-01"
+          "schemeStructure" -> mapStructure(schemeStructure),
+          "changeDate" -> date
         )
       )
       Tuple2(payload, expected)
@@ -160,20 +174,27 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
 
   private def generateForEvent14: Gen[(JsObject, JsObject)] = {
     for {
-      map <- randomValues()
+      members <- Gen.oneOf(
+        "0",
+        "1",
+        "2 to 11",
+        "12 to 50",
+        "51 to 10,000",
+        "More than 10,000"
+      )
     } yield {
       val payload: JsObject = Json.obj(
         "eventDetails" -> Json.obj(
           "event14" -> Json.obj(
             "recordVersion" -> "001",
-            "schemeMembers" -> "12 to 50"
+            "schemeMembers" -> members
           )
         )
       )
 
       val expected = Json.obj(
         "event14" -> Json.obj(
-          "schemeMembers" -> "1"
+          "schemeMembers" -> members
         )
       )
       Tuple2(payload, expected)
@@ -183,7 +204,7 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
 
   private def generateForEvent18: Gen[(JsObject, JsObject)] = {
     for {
-      map <- randomValues()
+      date <- dateGeneratorYMD
     } yield {
       val payload: JsObject = Json.obj(
         "eventDetails" -> Json.obj(
@@ -206,7 +227,7 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
 
   private def generateForEvent19: Gen[(JsObject, JsObject)] = {
     for {
-      map <- randomValues()
+      date <- dateGeneratorYMD
     } yield {
       val payload: JsObject = Json.obj(
         "eventDetails" -> Json.obj(
@@ -231,7 +252,7 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
 
   private def generateForEvent20: Gen[(JsObject, JsObject)] = {
     for {
-      map <- randomValues()
+      date <- dateGeneratorYMD
     } yield {
       val payload: JsObject = Json.obj(
         "eventDetails" -> Json.obj(
@@ -259,7 +280,7 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
 
   private def generateForEventWindup: Gen[(JsObject, JsObject)] = {
     for {
-      map <- randomValues()
+      date <- dateGeneratorYMD
     } yield {
       val payload: JsObject = Json.obj(
         "eventDetails" -> Json.obj(
@@ -283,51 +304,35 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
 }
 
 
-object GeneratorAPI1834 {
-  private def randomValues(): Gen[Map[String, String]] = {
-    for {
-      firstName <- Gen.oneOf(Seq("Alice", "Bob", "Charlie"))
-      lastName <- Gen.oneOf(Seq("Xavier", "Yilmaz", "Zimmer"))
-      nino <- Gen.oneOf(Seq("AB123456C", "CD123456E"))
-      deceasedFirstName <- Gen.oneOf(Seq("Derek", "Emma", "Fred"))
-      deceasedLastName <- Gen.oneOf(Seq("Stevens", "Thomas", "Jones"))
-      deceasedNino <- Gen.oneOf(Seq("ZB123456C", "ZD123456E"))
-      reasonBenefitTakenEvent3 <- Gen.oneOf(Seq("Ill Health", "Protected Pension Age", "Other"))
-      pensionAmt <- Gen.chooseNum(1, 1000)
-      lumpSumAmount <- Gen.chooseNum(1, 1000)
-      typeOfProtectionEvent6 <- Gen.oneOf(Seq("Enhanced life time allowance",
-        "Enhanced protection", "Fixed protection", "Fixed protection 2014", "Fixed protection 2016",
-        "Individual protection 2014", "Individual protection 2016"))
-      inputProtectionType <- Gen.chooseNum(10000000, 99999999)
-      amountCrystallised <- Gen.chooseNum(1, 1000)
-      typeOfProtectionEvent8 <- Gen.oneOf(Seq("Primary Protection", "Enhanced protection"))
-      typeOfProtectionEvent8A <- Gen.oneOf(Seq("Primary Protection", "Enhanced"))
-      typeOfProtectionReference <- Gen.chooseNum(10000000, 99999999)
-      taxYearEndDate <- Gen.oneOf(2020, 2021, 2022)
-      reasonBenefitTakenEvent8A <- Gen.oneOf(
-        "Member where payment of a stand-alone lump sum (100 per lump sum) and the member had protected lump sum rights of more than £375,000 with either primary protection or enhanced protection",
-        "Member where payment of a scheme specific lump sum protection and the lump sum is more than 7.5 per of the lifetime allowance"
-      )
-    } yield {
-      Map(
-        "firstName" -> firstName,
-        "lastName" -> lastName,
-        "nino" -> nino,
-        "deceasedFirstName" -> deceasedFirstName,
-        "deceasedLastName" -> deceasedLastName,
-        "deceasedNino" -> deceasedNino,
-        "reasonBenefitTakenEvent3" -> reasonBenefitTakenEvent3,
-        "pensionAmt" -> pensionAmt.toString,
-        "amountCrystallised" -> amountCrystallised.toString,
-        "lumpSumAmount" -> lumpSumAmount.toString,
-        "taxYearEndDate" -> taxYearEndDate.toString,
-        "typeOfProtectionEvent6" -> typeOfProtectionEvent6,
-        "inputProtectionType" -> inputProtectionType.toString,
-        "typeOfProtectionEvent8" -> typeOfProtectionEvent8,
-        "typeOfProtectionEvent8A" -> typeOfProtectionEvent8A,
-        "typeOfProtectionReference" -> typeOfProtectionReference.toString,
-        "reasonBenefitTakenEvent8A" -> reasonBenefitTakenEvent8A
-      )
-    }
-  }
+object GeneratorAPI1834 extends ResponseGenerators {
+  //  private def randomValues(): Gen[Map[String, String]] = {
+  //    for {
+  //      date <- dateGeneratorYMD
+  ////      lastName <- Gen.oneOf(Seq("Xavier", "Yilmaz", "Zimmer"))
+  ////      nino <- Gen.oneOf(Seq("AB123456C", "CD123456E"))
+  ////      deceasedFirstName <- Gen.oneOf(Seq("Derek", "Emma", "Fred"))
+  ////      deceasedLastName <- Gen.oneOf(Seq("Stevens", "Thomas", "Jones"))
+  ////      deceasedNino <- Gen.oneOf(Seq("ZB123456C", "ZD123456E"))
+  ////      reasonBenefitTakenEvent3 <- Gen.oneOf(Seq("Ill Health", "Protected Pension Age", "Other"))
+  ////      pensionAmt <- Gen.chooseNum(1, 1000)
+  ////      lumpSumAmount <- Gen.chooseNum(1, 1000)
+  ////      typeOfProtectionEvent6 <- Gen.oneOf(Seq("Enhanced life time allowance",
+  ////        "Enhanced protection", "Fixed protection", "Fixed protection 2014", "Fixed protection 2016",
+  ////        "Individual protection 2014", "Individual protection 2016"))
+  ////      inputProtectionType <- Gen.chooseNum(10000000, 99999999)
+  ////      amountCrystallised <- Gen.chooseNum(1, 1000)
+  ////      typeOfProtectionEvent8 <- Gen.oneOf(Seq("Primary Protection", "Enhanced protection"))
+  ////      typeOfProtectionEvent8A <- Gen.oneOf(Seq("Primary Protection", "Enhanced"))
+  ////      typeOfProtectionReference <- Gen.chooseNum(10000000, 99999999)
+  ////      taxYearEndDate <- Gen.oneOf(2020, 2021, 2022)
+  ////      reasonBenefitTakenEvent8A <- Gen.oneOf(
+  ////        "Member where payment of a stand-alone lump sum (100 per lump sum) and the member had protected lump sum rights of more than £375,000 with either primary protection or enhanced protection",
+  ////        "Member where payment of a scheme specific lump sum protection and the lump sum is more than 7.5 per of the lifetime allowance"
+  ////      )
+  //    } yield {
+  //      Map(
+  //        "firstName" -> firstName
+  //      )
+  //    }
+  //  }
 }
