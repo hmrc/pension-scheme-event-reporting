@@ -46,5 +46,19 @@ class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar wit
           result.map(_.validate[Seq[String]].get) mustBe expectedResult
       }
     }
+
+    "transform a valid payload correctly when read from sample file from API 1831" in {
+      val json = readJsonFromFile("/api-1831-valid-example.json")
+      val result = json.validate(API1834Summary.rdsFor1831).asOpt
+      val expectedResult = Some(Seq("20A"))
+      result.map(_.validate[Seq[String]].get) mustBe expectedResult
+    }
+
+    "transform a randomly generated API 1831 events valid payload correctly" in {
+      val generatedPayload = Json.obj("er20aDetails" -> Json.obj("reportVersionNumber" -> "001"))
+      val result = generatedPayload.validate(API1834Summary.rdsFor1831).asOpt
+      val expectedResult = Some(Seq("20A"))
+      result.map(_.validate[Seq[String]].get) mustBe expectedResult
+    }
   }
 }
