@@ -35,34 +35,36 @@ class PostToAPIAuditService @Inject()(auditService: AuditService, eventDataIdent
         pstr = pstr,
         maybeStatus = Some(Status.OK),
         request = data,
+        reportVersion = eventDataIdentifier.version,
         response = Some(httpResponse.json),
-        maybeErrorMessage = None,
-        reportVersion = eventDataIdentifier.version))
+        maybeErrorMessage = None
+        ))
     case Failure(error: UpstreamErrorResponse) =>
       auditService.sendEvent(
         SubmitEventDeclarationAuditEvent(
           pstr,
-          Some(error.statusCode),
-          data, None,
-          maybeErrorMessage = None,
-          reportVersion = eventDataIdentifier.version))
+          maybeStatus = Some(error.statusCode),
+          request = data,
+          reportVersion = eventDataIdentifier.version,
+          response = None,
+          maybeErrorMessage = None))
     case Failure(error: HttpException) =>
       auditService.sendEvent(SubmitEventDeclarationAuditEvent(
         pstr = pstr,
         maybeStatus = Some(error.responseCode),
         request = data,
+        reportVersion = eventDataIdentifier.version,
         response = None,
-        maybeErrorMessage = None,
-        reportVersion = eventDataIdentifier.version))
+        maybeErrorMessage = None))
 
     case Failure(error: Throwable) =>
       auditService.sendEvent(SubmitEventDeclarationAuditEvent(
         pstr = pstr,
-        None,
+        maybeStatus = None,
         request = data,
+        reportVersion = eventDataIdentifier.version,
         response = None,
         maybeErrorMessage = Some(error.getMessage),
-        reportVersion = eventDataIdentifier.version
       ))
   }
 
@@ -73,30 +75,30 @@ class PostToAPIAuditService @Inject()(auditService: AuditService, eventDataIdent
         psaPspIdentifier = psaPspIdentifier,
         pstr = pstr,
         payload = payload,
+        reportVersion = eventDataIdentifier.version,
         status = Some(httpResponse.status),
         response = Some(httpResponse.json),
         errorMessage = None,
-        reportVersion = eventDataIdentifier.version
       ))
     case Failure(error: UpstreamErrorResponse) =>
       auditService.sendEvent(CompileEventAuditEvent(
         psaPspIdentifier = psaPspIdentifier,
         pstr = pstr,
         payload = payload,
+        reportVersion = eventDataIdentifier.version,
         status = Some(error.statusCode),
         response = None,
         errorMessage = None,
-        reportVersion = eventDataIdentifier.version
       ))
     case Failure(error: HttpException) =>
       auditService.sendEvent(CompileEventAuditEvent(
         psaPspIdentifier = psaPspIdentifier,
         pstr = pstr,
         payload = payload,
+        reportVersion = eventDataIdentifier.version,
         status = Some(error.responseCode),
         response = None,
         errorMessage = None,
-        reportVersion = eventDataIdentifier.version
       ))
 
     case Failure(error: Throwable) =>
@@ -104,10 +106,10 @@ class PostToAPIAuditService @Inject()(auditService: AuditService, eventDataIdent
         psaPspIdentifier = psaPspIdentifier,
         pstr = pstr,
         payload = payload,
+        reportVersion = eventDataIdentifier.version,
         status = None,
         response = None,
         errorMessage = Some(error.getMessage),
-        reportVersion = eventDataIdentifier.version
       ))
   }
 }

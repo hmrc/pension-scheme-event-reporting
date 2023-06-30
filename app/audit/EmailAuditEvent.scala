@@ -29,7 +29,12 @@ case class EmailAuditEvent(psaOrPspId: String,
   override def auditType: String = "EventReportingEmailEvent"
 
   override def details: JsObject = {
-    Json.obj(fields = "email-initiation-request-id" -> requestId, "emailAddress" -> emailAddress,
-      "event" -> event.toString, "submittedBy" -> submittedBy) ++ Json.obj("psaId" -> psaOrPspId) ++ Json.obj("reportVersion" -> reportVersion)
+    Json.obj(
+      fields = "email-initiation-request-id" -> requestId,
+      "emailAddress" -> emailAddress,
+      "event" -> event.toString,
+      "submittedBy" -> submittedBy,
+      "reportVersion" -> reportVersion
+    ) ++ Json.obj("psaId" -> psaOrPspId)
   }
 }

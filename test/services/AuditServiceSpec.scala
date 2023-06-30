@@ -70,7 +70,8 @@ class AuditServiceSpec extends AnyWordSpec with Matchers with Inside {
             "pstr" -> "test-audit-payload",
             "request" -> requestJson,
             "status" -> 200,
-            "response" -> responseJson
+            "response" -> responseJson,
+            "reportVersion" -> 1
           )
       }
     }

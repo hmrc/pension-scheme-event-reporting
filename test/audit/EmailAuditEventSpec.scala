@@ -39,7 +39,8 @@ class EmailAuditEventSpec extends AnyFlatSpec with Matchers {
       "psaId" -> "A2500001",
       "emailAddress" -> "test@test.com",
       "event" -> Sent.toString,
-      "submittedBy" -> "PSA"
+      "submittedBy" -> "PSA",
+      "reportVersion" -> 1
     )
 
     event.auditType shouldBe "EventReportingEmailEvent"
