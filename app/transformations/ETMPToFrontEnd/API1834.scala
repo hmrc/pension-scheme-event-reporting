@@ -17,7 +17,7 @@
 package transformations.ETMPToFrontEnd
 
 import models.enumeration.EventType
-import models.enumeration.EventType.{Event10, Event11, Event12, Event13, WindUp}
+import models.enumeration.EventType.{Event10, Event11, Event12, Event13, Event20, WindUp}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
@@ -33,6 +33,7 @@ object API1834 {
       case Event11 => event11Reads
       case Event12 => event12Reads
       case Event13 => event13Reads
+      case Event20 => event20Reads
       case WindUp => eventWindUpReads
       case e => Reads.failed(s"Unknown event type $e")
     }
@@ -58,18 +59,56 @@ object API1834 {
   )
    */
 
-  private val event12Reads: Reads[JsObject] = {
-    (__ \ "eventDetails" \ "event12" \ "twoOrMoreSchemesDate").readNullable[String].map {
-      case Some(date) =>
-        ((__ \ "event12" \ "hasSchemeChangedRules").json.put(JsBoolean(true)) and
-          (__ \ "event12" \ "dateOfChange" \ "dateOfChange").json.put(JsString(date))).reduce
-      case _ => Reads.pure(Json.obj())
+  //val payload: JsObject = Json.obj(
+  //        "eventDetails" -> Json.obj(
+  //          "event20" -> Json.obj(
+  //            "recordVersion" -> "001",
+  //            "occSchemeDetails" -> Json.obj(
+  //              "startDateOfOccScheme" -> date
+  //            )
+  //          )
+  //        )
+  //      )
+  //
+  //      val expected = Json.obj(
+  //        "event20" -> Json.obj(
+  //          "whatChange" -> "becameOccupationalScheme",
+  //          "becameDate" -> Json.obj {
+  //            "date" -> date
+  //          }
+  //        )
+  //      )
+
+  private val event20Reads: Reads[JsObject] = {
+
+    val startDateOpt = (__ \ "eventDetails" \ "event20" \ "occSchemeDetails"\ "startDateOfOccScheme").readNullable[String]
+    val ceaseDateOpt = (__ \ "eventDetails" \ "event20" \ "occSchemeDetails"\ "stopDateOfOccScheme").readNullable[String]
+
+    startDateOpt.map {
+      case Some(data) => ((__ \ "event20" \ "becameDate"\ "date").json.put(JsString(data)) and
+        (__ \ "event20" \ "whatChange").json.put(JsString("becameOccupationalScheme")
+      )).reduce
+      case _ => ceaseDateOpt.map{
+        case Some(data) => ((__ \ "event20" \ "ceasedDate"\ "date").json.put(JsString(data)) and
+          (__ \ "event20" \ "whatChange").json.put(JsString("ceasedOccupationalScheme")
+          )).reduce
+        case _ => Reads.pure(Json.obj())
+      }.flatMap(identity)
     }.flatMap(identity)
   }
 
   private val eventWindUpReads: Reads[JsObject] = {
     (__ \ "eventDetails" \ "eventWindUp" \ "dateOfWindUp").readNullable[String].map {
       case Some(data) => (__ \ "eventWindUp" \ "schemeWindUpDate").json.put(JsString(data))
+      case _ => Reads.pure(Json.obj())
+    }.flatMap(identity)
+  }
+
+  private val event12Reads: Reads[JsObject] = {
+    (__ \ "eventDetails" \ "event12" \ "twoOrMoreSchemesDate").readNullable[String].map {
+      case Some(date) =>
+        ((__ \ "event12" \ "hasSchemeChangedRules").json.put(JsBoolean(true)) and
+          (__ \ "event12" \ "dateOfChange" \ "dateOfChange").json.put(JsString(date))).reduce
       case _ => Reads.pure(Json.obj())
     }.flatMap(identity)
   }
@@ -86,7 +125,7 @@ object API1834 {
     (
       (__ \ "eventDetails" \ "event13" \ "dateOfChange").readNullable[String] and
         (__ \ "eventDetails" \ "event13" \ "schemeStructure").readNullable[String]
-      )(
+      ) (
       (date, structure) => {
         (date, structure) match {
           case (Some(d), Some(s)) =>
@@ -104,7 +143,7 @@ object API1834 {
     (
       (__ \ "eventDetails" \ "event11" \ "unauthorisedPmtsDate").readNullable[String] and
         (__ \ "eventDetails" \ "event11" \ "contractsOrPoliciesDate").readNullable[String]
-      )(
+      ) (
       (unAuthDate, contractsDate) => {
         (unAuthDate, contractsDate) match {
           case (Some(date1), Some(date2)) =>
@@ -141,7 +180,7 @@ object API1834 {
         (__ \ "invRegScheme" \ "startDateDetails" \ "startDateOfInvReg").readNullable[String] and
           (__ \ "invRegScheme" \ "startDateDetails" \ "contractsOrPolicies").readNullable[String] and
           (__ \ "invRegScheme" \ "ceaseDateDetails" \ "ceaseDateOfInvReg").readNullable[String]
-        )(
+        ) (
         (startDate, contractsOrPolicies, ceaseDate) => {
           (startDate, contractsOrPolicies, ceaseDate) match {
             case (Some(sd), Some(cop), None) =>
