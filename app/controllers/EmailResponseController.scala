@@ -18,11 +18,11 @@ package controllers
 
 import audit.EmailAuditEvent
 import com.google.inject.Inject
-import models.{EmailEvents, EventDataIdentifier, Opened}
+import models.{ERVersion, EmailEvents, EventDataIdentifier, Opened}
 import play.api.Logger
 import play.api.libs.json.JsValue
 import play.api.mvc._
-import services.AuditService
+import services.{AuditService, EventReportService}
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.crypto.{ApplicationCrypto, Crypted}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -35,7 +35,6 @@ class EmailResponseController @Inject()(
                                          crypto: ApplicationCrypto,
                                          parser: PlayBodyParsers,
                                          val authConnector: AuthConnector,
-                                         eventDataIdentifier: EventDataIdentifier
                                        )(implicit ec: ExecutionContext) extends BackendController(cc) with AuthorisedFunctions {
   private val logger = Logger(classOf[EmailResponseController])
 
@@ -44,6 +43,8 @@ class EmailResponseController @Inject()(
                        encryptedPsaOrPspId: String,
                        email: String): Action[JsValue] = Action(parser.tolerantJson) {
     implicit request =>
+
+      val reportVersion = new EventReportService().getVersions()
 
       decryptPsaOrPspIdAndEmail(encryptedPsaOrPspId, email) match {
         case Right(Tuple2(psaOrPspId, emailAddress)) =>
@@ -54,7 +55,7 @@ class EmailResponseController @Inject()(
                 _.event == Opened
               ).foreach { event =>
                 logger.debug(s"Email Audit event is $event")
-                auditService.sendEvent(EmailAuditEvent(psaOrPspId, "PSA", emailAddress, event.event, requestId, eventDataIdentifier.version))(request, implicitly)
+                auditService.sendEvent(EmailAuditEvent(psaOrPspId, "PSA", emailAddress, event.event, requestId, reportVersion))(request, implicitly)
               }
               Ok
             }
