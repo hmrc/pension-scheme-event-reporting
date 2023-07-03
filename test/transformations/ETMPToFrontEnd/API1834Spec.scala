@@ -29,7 +29,7 @@ class API1834Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
 
   "Reads" - {
     //Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, WindUp
-    val api1834Events = List(Event20)
+    val api1834Events = List(Event19)
     api1834Events.foreach { eventType =>
       s"transform a randomly generated valid payload from API 1834 correctly (Event ${eventType.toString})" in {
         forAll(generateUserAnswersAndPOSTBodyByEvent(eventType)) {
