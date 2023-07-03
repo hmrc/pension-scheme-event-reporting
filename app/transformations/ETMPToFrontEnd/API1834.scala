@@ -17,7 +17,7 @@
 package transformations.ETMPToFrontEnd
 
 import models.enumeration.EventType
-import models.enumeration.EventType.{Event10, Event11, Event12, Event13, Event18, Event19, Event20, WindUp}
+import models.enumeration.EventType.{Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, WindUp}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
@@ -33,6 +33,7 @@ object API1834 {
       case Event11 => event11Reads
       case Event12 => event12Reads
       case Event13 => event13Reads
+      case Event14 => event14Reads
       case Event18 => event18Reads
       case Event19 => event19Reads
       case Event20 => event20Reads
@@ -60,21 +61,6 @@ object API1834 {
     )
   )
    */
-
-  //      val payload: JsObject = Json.obj(
-  //        "eventDetails" -> Json.obj(
-  //          "event18" -> Json.obj(
-  //            "recordVersion" -> "001",
-  //            "chargeablePmt" -> toYesNo(boolean)
-  //          )
-  //        )
-  //      )
-  //
-  //      val expected = Json.obj(
-  //        "event18" -> Json.obj(
-  //          "event18Confirmation" -> boolean
-  //        )
-  //      )
 
   private val event18Reads = {
     //TODO: Do we want something saved in UA if false?
@@ -161,6 +147,13 @@ object API1834 {
     ).flatMap(identity)
   }
 
+  private val event14Reads = {
+    (__ \ "eventDetails" \ "event14" \ "schemeMembers").readNullable[String].map{
+      case Some(data) => (__ \ "event14" \ "schemeMembers").json.put(JsString(data))
+      case _ => Reads.pure(Json.obj())
+    }.flatMap(identity)
+  }
+
   private val event11Reads: Reads[JsObject] = {
     (
       (__ \ "eventDetails" \ "event11" \ "unauthorisedPmtsDate").readNullable[String] and
@@ -192,7 +185,7 @@ object API1834 {
         }
 
       }
-    ) flatMap (identity)
+    ) flatMap identity
   }
 
 
