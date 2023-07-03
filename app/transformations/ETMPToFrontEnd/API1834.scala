@@ -141,9 +141,9 @@ object API1834 {
           case (Some(date1), Some(date2)) =>
             (
               (__ \ "event11" \ "hasSchemeChangedRulesUnAuthPayments").json.put(JsBoolean(true)) and
-                (__ \ "event11" \ "unAuthPaymentsRuleChangeDate").json.put(JsString(date1)) and
+                (__ \ "event11" \ "unAuthPaymentsRuleChangeDate" \ "date").json.put(JsString(date1)) and
                 (__ \ "event11" \ "hasSchemeChangedRulesInvestmentsInAssets").json.put(JsBoolean(true)) and
-                (__ \ "event11" \ "investmentsInAssetsRuleChangeDate").json.put(JsString(date2))
+                (__ \ "event11" \ "investmentsInAssetsRuleChangeDate" \ "date").json.put(JsString(date2))
               ).reduce
           case (Some(date1), _) =>
             (

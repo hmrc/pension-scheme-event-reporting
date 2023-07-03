@@ -115,9 +115,13 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
       val expected = Json.obj(
         "event11" -> Json.obj(
           "hasSchemeChangedRulesUnAuthPayments" -> true,
-          "unAuthPaymentsRuleChangeDate" -> date1,
+          "unAuthPaymentsRuleChangeDate" -> Json.obj(
+            "date" -> date1
+          ),
           "hasSchemeChangedRulesInvestmentsInAssets" -> true,
-          "investmentsInAssetsRuleChangeDate" -> date2
+          "investmentsInAssetsRuleChangeDate" -> Json.obj(
+            "date" -> date2
+          )
         )
       )
       Tuple2(payload, expected)
