@@ -42,26 +42,6 @@ object API1834 {
     }
   }
 
-  /*
-  val payload: JsObject = Json.obj(
-    "eventDetails" -> Json.obj(
-      "event12" -> Json.obj(
-        "recordVersion" -> "001",
-        "twoOrMoreSchemesDate" -> date
-      )
-    )
-  )
-
-  val expected = Json.obj(
-    "event12" -> Json.obj(
-      "hasSchemeChangedRules" -> true,
-      "dateOfChange" -> Json.obj {
-        "dateOfChange" -> date
-      }
-    )
-  )
-   */
-
   private val event18Reads = {
     (__ \ "eventDetails" \ "event18" \ "chargeablePmt").readNullable[String].map {
       case Some("Yes") => (__ \ "event18" \ "event18Confirmation").json.put(JsBoolean(true))
