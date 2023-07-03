@@ -217,25 +217,21 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
 
 
   private def generateForEvent18: Gen[(JsObject, JsObject)] = {
-    for {
-      boolean <- Gen.oneOf(Seq(false, true))
-    } yield {
       val payload: JsObject = Json.obj(
         "eventDetails" -> Json.obj(
           "event18" -> Json.obj(
             "recordVersion" -> "001",
-            "chargeablePmt" -> toYesNo(boolean)
+            "chargeablePmt" -> "Yes"
           )
         )
       )
 
       val expected = Json.obj(
         "event18" -> Json.obj(
-          "event18Confirmation" -> boolean
+          "event18Confirmation" -> true
         )
       )
       Tuple2(payload, expected)
-    }
   }
 
 

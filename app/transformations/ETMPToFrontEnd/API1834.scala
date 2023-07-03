@@ -63,11 +63,9 @@ object API1834 {
    */
 
   private val event18Reads = {
-    //TODO: Do we want something saved in UA if false?
     (__ \ "eventDetails" \ "event18" \ "chargeablePmt").readNullable[String].map {
       case Some("Yes") => (__ \ "event18" \ "event18Confirmation").json.put(JsBoolean(true))
-      case Some("No") => (__ \ "event18" \ "event18Confirmation").json.put(JsBoolean(false))
-//      case _ => Reads.pure(Json.obj())
+      case _ => Reads.pure(Json.obj())
     }.flatMap(identity)
   }
 
