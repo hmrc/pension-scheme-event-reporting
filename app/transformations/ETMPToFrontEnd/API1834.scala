@@ -59,26 +59,6 @@ object API1834 {
   )
    */
 
-  //val payload: JsObject = Json.obj(
-  //        "eventDetails" -> Json.obj(
-  //          "event20" -> Json.obj(
-  //            "recordVersion" -> "001",
-  //            "occSchemeDetails" -> Json.obj(
-  //              "startDateOfOccScheme" -> date
-  //            )
-  //          )
-  //        )
-  //      )
-  //
-  //      val expected = Json.obj(
-  //        "event20" -> Json.obj(
-  //          "whatChange" -> "becameOccupationalScheme",
-  //          "becameDate" -> Json.obj {
-  //            "date" -> date
-  //          }
-  //        )
-  //      )
-
   private val event20Reads: Reads[JsObject] = {
 
     val startDateOpt = (__ \ "eventDetails" \ "event20" \ "occSchemeDetails"\ "startDateOfOccScheme").readNullable[String]
