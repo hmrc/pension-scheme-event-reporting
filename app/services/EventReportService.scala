@@ -36,6 +36,7 @@ import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, Header
 import utils.JSONSchemaValidator
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 
 @Singleton()
@@ -101,6 +102,56 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def getUserAnswers(externalId: String, pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     eventReportCacheRepository.getUserAnswers(externalId, pstr, None)
+
+  private def addMemberStatus(memberDetail: JsObject, amendedVersion: Int, memberStatus: String): JsObject = {
+    val map = memberDetail.as[JsObject].value
+    Json.toJson(map ++ Seq(
+      "amendedVersion" -> JsString(amendedVersion.toString),
+      "memberStatus" -> JsString(memberStatus)
+    )).as[JsObject]
+  }
+
+  trait MemberStatus {
+    def name: String
+  }
+
+  case class New() extends MemberStatus {
+    def name: String = "New"
+  }
+
+  case class Deleted() extends MemberStatus {
+    def name: String = "Deleted"
+  }
+
+  case class Changed() extends MemberStatus {
+    def name: String = "Changed"
+  }
+
+  private def getMemberStatus1832And1830(oldMemberDetail: Option[JsObject], newMemberDetail: JsObject, version: Int): MemberStatus = {
+    oldMemberDetail.map { oldMemberDetail =>
+      def hasSameVersion = ???
+
+      def oldDataMemberStatus = ???
+    }.getOrElse(New())
+  }
+
+  private def memberStatusTransformation(apiType: ApiType, newData: JsObject, version: Int)
+                                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader) = {
+
+    def transformEventDetails(oldData: Option[JsObject]) = (newData \ "eventDetails").as[JsArray].value.zipWithIndex.map { case (newMemberDetail, index) =>
+      val eventDetails = oldData.map(_.value("eventDetails").as[JsArray].value)
+      val oldMemberDetail = eventDetails.flatMap(x => Try(x(index)).toOption.map(_.as[JsObject]))
+      val memberStatus = getMemberStatus1832And1830(oldMemberDetail, newMemberDetail.as[JsObject], version)
+      addMemberStatus(newMemberDetail.as[JsObject], version, memberStatus.name)
+    }
+
+    apiType match {
+      case ApiType.Api1830 =>
+        val newEventDetails = getEvent() map transformEventDetails
+        (newData - "eventDetails") + ("eventDetails", newEventDetails)
+      case _ => Future.successful(newData)
+    }
+  }
 
   def compileEventReport(externalId: String, psaPspId: String, pstr: String, eventType: EventType, year: Int, version: Int)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
