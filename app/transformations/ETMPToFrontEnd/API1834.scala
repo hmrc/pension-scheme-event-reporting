@@ -86,21 +86,20 @@ object API1834 {
   }
 
   private val event20Reads: Reads[JsObject] = {
-
-    val startDateOpt = (__ \ "eventDetails" \ "event20" \ "occSchemeDetails"\ "startDateOfOccScheme").readNullable[String]
-    val ceaseDateOpt = (__ \ "eventDetails" \ "event20" \ "occSchemeDetails"\ "stopDateOfOccScheme").readNullable[String]
-
-    startDateOpt.map {
-      case Some(data) => ((__ \ "event20" \ "becameDate"\ "date").json.put(JsString(data)) and
-        (__ \ "event20" \ "whatChange").json.put(JsString("becameOccupationalScheme")
-      )).reduce
-      case _ => ceaseDateOpt.map{
-        case Some(data) => ((__ \ "event20" \ "ceasedDate"\ "date").json.put(JsString(data)) and
-          (__ \ "event20" \ "whatChange").json.put(JsString("ceasedOccupationalScheme")
-          )).reduce
+    ((__ \ "eventDetails" \ "event20" \ "occSchemeDetails"\ "startDateOfOccScheme").readNullable[String] and
+      (__ \ "eventDetails" \ "event20" \ "occSchemeDetails"\ "stopDateOfOccScheme").readNullable[String]
+      )((optStartDate, optStopDate) => {
+      (optStartDate, optStopDate) match {
+        case (Some(startDate), None) => ((__ \ "event20" \ "becameDate"\ "date").json.put(JsString(startDate)) and
+          (__ \ "event20" \ "whatChange").json.put(JsString("becameOccupationalScheme"))
+          ).reduce
+        case (None, Some(stopDate)) => ( (__ \ "event20" \ "ceasedDate"\ "date").json.put(JsString(stopDate)) and
+          (__ \ "event20" \ "whatChange").json.put(JsString("ceasedOccupationalScheme"))
+          ).reduce
         case _ => Reads.pure(Json.obj())
-      }.flatMap(identity)
-    }.flatMap(identity)
+      }
+    }
+    ).flatMap(identity)
   }
 
   private val eventWindUpReads: Reads[JsObject] = {
