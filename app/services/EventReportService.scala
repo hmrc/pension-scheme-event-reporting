@@ -76,9 +76,9 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def saveUserAnswers(externalId: String, pstr: String, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] =
     eventReportCacheRepository.upsert(externalId, pstr, userAnswersJson)
 
-  def changeVersion(externalId: String, pstr: String, eventType: EventType, year: Int, currentVersion: Int, newVersion: Int)
+  def changeVersion(externalId: String, pstr: String, currentVersion: Int, newVersion: Int)
                      (implicit ec: ExecutionContext): Future[Result] =
-    eventReportCacheRepository.changeVersion(pstr, EventDataIdentifier(eventType, year, currentVersion, externalId), newVersion)
+    eventReportCacheRepository.changeVersion(externalId, pstr, currentVersion, newVersion)
 
   def removeUserAnswers(externalId: String)(implicit ec: ExecutionContext): Future[Unit] =
     eventReportCacheRepository.removeAllOnSignOut(externalId)
