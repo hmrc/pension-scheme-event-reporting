@@ -17,7 +17,7 @@
 package services
 
 import models.GetDetailsCacheDataIdentifier
-import models.enumeration.EventType.{Event2, Event22, Event23, Event24, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
+import models.enumeration.EventType.{Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event2, Event20, Event22, Event23, Event24, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, WindUp}
 import models.enumeration.{ApiType, EventType}
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
@@ -29,14 +29,14 @@ import org.scalatest.wordspec.AsyncWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json._
 import repositories.GetDetailsCacheRepository
-import utils.{GeneratorAPI1832, JSONSchemaValidator, JsonFileReader}
+import utils.{GeneratorAPI1826, GeneratorAPI1832, GeneratorAPI1834, JSONSchemaValidator, JsonFileReader}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Success
 
 class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with MockitoSugar with BeforeAndAfterEach
-  with JsonFileReader with GeneratorAPI1832 with ScalaFutures {
+  with JsonFileReader with GeneratorAPI1834 with GeneratorAPI1826 with ScalaFutures {
 
   private def validator = new JSONSchemaValidator
 
@@ -44,12 +44,12 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
   private val pstr = "pstr"
   private val year = 2022
   private val version = 1
-  private val eventTypesFor1832 = Seq(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
+  private val eventTypesFor1834 = Seq(WindUp, Event10, Event18, Event13, Event20, Event12, Event14, Event19)
   private val json = Json.obj(
-    "event" -> "compiling"
+
   )
 
-  private final val SchemaPath1830 = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.7.json"
+  private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
 
   override def beforeEach(): Unit = {
     reset(mockGetDetailsCacheRepository)
@@ -57,12 +57,12 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
 
 
   "interpolateJsonIntoFullPayload" must {
-    "work for 1832 (member)" in {
-      val payloadsByEventType = eventTypesFor1832.foldLeft[Map[EventType, JsObject]](Map.empty)((acc, et) =>
+    "work for 1834 (summary)" in {
+      val payloadsByEventType = eventTypesFor1834.foldLeft[Map[EventType, JsObject]](Map.empty)((acc, et) =>
         acc ++ Map(et -> generateUserAnswersAndPOSTBodyByEvent(et).sample.get._1)
       )
-
-      eventTypesFor1832.foreach { et =>
+      val event11Payload = generateUserAnswersAndPOSTBodyEvent11.sample.get._2
+      eventTypesFor1834.foreach { et =>
         val gdcdi = GetDetailsCacheDataIdentifier(et, year, version)
         val etmpResponse = payloadsByEventType(et)
         when(mockGetDetailsCacheRepository.get(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi))(any()))
@@ -70,10 +70,10 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
       }
 
       val service = new CompilePayloadService(mockGetDetailsCacheRepository)
-
-      whenReady(service.interpolateJsonIntoFullPayload(pstr, year, version, ApiType.Api1832, json)(global)) { result =>
+      whenReady(service.interpolateJsonIntoFullPayload(pstr, year, version, ApiType.Api1834,
+        EventType.Event11, event11Payload)(global)) { result =>
         println("\n>>>RES" + result)
-        validator.validatePayload(result, SchemaPath1830, "API1830") mustBe Success((): Unit)
+        validator.validatePayload(result, SchemaPath1826, "API1834") mustBe Success((): Unit)
 
       }
     }

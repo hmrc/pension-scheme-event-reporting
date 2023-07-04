@@ -115,7 +115,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
             val fullData = data ++ header
             for {
               transformedData <- Future.fromTry(toTry(fullData.validate(reads)))
-              _ <- compilePayloadService.interpolateJsonIntoFullPayload(pstr, year, version, apiType, transformedData)
+              _ <- compilePayloadService.interpolateJsonIntoFullPayload(pstr, year, version, apiType, eventType, transformedData)
               _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, schemaPath, apiType.toString))
               response <- connectToAPI(psaPspId, pstr, transformedData)
             } yield {
