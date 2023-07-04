@@ -47,9 +47,8 @@ class EmailResponseController @Inject()(
   def sendAuditEvents(
                        requestId: String,
                        encryptedPsaOrPspId: String,
-                       email: String): Action[JsValue] = Action(parser.tolerantJson) {
+                       email: String, version: String): Action[JsValue] = Action(parser.tolerantJson) {
     implicit request =>
-
       decryptPsaOrPspIdAndEmail(encryptedPsaOrPspId, email) match {
         case Right(Tuple2(psaOrPspId, emailAddress)) =>
           request.body.validate[EmailEvents].fold(
