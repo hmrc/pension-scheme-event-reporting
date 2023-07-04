@@ -50,36 +50,50 @@ object API1834 {
   }
 
   private val event19Reads = {
-    ((__ \ "eventDetails" \ "event19" \ "countryCode").readNullable[String] and
-      (__ \ "eventDetails" \ "event19" \ "dateOfChange").readNullable[String]
+    val event19Node = ((__ \ "countryCode").readNullable[String] and
+      (__ \ "dateOfChange").readNullable[String]
       ) (
       (countryCode, dateOfChange) => {
         (countryCode, dateOfChange) match {
           case (Some(code), Some(date)) => (
-            (__ \ "event19" \ "dateChangeMade").json.put(JsString(date)) and
-              (__ \ "event19" \ "CountryOrTerritory").json.put(JsString(code))
+            (__ \ "dateChangeMade").json.put(JsString(date)) and
+              (__ \ "CountryOrTerritory").json.put(JsString(code))
             ).reduce
           case _ => Reads.pure(Json.obj())
         }
       }
     ).flatMap(identity)
+
+    (__ \ "eventDetails" \ "event19").read(Reads.seq(event19Node)).map{ dataOpt =>
+      dataOpt.headOption match {
+        case Some(event19Data) => Json.obj("event19" -> event19Data)
+        case None => Json.obj()
+      }
+    }
   }
 
   private val event20Reads: Reads[JsObject] = {
-    ((__ \ "eventDetails" \ "event20" \ "occSchemeDetails"\ "startDateOfOccScheme").readNullable[String] and
-      (__ \ "eventDetails" \ "event20" \ "occSchemeDetails"\ "stopDateOfOccScheme").readNullable[String]
+    val event20Node = ((__ \ "occSchemeDetails"\ "startDateOfOccScheme").readNullable[String] and
+      (__ \ "occSchemeDetails"\ "stopDateOfOccScheme").readNullable[String]
       )((optStartDate, optStopDate) => {
       (optStartDate, optStopDate) match {
-        case (Some(startDate), None) => ((__ \ "event20" \ "becameDate"\ "date").json.put(JsString(startDate)) and
-          (__ \ "event20" \ "whatChange").json.put(JsString("becameOccupationalScheme"))
+        case (Some(startDate), None) => ((__ \ "becameDate"\ "date").json.put(JsString(startDate)) and
+          (__ \ "whatChange").json.put(JsString("becameOccupationalScheme"))
           ).reduce
-        case (None, Some(stopDate)) => ( (__ \ "event20" \ "ceasedDate"\ "date").json.put(JsString(stopDate)) and
-          (__ \ "event20" \ "whatChange").json.put(JsString("ceasedOccupationalScheme"))
+        case (None, Some(stopDate)) => ((__ \ "ceasedDate"\ "date").json.put(JsString(stopDate)) and
+          (__ \ "whatChange").json.put(JsString("ceasedOccupationalScheme"))
           ).reduce
         case _ => Reads.pure(Json.obj())
       }
     }
     ).flatMap(identity)
+    (__ \ "eventDetails" \ "event20").read(Reads.seq(event20Node)).map{ dataOpt =>
+      dataOpt.headOption match {
+        case Some(event20Data) => Json.obj("event20" -> event20Data)
+        case None => Json.obj()
+      }
+    }
+
   }
 
   private val eventWindUpReads: Reads[JsObject] = {
@@ -107,21 +121,28 @@ object API1834 {
       case "Other" => "other"
     }
 
-    (
-      (__ \ "eventDetails" \ "event13" \ "dateOfChange").readNullable[String] and
-        (__ \ "eventDetails" \ "event13" \ "schemeStructure").readNullable[String]
+     val event13Node =  (
+      (__ \ "dateOfChange").readNullable[String] and
+        (__ \ "schemeStructure").readNullable[String]
       ) (
       (date, structure) => {
         (date, structure) match {
           case (Some(d), Some(s)) =>
             (
-              (__ \ "event13" \ "schemeStructure").json.put(JsString(mapStructure(s))) and
-                (__ \ "event13" \ "changeDate").json.put(JsString(d))
+              (__ \ "schemeStructure").json.put(JsString(mapStructure(s))) and
+                (__ \ "changeDate").json.put(JsString(d))
               ).reduce
           case _ => Reads.pure(Json.obj())
         }
       }
     ).flatMap(identity)
+
+    (__ \ "eventDetails" \ "event13").read(Reads.seq(event13Node)).map { dataOpt =>
+      dataOpt.headOption match {
+        case Some(event13Data) => Json.obj("event13" -> event13Data)
+        case None => Json.obj()
+      }
+    }
   }
 
   private val event14Reads = {
@@ -191,13 +212,10 @@ object API1834 {
         }
       ).flatMap(identity)
     }
-    (__ \ "eventDetails" \ "event10").read(Reads.seq(event10ItemReads)).map { s =>
-      s.headOption match {
+    (__ \ "eventDetails" \ "event10").read(Reads.seq(event10ItemReads)).map { dataOpt =>
+      dataOpt.headOption match {
         case None => Json.obj()
-        case Some(o) =>
-          Json.obj(
-            "event10" -> o
-          )
+        case Some(event10Data) => Json.obj("event10" -> event10Data)
       }
     }
   }
