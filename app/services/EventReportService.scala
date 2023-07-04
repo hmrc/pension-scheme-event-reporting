@@ -166,8 +166,10 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     eventReportConnector.getEvent(pstr, startDate, version, Some(eventType)).flatMap {
       case Some(data) =>
         val jsDataOpt = validationCheck(data, eventType)
+        println("\n\n\n\n\nDATA: "+ jsDataOpt)
         Future.successful(jsDataOpt)
       case _ =>
+        println("\n\n\n\n\nNone: ")
         Future.successful(None)
     }
   }

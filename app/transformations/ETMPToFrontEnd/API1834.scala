@@ -107,21 +107,28 @@ object API1834 {
       case "Other" => "other"
     }
 
-    (
-      (__ \ "eventDetails" \ "event13" \ "dateOfChange").readNullable[String] and
-        (__ \ "eventDetails" \ "event13" \ "schemeStructure").readNullable[String]
+     val event13Node =  (
+      (__ \ "dateOfChange").readNullable[String] and
+        (__ \ "schemeStructure").readNullable[String]
       ) (
       (date, structure) => {
         (date, structure) match {
           case (Some(d), Some(s)) =>
             (
-              (__ \ "event13" \ "schemeStructure").json.put(JsString(mapStructure(s))) and
-                (__ \ "event13" \ "changeDate").json.put(JsString(d))
+              (__ \ "schemeStructure").json.put(JsString(mapStructure(s))) and
+                (__ \ "changeDate").json.put(JsString(d))
               ).reduce
           case _ => Reads.pure(Json.obj())
         }
       }
     ).flatMap(identity)
+
+    (__ \ "eventDetails" \ "event13").read(Reads.seq(event13Node)).map { g: Seq[JsObject] =>
+      g.headOption match {
+        case Some(x) => Json.obj("event13" -> x)
+        case None => Json.obj()
+      }
+    }
   }
 
   private val event14Reads = {

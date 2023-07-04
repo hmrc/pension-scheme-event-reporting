@@ -164,13 +164,16 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
     } yield {
       val payload: JsObject = Json.obj(
         "eventDetails" -> Json.obj(
-          "event13" -> Json.obj(
-            "recordVersion" -> "001",
-            "schemeStructure" -> schemeStructure,
-            "dateOfChange" -> date
+          "event13" -> Json.arr(
+            Json.obj(
+              "recordVersion" -> "001",
+              "schemeStructure" -> schemeStructure,
+              "dateOfChange" -> date
+            )
           )
         )
       )
+//"event13":[{"recordVersion":"001","schemeStructure":"A single trust under which all of the assets are held for the benefit of all members of the scheme","dateOfChange":"2022-01-02"}]
 
       def mapStructure(s: String): String = s match {
         case "A single trust under which all of the assets are held for the benefit of all members of the scheme" => "single"
