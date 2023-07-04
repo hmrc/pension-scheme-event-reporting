@@ -20,8 +20,10 @@ import models.GetDetailsCacheDataIdentifier
 import models.enumeration.EventType.{Event2, Event22, Event23, Event24, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
 import models.enumeration.{ApiType, EventType}
 import org.mockito.ArgumentMatchers
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 import org.scalatestplus.mockito.MockitoSugar
@@ -29,13 +31,15 @@ import play.api.libs.json._
 import repositories.GetDetailsCacheRepository
 import utils.{GeneratorAPI1832, JSONSchemaValidator, JsonFileReader}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Success
 
 class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with MockitoSugar with BeforeAndAfterEach
-  with JsonFileReader with GeneratorAPI1832 {
+  with JsonFileReader with GeneratorAPI1832 with ScalaFutures {
 
-  private val validator = new JSONSchemaValidator
+  private def validator = new JSONSchemaValidator
+
   private val mockGetDetailsCacheRepository = mock[GetDetailsCacheRepository]
   private val pstr = "pstr"
   private val year = 2022
@@ -51,30 +55,27 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
     reset(mockGetDetailsCacheRepository)
   }
 
-  /*
-  Remove processingDate & schemeDetails fields
-  Add memberEventsDetails wrapper
-  Remove eventReportDetails.reportStatus, reportVersionNumber and reportSubmittedDateAndTime
-  Add eventReportDetails.pSTR
-   */
 
   "interpolateJsonIntoFullPayload" must {
     "work for 1832 (member)" in {
-      val payloadsByEventType = eventTypesFor1832.foldLeft[Map[EventType, JsObject]](Map.empty) ( (acc, et) =>
+      val payloadsByEventType = eventTypesFor1832.foldLeft[Map[EventType, JsObject]](Map.empty)((acc, et) =>
         acc ++ Map(et -> generateUserAnswersAndPOSTBodyByEvent(et).sample.get._1)
       )
 
       eventTypesFor1832.foreach { et =>
-        val gdcdi = GetDetailsCacheDataIdentifier(et, year: Int, version: Int)
+        val gdcdi = GetDetailsCacheDataIdentifier(et, year, version)
         val etmpResponse = payloadsByEventType(et)
-        when(mockGetDetailsCacheRepository.get(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi)))
+        when(mockGetDetailsCacheRepository.get(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi))(any()))
           .thenReturn(Future.successful(Some(etmpResponse)))
       }
 
       val service = new CompilePayloadService(mockGetDetailsCacheRepository)
-      val result = service.interpolateJsonIntoFullPayload(ApiType.Api1832, json)
 
-      validator.validatePayload(result, SchemaPath1830, "API1830") mustBe Success(():Unit)
+      whenReady(service.interpolateJsonIntoFullPayload(pstr, year, version, ApiType.Api1832, json)(global)) { result =>
+        println("\n>>>RES" + result)
+        validator.validatePayload(result, SchemaPath1830, "API1830") mustBe Success((): Unit)
+
+      }
     }
   }
 
