@@ -17,7 +17,7 @@
 package utils
 
 import models.enumeration.EventType
-import models.enumeration.EventType.{Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event2, Event20, WindUp}
+import models.enumeration.EventType.{Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20}
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
@@ -26,8 +26,6 @@ import play.api.libs.json.{JsObject, Json}
 
 //noinspection ScalaStyle
 trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerators {
-
-  import GeneratorAPI1834._
 
   def generateUserAnswersAndPOSTBodyByEvent(eventType: EventType): Gen[(JsObject, JsObject)] = {
     eventType match {
@@ -271,28 +269,32 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
   private def generateForEvent20: Gen[(JsObject, JsObject)] = {
     for {
       date <- dateGeneratorYMD
+      becameOrCeaseChange <- Gen.oneOf(Seq("becameOccupationalScheme", "ceasedOccupationalScheme"))
     } yield {
+      def additionalPayloadChangeNode(payloadOrExpectedValue: String) = (payloadOrExpectedValue, becameOrCeaseChange) match {
+        case ("payload", "becameOccupationalScheme") => Json.obj("startDateOfOccScheme" -> date)
+        case ("payload", "ceasedOccupationalScheme") => Json.obj("stopDateOfOccScheme" -> date)
+        case (_, "becameOccupationalScheme") => Json.obj(
+          "becameDate" -> Json.obj("date" -> date),
+          "whatChange" -> "becameOccupationalScheme")
+        case _ => Json.obj(
+          "ceasedDate" -> Json.obj("date" -> date),
+          "whatChange" -> "ceasedOccupationalScheme")
+      }
+
       val payload: JsObject = Json.obj(
         "eventDetails" -> Json.obj(
           "event20" -> Json.arr(
             Json.obj(
               "recordVersion" -> "001",
-              "occSchemeDetails" -> Json.obj(
-                "startDateOfOccScheme" -> date
-              )
+              "occSchemeDetails" -> additionalPayloadChangeNode("payload")
+
             )
           )
         )
       )
 
-      val expected = Json.obj(
-        "event20" -> Json.obj(
-          "whatChange" -> "becameOccupationalScheme",
-          "becameDate" -> Json.obj {
-            "date" -> date
-          }
-        )
-      )
+      val expected = Json.obj("event20" -> additionalPayloadChangeNode("expected"))
       Tuple2(payload, expected)
     }
   }
