@@ -274,10 +274,12 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
     } yield {
       val payload: JsObject = Json.obj(
         "eventDetails" -> Json.obj(
-          "event20" -> Json.obj(
-            "recordVersion" -> "001",
-            "occSchemeDetails" -> Json.obj(
-              "startDateOfOccScheme" -> date
+          "event20" -> Json.arr(
+            Json.obj(
+              "recordVersion" -> "001",
+              "occSchemeDetails" -> Json.obj(
+                "startDateOfOccScheme" -> date
+              )
             )
           )
         )
