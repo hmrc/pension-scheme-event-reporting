@@ -18,22 +18,28 @@ package controllers
 
 import audit.EmailAuditEvent
 import com.google.inject.Inject
-import models.{ERVersion, EmailEvents, EventDataIdentifier, Opened}
+import models.{EmailEvents, Opened}
 import play.api.Logger
 import play.api.libs.json.JsValue
 import play.api.mvc._
 import services.{AuditService, EventReportService}
-import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.crypto.{ApplicationCrypto, Crypted}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import play.api.libs.json._
+import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
+import uk.gov.hmrc.auth.core.retrieve.~
+import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, Enrolment, Enrolments}
+import uk.gov.hmrc.http.{UnauthorizedException, Request => _, _}
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
+
 
 class EmailResponseController @Inject()(
                                          auditService: AuditService,
                                          cc: ControllerComponents,
                                          crypto: ApplicationCrypto,
                                          parser: PlayBodyParsers,
+                                         eventReportService: EventReportService,
                                          val authConnector: AuthConnector,
                                        )(implicit ec: ExecutionContext) extends BackendController(cc) with AuthorisedFunctions {
   private val logger = Logger(classOf[EmailResponseController])
@@ -43,8 +49,6 @@ class EmailResponseController @Inject()(
                        encryptedPsaOrPspId: String,
                        email: String): Action[JsValue] = Action(parser.tolerantJson) {
     implicit request =>
-
-      val reportVersion = new EventReportService().getVersions()
 
       decryptPsaOrPspIdAndEmail(encryptedPsaOrPspId, email) match {
         case Right(Tuple2(psaOrPspId, emailAddress)) =>
@@ -62,6 +66,67 @@ class EmailResponseController @Inject()(
           )
 
         case Left(result) => result
+      }
+  }
+
+  private def prettyMissingParamError(param: Option[String], error: String) = if (param.isEmpty) s"$error " else ""
+
+  private def requiredHeaders(headers: String*)(implicit request: Request[AnyContent]) = {
+    val headerData = headers.map(request.headers.get)
+    val allHeadersDefined = headerData.forall(_.isDefined)
+    if (allHeadersDefined) headerData.collect { case Some(value) => value }
+    else {
+      val missingHeaders = headers.zip(headerData)
+      val errorString = missingHeaders.map { case (headerName, data) =>
+        prettyMissingParamError(data, headerName + " missing")
+      }.mkString(" ")
+      throw new BadRequestException("Bad Request with missing parameters: " + errorString)
+    }
+  }
+
+  private def getPsaId(enrolments: Enrolments): Option[String] =
+    enrolments
+      .getEnrolment(key = "HMRC-PODS-ORG")
+      .flatMap(_.getIdentifier("PSAID"))
+      .map(_.value)
+
+  private def getPspId(enrolments: Enrolments): Option[String] =
+    enrolments
+      .getEnrolment(key = "HMRC-PODSPP-ORG")
+      .flatMap(_.getIdentifier("PSPID"))
+      .map(_.value)
+
+  private def getPsaPspId(enrolments: Enrolments): Option[String] =
+    getPsaId(enrolments) match {
+      case id@Some(_) => id
+      case _ =>
+        getPspId(enrolments) match {
+          case id@Some(_) => id
+          case _ => None
+        }
+    }
+
+  private case class Credentials(externalId: String, psaPspId: String)
+
+  private def withAuth(implicit hc: HeaderCarrier) = {
+    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId and Retrievals.allEnrolments) {
+      case Some(externalId) ~ enrolments =>
+        getPsaPspId(enrolments) match {
+          case Some(psaPspId) => Future.successful(Credentials(externalId, psaPspId))
+          case psa => Future.failed(new BadRequestException(s"Bad Request without psaPspId $psa"))
+        }
+      case _ =>
+        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
+    }
+  }
+
+  def getVersions: Action[AnyContent] = Action.async {
+    implicit request =>
+      withAuth.flatMap { _ =>
+        val Seq(pstr, startDate) = requiredHeaders("pstr", "startDate")
+        eventReportService.getVersions(pstr, startDate).map {
+          data => Ok(Json.toJson(data))
+        }
       }
   }
 
