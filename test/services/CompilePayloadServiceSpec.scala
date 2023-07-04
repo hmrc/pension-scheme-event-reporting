@@ -17,7 +17,7 @@
 package services
 
 import models.GetDetailsCacheDataIdentifier
-import models.enumeration.EventType.{Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event2, Event20, Event22, Event23, Event24, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, WindUp}
+import models.enumeration.EventType.{Event10, Event12, Event13, Event14, Event18, Event19, Event20, WindUp}
 import models.enumeration.{ApiType, EventType}
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
@@ -29,7 +29,7 @@ import org.scalatest.wordspec.AsyncWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json._
 import repositories.GetDetailsCacheRepository
-import utils.{GeneratorAPI1826, GeneratorAPI1832, GeneratorAPI1834, JSONSchemaValidator, JsonFileReader}
+import utils.{GeneratorAPI1826, GeneratorAPI1834, JSONSchemaValidator, JsonFileReader}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -57,7 +57,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
 
 
   "interpolateJsonIntoFullPayload" must {
-    "work for 1834 (summary)" in {
+    "add in all other event types for 1834 (summary) to event 11 for compile" in {
       val payloadsByEventType = eventTypesFor1834.foldLeft[Map[EventType, JsObject]](Map.empty)((acc, et) =>
         acc ++ Map(et -> generateUserAnswersAndPOSTBodyByEvent(et).sample.get._1)
       )
@@ -72,9 +72,11 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
       val service = new CompilePayloadService(mockGetDetailsCacheRepository)
       whenReady(service.interpolateJsonIntoFullPayload(pstr, year, version, ApiType.Api1834,
         EventType.Event11, event11Payload)(global)) { result =>
-        println("\n>>>RES" + result)
+//        println("\n>>>RES" + result)
         validator.validatePayload(result, SchemaPath1826, "API1834") mustBe Success((): Unit)
-
+        val eventDetailsNode = (result \ "eventDetails").as[JsObject]
+        val nodes = eventDetailsNode.fields.map(_._1)
+        nodes mustBe Seq("event11", "eventWindUp", "event10", "event18", "event13", "event20", "event12", "event14", "event19")
       }
     }
   }

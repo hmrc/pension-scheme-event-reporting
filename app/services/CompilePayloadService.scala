@@ -31,79 +31,35 @@ class CompilePayloadService @Inject()(
                                        getDetailsCacheRepository: GetDetailsCacheRepository
                                      ) extends Logging {
 
-
-  /*
-  Remove processingDate & schemeDetails fields
-  Add memberEventsDetails wrapper
-  Remove eventReportDetails.reportStatus, reportVersionNumber and reportSubmittedDateAndTime
-  Add eventReportDetails.pSTR
-
-
-  memberEventsDetails:
-                     eventReportDetails:
-                       pSTR: '87219363YN'
-                       reportStartDate: '2021-04-06'
-                       reportEndDate: '2022-04-05'
-                       eventType: 'Event2'
-                     eventDetails:
-                       - memberDetail:
-                           memberStatus: 'New'
-                           event:
-                             eventType: 'Event2'
-                             individualDetails:
-                               title: 'Mr'
-                               firstName: 'John'
-                               middleName: 'A'
-                               lastName: 'Smith'
-                               nino: 'AA345678B'
-                             personReceivedThePayment:
-                               title: 'Mr'
-                               firstName: 'James'
-                               middleName: 'Torner'
-                               lastName: 'Mike'
-                               nino: 'AA345678A'
-                             paymentDetails:
-                               amountPaid: 123.01
-                               eventDate: '2021-05-30'
-
-
-   */
-  //
-
-  private def transformJson(json: JsObject): JsObject = {
-    json
-  }
+  private final val EventReportDetailsNodeName = "eventReportDetails"
+  private final val EventDetailsNodeName = "eventDetails"
 
   // scalastyle:off method.length
-  def interpolateJsonIntoFullPayload(pstr: String, year: Int,
+  def interpolateJsonIntoFullPayload(pstr: String,
+                                     year: Int,
                                      version: Int,
                                      apiType: ApiType,
-                                     eventType: EventType, // event type for jsonForEventBeingCompiled
+                                     eventTypeForEventBeingCompiled: EventType,
                                      jsonForEventBeingCompiled: JsObject)(implicit ec: ExecutionContext): Future[JsObject] = {
     EventType.getEventTypesForAPI(apiType) match {
       case seqEventTypes if seqEventTypes.nonEmpty =>
-        val transformedPayloads: Seq[Future[JsObject]] = seqEventTypes.filter(_ != eventType).map { et =>
+        val transformedPayloads: Seq[Future[JsObject]] = seqEventTypes.filter(_ != eventTypeForEventBeingCompiled).map { et =>
           val gdcdi = GetDetailsCacheDataIdentifier(et, year, version)
           getDetailsCacheRepository.get(pstr, gdcdi).map {
             case None =>
-              Json.obj()
-            case Some(json) =>
-              transformJson(json.as[JsObject])
+              Json.obj() // TODO: Call get details API and store in Mongo cache
+            case Some(json) => json.as[JsObject]
           }
         }
-
         Future.sequence(transformedPayloads).map { seqPayloads =>
           val allEventTypesAsOnePayload = seqPayloads.foldLeft(Json.obj()) { case (acc, payload) =>
-            val tt = (payload \ "eventDetails").asOpt[JsObject].getOrElse(Json.obj())
-            acc ++ tt
+            val eventDetailsNode = (payload \ EventDetailsNodeName).asOpt[JsObject].getOrElse(Json.obj())
+            acc ++ eventDetailsNode
           }
-
-          val originalEventDetails = (jsonForEventBeingCompiled \ "eventDetails").asOpt[JsObject].getOrElse(Json.obj())
-          val originalEventReportDetails = (jsonForEventBeingCompiled \ "eventReportDetails").asOpt[JsObject].getOrElse(Json.obj())
-
-
-          Json.obj("eventReportDetails" -> originalEventReportDetails) ++ Json.obj(
-            "eventDetails" -> (originalEventDetails ++ allEventTypesAsOnePayload)
+          val originalEventDetails = (jsonForEventBeingCompiled \ EventDetailsNodeName).asOpt[JsObject].getOrElse(Json.obj())
+          val originalEventReportDetails = (jsonForEventBeingCompiled \ EventReportDetailsNodeName).asOpt[JsObject].getOrElse(Json.obj())
+          Json.obj(EventReportDetailsNodeName-> originalEventReportDetails) ++ Json.obj(
+            EventDetailsNodeName -> (originalEventDetails ++ allEventTypesAsOnePayload)
           )
         }
       case _ => Future.successful(jsonForEventBeingCompiled)
