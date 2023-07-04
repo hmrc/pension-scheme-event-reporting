@@ -76,9 +76,9 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def saveUserAnswers(externalId: String, pstr: String, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] =
     eventReportCacheRepository.upsert(externalId, pstr, userAnswersJson)
 
-  def changeVersion(externalId: String, pstr: String, eventType: EventType, year: Int, currentVersion: Int, newVersion: Int)
+  def changeVersion(externalId: String, pstr: String, currentVersion: Int, newVersion: Int)
                      (implicit ec: ExecutionContext): Future[Result] =
-    eventReportCacheRepository.changeVersion(pstr, EventDataIdentifier(eventType, year, currentVersion, externalId), newVersion)
+    eventReportCacheRepository.changeVersion(externalId, pstr, currentVersion, newVersion)
 
   def removeUserAnswers(externalId: String)(implicit ec: ExecutionContext): Future[Unit] =
     eventReportCacheRepository.removeAllOnSignOut(externalId)
@@ -169,13 +169,24 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
     //TODO: Implement for event 20A. I assume API 1831 will need to be used for this. -Pavel Vjalicin
-    eventReportConnector.getEvent(pstr, startDate, version, None).map { etmpJsonOpt =>
+    val resp1834Seq =  eventReportConnector.getEvent(pstr, startDate, version, None).map { etmpJsonOpt =>
       etmpJsonOpt.map { etmpJson =>
         etmpJson.transform(transformations.ETMPToFrontEnd.API1834Summary.rdsFor1834) match {
           case JsSuccess(seqOfEventTypes, _) => seqOfEventTypes
           case JsError(errors) => throw JsResultException(errors)
         }
       }.getOrElse(JsArray())
+    }
+    val resp1831Seq = eventReportConnector.getEvent(pstr, startDate, version, Some(Event20A)).map { etmpJsonOpt =>
+      etmpJsonOpt.map { etmpJson =>
+        etmpJson.transform(transformations.ETMPToFrontEnd.API1834Summary.rdsFor1831) match {
+          case JsSuccess(seqOfEventTypes, _) => seqOfEventTypes
+          case JsError(errors) => throw JsResultException(errors)
+        }
+      }.getOrElse(JsArray())
+    }
+    Future.sequence(Set(resp1834Seq, resp1831Seq)) map {
+      _ reduce (_ ++ _)
     }
   }
 

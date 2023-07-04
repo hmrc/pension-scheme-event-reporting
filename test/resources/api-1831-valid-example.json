@@ -1,0 +1,26 @@
+{
+  "processingDate": "2023-12-15T12:30:46Z",
+  "schemeDetails": {
+    "pSTR": "87219363YN",
+    "schemeName": "Abc Ltd"
+  },
+  "er20aDetails": {
+    "reportStartDate": "2021-04-06",
+    "reportEndDate": "2022-04-05",
+    "reportVersionNumber": "001",
+    "reportSubmittedDateAndTime": "2023-12-13T12:12:12Z"
+  },
+  "schemeMasterTrustDetails": {
+    "startDate": "2021-06-08"
+  },
+  "erDeclarationDetails": {
+    "submittedBy": "PSP",
+    "submittedID": "20000001",
+    "submittedName": "ABCDEFGHIJKLMNOPQRSTUV",
+    "pspDeclaration": {
+      "authorisedPSAID": "A4045157",
+      "pspDeclaration1": "Selected",
+      "pspDeclaration2": "Selected"
+    }
+  }
+}
