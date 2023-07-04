@@ -29,7 +29,7 @@ import play.api.libs.json.JsResult.toTry
 import play.api.libs.json._
 import play.api.mvc.Results._
 import play.api.mvc.{RequestHeader, Result}
-import repositories.EventReportCacheRepository
+import repositories.{EventReportCacheRepository, GetDetailsCacheRepository}
 import transformations.ETMPToFrontEnd.{API1831, API1832, API1833, API1834}
 import transformations.UserAnswersToETMP._
 import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, HeaderCarrier, HttpResponse}
@@ -41,6 +41,7 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton()
 class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    eventReportCacheRepository: EventReportCacheRepository,
+                                   getDetailsCacheRepository: GetDetailsCacheRepository,
                                    jsonPayloadSchemaValidator: JSONSchemaValidator
                                   ) extends Logging {
   private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
