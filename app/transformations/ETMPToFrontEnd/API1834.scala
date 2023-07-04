@@ -50,19 +50,25 @@ object API1834 {
   }
 
   private val event19Reads = {
-    ((__ \ "eventDetails" \ "event19" \ "countryCode").readNullable[String] and
-      (__ \ "eventDetails" \ "event19" \ "dateOfChange").readNullable[String]
+    val event19Node = ((__ \ "countryCode").readNullable[String] and
+      (__ \ "dateOfChange").readNullable[String]
       ) (
       (countryCode, dateOfChange) => {
         (countryCode, dateOfChange) match {
           case (Some(code), Some(date)) => (
-            (__ \ "event19" \ "dateChangeMade").json.put(JsString(date)) and
-              (__ \ "event19" \ "CountryOrTerritory").json.put(JsString(code))
+            (__ \ "dateChangeMade").json.put(JsString(date)) and
+              (__ \ "CountryOrTerritory").json.put(JsString(code))
             ).reduce
           case _ => Reads.pure(Json.obj())
         }
       }
     ).flatMap(identity)
+
+    (__ \ "eventDetails" \ "event19").read(Reads.seq(event19Node)).map{ dataOpt =>
+      dataOpt.headOption match {
+        case Some(event19Data) => Json.obj("event19" -> event19Data)
+      }
+    }
   }
 
   private val event20Reads: Reads[JsObject] = {
@@ -123,9 +129,9 @@ object API1834 {
       }
     ).flatMap(identity)
 
-    (__ \ "eventDetails" \ "event13").read(Reads.seq(event13Node)).map { g: Seq[JsObject] =>
-      g.headOption match {
-        case Some(x) => Json.obj("event13" -> x)
+    (__ \ "eventDetails" \ "event13").read(Reads.seq(event13Node)).map { dataOpt =>
+      dataOpt.headOption match {
+        case Some(event13Data) => Json.obj("event13" -> event13Data)
         case None => Json.obj()
       }
     }
@@ -198,13 +204,10 @@ object API1834 {
         }
       ).flatMap(identity)
     }
-    (__ \ "eventDetails" \ "event10").read(Reads.seq(event10ItemReads)).map { s =>
-      s.headOption match {
+    (__ \ "eventDetails" \ "event10").read(Reads.seq(event10ItemReads)).map { dataOpt =>
+      dataOpt.headOption match {
         case None => Json.obj()
-        case Some(o) =>
-          Json.obj(
-            "event10" -> o
-          )
+        case Some(event10Data) => Json.obj("event10" -> event10Data)
       }
     }
   }
