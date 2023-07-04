@@ -41,8 +41,8 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton()
 class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    eventReportCacheRepository: EventReportCacheRepository,
-                                   getDetailsCacheRepository: GetDetailsCacheRepository,
-                                   jsonPayloadSchemaValidator: JSONSchemaValidator
+                                   jsonPayloadSchemaValidator: JSONSchemaValidator,
+                                   compilePayloadService: CompilePayloadService
                                   ) extends Logging {
   private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private final val SchemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.4.json"
@@ -115,6 +115,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
             val fullData = data ++ header
             for {
               transformedData <- Future.fromTry(toTry(fullData.validate(reads)))
+              _ <- compilePayloadService.interpolateJsonIntoFullPayload(apiType, transformedData)
               _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, schemaPath, apiType.toString))
               response <- connectToAPI(psaPspId, pstr, transformedData)
             } yield {
