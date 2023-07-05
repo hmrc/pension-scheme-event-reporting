@@ -168,7 +168,15 @@ class EventReportController @Inject()(
     withAuth.flatMap { case Credentials(externalId, psaPspId) =>
       val Seq(pstr, et, version, year) = requiredHeaders("pstr", "eventType", "version", "year")
       EventType.getEventType(et) match {
-        case Some(eventType) => eventReportService.compileEventReport(externalId, psaPspId, pstr, eventType, year.toInt, version.toInt)
+        case Some(eventType) => eventReportService.compileEventReport(
+          externalId,
+          psaPspId,
+          pstr,
+          eventType,
+          year.toInt,
+          version.toInt,
+          request.headers.get("memberStatus")
+        )
         case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
       }
     }
