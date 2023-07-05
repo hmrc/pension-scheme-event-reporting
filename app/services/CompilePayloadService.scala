@@ -69,11 +69,10 @@ class CompilePayloadService @Inject()(
                                     jsonForEventBeingCompiled: JsObject)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[JsObject] = {
     apiType match {
       case ApiType.Api1826 =>
+        lazy val futureGetEventResponse = eventReportConnector.getEvent(pstr, year.toString + "-04-06", version, None)
         val seqEventTypesToRetrieve = EventType.getEventTypesForAPI(apiType).filter(_ != eventTypeForEventBeingCompiled)
         val transformedPayloads = seqEventTypesToRetrieve.map { et =>
           val gdcdi = GetDetailsCacheDataIdentifier(et, year, version)
-
-          lazy val futureGetEventResponse = eventReportConnector.getEvent(pstr, year.toString + "-04-06", version, None)
 
           def futureResponseForEventType: Future[JsObject] = {
             futureGetEventResponse.map {
