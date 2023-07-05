@@ -51,13 +51,12 @@ class CompilePayloadService @Inject()(
           getDetailsCacheRepository.get(pstr, gdcdi).flatMap {
             case Some(json) => Future.successful(json.as[JsObject])
             case None =>
-              val futurePayloadToUpsert = eventReportConnector.getEvent(pstr, year.toString + "-04-06", version, Some(et)).map{
+              val futurePayloadToUpsert = eventReportConnector.getEvent(pstr, year.toString + "-04-06", version, Some(et)).map {
                 case Some(responsePayload) => responsePayload
                 case None => Json.obj()
               }
-              futurePayloadToUpsert.flatMap{ payload =>
-                getDetailsCacheRepository.upsert(pstr, gdcdi, payload).map(_ => payload)
-              }
+              futurePayloadToUpsert
+                .flatMap(payload => getDetailsCacheRepository.upsert(pstr, gdcdi, payload).map(_ => payload))
           }
         }
 
