@@ -63,7 +63,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
 
 
   "interpolateJsonIntoFullPayload" must {
-    "add in all other event types for 1834 (summary) to event 11 for compile where all values in cache" in {
+    "interpolate event 11 payload to all other event types for 1834 (summary) where all event types except event 11 are in cache" in {
       val payloadsByEventType = eventTypesFor1826ExcludingEvent11.foldLeft[Map[EventType, JsObject]](Map.empty)((acc, et) =>
         acc ++ Map(et -> generateUserAnswersAndPOSTBodyByEvent(et).sample.get._1)
       )
@@ -97,7 +97,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
 
-    "add in all other event types for 1834 (summary) to event 11 for compile where all values in cache including event 11" in {
+    "interpolate event 11 payload to all other event types for 1834 (summary) where all event types including event 11 are in cache" in {
       val allEvents = eventTypesFor1826ExcludingEvent11 ++ Seq(Event11)
       val payloadsByEventType = allEvents.foldLeft[Map[EventType, JsObject]](Map.empty)((acc, et) =>
         acc ++ Map(et -> generateUserAnswersAndPOSTBodyByEvent(et).sample.get._1)
@@ -132,7 +132,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
 
-    "add in all other event types for 1834 (summary) to event 11 for compile where no values in cache" in {
+    "interpolate event 11 payload to all other event types for 1834 (summary) where nothing in cache but values present in API" in {
       val payloadsByEventType = eventTypesFor1826ExcludingEvent11.foldLeft[Map[EventType, JsObject]](Map.empty)((acc, et) =>
         acc ++ Map(et -> generateUserAnswersAndPOSTBodyByEvent(et).sample.get._1)
       )
@@ -170,7 +170,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
 
-    "update cache with blank json for 1834 (summary) and return only event 11 payload for compile where no values in cache + no values in API" in {
+    "interpolate event 11 payload to all other event types for 1834 (summary) where nothing in cache or in API" in {
       val payloadsByEventType = eventTypesFor1826ExcludingEvent11.foldLeft[Map[EventType, JsObject]](Map.empty)((acc, et) =>
         acc ++ Map(et -> generateUserAnswersAndPOSTBodyByEvent(et).sample.get._1)
       )
