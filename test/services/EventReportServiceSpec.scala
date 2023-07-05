@@ -57,6 +57,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val mockEventReportConnector = mock[EventReportConnector]
   private val mockJSONPayloadSchemaValidator = mock[JSONSchemaValidator]
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
+  private val mockCompilePayloadService = mock[CompilePayloadService]
 
   private val externalId = "externalId"
   private val psaId = "psa"
@@ -70,7 +71,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     Seq(
       inject.bind[EventReportConnector].toInstance(mockEventReportConnector),
       inject.bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
-      inject.bind[JSONSchemaValidator].toInstance(mockJSONPayloadSchemaValidator)
+      inject.bind[JSONSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
+      inject.bind[CompilePayloadService].toInstance(mockCompilePayloadService)
     )
 
   val application: Application = new GuiceApplicationBuilder()
@@ -83,7 +85,10 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     reset(mockEventReportConnector)
     reset(mockEventReportCacheRepository)
     reset(mockJSONPayloadSchemaValidator)
+    reset(mockCompilePayloadService)
     when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any())).thenReturn(Success(()))
+    when(mockCompilePayloadService.interpolateJsonIntoFullPayload(any(), any(), any(), any(), any(), any())(any(), any()))
+      .thenReturn(Future.successful(Json.obj()))
   }
 
   "compileEventReport for unimplemented api type" must {

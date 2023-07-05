@@ -16,12 +16,14 @@
 
 package services
 
+import connectors.EventReportConnector
 import models.GetDetailsCacheDataIdentifier
-import models.enumeration.EventType.{Event10, Event12, Event13, Event14, Event18, Event19, Event20, WindUp}
+import models.enumeration.EventType.{Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, WindUp}
 import models.enumeration.{ApiType, EventType}
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
+import org.scalacheck.Shrink
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
@@ -29,6 +31,7 @@ import org.scalatest.wordspec.AsyncWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json._
 import repositories.GetDetailsCacheRepository
+import uk.gov.hmrc.http.HeaderCarrier
 import utils.{GeneratorAPI1826, GeneratorAPI1834, JSONSchemaValidator, JsonFileReader}
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -41,23 +44,26 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
   private def validator = new JSONSchemaValidator
 
   private val mockGetDetailsCacheRepository = mock[GetDetailsCacheRepository]
+  private val mockEventReportConnector = mock[EventReportConnector]
   private val pstr = "pstr"
   private val year = 2022
   private val version = 1
+  private val startDate = s"$year-04-06"
   private val eventTypesFor1834 = Seq(WindUp, Event10, Event18, Event13, Event20, Event12, Event14, Event19)
-  private val json = Json.obj(
+  private implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  )
+  implicit def noShrink[T]: Shrink[T] = Shrink.shrinkAny // Stop scalacheck from auto-shrinking:-
 
   private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
 
   override def beforeEach(): Unit = {
     reset(mockGetDetailsCacheRepository)
+    reset(mockEventReportConnector)
   }
 
 
   "interpolateJsonIntoFullPayload" must {
-    "add in all other event types for 1834 (summary) to event 11 for compile" in {
+    "add in all other event types for 1834 (summary) to event 11 for compile where all values in cache" in {
       val payloadsByEventType = eventTypesFor1834.foldLeft[Map[EventType, JsObject]](Map.empty)((acc, et) =>
         acc ++ Map(et -> generateUserAnswersAndPOSTBodyByEvent(et).sample.get._1)
       )
@@ -68,17 +74,97 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
         when(mockGetDetailsCacheRepository.get(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi))(any()))
           .thenReturn(Future.successful(Some(etmpResponse)))
       }
+      when(mockGetDetailsCacheRepository
+        .remove(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(GetDetailsCacheDataIdentifier(Event11, year, version)))(any()))
+        .thenReturn(Future.successful((): Unit))
 
-      val service = new CompilePayloadService(mockGetDetailsCacheRepository)
+      val service = new CompilePayloadService(mockGetDetailsCacheRepository, mockEventReportConnector)
       whenReady(service.interpolateJsonIntoFullPayload(pstr, year, version, ApiType.Api1834,
-        EventType.Event11, event11Payload)(global)) { result =>
-//        println("\n>>>RES" + result)
+        EventType.Event11, event11Payload)(global, implicitly)) { result =>
         validator.validatePayload(result, SchemaPath1826, "API1834") mustBe Success((): Unit)
         val eventDetailsNode = (result \ "eventDetails").as[JsObject]
+        verify(mockGetDetailsCacheRepository, times(1))
+          .remove(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(GetDetailsCacheDataIdentifier(Event11, year, version)))(any())
         val nodes = eventDetailsNode.fields.map(_._1)
         nodes mustBe Seq("event11", "eventWindUp", "event10", "event18", "event13", "event20", "event12", "event14", "event19")
       }
     }
+
+    "add in all other event types for 1834 (summary) to event 11 for compile where no values in cache" in {
+      val payloadsByEventType = eventTypesFor1834.foldLeft[Map[EventType, JsObject]](Map.empty)((acc, et) =>
+        acc ++ Map(et -> generateUserAnswersAndPOSTBodyByEvent(et).sample.get._1)
+      )
+      val event11Payload = generateUserAnswersAndPOSTBodyEvent11.sample.get._2
+      eventTypesFor1834.foreach { et =>
+        val gdcdi = GetDetailsCacheDataIdentifier(et, year, version)
+        val etmpResponse = payloadsByEventType(et)
+        when(mockGetDetailsCacheRepository.get(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi))(any()))
+          .thenReturn(Future.successful(None))
+        when(mockGetDetailsCacheRepository.upsert(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi), any())(any()))
+          .thenReturn(Future.successful((): Unit))
+        when(mockEventReportConnector.getEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(startDate),
+          ArgumentMatchers.eq(version), ArgumentMatchers.eq(Some(et)))(any(), any()))
+          .thenReturn(Future.successful(Some(etmpResponse)))
+      }
+      val gdcdi = GetDetailsCacheDataIdentifier(Event11, year, version)
+      when(mockGetDetailsCacheRepository.remove(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi))(any()))
+        .thenReturn(Future.successful((): Unit))
+
+      val service = new CompilePayloadService(mockGetDetailsCacheRepository, mockEventReportConnector)
+      whenReady(service.interpolateJsonIntoFullPayload(pstr, year, version, ApiType.Api1834,
+        EventType.Event11, event11Payload)(global, implicitly)) { result =>
+        validator.validatePayload(result, SchemaPath1826, "API1834") mustBe Success((): Unit)
+        val eventDetailsNode = (result \ "eventDetails").as[JsObject]
+        eventTypesFor1834.foreach { et =>
+          val gdcdi = GetDetailsCacheDataIdentifier(et, year, version)
+          verify(mockGetDetailsCacheRepository, times(1))
+            .upsert(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi), any())(any())
+        }
+        verify(mockGetDetailsCacheRepository, times(1))
+          .remove(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(GetDetailsCacheDataIdentifier(Event11, year, version)))(any())
+        val nodes = eventDetailsNode.fields.map(_._1)
+        nodes mustBe Seq("event11", "eventWindUp", "event10", "event18", "event13", "event20", "event12", "event14", "event19")
+      }
+    }
+
+
+    "update cache with blank json for 1834 (summary) and return only event 11 payload for compile where no values in cache + no values in API" in {
+      val payloadsByEventType = eventTypesFor1834.foldLeft[Map[EventType, JsObject]](Map.empty)((acc, et) =>
+        acc ++ Map(et -> generateUserAnswersAndPOSTBodyByEvent(et).sample.get._1)
+      )
+      val event11Payload = generateUserAnswersAndPOSTBodyEvent11.sample.get._2
+      eventTypesFor1834.foreach { et =>
+        val gdcdi = GetDetailsCacheDataIdentifier(et, year, version)
+        val etmpResponse = payloadsByEventType(et)
+        when(mockGetDetailsCacheRepository.get(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi))(any()))
+          .thenReturn(Future.successful(None))
+        when(mockGetDetailsCacheRepository.upsert(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi), any())(any()))
+          .thenReturn(Future.successful((): Unit))
+        when(mockEventReportConnector.getEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(startDate),
+          ArgumentMatchers.eq(version), ArgumentMatchers.eq(Some(et)))(any(), any()))
+          .thenReturn(Future.successful(None))
+      }
+      val gdcdi = GetDetailsCacheDataIdentifier(Event11, year, version)
+      when(mockGetDetailsCacheRepository.remove(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi))(any()))
+        .thenReturn(Future.successful((): Unit))
+
+      val service = new CompilePayloadService(mockGetDetailsCacheRepository, mockEventReportConnector)
+      whenReady(service.interpolateJsonIntoFullPayload(pstr, year, version, ApiType.Api1834,
+        EventType.Event11, event11Payload)(global, implicitly)) { result =>
+        validator.validatePayload(result, SchemaPath1826, "API1834") mustBe Success((): Unit)
+        val eventDetailsNode = (result \ "eventDetails").as[JsObject]
+        eventTypesFor1834.foreach { et =>
+          val gdcdi = GetDetailsCacheDataIdentifier(et, year, version)
+          verify(mockGetDetailsCacheRepository, times(1))
+            .upsert(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi), any())(any())
+        }
+        verify(mockGetDetailsCacheRepository, times(1))
+          .remove(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(GetDetailsCacheDataIdentifier(Event11, year, version)))(any())
+        val nodes = eventDetailsNode.fields.map(_._1)
+        nodes mustBe Seq("event11")
+      }
+    }
+
   }
 
 }
