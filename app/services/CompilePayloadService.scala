@@ -37,32 +37,27 @@ class CompilePayloadService @Inject()(
   private final val EventReportDetailsNodeName = "eventReportDetails"
   private final val EventDetailsNodeName = "eventDetails"
 
-  // TODO: Refactor & tidy up code below (use for yields probably for clarity)
-  // scalastyle:off method.length
   def interpolateJsonIntoFullPayload(pstr: String,
                                      year: Int,
                                      version: Int,
                                      apiType: ApiType,
                                      eventTypeForEventBeingCompiled: EventType,
                                      jsonForEventBeingCompiled: JsObject)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[JsObject] = {
-    EventType.getEventTypesForAPI(apiType) match {
-      case seqEventTypes if seqEventTypes.nonEmpty =>
-        val transformedPayloads: Seq[Future[JsObject]] = seqEventTypes.filter(_ != eventTypeForEventBeingCompiled).map { et =>
+    apiType match {
+      case ApiType.Api1826 =>
+        val seqEventTypesToRetrieve = EventType.getEventTypesForAPI(apiType).filter(_ != eventTypeForEventBeingCompiled)
+        val transformedPayloads = seqEventTypesToRetrieve.map { et =>
           val gdcdi = GetDetailsCacheDataIdentifier(et, year, version)
           getDetailsCacheRepository.get(pstr, gdcdi).flatMap {
-            case None =>
-              val startDate = year.toString + "-04-06"
-              eventReportConnector.getEvent(pstr, startDate, version, Some(et)).flatMap {
-                case Some(responsePayload) =>
-                  getDetailsCacheRepository.upsert(pstr, gdcdi, responsePayload)
-                    .map { _ => responsePayload }
-                case None =>
-                  val responsePayload = Json.obj()
-                  getDetailsCacheRepository.upsert(pstr, gdcdi, responsePayload)
-                    .map { _ => responsePayload }
-                  Future.successful(responsePayload)
-              }
             case Some(json) => Future.successful(json.as[JsObject])
+            case None =>
+              eventReportConnector.getEvent(pstr, year.toString + "-04-06", version, Some(et)).flatMap {
+                case Some(responsePayload) =>
+                  getDetailsCacheRepository.upsert(pstr, gdcdi, responsePayload).map(_ => responsePayload)
+                case None =>
+                  val emptyResponsePayload = Json.obj()
+                  getDetailsCacheRepository.upsert(pstr, gdcdi, emptyResponsePayload).map(_ => emptyResponsePayload)
+              }
           }
         }
 
@@ -78,11 +73,10 @@ class CompilePayloadService @Inject()(
           )
         }
 
-        futureJsObject.flatMap{ jsObject =>
-          val gdcdi = GetDetailsCacheDataIdentifier(eventTypeForEventBeingCompiled, year, version)
-          getDetailsCacheRepository.remove(pstr, gdcdi).map { _ =>
-            jsObject
-          }
+        futureJsObject.flatMap { jsObject =>
+          getDetailsCacheRepository
+            .remove(pstr, GetDetailsCacheDataIdentifier(eventTypeForEventBeingCompiled, year, version))
+            .map(_ => jsObject)
         }
       case _ => Future.successful(jsonForEventBeingCompiled)
     }
