@@ -30,7 +30,7 @@ import play.api.libs.json._
 import play.api.mvc.Results._
 import play.api.mvc.{RequestHeader, Result}
 import repositories.EventReportCacheRepository
-import transformations.ETMPToFrontEnd.{API1831, API1832, API1833}
+import transformations.ETMPToFrontEnd.{API1831, API1832, API1833, API1834}
 import transformations.UserAnswersToETMP._
 import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
@@ -135,6 +135,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   private def validationCheck(data: JsObject, eventType: EventType): Option[JsObject] = {
 
     val api1832Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
+    val api1834Events: List[EventType] = List(WindUp, Event10, Event18, Event13, Event20, Event11, Event12, Event14, Event19)
     eventType match {
       case Event1 => data.validate(API1833.rds1833Api) match {
         case JsSuccess(transformedData, _) => Some(transformedData)
@@ -146,6 +147,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       }
       case evType1832 if api1832Events.contains(evType1832) =>
         data.validate(API1832.rds1832Api(evType1832)) match {
+          case JsSuccess(transformedData, _) => Some(transformedData)
+          case JsError(e) =>
+            throw JsResultException(e)
+        }
+      case evType1834 if api1834Events.contains(evType1834) =>
+        data.validate(API1834.reads(evType1834)) match {
           case JsSuccess(transformedData, _) => Some(transformedData)
           case JsError(e) =>
             throw JsResultException(e)

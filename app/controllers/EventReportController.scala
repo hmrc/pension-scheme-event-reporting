@@ -109,7 +109,7 @@ class EventReportController @Inject()(
         }
       }
 
-      withAuth.flatMap { case Credentials(externalId, psaPspId) =>
+      withAuth.flatMap { case Credentials(externalId, _) =>
         val pstr = requiredHeaders("pstr").head
         val etVersionYear = (request.headers.get("eventType"), request.headers.get("version"), request.headers.get("year")) match {
           case (Some(et), Some(version), Some(year)) => Some(et, version.toInt, year.toInt)
