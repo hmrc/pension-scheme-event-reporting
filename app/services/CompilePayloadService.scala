@@ -61,14 +61,14 @@ class CompilePayloadService @Inject()(
         }
 
         val futureJsObject = Future.sequence(transformedPayloads).map { seqPayloads =>
-          val allEventTypesAsOnePayload = seqPayloads.foldLeft(Json.obj()) { case (acc, payload) =>
+          val eventTypesAsOnePayload = seqPayloads.foldLeft(Json.obj()) { case (acc, payload) =>
             val eventDetailsNode = (payload \ EventDetailsNodeName).asOpt[JsObject].getOrElse(Json.obj())
             acc ++ eventDetailsNode
           }
           val originalEventDetails = (jsonForEventBeingCompiled \ EventDetailsNodeName).asOpt[JsObject].getOrElse(Json.obj())
           val originalEventReportDetails = (jsonForEventBeingCompiled \ EventReportDetailsNodeName).asOpt[JsObject].getOrElse(Json.obj())
           Json.obj(EventReportDetailsNodeName -> originalEventReportDetails) ++ Json.obj(
-            EventDetailsNodeName -> (allEventTypesAsOnePayload ++ originalEventDetails)
+            EventDetailsNodeName -> (eventTypesAsOnePayload ++ originalEventDetails)
           )
         }
 
