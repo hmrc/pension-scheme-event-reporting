@@ -59,7 +59,7 @@ class CompilePayloadService @Inject()(
     }
   }
 
-  private def futureResponseForEventType(futureGetEventResponse: Future[Option[JsObject]],
+  private def getPayloadFromAPIForEventType(futureGetEventResponse: Future[Option[JsObject]],
                                          et: EventType)(implicit ec: ExecutionContext): Future[JsObject] =
     futureGetEventResponse.map {
     case None => Json.obj()
@@ -92,7 +92,7 @@ class CompilePayloadService @Inject()(
           getDetailsCacheRepository.get(pstr, gdcdi).flatMap {
             case Some(json) => Future.successful(json.as[JsObject])
             case None =>
-              futureResponseForEventType(futureGetEventResponse, et)
+              getPayloadFromAPIForEventType(futureGetEventResponse, et)
                 .flatMap(payload => getDetailsCacheRepository.upsert(pstr, gdcdi, payload).map(_ => payload))
           }
         }
