@@ -60,11 +60,8 @@ class CompilePayloadService @Inject()(
   }
 
   //scalastyle:off method.length
-  def collatePayloadsAndUpdateCache(pstr: String,
-                                    year: Int,
-                                    version: Int,
-                                    apiType: ApiType,
-                                    eventTypeForEventBeingCompiled: EventType,
+  def collatePayloadsAndUpdateCache(pstr: String, year: Int, version: Int,
+                                    apiType: ApiType, eventTypeForEventBeingCompiled: EventType,
                                     jsonForEventBeingCompiled: JsObject)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[JsObject] = {
     apiType match {
       case ApiType.Api1826 =>
@@ -73,24 +70,22 @@ class CompilePayloadService @Inject()(
         val transformedPayloads = seqEventTypesToRetrieve.map { et =>
           val gdcdi = GetDetailsCacheDataIdentifier(et, year, version)
 
-          def futureResponseForEventType: Future[JsObject] = {
-            futureGetEventResponse.map {
-              case None => Json.obj()
-              case Some(payloadFromAPI) =>
-                (nodeNameJsObject(et), nodeNameArray(et)) match {
-                  case (Some(nodeName), None) =>
-                    val jsonValue = (payloadFromAPI \ "eventDetails" \ nodeName).asOpt[JsObject]
-                    Json.obj(
-                      nodeName -> jsonValue
-                    )
-                  case (None, Some(nodeName)) =>
-                    val jsonValue = (payloadFromAPI \ "eventDetails" \ nodeName).asOpt[JsArray]
-                    Json.obj(
-                      nodeName -> jsonValue
-                    )
-                  case _ => Json.obj()
-                }
-            }
+          def futureResponseForEventType: Future[JsObject] = futureGetEventResponse.map {
+            case None => Json.obj()
+            case Some(payloadFromAPI) =>
+              (nodeNameJsObject(et), nodeNameArray(et)) match {
+                case (Some(nodeName), None) =>
+                  val jsonValue = (payloadFromAPI \ "eventDetails" \ nodeName).asOpt[JsObject]
+                  Json.obj(
+                    nodeName -> jsonValue
+                  )
+                case (None, Some(nodeName)) =>
+                  val jsonValue = (payloadFromAPI \ "eventDetails" \ nodeName).asOpt[JsArray]
+                  Json.obj(
+                    nodeName -> jsonValue
+                  )
+                case _ => Json.obj()
+              }
           }
 
           getDetailsCacheRepository.get(pstr, gdcdi).flatMap {
@@ -102,10 +97,7 @@ class CompilePayloadService @Inject()(
         }
 
         val futureJsObject = Future.sequence(transformedPayloads).map { seqPayloads =>
-          val eventTypesAsOnePayload = seqPayloads.foldLeft(Json.obj()) { case (acc, payload) =>
-            // val eventDetailsNode = (payload \ EventDetailsNodeName).asOpt[JsObject].getOrElse(Json.obj())
-            acc ++ payload
-          }
+          val eventTypesAsOnePayload = seqPayloads.foldLeft(Json.obj()) { case (acc, payload) => acc ++ payload }
           val originalEventDetails = (jsonForEventBeingCompiled \ EventDetailsNodeName).asOpt[JsObject].getOrElse(Json.obj())
           val originalEventReportDetails = (jsonForEventBeingCompiled \ EventReportDetailsNodeName).asOpt[JsObject].getOrElse(Json.obj())
           Json.obj(EventReportDetailsNodeName -> originalEventReportDetails) ++ Json.obj(
