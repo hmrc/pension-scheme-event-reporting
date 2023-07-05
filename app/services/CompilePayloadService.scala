@@ -38,7 +38,6 @@ class CompilePayloadService @Inject()(
   private final val EventReportDetailsNodeName = "eventReportDetails"
   private final val EventDetailsNodeName = "eventDetails"
 
-  //scalastyle:off cyclomatic.complexity
   private def nodeNameJsObject(eventType: EventType): Option[String] = {
     eventType match {
       case Event11 => Some("event11")
