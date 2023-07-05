@@ -113,46 +113,48 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   private case class MemberChangeInfo(amendedVersion: Int, status: MemberStatus)
 
-  trait MemberStatus {
+  private trait MemberStatus {
     def name:String
   }
 
-  case class New() extends MemberStatus {
+  private case class New() extends MemberStatus {
     def name: String = "New"
   }
 
-  case class Deleted() extends MemberStatus {
+  private case class Deleted() extends MemberStatus {
     def name: String = "Deleted"
   }
 
-  case class Changed() extends MemberStatus {
+  private case class Changed() extends MemberStatus {
     def name: String = "Changed"
   }
 
-  private def getMemberChangeInfo1832And1830(oldMemberDetail: Option[JsObject], newMemberDetail: JsObject, version: Int): MemberChangeInfo = {
+  private def stringToMemberStatus(memberStatus:String): MemberStatus = memberStatus match {
+    case "New" => New()
+    case "Deleted" => Deleted()
+    case "Changed" => Changed()
+    case memberStatus => throw new RuntimeException("Unknown member status: " + memberStatus)
+  }
+
+  private def getMemberChangeInfo1832And1830(oldMemberDetail: Option[JsObject],
+                                             newMemberDetail: JsObject,
+                                             version: Int,
+                                             newDataMemberStatus: Option[MemberStatus]): MemberChangeInfo = {
     oldMemberDetail.map { oldMemberDetail =>
 
       def getAmendedVersion(memberDetail:JsObject) = (memberDetail \ "amendedVersion").as[String].toInt
 
-      def getMemberStatus(memberDetail:JsObject) = (memberDetail \ "memberStatus").as[String] match {
-        case "New" => New()
-        case "Deleted" => Deleted()
-        case "Changed" => Changed()
-        case memberStatus => throw new RuntimeException("Unknown member status: " + memberStatus)
+
+      newDataMemberStatus match {
+        case Some(memberStatus) => MemberChangeInfo(version, memberStatus)
+        case None =>
+          val oldAmendedVersion = getAmendedVersion(oldMemberDetail)
+
+          val oldDataMemberStatus = stringToMemberStatus((oldMemberDetail \ "memberStatus").as[String])
+
+          MemberChangeInfo(oldAmendedVersion, oldDataMemberStatus)
       }
 
-      val oldAmendedVersion = getAmendedVersion(oldMemberDetail)
-
-      val hasSameVersion = oldAmendedVersion == getAmendedVersion(newMemberDetail)
-
-      val oldDataMemberStatus = getMemberStatus(oldMemberDetail)
-
-      (hasSameVersion, oldDataMemberStatus) match {
-        case (true, _:New) => MemberChangeInfo(version, New())
-        case (false, _:New) => MemberChangeInfo(version, Changed())
-        case (_, _:Changed) => MemberChangeInfo(version, Changed())
-        case (_, oldDataMemberStatus) => MemberChangeInfo(version, oldDataMemberStatus)
-      }
     }.getOrElse(MemberChangeInfo(version, New()))
   }
 
@@ -165,7 +167,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       val memberChangeInfo = getMemberChangeInfo1832And1830(oldMemberDetail, newMemberDetail.as[JsObject], version)
       addMemberStatus(newMemberDetail.as[JsObject], memberChangeInfo.amendedVersion, memberChangeInfo.status.name)
     }
-
 
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, _, _, _)) =>
@@ -182,7 +183,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def compileEventReport(externalId: String, psaPspId: String, pstr: String, eventType: EventType, year: Int, version: Int)
+  def compileEventReport(externalId: String, psaPspId: String, pstr: String, eventType: EventType, year: Int, version: Int, memberStatus: String)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
