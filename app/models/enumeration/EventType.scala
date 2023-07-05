@@ -136,8 +136,7 @@ object EventType extends Enumerable.Implicits {
 
   def getEventTypesForAPI(apiType: ApiType): Seq[EventType] =
     apiType match {
-      case ApiType.Api1832 => api1832Events
-      case ApiType.Api1834 => api1834Events
+      case ApiType.Api1826 => api1826Events
       case _ => Nil
     }
 

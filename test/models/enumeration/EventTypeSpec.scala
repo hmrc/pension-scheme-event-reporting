@@ -65,13 +65,8 @@ class EventTypeSpec extends AsyncWordSpec with Matchers {
   }
 
   "getEventTypesForAPI" must {
-    "return correctly for 1832" in {
-      EventType.getEventTypesForAPI(ApiType.Api1832) mustBe Seq(
-        Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24
-      )
-    }
-    "return correctly for 1834" in {
-      EventType.getEventTypesForAPI(ApiType.Api1834) mustBe Seq(
+    "return correctly for 1826" in {
+      EventType.getEventTypesForAPI(ApiType.Api1826).toSet mustBe Set(
         WindUp, Event10, Event18, Event13, Event20, Event11, Event12, Event14, Event19
       )
     }

@@ -74,7 +74,7 @@ class CompilePayloadService @Inject()(
           val originalEventDetails = (jsonForEventBeingCompiled \ EventDetailsNodeName).asOpt[JsObject].getOrElse(Json.obj())
           val originalEventReportDetails = (jsonForEventBeingCompiled \ EventReportDetailsNodeName).asOpt[JsObject].getOrElse(Json.obj())
           Json.obj(EventReportDetailsNodeName -> originalEventReportDetails) ++ Json.obj(
-            EventDetailsNodeName -> (originalEventDetails ++ allEventTypesAsOnePayload)
+            EventDetailsNodeName -> (allEventTypesAsOnePayload ++ originalEventDetails)
           )
         }
 
