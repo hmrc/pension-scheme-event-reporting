@@ -19,6 +19,7 @@ package services
 import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
 import models.GetDetailsCacheDataIdentifier
+import models.enumeration.EventType.{Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, WindUp}
 import models.enumeration.{ApiType, EventType}
 import play.api.Logging
 import play.api.libs.json._
@@ -37,6 +38,29 @@ class CompilePayloadService @Inject()(
   private final val EventReportDetailsNodeName = "eventReportDetails"
   private final val EventDetailsNodeName = "eventDetails"
 
+  //scalastyle:off cyclomatic.complexity
+  private def nodeNameJsObject(eventType: EventType): Option[String] = {
+    eventType match {
+      case Event11 => Some("event11")
+      case Event12 => Some("event12")
+      case Event14 => Some("event14")
+      case Event18 => Some("event18")
+      case WindUp => Some("eventWindUp")
+      case _ => None
+    }
+  }
+
+  private def nodeNameArray(eventType: EventType): Option[String] = {
+    eventType match {
+      case Event10 => Some("event10")
+      case Event13 => Some("event13")
+      case Event19 => Some("event19")
+      case Event20 => Some("event20")
+      case _ => None
+    }
+  }
+
+  //scalastyle:off method.length
   def collatePayloadsAndUpdateCache(pstr: String,
                                     year: Int,
                                     version: Int,
@@ -48,22 +72,41 @@ class CompilePayloadService @Inject()(
         val seqEventTypesToRetrieve = EventType.getEventTypesForAPI(apiType).filter(_ != eventTypeForEventBeingCompiled)
         val transformedPayloads = seqEventTypesToRetrieve.map { et =>
           val gdcdi = GetDetailsCacheDataIdentifier(et, year, version)
+
+          lazy val futureGetEventResponse = eventReportConnector.getEvent(pstr, year.toString + "-04-06", version, None)
+
+          def futureResponseForEventType: Future[JsObject] = {
+            futureGetEventResponse.map {
+              case None => Json.obj()
+              case Some(payloadFromAPI) =>
+                (nodeNameJsObject(et), nodeNameArray(et)) match {
+                  case (Some(nodeName), None) =>
+                    val jsonValue = (payloadFromAPI \ "eventDetails" \ nodeName).asOpt[JsObject]
+                    Json.obj(
+                      nodeName -> jsonValue
+                    )
+                  case (None, Some(nodeName)) =>
+                    val jsonValue = (payloadFromAPI \ "eventDetails" \ nodeName).asOpt[JsArray]
+                    Json.obj(
+                      nodeName -> jsonValue
+                    )
+                  case _ => Json.obj()
+                }
+            }
+          }
+
           getDetailsCacheRepository.get(pstr, gdcdi).flatMap {
             case Some(json) => Future.successful(json.as[JsObject])
             case None =>
-              val futurePayloadToUpsert = eventReportConnector.getEvent(pstr, year.toString + "-04-06", version, Some(et)).map {
-                case Some(responsePayload) => responsePayload
-                case None => Json.obj()
-              }
-              futurePayloadToUpsert
+              futureResponseForEventType
                 .flatMap(payload => getDetailsCacheRepository.upsert(pstr, gdcdi, payload).map(_ => payload))
           }
         }
 
         val futureJsObject = Future.sequence(transformedPayloads).map { seqPayloads =>
           val eventTypesAsOnePayload = seqPayloads.foldLeft(Json.obj()) { case (acc, payload) =>
-            val eventDetailsNode = (payload \ EventDetailsNodeName).asOpt[JsObject].getOrElse(Json.obj())
-            acc ++ eventDetailsNode
+            // val eventDetailsNode = (payload \ EventDetailsNodeName).asOpt[JsObject].getOrElse(Json.obj())
+            acc ++ payload
           }
           val originalEventDetails = (jsonForEventBeingCompiled \ EventDetailsNodeName).asOpt[JsObject].getOrElse(Json.obj())
           val originalEventReportDetails = (jsonForEventBeingCompiled \ EventReportDetailsNodeName).asOpt[JsObject].getOrElse(Json.obj())
