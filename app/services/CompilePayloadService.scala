@@ -37,12 +37,12 @@ class CompilePayloadService @Inject()(
   private final val EventReportDetailsNodeName = "eventReportDetails"
   private final val EventDetailsNodeName = "eventDetails"
 
-  def interpolateJsonIntoFullPayload(pstr: String,
-                                     year: Int,
-                                     version: Int,
-                                     apiType: ApiType,
-                                     eventTypeForEventBeingCompiled: EventType,
-                                     jsonForEventBeingCompiled: JsObject)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[JsObject] = {
+  def collatePayloadsAndUpdateCache(pstr: String,
+                                    year: Int,
+                                    version: Int,
+                                    apiType: ApiType,
+                                    eventTypeForEventBeingCompiled: EventType,
+                                    jsonForEventBeingCompiled: JsObject)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[JsObject] = {
     apiType match {
       case ApiType.Api1826 =>
         val seqEventTypesToRetrieve = EventType.getEventTypesForAPI(apiType).filter(_ != eventTypeForEventBeingCompiled)

@@ -87,7 +87,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     reset(mockJSONPayloadSchemaValidator)
     reset(mockCompilePayloadService)
     when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any())).thenReturn(Success(()))
-    when(mockCompilePayloadService.interpolateJsonIntoFullPayload(any(), any(), any(), any(), any(), any())(any(), any()))
+    when(mockCompilePayloadService.collatePayloadsAndUpdateCache(any(), any(), any(), any(), any(), any())(any(), any()))
       .thenReturn(Future.successful(Json.obj()))
   }
 

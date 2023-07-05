@@ -62,7 +62,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
   }
 
 
-  "interpolateJsonIntoFullPayload" must {
+  "collatePayloadsAndUpdateCache" must {
     "interpolate event 11 payload to all other event types for 1834 (summary) where all event types except event 11 are in cache" in {
       val payloadsByEventType = eventTypesFor1826ExcludingEvent11.foldLeft[Map[EventType, JsObject]](Map.empty)((acc, et) =>
         acc ++ Map(et -> generateUserAnswersAndPOSTBodyByEvent(et).sample.get._1)
@@ -79,7 +79,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
         .thenReturn(Future.successful((): Unit))
 
       val service = new CompilePayloadService(mockGetDetailsCacheRepository, mockEventReportConnector)
-      whenReady(service.interpolateJsonIntoFullPayload(pstr, year, version, ApiType.Api1826,
+      whenReady(service.collatePayloadsAndUpdateCache(pstr, year, version, ApiType.Api1826,
         EventType.Event11, event11Payload)(global, implicitly)) { result =>
         validator.validatePayload(result, SchemaPath1826, "API1834") mustBe Success((): Unit)
         val eventDetailsNode = (result \ "eventDetails").as[JsObject]
@@ -114,7 +114,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
         .thenReturn(Future.successful((): Unit))
 
       val service = new CompilePayloadService(mockGetDetailsCacheRepository, mockEventReportConnector)
-      whenReady(service.interpolateJsonIntoFullPayload(pstr, year, version, ApiType.Api1826,
+      whenReady(service.collatePayloadsAndUpdateCache(pstr, year, version, ApiType.Api1826,
         EventType.Event11, event11Payload)(global, implicitly)) { result =>
         validator.validatePayload(result, SchemaPath1826, "API1834") mustBe Success((): Unit)
         val eventDetailsNode = (result \ "eventDetails").as[JsObject]
@@ -153,7 +153,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
         .thenReturn(Future.successful((): Unit))
 
       val service = new CompilePayloadService(mockGetDetailsCacheRepository, mockEventReportConnector)
-      whenReady(service.interpolateJsonIntoFullPayload(pstr, year, version, ApiType.Api1826,
+      whenReady(service.collatePayloadsAndUpdateCache(pstr, year, version, ApiType.Api1826,
         EventType.Event11, event11Payload)(global, implicitly)) { result =>
         validator.validatePayload(result, SchemaPath1826, "API1834") mustBe Success((): Unit)
         val eventDetailsNode = (result \ "eventDetails").as[JsObject]
@@ -191,7 +191,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
         .thenReturn(Future.successful((): Unit))
 
       val service = new CompilePayloadService(mockGetDetailsCacheRepository, mockEventReportConnector)
-      whenReady(service.interpolateJsonIntoFullPayload(pstr, year, version, ApiType.Api1826,
+      whenReady(service.collatePayloadsAndUpdateCache(pstr, year, version, ApiType.Api1826,
         EventType.Event11, event11Payload)(global, implicitly)) { result =>
         validator.validatePayload(result, SchemaPath1826, "API1834") mustBe Success((): Unit)
         val eventDetailsNode = (result \ "eventDetails").as[JsObject]
