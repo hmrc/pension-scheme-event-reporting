@@ -137,7 +137,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   }
 
   private def getMemberChangeInfo1832And1830(oldMemberDetail: Option[JsObject],
-                                             newMemberDetail: JsObject,
                                              version: Int,
                                              newDataMemberStatus: Option[MemberStatus]): MemberChangeInfo = {
     oldMemberDetail.map { oldMemberDetail =>
@@ -166,12 +165,13 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                              memberStatus: Option[MemberStatus])
                                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader):Future[JsValue] = {
 
-    def transformEventDetails(oldData: Option[JsObject]) = (newData \ "eventDetails").as[JsArray].value.zipWithIndex.map { case (newMemberDetail, index) =>
-      val eventDetails = oldData.map(_.value("eventDetails").as[JsArray].value)
-      val oldMemberDetail = eventDetails.flatMap(x => Try(x(index)).toOption.map(_.as[JsObject]))
-      val memberChangeInfo = getMemberChangeInfo1832And1830(oldMemberDetail, newMemberDetail.as[JsObject], version, memberStatus)
-      addMemberStatus(newMemberDetail.as[JsObject], memberChangeInfo.amendedVersion, memberChangeInfo.status.name)
-    }
+    def transformEventDetails(oldData: Option[JsObject]) = (newData \ "memberEventsDetails" \ "eventDetails").as[JsArray]
+      .value.zipWithIndex.map { case (newMemberDetail, index) =>
+        val eventDetails = oldData.map(_.value("eventDetails").as[JsArray].value)
+        val oldMemberDetail = eventDetails.flatMap(x => Try(x(index)).toOption.map(_.as[JsObject]))
+        val memberChangeInfo = getMemberChangeInfo1832And1830(oldMemberDetail, version, memberStatus)
+        addMemberStatus(newMemberDetail.as[JsObject], memberChangeInfo.amendedVersion, memberChangeInfo.status.name)
+      }
 
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, _, _, _)) =>
@@ -179,7 +179,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           case ApiType.Api1830 =>
             val newEventDetails = getEvent(pstr, startDate, version, eventType) map transformEventDetails
             newEventDetails.map { newEventDetails =>
-              (newData - "eventDetails") + ("eventDetails", Json.toJson(newEventDetails))
+              val newMemberEventsDetails = ((newData \ "memberEventsDetails").as[JsObject] - "eventDetails") + ("eventDetails", Json.toJson(newEventDetails))
+              (newData - "memberEventsDetails") + ("memberEventsDetails", newMemberEventsDetails)
             }
 
           case _ => Future.successful(newData)
@@ -188,7 +189,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def compileEventReport(externalId: String, psaPspId: String, pstr: String, eventType: EventType, year: Int, version: Int, memberStatus: Option[String])
+  def compileEventReport(externalId: String, psaPspId: String, pstr: String, eventType: EventType, year: Int, version: Int)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
@@ -207,7 +208,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                 eventType,
                 transformedData,
                 version,
-                memberStatus map stringToMemberStatus
+                (fullData \ "memberStatus").asOpt[String] map stringToMemberStatus
               )
               _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(dataWithMemberChangeInfo, schemaPath, apiType.toString))
               response <- connectToAPI(psaPspId, pstr, dataWithMemberChangeInfo)

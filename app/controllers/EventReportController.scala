@@ -174,8 +174,7 @@ class EventReportController @Inject()(
           pstr,
           eventType,
           year.toInt,
-          version.toInt,
-          request.headers.get("memberStatus")
+          version.toInt
         )
         case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
       }
