@@ -51,6 +51,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
   private val startDate = s"$year-04-06"
   private val eventTypesFor1834ExcludingEvent11: Seq[EventType] = Seq(WindUp, Event10, Event18, Event13, Event20, Event12, Event14, Event19)
   private val eventTypesFor1834ExcludingEvent10: Seq[EventType] = Seq(WindUp, Event18, Event13, Event20, Event12, Event14, Event19, Event11)
+  private val eventTypesFor1834ExcludingEvent10And11: Seq[EventType] = Seq(WindUp, Event18, Event13, Event20, Event12, Event14, Event19)
   private implicit val hc: HeaderCarrier = HeaderCarrier()
 
   implicit def noShrink[T]: Shrink[T] = Shrink.shrinkAny // Stop scalacheck from auto-shrinking:-
@@ -112,7 +113,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
 
-    "interpolate event 11 payload to all other event types for 1834 (summary) where all event types including event 11 but excluding event 10 are in cache" in {
+    "interpolate event 11 payload to other event types where all event types including event 11 but excluding event 10 are in cache" in {
       val allEvents = eventTypesFor1834ExcludingEvent10
       val payloadsByEventType = ifResponsesByEventType(allEvents)
       val event11Payload = generateUserAnswersAndPOSTBodyEvent11.sample.get._2
@@ -146,10 +147,10 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
       }
     }
 
-    "interpolate event 11 payload to all other event types for 1834 (summary) where nothing in cache but values present in API" in {
+    "interpolate event 11 payload to all other event types for 1834 (summary) where nothing in cache but values present in API but not for events 10 & 11" in {
       when(mockEventReportConnector.getEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(startDate),
         ArgumentMatchers.eq(version), ArgumentMatchers.eq(None))(any(), any()))
-        .thenReturn(Future.successful(Some(ifResponseFromGetEvent(eventTypesFor1834ExcludingEvent11))))
+        .thenReturn(Future.successful(Some(ifResponseFromGetEvent(eventTypesFor1834ExcludingEvent10And11))))
 
       val event11Payload = generateUserAnswersAndPOSTBodyEvent11.sample.get._2
       eventTypesFor1834ExcludingEvent11.foreach { et =>
@@ -177,7 +178,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
         verify(mockGetDetailsCacheRepository, times(1))
           .remove(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(GetDetailsCacheDataIdentifier(Event11, year, version)))(any())
         val nodes = eventDetailsNode.fields.map(_._1).toSet
-        nodes mustBe Set("event11", "event10", "event12", "event13", "event14", "event18", "event19", "event20", "eventWindUp")
+        nodes mustBe Set("event11", "event12", "event13", "eventWindUp", "event19", "event18", "event14", "event20")
       }
     }
 

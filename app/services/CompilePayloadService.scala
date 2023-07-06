@@ -66,15 +66,23 @@ class CompilePayloadService @Inject()(
     case Some(payloadFromAPI) =>
       (nodeNameJsObject(et), nodeNameArray(et)) match {
         case (Some(nodeName), None) =>
-          val jsonValue = (payloadFromAPI \ "eventDetails" \ nodeName).asOpt[JsObject]
-          Json.obj(
-            nodeName -> jsonValue
-          )
+          (payloadFromAPI \ "eventDetails" \ nodeName).asOpt[JsObject] match {
+            case Some(jsonValue) =>
+              Json.obj(
+                nodeName -> jsonValue
+              )
+            case _ => Json.obj()
+          }
+
         case (None, Some(nodeName)) =>
-          val jsonValue = (payloadFromAPI \ "eventDetails" \ nodeName).asOpt[JsArray]
-          Json.obj(
-            nodeName -> jsonValue
-          )
+          (payloadFromAPI \ "eventDetails" \ nodeName).asOpt[JsArray] match {
+            case Some(jsonValue) =>
+              Json.obj(
+                nodeName -> jsonValue
+              )
+            case _ => Json.obj()
+          }
+
         case _ => Json.obj()
       }
   }
