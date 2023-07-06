@@ -96,13 +96,14 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
   def generateUserAnswersAndPOSTBodyEvent11: Gen[(JsObject, JsObject)] = {
     for {
       taxYear <- taxYearGenerator
-      hasSchemeChangedRulesUnAuthPayments <- arbitrary[Boolean]
-      hasSchemeChangedRulesInvestmentsInAssets <- arbitrary[Boolean]
-      proceedTest = hasSchemeChangedRulesUnAuthPayments | hasSchemeChangedRulesInvestmentsInAssets
+      whichTest <- arbitrary[Boolean]
     } yield {
+      val (hasSchemeChangedRulesUnAuthPayments, hasSchemeChangedRulesInvestmentsInAssets) =  whichTest match {
+        case true => (true, false)
+        case false => (false, true)
+      }
 
-      if (proceedTest) {
-        def event11DetailsUA(unAuthPayments: Boolean, investmentsInAssets: Boolean): JsObject = {
+      def event11DetailsUA(unAuthPayments: Boolean, investmentsInAssets: Boolean): JsObject = {
           (unAuthPayments, investmentsInAssets) match {
             case (true, true) =>
               Json.obj(
@@ -174,9 +175,6 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
           )
         )
         Tuple2(ua, expected)
-      } else {
-        Tuple2(Json.obj(), Json.obj())
-      }
     }
   }
 

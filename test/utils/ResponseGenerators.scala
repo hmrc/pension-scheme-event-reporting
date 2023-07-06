@@ -56,6 +56,16 @@ trait ResponseGenerators extends Matchers with OptionValues {
     year <- Gen.choose(1990, 2000)
   } yield LocalDate.of(year, month, day)
 
+  val dateGeneratorYMD: Gen[String] = for {
+    day <- Gen.choose(1, 28)
+    month <- Gen.choose(1, 12)
+    year <- Gen.choose(1990, 2000)
+  } yield {
+    val monthFormatted = ("0" + month.toString).takeRight(2)
+    val dayFormatted = ("0" + day.toString).takeRight(2)
+    s"$year-$monthFormatted-$dayFormatted"
+  }
+
   val addressGenerator: Gen[Address] = for {
     line1 <- nonEmptyString
     line2 <- nonEmptyString

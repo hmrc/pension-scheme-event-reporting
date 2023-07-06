@@ -29,8 +29,8 @@ import play.api.libs.json.JsResult.toTry
 import play.api.libs.json._
 import play.api.mvc.Results._
 import play.api.mvc.{RequestHeader, Result}
-import repositories.EventReportCacheRepository
-import transformations.ETMPToFrontEnd.{API1831, API1832, API1833}
+import repositories.{EventReportCacheRepository, GetDetailsCacheRepository}
+import transformations.ETMPToFrontEnd.{API1831, API1832, API1833, API1834}
 import transformations.UserAnswersToETMP._
 import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
@@ -41,7 +41,8 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton()
 class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    eventReportCacheRepository: EventReportCacheRepository,
-                                   jsonPayloadSchemaValidator: JSONSchemaValidator
+                                   jsonPayloadSchemaValidator: JSONSchemaValidator,
+                                   compilePayloadService: CompilePayloadService
                                   ) extends Logging {
   private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private final val SchemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.4.json"
@@ -114,7 +115,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
             val fullData = data ++ header
             for {
               transformedData <- Future.fromTry(toTry(fullData.validate(reads)))
-              _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(transformedData, schemaPath, apiType.toString))
+              collatedData <- compilePayloadService.collatePayloadsAndUpdateCache(pstr, year, version, apiType, eventType, transformedData)
+              _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(collatedData, schemaPath, apiType.toString))
               response <- connectToAPI(psaPspId, pstr, transformedData, version)
             } yield {
               response.status match {
@@ -135,6 +137,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   private def validationCheck(data: JsObject, eventType: EventType): Option[JsObject] = {
 
     val api1832Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
+    val api1834Events: List[EventType] = List(WindUp, Event10, Event18, Event13, Event20, Event11, Event12, Event14, Event19)
     eventType match {
       case Event1 => data.validate(API1833.rds1833Api) match {
         case JsSuccess(transformedData, _) => Some(transformedData)
@@ -146,6 +149,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       }
       case evType1832 if api1832Events.contains(evType1832) =>
         data.validate(API1832.rds1832Api(evType1832)) match {
+          case JsSuccess(transformedData, _) => Some(transformedData)
+          case JsError(e) =>
+            throw JsResultException(e)
+        }
+      case evType1834 if api1834Events.contains(evType1834) =>
+        data.validate(API1834.reads(evType1834)) match {
           case JsSuccess(transformedData, _) => Some(transformedData)
           case JsError(e) =>
             throw JsResultException(e)
