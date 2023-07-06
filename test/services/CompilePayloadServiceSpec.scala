@@ -123,7 +123,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
         when(mockGetDetailsCacheRepository.get(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi))(any()))
           .thenReturn(Future.successful(Some(etmpResponse)))
       }
-      when(mockGetDetailsCacheRepository.get(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(GetDetailsCacheDataIdentifier(Event10, year, version)))(any()))
+      when(mockGetDetailsCacheRepository.get(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(GetDetailsCacheDataIdentifier(Event10, year, version.toInt)))(any()))
         .thenReturn(Future.successful(Some(Json.obj())))
       when(mockGetDetailsCacheRepository
         .remove(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(GetDetailsCacheDataIdentifier(Event11, year, version.toInt)))(any()))
