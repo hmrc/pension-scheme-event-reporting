@@ -30,7 +30,8 @@ class EmailAuditEventSpec extends AnyFlatSpec with Matchers {
       submittedBy = "PSA",
       emailAddress = "test@test.com",
       event = Sent,
-      requestId = "test-request-id"
+      requestId = "test-request-id",
+      reportVersion = "1"
     )
 
     val expected: JsObject = Json.obj(
@@ -38,7 +39,8 @@ class EmailAuditEventSpec extends AnyFlatSpec with Matchers {
       "psaId" -> "A2500001",
       "emailAddress" -> "test@test.com",
       "event" -> Sent.toString,
-      "submittedBy" -> "PSA"
+      "submittedBy" -> "PSA",
+      "reportVersion" -> "1"
     )
 
     event.auditType shouldBe "EventReportingEmailEvent"

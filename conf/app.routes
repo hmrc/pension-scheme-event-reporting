@@ -1,23 +1,23 @@
 # microservice specific routes
 
-GET        /overview                                                controllers.EventReportController.getOverview
-GET        /versions                                                controllers.EventReportController.getVersions
+GET           /overview                                                      controllers.EventReportController.getOverview
+GET           /versions                                                      controllers.EventReportController.getVersions
 
-GET        /event-summary                                           controllers.EventReportController.getEventSummary
-POST       /compile                                                 controllers.EventReportController.compileEvent
+GET           /event-summary                                                 controllers.EventReportController.getEventSummary
+POST          /compile                                                       controllers.EventReportController.compileEvent
 
-POST       /submit-event-declaration-report                         controllers.EventReportController.submitEventDeclarationReport
-POST       /submit-event20a-declaration-report                      controllers.EventReportController.submitEvent20ADeclarationReport
+POST          /submit-event-declaration-report                               controllers.EventReportController.submitEventDeclarationReport
+POST          /submit-event20a-declaration-report                            controllers.EventReportController.submitEvent20ADeclarationReport
 
-GET        /user-answers                                            controllers.EventReportController.getUserAnswers
-POST       /user-answers                                            controllers.EventReportController.saveUserAnswers
-PUT        /user-answers                                            controllers.EventReportController.changeVersion
-DELETE     /user-answers                                            controllers.EventReportController.removeUserAnswers
+GET           /user-answers                                                  controllers.EventReportController.getUserAnswers
+POST          /user-answers                                                  controllers.EventReportController.saveUserAnswers
+PUT           /user-answers                                                  controllers.EventReportController.changeVersion
+DELETE        /user-answers                                                  controllers.EventReportController.removeUserAnswers
 
-POST       /email-response/:requestId/:email/:psaId                 controllers.EmailResponseController.sendAuditEvents(requestId: String, psaId: String, email: String)
-GET        /file-upload-response/get                                controllers.FileUploadOutcomeController.get
-POST       /file-upload-response/save                               controllers.FileUploadOutcomeController.save
+POST          /email-response/:requestId/:email/:psaId/:reportVersion        controllers.EmailResponseController.sendAuditEvents(requestId: String, psaId: String, email: String, reportVersion:String)
+GET           /file-upload-response/get                                      controllers.FileUploadOutcomeController.get
+POST          /file-upload-response/save                                     controllers.FileUploadOutcomeController.save
 
-GET        /parsing-and-validation-outcome                          controllers.ParsingAndValidationOutcomeController.get
-POST       /parsing-and-validation-outcome                          controllers.ParsingAndValidationOutcomeController.post
-DELETE     /parsing-and-validation-outcome                          controllers.ParsingAndValidationOutcomeController.delete
+GET           /parsing-and-validation-outcome                                controllers.ParsingAndValidationOutcomeController.get
+POST          /parsing-and-validation-outcome                                controllers.ParsingAndValidationOutcomeController.post
+DELETE        /parsing-and-validation-outcome                                controllers.ParsingAndValidationOutcomeController.delete
