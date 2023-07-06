@@ -81,14 +81,20 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
 
 
   "collatePayloadsAndUpdateCache" must {
-    "interpolate event 11 payload to all other event types for 1834 (summary) where all event types except event 11 are in cache" in {
+    "interpolate event 11 payload where all event types except event 11 are in cache + event 10 is an empty payload" in {
       val event11Payload = generateUserAnswersAndPOSTBodyEvent11.sample.get._2
       val eventTypes = ifResponsesByEventType(eventTypesFor1834ExcludingEvent11)
       eventTypesFor1834ExcludingEvent11.foreach { et =>
         val gdcdi = GetDetailsCacheDataIdentifier(et, year, version)
         val etmpResponse = eventTypes(et)
-        when(mockGetDetailsCacheRepository.get(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi))(any()))
-          .thenReturn(Future.successful(Some(etmpResponse)))
+        et match {
+          case Event10 =>
+            when(mockGetDetailsCacheRepository.get(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi))(any()))
+              .thenReturn(Future.successful(Some(Json.obj())))
+          case _ =>
+            when(mockGetDetailsCacheRepository.get(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi))(any()))
+              .thenReturn(Future.successful(Some(etmpResponse)))
+        }
       }
       when(mockGetDetailsCacheRepository
         .remove(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(GetDetailsCacheDataIdentifier(Event11, year, version)))(any()))
@@ -103,7 +109,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
           .remove(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(GetDetailsCacheDataIdentifier(Event11, year, version)))(any())
 
         val nodes = eventDetailsNode.fields.map(_._1).toSet
-        nodes mustBe Set("event11", "event10", "event12", "event13", "event14", "event18", "event19", "event20", "eventWindUp")
+        nodes mustBe Set("event11", "event12", "event13", "eventWindUp", "event19", "event18", "event14", "event20")
 
         val event11ToBeCompiled = (event11Payload \ "eventDetails" \ "event11").as[JsObject]
         val finalResultEvent11 = (eventDetailsNode \ "event11").as[JsObject]
