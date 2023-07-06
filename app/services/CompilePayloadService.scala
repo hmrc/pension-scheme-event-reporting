@@ -66,15 +66,23 @@ class CompilePayloadService @Inject()(
     case Some(payloadFromAPI) =>
       (nodeNameJsObject(et), nodeNameArray(et)) match {
         case (Some(nodeName), None) =>
-          val jsonValue = (payloadFromAPI \ "eventDetails" \ nodeName).asOpt[JsObject]
-          Json.obj(
-            nodeName -> jsonValue
-          )
+          (payloadFromAPI \ "eventDetails" \ nodeName).asOpt[JsObject] match {
+            case Some(jsonValue) =>
+              Json.obj(
+                nodeName -> jsonValue
+              )
+            case _ => Json.obj()
+          }
+
         case (None, Some(nodeName)) =>
-          val jsonValue = (payloadFromAPI \ "eventDetails" \ nodeName).asOpt[JsArray]
-          Json.obj(
-            nodeName -> jsonValue
-          )
+          (payloadFromAPI \ "eventDetails" \ nodeName).asOpt[JsArray] match {
+            case Some(jsonValue) =>
+              Json.obj(
+                nodeName -> jsonValue
+              )
+            case _ => Json.obj()
+          }
+
         case _ => Json.obj()
       }
   }
@@ -82,7 +90,7 @@ class CompilePayloadService @Inject()(
   def collatePayloadsAndUpdateCache(pstr: String, year: Int, version: Int,
                                     apiType: ApiType, eventTypeForEventBeingCompiled: EventType,
                                     jsonForEventBeingCompiled: JsObject)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[JsObject] = {
-    apiType match {
+    val collatedPayloads = apiType match {
       case ApiType.Api1826 =>
         lazy val futureGetEventResponse: Future[Option[JsObject]] = eventReportConnector.getEvent(pstr, year.toString + "-04-06", version, None)
         val seqEventTypesToRetrieve = EventType.getEventTypesForAPI(apiType).filter(_ != eventTypeForEventBeingCompiled)
@@ -113,5 +121,9 @@ class CompilePayloadService @Inject()(
         }
       case _ => Future.successful(jsonForEventBeingCompiled)
     }
+    collatedPayloads.foreach{ p =>
+      logger.warn(s"Collated payload: ${p.toString}")
+    }
+    collatedPayloads
   }
 }
