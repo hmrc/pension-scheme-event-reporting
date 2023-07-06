@@ -117,7 +117,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               transformedData <- Future.fromTry(toTry(fullData.validate(reads)))
               collatedData <- compilePayloadService.collatePayloadsAndUpdateCache(pstr, year, version, apiType, eventType, transformedData)
               _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(collatedData, schemaPath, apiType.toString))
-              response <- connectToAPI(psaPspId, pstr, transformedData)
+              response <- connectToAPI(psaPspId, pstr, collatedData)
             } yield {
               response.status match {
                 case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
