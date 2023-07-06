@@ -124,7 +124,7 @@ class EventReportConnector @Inject()(
     }
   }
 
-  def compileEventReportSummary(psaPspId: String, pstr: String, data: JsValue)
+  def compileEventReportSummary(psaPspId: String, pstr: String, data: JsValue, reportVersion: String)
                                (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
     val createCompileEventReportSummaryUrl = config.createCompileEventReportSummaryUrl.format(pstr)
     logger.debug("Compile Event Report Summary called - URL:" + createCompileEventReportSummaryUrl)
@@ -135,10 +135,10 @@ class EventReportConnector @Inject()(
           case OK => response
           case _ => handleErrorResponse("POST", createCompileEventReportSummaryUrl)(response)
         }
-    } andThen postToAPIAuditService.sendCompileEventDeclarationAuditEvent(psaPspId, pstr, data)
+    } andThen postToAPIAuditService.sendCompileEventDeclarationAuditEvent(psaPspId, pstr, data, reportVersion)
   }
 
-  def compileEventOneReport(psaPspId: String, pstr: String, data: JsValue)
+  def compileEventOneReport(psaPspId: String, pstr: String, data: JsValue, reportVersion: String)
                            (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
     val compileEvent1ReportUrl = config.compileEvent1ReportUrl.format(pstr)
     logger.debug("Compile Event Report One - URL:" + compileEvent1ReportUrl)
@@ -149,10 +149,10 @@ class EventReportConnector @Inject()(
           case OK => response
           case _ => handleErrorResponse("POST", compileEvent1ReportUrl)(response)
         }
-    } andThen postToAPIAuditService.sendCompileEventDeclarationAuditEvent(psaPspId, pstr, data)
+    } andThen postToAPIAuditService.sendCompileEventDeclarationAuditEvent(psaPspId, pstr, data, reportVersion)
   }
 
-  def compileMemberEventReport(psaPspId: String, pstr: String, data: JsValue)
+  def compileMemberEventReport(psaPspId: String, pstr: String, data: JsValue, reportVersion: String)
                               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
     val compileMemberEventReportUrl = config.compileMemberEventReportUrl.format(pstr)
     logger.debug("Compile Member Event Report- URL:" + compileMemberEventReportUrl)
@@ -163,11 +163,11 @@ class EventReportConnector @Inject()(
           case OK => response
           case _ => handleErrorResponse("POST", compileMemberEventReportUrl)(response)
         }
-    } andThen postToAPIAuditService.sendCompileEventDeclarationAuditEvent(psaPspId, pstr, data)
+    } andThen postToAPIAuditService.sendCompileEventDeclarationAuditEvent(psaPspId, pstr, data, reportVersion)
   }
 
-  def submitEventDeclarationReport(pstr: String, data: JsValue)(implicit headerCarrier: HeaderCarrier,
-                                                                ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
+  def submitEventDeclarationReport(pstr: String, data: JsValue, reportVersion: String)(implicit headerCarrier: HeaderCarrier,
+                                                                                       ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
     val submitEventDeclarationReportUrl = config.submitEventDeclarationReportUrl.format(pstr)
     logger.debug("Submit Event Declaration Report called URL:" + submitEventDeclarationReportUrl)
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
@@ -177,10 +177,10 @@ class EventReportConnector @Inject()(
           case OK => response
           case _ => handleErrorResponse("POST", submitEventDeclarationReportUrl)(response)
         }
-    } andThen postToAPIAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data)
+    } andThen postToAPIAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data, reportVersion)
   }
 
-  def submitEvent20ADeclarationReport(pstr: String, data: JsValue)
+  def submitEvent20ADeclarationReport(pstr: String, data: JsValue, reportVersion: String)
                                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
     val submitEvent20ADeclarationReportUrl = config.submitEvent20ADeclarationReportUrl.format(pstr)
     logger.debug("Submit Event 20A Report - URL:" + submitEvent20ADeclarationReportUrl)
@@ -191,7 +191,7 @@ class EventReportConnector @Inject()(
           case OK => response
           case _ => handleErrorResponse("POST", submitEvent20ADeclarationReportUrl)(response)
         }
-    } andThen postToAPIAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data)
+    } andThen postToAPIAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data, reportVersion)
   }
 
   def getVersions(pstr: String, reportType: String, startDate: String)

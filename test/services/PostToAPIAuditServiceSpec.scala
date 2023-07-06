@@ -213,7 +213,7 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
         maybeErrorMessage = Some(errorMessage),
         reportVersion
       ).details mustBe Json.obj(
-        "pstr" -> "pstr",
+        "PensionSchemeTaxReference" -> "pstr",
         "status" -> 200,
         "request" -> requestData,
         "response" -> responseData,
@@ -231,7 +231,7 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
         maybeErrorMessage = None,
         reportVersion
       ).details mustBe Json.obj(
-        "pstr" -> "pstr",
+        "PensionSchemeTaxReference" -> "pstr",
         "request" -> requestData,
         "reportVersion" -> reportVersion
       )

@@ -16,8 +16,7 @@
 
 package models.enumeration
 
-import models.enumeration.EventType.{Event10, Event11, Event12, Event13, Event14, Event18, Event19,
-  Event2, Event20, Event22, Event23, Event24, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, WindUp}
+import models.enumeration.EventType.{Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, WindUp}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 

@@ -67,7 +67,7 @@ class AuditServiceSpec extends AnyWordSpec with Matchers with Inside {
           auditType mustBe event.auditType
 
           detail mustBe Json.obj(
-            "pstr" -> "test-audit-payload",
+            "PensionSchemeTaxReference" -> "test-audit-payload",
             "request" -> requestJson,
             "status" -> 200,
             "response" -> responseJson,

@@ -60,34 +60,35 @@ class CompilePayloadService @Inject()(
   }
 
   private def getPayloadFromAPIForEventType(futureGetEventResponse: Future[Option[JsObject]],
-                                         et: EventType)(implicit ec: ExecutionContext): Future[JsObject] =
+                                            et: EventType)(implicit ec: ExecutionContext): Future[JsObject] =
     futureGetEventResponse.map {
-    case None => Json.obj()
-    case Some(payloadFromAPI) =>
-      (nodeNameJsObject(et), nodeNameArray(et)) match {
-        case (Some(nodeName), None) =>
-          val jsonValue = (payloadFromAPI \ "eventDetails" \ nodeName).asOpt[JsObject]
-          Json.obj(
-            nodeName -> jsonValue
-          )
-        case (None, Some(nodeName)) =>
-          val jsonValue = (payloadFromAPI \ "eventDetails" \ nodeName).asOpt[JsArray]
-          Json.obj(
-            nodeName -> jsonValue
-          )
-        case _ => Json.obj()
-      }
-  }
+      case None => Json.obj()
+      case Some(payloadFromAPI) =>
+        (nodeNameJsObject(et), nodeNameArray(et)) match {
+          case (Some(nodeName), None) =>
+            val jsonValue = (payloadFromAPI \ "eventDetails" \ nodeName).asOpt[JsObject]
+            Json.obj(
+              nodeName -> jsonValue
+            )
+          case (None, Some(nodeName)) =>
+            val jsonValue = (payloadFromAPI \ "eventDetails" \ nodeName).asOpt[JsArray]
+            Json.obj(
+              nodeName -> jsonValue
+            )
+          case _ => Json.obj()
+        }
+    }
 
-  def collatePayloadsAndUpdateCache(pstr: String, year: Int, version: Int,
+  def collatePayloadsAndUpdateCache(pstr: String, year: Int, version: String,
                                     apiType: ApiType, eventTypeForEventBeingCompiled: EventType,
                                     jsonForEventBeingCompiled: JsObject)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[JsObject] = {
     apiType match {
       case ApiType.Api1826 =>
         lazy val futureGetEventResponse: Future[Option[JsObject]] = eventReportConnector.getEvent(pstr, year.toString + "-04-06", version, None)
         val seqEventTypesToRetrieve = EventType.getEventTypesForAPI(apiType).filter(_ != eventTypeForEventBeingCompiled)
+        val versionAsInt = version.toInt
         val transformedPayloads = seqEventTypesToRetrieve.map { et =>
-          val gdcdi = GetDetailsCacheDataIdentifier(et, year, version)
+          val gdcdi = GetDetailsCacheDataIdentifier(et, year, versionAsInt)
 
           getDetailsCacheRepository.get(pstr, gdcdi).flatMap {
             case Some(json) => Future.successful(json.as[JsObject])
@@ -108,7 +109,7 @@ class CompilePayloadService @Inject()(
 
         futureJsObject.flatMap { jsObject =>
           getDetailsCacheRepository
-            .remove(pstr, GetDetailsCacheDataIdentifier(eventTypeForEventBeingCompiled, year, version))
+            .remove(pstr, GetDetailsCacheDataIdentifier(eventTypeForEventBeingCompiled, year, versionAsInt))
             .map(_ => jsObject)
         }
       case _ => Future.successful(jsonForEventBeingCompiled)
