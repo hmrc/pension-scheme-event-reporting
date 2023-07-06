@@ -79,16 +79,17 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
     reset(mockEventReportConnector)
   }
 
-
   "collatePayloadsAndUpdateCache" must {
-    "interpolate event 11 payload to all other event types for 1834 (summary) where all event types except event 11 are in cache" in {
+    "interpolate event 11 payload where all event types except event 11 are in cache + event 10 is an empty payload" in {
       val event11Payload = generateUserAnswersAndPOSTBodyEvent11.sample.get._2
       val eventTypes = ifResponsesByEventType(eventTypesFor1834ExcludingEvent11)
       eventTypesFor1834ExcludingEvent11.foreach { et =>
         val gdcdi = GetDetailsCacheDataIdentifier(et, year, version)
-        val etmpResponse = eventTypes(et)
         when(mockGetDetailsCacheRepository.get(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi))(any()))
-          .thenReturn(Future.successful(Some(etmpResponse)))
+          .thenReturn(Future.successful(Some(et match {
+            case Event10 => Json.obj()
+            case _ => eventTypes(et)
+          })))
       }
       when(mockGetDetailsCacheRepository
         .remove(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(GetDetailsCacheDataIdentifier(Event11, year, version)))(any()))
@@ -103,7 +104,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
           .remove(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(GetDetailsCacheDataIdentifier(Event11, year, version)))(any())
 
         val nodes = eventDetailsNode.fields.map(_._1).toSet
-        nodes mustBe Set("event11", "event10", "event12", "event13", "event14", "event18", "event19", "event20", "eventWindUp")
+        nodes mustBe Set("event11", "event12", "event13", "eventWindUp", "event19", "event18", "event14", "event20")
 
         val event11ToBeCompiled = (event11Payload \ "eventDetails" \ "event11").as[JsObject]
         val finalResultEvent11 = (eventDetailsNode \ "event11").as[JsObject]
@@ -114,14 +115,12 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
 
 
     "interpolate event 11 payload to other event types where all event types including event 11 but excluding event 10 are in cache" in {
-      val allEvents = eventTypesFor1834ExcludingEvent10
-      val payloadsByEventType = ifResponsesByEventType(allEvents)
       val event11Payload = generateUserAnswersAndPOSTBodyEvent11.sample.get._2
-      allEvents.foreach { et =>
+      val payloadsByEventType = ifResponsesByEventType(eventTypesFor1834ExcludingEvent10)
+      eventTypesFor1834ExcludingEvent10.foreach { et =>
         val gdcdi = GetDetailsCacheDataIdentifier(et, year, version)
-        val etmpResponse = payloadsByEventType(et)
         when(mockGetDetailsCacheRepository.get(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi))(any()))
-          .thenReturn(Future.successful(Some(etmpResponse)))
+          .thenReturn(Future.successful(Some(payloadsByEventType(et))))
       }
       when(mockGetDetailsCacheRepository.get(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(GetDetailsCacheDataIdentifier(Event10, year, version)))(any()))
         .thenReturn(Future.successful(Some(Json.obj())))
@@ -148,11 +147,10 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "interpolate event 11 payload to all other event types for 1834 (summary) where nothing in cache but values present in API but not for events 10 & 11" in {
+      val event11Payload = generateUserAnswersAndPOSTBodyEvent11.sample.get._2
       when(mockEventReportConnector.getEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(startDate),
         ArgumentMatchers.eq(version), ArgumentMatchers.eq(None))(any(), any()))
         .thenReturn(Future.successful(Some(ifResponseFromGetEvent(eventTypesFor1834ExcludingEvent10And11))))
-
-      val event11Payload = generateUserAnswersAndPOSTBodyEvent11.sample.get._2
       eventTypesFor1834ExcludingEvent11.foreach { et =>
         val gdcdi = GetDetailsCacheDataIdentifier(et, year, version)
         when(mockGetDetailsCacheRepository.get(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi))(any()))
