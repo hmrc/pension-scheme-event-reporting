@@ -63,7 +63,7 @@ class PostToAPIAuditService @Inject()(auditService: AuditService) {
         request = data,
         reportVersion = reportVersion,
         response = None,
-        maybeErrorMessage = Some(error.getMessage),
+        maybeErrorMessage = Some(error.getMessage)
       ))
   }
 
@@ -77,7 +77,7 @@ class PostToAPIAuditService @Inject()(auditService: AuditService) {
         reportVersion = reportVersion,
         status = Some(httpResponse.status),
         response = Some(httpResponse.json),
-        errorMessage = None,
+        errorMessage = None
       ))
     case Failure(error: UpstreamErrorResponse) =>
       auditService.sendEvent(CompileEventAuditEvent(
@@ -87,7 +87,7 @@ class PostToAPIAuditService @Inject()(auditService: AuditService) {
         reportVersion = reportVersion,
         status = Some(error.statusCode),
         response = None,
-        errorMessage = None,
+        errorMessage = None
       ))
     case Failure(error: HttpException) =>
       auditService.sendEvent(CompileEventAuditEvent(
@@ -97,7 +97,7 @@ class PostToAPIAuditService @Inject()(auditService: AuditService) {
         reportVersion = reportVersion,
         status = Some(error.responseCode),
         response = None,
-        errorMessage = None,
+        errorMessage = None
       ))
 
     case Failure(error: Throwable) =>
@@ -108,7 +108,7 @@ class PostToAPIAuditService @Inject()(auditService: AuditService) {
         reportVersion = reportVersion,
         status = None,
         response = None,
-        errorMessage = Some(error.getMessage),
+        errorMessage = Some(error.getMessage)
       ))
   }
 }
