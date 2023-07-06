@@ -82,7 +82,7 @@ class CompilePayloadService @Inject()(
   def collatePayloadsAndUpdateCache(pstr: String, year: Int, version: Int,
                                     apiType: ApiType, eventTypeForEventBeingCompiled: EventType,
                                     jsonForEventBeingCompiled: JsObject)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[JsObject] = {
-    apiType match {
+    val collatedPayloads = apiType match {
       case ApiType.Api1826 =>
         lazy val futureGetEventResponse: Future[Option[JsObject]] = eventReportConnector.getEvent(pstr, year.toString + "-04-06", version, None)
         val seqEventTypesToRetrieve = EventType.getEventTypesForAPI(apiType).filter(_ != eventTypeForEventBeingCompiled)
@@ -113,5 +113,9 @@ class CompilePayloadService @Inject()(
         }
       case _ => Future.successful(jsonForEventBeingCompiled)
     }
+    collatedPayloads.foreach{ p =>
+      logger.warn(s"Collated payload: ${p.toString}")
+    }
+    collatedPayloads
   }
 }
