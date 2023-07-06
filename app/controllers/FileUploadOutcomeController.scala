@@ -38,10 +38,11 @@ class FileUploadOutcomeController @Inject()(
 
   def save: Action[AnyContent] = Action.async {
     implicit request =>
+      logger.warn(s"In SAVE endpoint for file upload response: ${request.body}")
         request.body.asJson match {
           case Some(json) =>
             val reference = (json \ "reference").as[String]
-            logger.debug(message = s"[Save file upload outcome: Incoming-Payload]$reference")
+            logger.warn(message = s"[Save file upload outcome: Incoming-Payload]$reference and json is $json so now will upsert into repository")
             fileUploadResponseCacheRepository.upsert(reference, json).map(_ => Ok)
           case None =>
             Future.failed(new RuntimeException("No JSON body"))
