@@ -54,7 +54,7 @@ class AuditServiceSpec extends AnyWordSpec with Matchers with Inside {
         "response" -> "message"
       )
 
-      val event = SubmitEventDeclarationAuditEvent("test-audit-payload",  Some(Status.OK), requestJson, Some(responseJson), None )
+      val event = SubmitEventDeclarationAuditEvent("test-audit-payload", Some(Status.OK), requestJson, Some(responseJson), None, "1")
       val templateCaptor = ArgumentCaptor.forClass(classOf[ExtendedDataEvent])
 
       when(mockAuditConnector.sendExtendedEvent(any())(any(), any()))
@@ -67,10 +67,11 @@ class AuditServiceSpec extends AnyWordSpec with Matchers with Inside {
           auditType mustBe event.auditType
 
           detail mustBe Json.obj(
-            "pstr" -> "test-audit-payload",
+            "PensionSchemeTaxReference" -> "test-audit-payload",
             "request" -> requestJson,
             "status" -> 200,
-            "response" -> responseJson
+            "response" -> responseJson,
+            "reportVersion" -> "1"
           )
       }
     }

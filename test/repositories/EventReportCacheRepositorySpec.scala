@@ -18,7 +18,6 @@ package repositories
 
 import com.typesafe.config.Config
 import models.EventDataIdentifier
-import models.enumeration.ApiType.Api1826
 import models.enumeration.EventType
 import org.mockito.Mockito.when
 import org.mongodb.scala.model.Filters
@@ -262,7 +261,6 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
     }
 
     "return None when nothing present when NO API type specified" in {
-      val record = ("pstr-1", Api1826, Json.parse("""{"data":"1"}"""))
       val documentsInDB = for {
         _ <- eventReportCacheRepository.collection.drop().toFuture()
         _ <- eventReportCacheRepository.upsert(pstr1, edi, data1)
