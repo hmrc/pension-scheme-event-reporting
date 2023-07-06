@@ -66,15 +66,15 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
 
   private val pfSuccess: PartialFunction[Try[HttpResponse], Unit] = new PartialFunction[Try[HttpResponse], Unit] {
     override def isDefinedAt(x: Try[HttpResponse]): Boolean = true
+
     override def apply(v1: Try[HttpResponse]): Unit = ()
   }
-
 
 
   override def beforeEach(): Unit = {
     reset(mockPostToAPIAuditService)
     when(mockHeaderUtils.getCorrelationId).thenReturn(testCorrelationId)
-    when(mockPostToAPIAuditService.sendSubmitEventDeclarationAuditEvent(any(), any())(any(), any()))
+    when(mockPostToAPIAuditService.sendSubmitEventDeclarationAuditEvent(any(), any(), any())(any(), any()))
       .thenReturn(pfSuccess)
     super.beforeEach()
   }
@@ -114,9 +114,9 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             ok
           )
       )
-      connector.compileEventReportSummary(psaId, pstr, data) map {
+      connector.compileEventReportSummary(psaId, pstr, data, reportVersion) map {
         verify(mockPostToAPIAuditService, times(1))
-          .sendCompileEventDeclarationAuditEvent(any(), ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data))(any(), any())
+          .sendCompileEventDeclarationAuditEvent(any(), ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data), ArgumentMatchers.eq(reportVersion))(any(), any())
         _.status mustBe OK
       }
     }
@@ -131,7 +131,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           )
       )
       recoverToExceptionIf[BadRequestException] {
-        connector.compileEventReportSummary(psaId, pstr, data)
+        connector.compileEventReportSummary(psaId, pstr, data, reportVersion)
       } map {
         _.responseCode mustEqual BAD_REQUEST
       }
@@ -147,7 +147,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           )
       )
       recoverToExceptionIf[BadRequestException] {
-        connector.compileEventReportSummary(psaId, pstr, data)
+        connector.compileEventReportSummary(psaId, pstr, data, reportVersion)
       } map {
         _.responseCode mustEqual BAD_REQUEST
       }
@@ -164,7 +164,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       )
 
       recoverToExceptionIf[NotFoundException] {
-        connector.compileEventReportSummary(psaId, pstr, data)
+        connector.compileEventReportSummary(psaId, pstr, data, reportVersion)
       } map {
         _.responseCode mustEqual NOT_FOUND
       }
@@ -179,7 +179,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             serverError()
           )
       )
-      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventReportSummary(psaId, pstr, data)) map {
+      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventReportSummary(psaId, pstr, data, reportVersion)) map {
         _.statusCode mustBe INTERNAL_SERVER_ERROR
       }
     }
@@ -193,7 +193,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             forbidden()
           )
       )
-      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventReportSummary(psaId, pstr, data)) map {
+      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventReportSummary(psaId, pstr, data, reportVersion)) map {
         _.statusCode mustBe FORBIDDEN
       }
     }
@@ -207,7 +207,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             noContent()
           )
       )
-      recoverToExceptionIf[UnrecognisedHttpResponseException](connector.compileEventReportSummary(psaId, pstr, data)) map { response =>
+      recoverToExceptionIf[UnrecognisedHttpResponseException](connector.compileEventReportSummary(psaId, pstr, data, reportVersion)) map { response =>
         response.getMessage must include("204")
       }
     }
@@ -225,9 +225,9 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             ok
           )
       )
-      connector.compileEventOneReport(psaId, pstr, data) map {
+      connector.compileEventOneReport(psaId, pstr, data, reportVersion) map {
         verify(mockPostToAPIAuditService, times(1))
-          .sendCompileEventDeclarationAuditEvent(any(), ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data))(any(), any())
+          .sendCompileEventDeclarationAuditEvent(any(), ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data), ArgumentMatchers.eq(reportVersion))(any(), any())
         _.status mustBe OK
       }
     }
@@ -242,7 +242,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           )
       )
       recoverToExceptionIf[BadRequestException] {
-        connector.compileEventOneReport(psaId, pstr, data)
+        connector.compileEventOneReport(psaId, pstr, data, reportVersion)
       } map {
         _.responseCode mustEqual BAD_REQUEST
       }
@@ -258,7 +258,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           )
       )
       recoverToExceptionIf[BadRequestException] {
-        connector.compileEventOneReport(psaId, pstr, data)
+        connector.compileEventOneReport(psaId, pstr, data, reportVersion)
       } map {
         _.responseCode mustEqual BAD_REQUEST
       }
@@ -275,7 +275,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       )
 
       recoverToExceptionIf[NotFoundException] {
-        connector.compileEventOneReport(psaId, pstr, data)
+        connector.compileEventOneReport(psaId, pstr, data, reportVersion)
       } map {
         _.responseCode mustEqual NOT_FOUND
       }
@@ -290,7 +290,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             serverError()
           )
       )
-      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventOneReport(psaId, pstr, data)) map {
+      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventOneReport(psaId, pstr, data, reportVersion)) map {
         _.statusCode mustBe INTERNAL_SERVER_ERROR
       }
     }
@@ -304,7 +304,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             forbidden()
           )
       )
-      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventOneReport(psaId, pstr, data)) map {
+      recoverToExceptionIf[UpstreamErrorResponse](connector.compileEventOneReport(psaId, pstr, data, reportVersion)) map {
         _.statusCode mustBe FORBIDDEN
       }
     }
@@ -318,7 +318,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             noContent()
           )
       )
-      recoverToExceptionIf[UnrecognisedHttpResponseException](connector.compileEventOneReport(psaId, pstr, data)) map { response =>
+      recoverToExceptionIf[UnrecognisedHttpResponseException](connector.compileEventOneReport(psaId, pstr, data, reportVersion)) map { response =>
         response.getMessage must include("204")
       }
     }
@@ -337,9 +337,9 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             ok
           )
       )
-      connector.compileMemberEventReport(psaId, pstr, data) map {
+      connector.compileMemberEventReport(psaId, pstr, data, reportVersion) map {
         verify(mockPostToAPIAuditService, times(1))
-          .sendCompileEventDeclarationAuditEvent(any(), ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data))(any(), any())
+          .sendCompileEventDeclarationAuditEvent(any(), ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data), ArgumentMatchers.eq(reportVersion))(any(), any())
         _.status mustBe OK
       }
     }
@@ -354,7 +354,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           )
       )
       recoverToExceptionIf[BadRequestException] {
-        connector.compileMemberEventReport(psaId, pstr, data)
+        connector.compileMemberEventReport(psaId, pstr, data, reportVersion)
       } map {
         _.responseCode mustEqual BAD_REQUEST
       }
@@ -370,7 +370,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           )
       )
       recoverToExceptionIf[BadRequestException] {
-        connector.compileMemberEventReport(psaId, pstr, data)
+        connector.compileMemberEventReport(psaId, pstr, data, reportVersion)
       } map {
         _.responseCode mustEqual BAD_REQUEST
       }
@@ -387,7 +387,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       )
 
       recoverToExceptionIf[NotFoundException] {
-        connector.compileMemberEventReport(psaId, pstr, data)
+        connector.compileMemberEventReport(psaId, pstr, data, reportVersion)
       } map {
         _.responseCode mustEqual NOT_FOUND
       }
@@ -402,7 +402,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             serverError()
           )
       )
-      recoverToExceptionIf[UpstreamErrorResponse](connector.compileMemberEventReport(psaId, pstr, data)) map {
+      recoverToExceptionIf[UpstreamErrorResponse](connector.compileMemberEventReport(psaId, pstr, data, reportVersion)) map {
         _.statusCode mustBe INTERNAL_SERVER_ERROR
       }
     }
@@ -416,7 +416,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             forbidden()
           )
       )
-      recoverToExceptionIf[UpstreamErrorResponse](connector.compileMemberEventReport(psaId, pstr, data)) map {
+      recoverToExceptionIf[UpstreamErrorResponse](connector.compileMemberEventReport(psaId, pstr, data, reportVersion)) map {
         _.statusCode mustBe FORBIDDEN
       }
     }
@@ -430,7 +430,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             noContent()
           )
       )
-      recoverToExceptionIf[UnrecognisedHttpResponseException](connector.compileMemberEventReport(psaId, pstr, data)) map { response =>
+      recoverToExceptionIf[UnrecognisedHttpResponseException](connector.compileMemberEventReport(psaId, pstr, data, reportVersion)) map { response =>
         response.getMessage must include("204")
       }
     }
@@ -577,7 +577,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             )
         )
 
-        connector.getEvent(pstr, fromDt, 1, Some(Event3)).map { actualResponse =>
+        connector.getEvent(pstr, fromDt, reportVersion, Some(Event3)).map { actualResponse =>
           actualResponse mustBe Some(expectedGetEventResponse)
         }
       }
@@ -592,7 +592,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         )
 
         recoverToExceptionIf[NotFoundException] {
-          connector.getEvent(pstr, fromDt, 1, Some(Event3))
+          connector.getEvent(pstr, fromDt, reportVersion, Some(Event3))
         } map { response =>
           response.responseCode mustEqual NOT_FOUND
           response.message must include("NOT_FOUND")
@@ -610,7 +610,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         )
 
         recoverToExceptionIf[UpstreamErrorResponse] {
-          connector.getEvent(pstr, fromDt, 1, Some(Event3))
+          connector.getEvent(pstr, fromDt, reportVersion, Some(Event3))
         } map {
           _.statusCode mustBe INTERNAL_SERVER_ERROR
         }
@@ -628,7 +628,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             )
         )
 
-        connector.getEvent(pstr, fromDt, 1, Some(Event1)).map { actualResponse =>
+        connector.getEvent(pstr, fromDt, reportVersion, Some(Event1)).map { actualResponse =>
 
           actualResponse mustBe Some(expectedGetEventResponse)
         }
@@ -644,7 +644,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         )
 
         recoverToExceptionIf[NotFoundException] {
-          connector.getEvent(pstr, fromDt, 1, Some(Event1))
+          connector.getEvent(pstr, fromDt, reportVersion, Some(Event1))
         } map { response =>
           response.responseCode mustEqual NOT_FOUND
           response.message must include("NOT_FOUND")
@@ -662,7 +662,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         )
 
         recoverToExceptionIf[UpstreamErrorResponse] {
-          connector.getEvent(pstr, fromDt, 1, Some(Event1))
+          connector.getEvent(pstr, fromDt, reportVersion, Some(Event1))
         } map {
           _.statusCode mustBe INTERNAL_SERVER_ERROR
         }
@@ -680,7 +680,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             )
         )
 
-        connector.getEvent(pstr, fromDt, 1, None).map { actualResponse =>
+        connector.getEvent(pstr, fromDt, reportVersion, None).map { actualResponse =>
 
           actualResponse mustBe Some(expectedGetEventResponse)
         }
@@ -696,7 +696,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         )
 
         recoverToExceptionIf[NotFoundException] {
-          connector.getEvent(pstr, fromDt, 1, Some(Event10))
+          connector.getEvent(pstr, fromDt, reportVersion, Some(Event10))
         } map { response =>
           response.responseCode mustEqual NOT_FOUND
           response.message must include("NOT_FOUND")
@@ -714,7 +714,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         )
 
         recoverToExceptionIf[UpstreamErrorResponse] {
-          connector.getEvent(pstr, fromDt, 1, Some(Event10))
+          connector.getEvent(pstr, fromDt, reportVersion, Some(Event10))
         } map {
           _.statusCode mustBe INTERNAL_SERVER_ERROR
         }
@@ -732,7 +732,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             )
         )
 
-        connector.getEvent(pstr, fromDt, 1, Some(Event20A)).map { actualResponse =>
+        connector.getEvent(pstr, fromDt, reportVersion, Some(Event20A)).map { actualResponse =>
           actualResponse mustBe Some(expectedGetEventResponse)
         }
       }
@@ -747,7 +747,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         )
 
         recoverToExceptionIf[NotFoundException] {
-          connector.getEvent(pstr, fromDt, 1, Some(Event20A))
+          connector.getEvent(pstr, fromDt, reportVersion, Some(Event20A))
         } map { response =>
           response.responseCode mustEqual NOT_FOUND
           response.message must include("NOT_FOUND")
@@ -765,7 +765,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         )
 
         recoverToExceptionIf[UpstreamErrorResponse] {
-          connector.getEvent(pstr, fromDt, 1, Some(Event20A))
+          connector.getEvent(pstr, fromDt, reportVersion, Some(Event20A))
         } map {
           _.statusCode mustBe INTERNAL_SERVER_ERROR
         }
@@ -774,7 +774,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
 
     "No Get API for this Event Type" must {
       "return None for invalid event" in {
-        connector.getEvent(pstr, fromDt, 1, Some(DummyForTest)).map { t =>
+        connector.getEvent(pstr, fromDt, reportVersion, Some(DummyForTest)).map { t =>
           t mustBe None
         }
       }
@@ -793,9 +793,9 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           )
       )
 
-      connector.submitEventDeclarationReport(pstr, data) map { response =>
+      connector.submitEventDeclarationReport(pstr, data, reportVersion) map { response =>
         verify(mockPostToAPIAuditService, times(1))
-          .sendSubmitEventDeclarationAuditEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data))(any(), any())
+          .sendSubmitEventDeclarationAuditEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data), ArgumentMatchers.eq(reportVersion))(any(), any())
         response.status mustBe OK
       }
     }
@@ -809,9 +809,9 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             serverError()
           )
       )
-      recoverToExceptionIf[UpstreamErrorResponse](connector.submitEventDeclarationReport(pstr, data)) map { response =>
+      recoverToExceptionIf[UpstreamErrorResponse](connector.submitEventDeclarationReport(pstr, data, reportVersion)) map { response =>
         verify(mockPostToAPIAuditService, times(1))
-          .sendSubmitEventDeclarationAuditEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data))(any(), any())
+          .sendSubmitEventDeclarationAuditEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data), ArgumentMatchers.eq(reportVersion))(any(), any())
         response.statusCode mustBe INTERNAL_SERVER_ERROR
       }
     }
@@ -826,7 +826,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           )
       )
       recoverToExceptionIf[BadRequestException] {
-        connector.submitEventDeclarationReport(pstr, data)
+        connector.submitEventDeclarationReport(pstr, data, reportVersion)
       } map {
         _.responseCode mustEqual BAD_REQUEST
       }
@@ -843,7 +843,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         )
     )
     recoverToExceptionIf[BadRequestException] {
-      connector.submitEventDeclarationReport(pstr, data)
+      connector.submitEventDeclarationReport(pstr, data, reportVersion)
     } map {
       _.responseCode mustEqual BAD_REQUEST
     }
@@ -860,7 +860,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
     )
 
     recoverToExceptionIf[NotFoundException] {
-      connector.submitEventDeclarationReport(pstr, data)
+      connector.submitEventDeclarationReport(pstr, data, reportVersion)
     } map {
       _.responseCode mustEqual NOT_FOUND
     }
@@ -875,7 +875,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           forbidden()
         )
     )
-    recoverToExceptionIf[UpstreamErrorResponse](connector.submitEventDeclarationReport(pstr, data)) map {
+    recoverToExceptionIf[UpstreamErrorResponse](connector.submitEventDeclarationReport(pstr, data, reportVersion)) map {
       _.statusCode mustBe FORBIDDEN
     }
   }
@@ -889,7 +889,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           noContent()
         )
     )
-    recoverToExceptionIf[UnrecognisedHttpResponseException](connector.submitEventDeclarationReport(pstr, data)) map { response =>
+    recoverToExceptionIf[UnrecognisedHttpResponseException](connector.submitEventDeclarationReport(pstr, data, reportVersion)) map { response =>
       response.getMessage must include("204")
     }
   }
@@ -939,9 +939,9 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             ok
           )
       )
-      connector.submitEvent20ADeclarationReport(pstr, data) map {
+      connector.submitEvent20ADeclarationReport(pstr, data, reportVersion) map {
         verify(mockPostToAPIAuditService, times(1))
-          .sendSubmitEventDeclarationAuditEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data))(any(), any())
+          .sendSubmitEventDeclarationAuditEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data), ArgumentMatchers.eq(reportVersion))(any(), any())
         _.status mustBe OK
       }
     }
@@ -956,7 +956,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           )
       )
       recoverToExceptionIf[BadRequestException] {
-        connector.submitEvent20ADeclarationReport(pstr, data)
+        connector.submitEvent20ADeclarationReport(pstr, data, reportVersion)
       } map {
         _.responseCode mustEqual BAD_REQUEST
       }
@@ -972,7 +972,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
           )
       )
       recoverToExceptionIf[BadRequestException] {
-        connector.submitEvent20ADeclarationReport(pstr, data)
+        connector.submitEvent20ADeclarationReport(pstr, data, reportVersion)
       } map {
         _.responseCode mustEqual BAD_REQUEST
       }
@@ -989,7 +989,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       )
 
       recoverToExceptionIf[NotFoundException] {
-        connector.submitEvent20ADeclarationReport(pstr, data)
+        connector.submitEvent20ADeclarationReport(pstr, data, reportVersion)
       } map {
         _.responseCode mustEqual NOT_FOUND
       }
@@ -1004,7 +1004,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             serverError()
           )
       )
-      recoverToExceptionIf[UpstreamErrorResponse](connector.submitEvent20ADeclarationReport(pstr, data)) map {
+      recoverToExceptionIf[UpstreamErrorResponse](connector.submitEvent20ADeclarationReport(pstr, data, reportVersion)) map {
         _.statusCode mustBe INTERNAL_SERVER_ERROR
       }
     }
@@ -1018,7 +1018,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             forbidden()
           )
       )
-      recoverToExceptionIf[UpstreamErrorResponse](connector.submitEvent20ADeclarationReport(pstr, data)) map {
+      recoverToExceptionIf[UpstreamErrorResponse](connector.submitEvent20ADeclarationReport(pstr, data, reportVersion)) map {
         _.statusCode mustBe FORBIDDEN
       }
     }
@@ -1032,7 +1032,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             noContent()
           )
       )
-      recoverToExceptionIf[UnrecognisedHttpResponseException](connector.submitEvent20ADeclarationReport(pstr, data)) map { response =>
+      recoverToExceptionIf[UnrecognisedHttpResponseException](connector.submitEvent20ADeclarationReport(pstr, data, reportVersion)) map { response =>
         response.getMessage must include("204")
       }
     }
@@ -1043,6 +1043,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
 object EventReportConnectorSpec {
   private val psaId = "testpsa"
   private val pstr = "test-pstr"
+  private val reportVersion = "1"
   private val reportTypeER = "ER"
   private val fromDt = "2022-04-06"
   private val toDt = "2022-04-05"

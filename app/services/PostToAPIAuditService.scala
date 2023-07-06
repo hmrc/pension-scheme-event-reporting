@@ -18,7 +18,6 @@ package services
 
 import audit.{CompileEventAuditEvent, SubmitEventDeclarationAuditEvent}
 import com.google.inject.Inject
-import models.EventDataIdentifier
 import play.api.http.Status
 import play.api.libs.json._
 import play.api.mvc.RequestHeader
@@ -27,25 +26,25 @@ import uk.gov.hmrc.http.{HttpException, HttpResponse, UpstreamErrorResponse}
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
 
-class PostToAPIAuditService @Inject()(auditService: AuditService, eventDataIdentifier: EventDataIdentifier ) {
-  def sendSubmitEventDeclarationAuditEvent(pstr: String, data: JsValue)
+class PostToAPIAuditService @Inject()(auditService: AuditService) {
+  def sendSubmitEventDeclarationAuditEvent(pstr: String, data: JsValue, reportVersion: String)
                                           (implicit ec: ExecutionContext, request: RequestHeader): PartialFunction[Try[HttpResponse], Unit] = {
     case Success(httpResponse) =>
       auditService.sendEvent(SubmitEventDeclarationAuditEvent(
         pstr = pstr,
         maybeStatus = Some(Status.OK),
         request = data,
-        reportVersion = eventDataIdentifier.version,
+        reportVersion = reportVersion,
         response = Some(httpResponse.json),
         maybeErrorMessage = None
-        ))
+      ))
     case Failure(error: UpstreamErrorResponse) =>
       auditService.sendEvent(
         SubmitEventDeclarationAuditEvent(
           pstr,
           maybeStatus = Some(error.statusCode),
           request = data,
-          reportVersion = eventDataIdentifier.version,
+          reportVersion = reportVersion,
           response = None,
           maybeErrorMessage = None))
     case Failure(error: HttpException) =>
@@ -53,7 +52,7 @@ class PostToAPIAuditService @Inject()(auditService: AuditService, eventDataIdent
         pstr = pstr,
         maybeStatus = Some(error.responseCode),
         request = data,
-        reportVersion = eventDataIdentifier.version,
+        reportVersion = reportVersion,
         response = None,
         maybeErrorMessage = None))
 
@@ -62,20 +61,20 @@ class PostToAPIAuditService @Inject()(auditService: AuditService, eventDataIdent
         pstr = pstr,
         maybeStatus = None,
         request = data,
-        reportVersion = eventDataIdentifier.version,
+        reportVersion = reportVersion,
         response = None,
         maybeErrorMessage = Some(error.getMessage),
       ))
   }
 
-  def sendCompileEventDeclarationAuditEvent(psaPspIdentifier: String, pstr: String, payload: JsValue)
-                                          (implicit ec: ExecutionContext, request: RequestHeader): PartialFunction[Try[HttpResponse], Unit] = {
+  def sendCompileEventDeclarationAuditEvent(psaPspIdentifier: String, pstr: String, payload: JsValue, reportVersion: String)
+                                           (implicit ec: ExecutionContext, request: RequestHeader): PartialFunction[Try[HttpResponse], Unit] = {
     case Success(httpResponse) =>
       auditService.sendEvent(CompileEventAuditEvent(
         psaPspIdentifier = psaPspIdentifier,
         pstr = pstr,
         payload = payload,
-        reportVersion = eventDataIdentifier.version,
+        reportVersion = reportVersion,
         status = Some(httpResponse.status),
         response = Some(httpResponse.json),
         errorMessage = None,
@@ -85,7 +84,7 @@ class PostToAPIAuditService @Inject()(auditService: AuditService, eventDataIdent
         psaPspIdentifier = psaPspIdentifier,
         pstr = pstr,
         payload = payload,
-        reportVersion = eventDataIdentifier.version,
+        reportVersion = reportVersion,
         status = Some(error.statusCode),
         response = None,
         errorMessage = None,
@@ -95,7 +94,7 @@ class PostToAPIAuditService @Inject()(auditService: AuditService, eventDataIdent
         psaPspIdentifier = psaPspIdentifier,
         pstr = pstr,
         payload = payload,
-        reportVersion = eventDataIdentifier.version,
+        reportVersion = reportVersion,
         status = Some(error.responseCode),
         response = None,
         errorMessage = None,
@@ -106,7 +105,7 @@ class PostToAPIAuditService @Inject()(auditService: AuditService, eventDataIdent
         psaPspIdentifier = psaPspIdentifier,
         pstr = pstr,
         payload = payload,
-        reportVersion = eventDataIdentifier.version,
+        reportVersion = reportVersion,
         status = None,
         response = None,
         errorMessage = Some(error.getMessage),

@@ -22,13 +22,13 @@ import models.{EmailEvents, Opened}
 import play.api.Logger
 import play.api.libs.json.JsValue
 import play.api.mvc._
-import services.{AuditService, EventReportService}
-import uk.gov.hmrc.crypto.{ApplicationCrypto, Crypted}
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import services.AuditService
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
-import uk.gov.hmrc.http.{Request => _, _}
+import uk.gov.hmrc.crypto.{ApplicationCrypto, Crypted}
+import uk.gov.hmrc.http.{Request => _}
+import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.{ExecutionContext}
+import scala.concurrent.ExecutionContext
 
 
 class EmailResponseController @Inject()(
@@ -36,14 +36,15 @@ class EmailResponseController @Inject()(
                                          cc: ControllerComponents,
                                          crypto: ApplicationCrypto,
                                          parser: PlayBodyParsers,
-                                         val authConnector: AuthConnector,
+                                         val authConnector: AuthConnector
                                        )(implicit ec: ExecutionContext) extends BackendController(cc) with AuthorisedFunctions {
   private val logger = Logger(classOf[EmailResponseController])
 
   def sendAuditEvents(
                        requestId: String,
                        encryptedPsaOrPspId: String,
-                       email: String, version: String): Action[JsValue] = Action(parser.tolerantJson) {
+                       email: String,
+                       reportVersion: String): Action[JsValue] = Action(parser.tolerantJson) {
     implicit request =>
       decryptPsaOrPspIdAndEmail(encryptedPsaOrPspId, email) match {
         case Right(Tuple2(psaOrPspId, emailAddress)) =>

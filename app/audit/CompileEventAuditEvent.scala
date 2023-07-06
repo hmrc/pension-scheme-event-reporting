@@ -24,7 +24,7 @@ case class CompileEventAuditEvent(psaPspIdentifier: String,
                                   status: Option[Int],
                                   response: Option[JsValue],
                                   errorMessage: Option[String],
-                                  reportVersion: Int
+                                  reportVersion: String
                                  ) extends AuditEvent {
   override def auditType: String = "EventReportTaxReturnCompiled"
 
