@@ -77,7 +77,6 @@ object API1834Summary {
         (JsPath \ "eventDetails" \ "event20").readNullable[Boolean](readsIsEventTypePresentFromSeq) -> Event20,
         (JsPath \ "memberEventsSummary" \ "event22" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event22,
         (JsPath \ "memberEventsSummary" \ "event23" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event23,
-        (JsPath \ "memberEventsSummary" \ "event24" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event24,
         (JsPath \ "eventDetails" \ "eventWindUp" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> WindUp
       )
 
