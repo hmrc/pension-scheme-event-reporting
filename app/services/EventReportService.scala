@@ -154,6 +154,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
             throw JsResultException(e)
         }
       case evType1834 if api1834Events.contains(evType1834) =>
+        logger.warn(s"Transforming payload for event type $eventType from API 1834. Payload is: $data")
         data.validate(API1834.reads(evType1834)) match {
           case JsSuccess(transformedData, _) => Some(transformedData)
           case JsError(e) =>
