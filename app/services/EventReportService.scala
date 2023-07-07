@@ -29,7 +29,7 @@ import play.api.libs.json.JsResult.toTry
 import play.api.libs.json._
 import play.api.mvc.Results._
 import play.api.mvc.{RequestHeader, Result}
-import repositories.{EventReportCacheRepository, GetDetailsCacheRepository}
+import repositories.EventReportCacheRepository
 import transformations.ETMPToFrontEnd.{API1831, API1832, API1833, API1834}
 import transformations.UserAnswersToETMP._
 import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, HeaderCarrier, HttpResponse}
@@ -134,33 +134,23 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  private def validationCheck(data: JsObject, eventType: EventType): Option[JsObject] = {
+  private val api1832Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
+  private val api1834Events: List[EventType] = List(WindUp, Event10, Event18, Event13, Event20, Event11, Event12, Event14, Event19)
 
-    val api1832Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
-    val api1834Events: List[EventType] = List(WindUp, Event10, Event18, Event13, Event20, Event11, Event12, Event14, Event19)
+  private def transformOrException(data: JsObject, reads: Reads[JsObject]): Option[JsObject] = {
+    data.validate(reads) match {
+      case JsSuccess(transformedData, _) => Some(transformedData)
+      case JsError(e) => throw JsResultException(e)
+    }
+  }
+
+  private def transformGETResponse(data: JsObject, eventType: EventType): Option[JsObject] = {
     eventType match {
-      case Event1 => data.validate(API1833.rds1833Api) match {
-        case JsSuccess(transformedData, _) => Some(transformedData)
-        case _ => None
-      }
-      case Event20A => data.validate(API1831.rds1831Api) match {
-        case JsSuccess(transformedData, _) => Some(transformedData)
-        case _ => None
-      }
-      case evType1832 if api1832Events.contains(evType1832) =>
-        data.validate(API1832.rds1832Api(evType1832)) match {
-          case JsSuccess(transformedData, _) => Some(transformedData)
-          case JsError(e) =>
-            throw JsResultException(e)
-        }
-      case evType1834 if api1834Events.contains(evType1834) =>
-        logger.warn(s"Transforming payload for event type $eventType from API 1834. Payload is: $data")
-        data.validate(API1834.reads(evType1834)) match {
-          case JsSuccess(transformedData, _) => Some(transformedData)
-          case JsError(e) =>
-            throw JsResultException(e)
-        }
-      case _ => Some(data)
+      case Event1 => transformOrException(data, API1833.rds1833Api)
+      case Event20A => transformOrException(data, API1831.rds1831Api)
+      case evType1832 if api1832Events.contains(evType1832) => transformOrException(data, API1832.rds1832Api(evType1832))
+      case evType1834 if api1834Events.contains(evType1834) => transformOrException(data, API1834.reads(evType1834))
+      case _ => throw new RuntimeException(s"No transformation available for event type $eventType")
     }
   }
 
@@ -168,7 +158,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] = {
     eventReportConnector.getEvent(pstr, startDate, version.toString, Some(eventType)).flatMap {
       case Some(data) =>
-        val jsDataOpt = validationCheck(data, eventType)
+        val jsDataOpt = transformGETResponse(data, eventType)
         Future.successful(jsDataOpt)
       case _ =>
         Future.successful(None)
@@ -228,7 +218,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Unit] = {
 
     def recoverAndValidatePayload(transformed1828Payload: JsObject): Future[Unit] = {
-      val recoveredConnectorCallForAPI1828 = eventReportConnector.submitEventDeclarationReport(pstr, transformed1828Payload, version).map(_.json.as[JsObject]).recover {
+      val recoveredConnectorCallForAPI1828 = eventReportConnector
+        .submitEventDeclarationReport(pstr, transformed1828Payload, version).map(_.json.as[JsObject]).recover {
         case _: BadRequestException =>
           throw new ExpectationFailedException("Nothing to submit")
       }
