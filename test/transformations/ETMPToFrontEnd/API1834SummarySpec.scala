@@ -32,7 +32,7 @@ class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar wit
       val result = json.validate(API1834Summary.rdsFor1834).asOpt
 
       val expectedResult = Some(
-        Seq("1","2","3","4","5","6","7","8","8A","10","11","12","13","14","19","20","22","23","0")
+        Seq("1","2","3","4","5","6","7","8","8A","10","11","12","13","14","19","20","22","23","WindUp")
       )
 
       result.map(_.validate[Seq[String]].get) mustBe expectedResult

@@ -24,15 +24,11 @@ import play.api.libs.json.{JsObject, Json}
 trait GeneratorAPI1834Summary extends Matchers with OptionValues with ResponseGenerators {
   def generateGET1834ResponseAndUserAnswers: Gen[Tuple2[JsObject, Seq[String]]] = {
     val sortEventTypes: (String, String) => Boolean = (a, b) => {
-      def toNum(str:String) = {
-        val d = if(str.contains("A")) {
-          str.split("A")(0).toDouble + 0.1D
-        } else {
-          str.toDouble
+      def toNum(str:String): Double = str match {
+          case event if event.contains("A") => str.split("A")(0).toDouble + 0.1D
+          case "WindUp" => 100D
+          case _ => str.toDouble
         }
-        if(d == 0) 100D
-        else d
-      }
       (toNum(a), toNum(b)) match {
         case (a, b) if a < b => true
         case _ => false
@@ -41,7 +37,7 @@ trait GeneratorAPI1834Summary extends Matchers with OptionValues with ResponseGe
     val version = "001"
     for {
       chosenEventTypesWithSeq <- Gen.someOf[String](Seq("10", "13", "19", "20"))
-      chosenEventTypesWithoutSeq <- Gen.someOf[String](Seq("11", "12", "14", "0"))
+      chosenEventTypesWithoutSeq <- Gen.someOf[String](Seq("11", "12", "14", "WindUp"))
       chosenMemberEventTypesSeq <- Gen.someOf[String](Seq("2", "3", "4", "5", "6", "7", "8", "8A", "22", "23"))
     } yield {
       val payloadWithSeq = chosenEventTypesWithSeq.foldLeft(Json.obj()) { (acc, s) =>
@@ -55,7 +51,7 @@ trait GeneratorAPI1834Summary extends Matchers with OptionValues with ResponseGe
       }
       val payloadWithoutSeq = chosenEventTypesWithoutSeq.foldLeft(Json.obj()) { (acc, s) =>
         acc ++ Json.obj(
-          s"""event${if (s == "0") "WindUp" else s}""" ->
+          s"""event${s}""" ->
             Json.obj(
               "recordVersion" -> version
             )
