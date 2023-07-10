@@ -77,6 +77,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
         s"event${Event2.toString}" -> Json.obj(
           "members" -> Json.arr(
             Json.obj(
+              "memberStatus" -> "New",
               "deceasedMembersDetails" -> Json.obj(
                 "firstName" -> map("deceasedFirstName"),
                 "lastName" -> map("deceasedLastName"),
@@ -125,9 +126,9 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
           )
         ))
       val userAnswers = Json.obj(
-        s"event${Event3.toString}" -> Json.obj("members" ->
-          Json.arr(
-            Json.obj(
+        s"event${Event3.toString}" -> Json.obj("members" -> Json.arr(
+          Json.obj(
+            "memberStatus" -> "New",
               "membersDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
@@ -155,6 +156,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
       val etmpPayload = etmpData(Event4) ++
         Json.obj("eventDetails" -> Json.arr(
           Json.obj("memberDetail" -> Json.obj(
+            "memberStatus" -> "New",
             "event" -> Json.obj(
               "eventType" -> s"Event${Event4.toString}",
               "individualDetails" -> Json.obj(
@@ -172,9 +174,9 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
         )
         )
       val userAnswers = Json.obj(
-        s"event${Event4.toString}" -> Json.obj("members" ->
-          Json.arr(
-            Json.obj(
+        s"event${Event4.toString}" -> Json.obj("members" -> Json.arr(
+          Json.obj(
+            "memberStatus" -> "New",
               "membersDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
@@ -198,6 +200,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
       val etmpPayload = etmpData(Event5) ++
         Json.obj("eventDetails" -> Json.arr(
           Json.obj("memberDetail" -> Json.obj(
+            "memberStatus" -> "New",
             "event" -> Json.obj(
               "eventType" -> s"Event${Event5.toString}",
               "individualDetails" -> Json.obj(
@@ -215,9 +218,9 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
         )
         )
       val userAnswers = Json.obj(
-        s"event${Event5.toString}" -> Json.obj("members" ->
-          Json.arr(
-            Json.obj(
+        s"event${Event5.toString}" -> Json.obj("members" -> Json.arr(
+          Json.obj(
+            "memberStatus" -> "New",
               "membersDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
@@ -241,6 +244,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
       val etmpPayload = etmpData(Event6) ++
         Json.obj("eventDetails" -> Json.arr(
           Json.obj("memberDetail" -> Json.obj(
+            "memberStatus" -> "New",
             "event" -> Json.obj(
               "eventType" -> s"Event${Event6.toString}",
               "individualDetails" -> Json.obj(
@@ -260,9 +264,9 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
         )
         )
       val userAnswers = Json.obj(
-        s"event${Event6.toString}" -> Json.obj("members" ->
-          Json.arr(
-            Json.obj(
+        s"event${Event6.toString}" -> Json.obj("members" -> Json.arr(
+          Json.obj(
+            "memberStatus" -> "New",
               "membersDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
@@ -288,6 +292,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
       val etmpPayload = etmpData(Event7) ++
         Json.obj("eventDetails" -> Json.arr(
           Json.obj("memberDetail" -> Json.obj(
+            "memberStatus" -> "New",
             "event" -> Json.obj(
               "eventType" -> s"Event${Event7.toString}",
               "individualDetails" -> Json.obj(
@@ -306,9 +311,9 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
         )
         )
       val userAnswers = Json.obj(
-        s"event${Event7.toString}" -> Json.obj("members" ->
-          Json.arr(
-            Json.obj(
+        s"event${Event7.toString}" -> Json.obj("members" -> Json.arr(
+          Json.obj(
+            "memberStatus" -> "New",
               "membersDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
@@ -333,6 +338,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
       val etmpPayload = etmpData(Event8) ++
         Json.obj("eventDetails" -> Json.arr(
           Json.obj("memberDetail" -> Json.obj(
+            "memberStatus" -> "New",
             "event" -> Json.obj(
               "eventType" -> s"Event${Event8.toString}",
               "individualDetails" -> Json.obj(
@@ -352,9 +358,9 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
         )
         )
       val userAnswers = Json.obj(
-        s"event${Event8.toString}" -> Json.obj("members" ->
-          Json.arr(
-            Json.obj(
+        s"event${Event8.toString}" -> Json.obj("members" -> Json.arr(
+          Json.obj(
+            "memberStatus" -> "New",
               "membersDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
@@ -380,6 +386,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
       val etmpPayload = etmpData(Event8A) ++
         Json.obj("eventDetails" -> Json.arr(
           Json.obj("memberDetail" -> Json.obj(
+            "memberStatus" -> "New",
             "event" -> Json.obj(
               "eventType" -> s"Event${Event8A.toString}",
               "individualDetails" -> Json.obj(
@@ -400,9 +407,9 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
         )
         )
       val userAnswers = Json.obj(
-        s"event${Event8A.toString}" -> Json.obj("members" ->
-          Json.arr(
-            Json.obj(
+        s"event${Event8A.toString}" -> Json.obj("members" -> Json.arr(
+          Json.obj(
+            "memberStatus" -> "New",
               "membersDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
@@ -429,6 +436,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
       val etmpPayload = etmpData(eventType) ++
         Json.obj("eventDetails" -> Json.arr(
           Json.obj("memberDetail" -> Json.obj(
+            "memberStatus" -> "New",
             "event" -> Json.obj(
               "eventType" -> s"Event${Event2.toString}",
               "individualDetails" -> Json.obj(
@@ -450,6 +458,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
         s"event${eventType.toString}" -> Json.obj(
           "members" -> Json.arr(
             Json.obj(
+              "memberStatus" -> "New",
               "membersDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),

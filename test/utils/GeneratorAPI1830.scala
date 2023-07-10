@@ -50,6 +50,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
         s"event${Event2.toString}" -> Json.obj("members" ->
           Json.arr(
             Json.obj(
+              "memberStatus" -> "New",
               "deceasedMembersDetails" -> Json.obj(
                 "firstName" -> map("deceasedFirstName"),
                 "lastName" -> map("deceasedLastName"),
@@ -110,10 +111,11 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
       map <- randomValues()
     } yield {
       val ua = Json.obj(
-        s"event${Event3.toString}" -> Json.obj(
-          "members" ->
-            Json.arr(
-              Json.obj(
+        s"event${Event3.toString}" -> Json.obj("members" ->
+          Json.arr(
+            Json.obj(
+              "memberStatus" -> "New",
+                "memberStatus" -> "New",
                 "membersDetails" -> Json.obj(
                   "firstName" -> map("firstName"),
                   "lastName" -> map("lastName"),
@@ -176,6 +178,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
         s"event${Event4.toString}" -> Json.obj("members" ->
           Json.arr(
             Json.obj(
+              "memberStatus" -> "New",
               "membersDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
@@ -231,6 +234,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
         s"event${Event5.toString}" -> Json.obj("members" ->
           Json.arr(
             Json.obj(
+              "memberStatus" -> "New",
               "membersDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
@@ -286,6 +290,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
         s"event${Event6.toString}" -> Json.obj("members" ->
           Json.arr(
             Json.obj(
+              "memberStatus" -> "New",
               "membersDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
@@ -345,6 +350,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
         s"event${Event7.toString}" -> Json.obj("members" ->
           Json.arr(
             Json.obj(
+              "memberStatus" -> "New",
               "membersDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
@@ -402,6 +408,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
         s"event${Event8.toString}" -> Json.obj("members" ->
           Json.arr(
             Json.obj(
+              "memberStatus" -> "New",
               "membersDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
@@ -470,6 +477,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
       s"event${Event8A.toString}" -> Json.obj("members" ->
         Json.arr(
           Json.obj(
+            "memberStatus" -> "New",
             "membersDetails" -> Json.obj(
               "firstName" -> map("firstName"),
               "lastName" -> map("lastName"),
@@ -535,6 +543,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
         s"event${eventType.toString}" -> Json.obj("members" ->
           Json.arr(
             Json.obj(
+              "memberStatus" -> "New",
               "membersDetails" -> Json.obj(
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),

@@ -130,8 +130,8 @@ private object API1832ReadsUtilities extends Transformer {
       (pathUaMembersDetails \ Symbol("firstName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("firstName")).json.pick) and
         (pathUaMembersDetails \ Symbol("lastName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("lastName")).json.pick) and
         (pathUaMembersDetails \ Symbol("nino")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("nino")).json.pick) and
-        pathUaMemberStatus.json.copyFrom(pathEtmlMemberStatus.json.pick) and
-        pathUaAmendedVersion.json.copyFrom(pathEtmlAmendedVersion.json.pick)
+        pathUaMemberStatus.json.copyFrom(pathEtmlMemberStatus.json.pick).orElse(doNothing) and
+        pathUaAmendedVersion.json.copyFrom(pathEtmlAmendedVersion.json.pick).orElse(doNothing)
       ).reduce
   }
 
@@ -139,7 +139,9 @@ private object API1832ReadsUtilities extends Transformer {
     (
       (pathUaDeceasedMembersDetails \ Symbol("firstName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("firstName")).json.pick) and
         (pathUaDeceasedMembersDetails \ Symbol("lastName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("lastName")).json.pick) and
-        (pathUaDeceasedMembersDetails \ Symbol("nino")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("nino")).json.pick)
+        (pathUaDeceasedMembersDetails \ Symbol("nino")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("nino")).json.pick) and
+        pathUaMemberStatus.json.copyFrom(pathEtmlMemberStatus.json.pick).orElse(doNothing) and
+        pathUaAmendedVersion.json.copyFrom(pathEtmlAmendedVersion.json.pick).orElse(doNothing)
       ).reduce
   }
 
