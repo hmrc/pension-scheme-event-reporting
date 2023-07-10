@@ -23,7 +23,8 @@ case class CompileEventAuditEvent(psaPspIdentifier: String,
                                   payload: JsValue,
                                   status: Option[Int],
                                   response: Option[JsValue],
-                                  errorMessage: Option[String]
+                                  errorMessage: Option[String],
+                                  reportVersion: String
                                  ) extends AuditEvent {
   override def auditType: String = "EventReportTaxReturnCompiled"
 
@@ -35,7 +36,8 @@ case class CompileEventAuditEvent(psaPspIdentifier: String,
     Json.obj(
       "pspOrPsaId" -> psaPspIdentifier,
       "pstr" -> pstr,
-      "payload" -> payload
+      "payload" -> payload,
+      "reportVersion" -> reportVersion
     ) ++ optStatus ++ optResponse ++ optErrorMessage
   }
 }

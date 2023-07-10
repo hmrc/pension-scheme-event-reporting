@@ -79,7 +79,7 @@ class EventReportController @Inject()(
     implicit request =>
       withAuth.flatMap { case Credentials(externalId, _) =>
         val Seq(pstr, version, newVersion) = requiredHeaders("pstr", "version", "newVersion")
-            eventReportService.changeVersion(externalId, pstr, version.toInt, newVersion.toInt)
+        eventReportService.changeVersion(externalId, pstr, version.toInt, newVersion.toInt)
 
       }
   }
@@ -109,7 +109,7 @@ class EventReportController @Inject()(
         }
       }
 
-      withAuth.flatMap { case Credentials(externalId, psaPspId) =>
+      withAuth.flatMap { case Credentials(externalId, _) =>
         val pstr = requiredHeaders("pstr").head
         val etVersionYear = (request.headers.get("eventType"), request.headers.get("version"), request.headers.get("year")) match {
           case (Some(et), Some(version), Some(year)) => Some(et, version.toInt, year.toInt)
@@ -139,7 +139,7 @@ class EventReportController @Inject()(
     implicit request =>
       withAuth.flatMap { _ =>
         val Seq(pstr, version, startDate) = requiredHeaders("pstr", "reportVersionNumber", "reportStartDate")
-        eventReportService.getEventSummary(pstr, version.toInt, startDate).map(Ok(_))
+        eventReportService.getEventSummary(pstr, version, startDate).map(Ok(_))
       }
   }
 
@@ -163,7 +163,6 @@ class EventReportController @Inject()(
       }
   }
 
-
   def compileEvent: Action[AnyContent] = Action.async { implicit request =>
     withAuth.flatMap { case Credentials(externalId, psaPspId) =>
       val Seq(pstr, et, version, year) = requiredHeaders("pstr", "eventType", "version", "year")
@@ -174,7 +173,7 @@ class EventReportController @Inject()(
           pstr,
           eventType,
           year.toInt,
-          version.toInt
+          version
         )
         case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
       }
@@ -184,21 +183,21 @@ class EventReportController @Inject()(
   def submitEventDeclarationReport: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { _ =>
-        val pstr = requiredHeaders("pstr").head
+        val Seq(pstr, version) = requiredHeaders("pstr", "version")
         val userAnswersJson = requiredBody
         logger.debug(message = s"[Submit Event Declaration Report - Incoming payload]$userAnswersJson")
-        eventReportService.submitEventDeclarationReport(pstr, userAnswersJson).map(_ => NoContent)
+        eventReportService.submitEventDeclarationReport(pstr, userAnswersJson, version).map(_ => NoContent)
       }
   }
 
   def submitEvent20ADeclarationReport: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { _ =>
-        val pstr = requiredHeaders("pstr").head
+        val Seq(pstr, version) = requiredHeaders("pstr", "version")
         val userAnswersJson = requiredBody
 
         logger.debug(message = s"[Submit Event 20A Declaration Report - Incoming payload]$userAnswersJson")
-        eventReportService.submitEvent20ADeclarationReport(pstr, userAnswersJson).map(_ => NoContent)
+        eventReportService.submitEvent20ADeclarationReport(pstr, userAnswersJson, version).map(_ => NoContent)
       }
   }
 

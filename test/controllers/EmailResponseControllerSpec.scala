@@ -70,16 +70,16 @@ class EmailResponseControllerSpec extends AsyncWordSpec with Matchers with Mocki
   "EmailResponseController" must {
 
     "respond OK when given EmailEvents for PSA" in {
-      val result = controller.sendAuditEvents(requestId, encryptedPsaId, encryptedEmail)(fakeRequest.withBody(Json.toJson(emailEvents)))
+      val result = controller.sendAuditEvents(requestId, encryptedPsaId, encryptedEmail, reportVersion)(fakeRequest.withBody(Json.toJson(emailEvents)))
 
       status(result) mustBe OK
       verify(mockAuditService, times(4)).sendEvent(eventCaptor.capture())(any(), any())
-      eventCaptor.getValue mustEqual EmailAuditEvent(psa, schemeAdministratorType, email, Complained, requestId)
+      eventCaptor.getValue mustEqual EmailAuditEvent(psa, schemeAdministratorType, email, Complained, requestId, reportVersion)
     }
 
     "respond with BAD_REQUEST when not given EmailEvents" in {
       val result = controller.sendAuditEvents(
-        requestId, encryptedPsaId, encryptedEmail)(fakeRequest.withBody(Json.obj("name" -> "invalid")))
+        requestId, encryptedPsaId, encryptedEmail, reportVersion)(fakeRequest.withBody(Json.obj("name" -> "invalid")))
 
       verify(mockAuditService, never).sendEvent(any())(any(), any())
       status(result) mustBe BAD_REQUEST
@@ -92,6 +92,7 @@ object EmailResponseControllerSpec {
   private val schemeAdministratorType = "PSA"
   private val email = "test@test.com"
   private val requestId = "test-request-id"
+  private val reportVersion = "1"
   private val fakeRequest = FakeRequest("", "")
   private val enrolments = Enrolments(Set(
     Enrolment("HMRC-PODS-ORG", Seq(

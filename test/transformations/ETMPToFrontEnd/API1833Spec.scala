@@ -21,10 +21,10 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json._
-import utils.{GeneratorAPI1832, GeneratorAPI1834, JsonFileReader}
+import utils.{GeneratorAPI1832, JsonFileReader}
 
 class API1833Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader
-  with GeneratorAPI1834 with GeneratorAPI1832 with ScalaCheckPropertyChecks {
+ with GeneratorAPI1832 with ScalaCheckPropertyChecks {
 
   import API1833Spec._
 

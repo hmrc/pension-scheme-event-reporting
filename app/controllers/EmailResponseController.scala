@@ -23,11 +23,13 @@ import play.api.Logger
 import play.api.libs.json.JsValue
 import play.api.mvc._
 import services.AuditService
-import uk.gov.hmrc.auth.core._
+import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
 import uk.gov.hmrc.crypto.{ApplicationCrypto, Crypted}
+import uk.gov.hmrc.http.{Request => _}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.ExecutionContext
+
 
 class EmailResponseController @Inject()(
                                          auditService: AuditService,
@@ -41,9 +43,9 @@ class EmailResponseController @Inject()(
   def sendAuditEvents(
                        requestId: String,
                        encryptedPsaOrPspId: String,
-                       email: String): Action[JsValue] = Action(parser.tolerantJson) {
+                       email: String,
+                       reportVersion: String): Action[JsValue] = Action(parser.tolerantJson) {
     implicit request =>
-
       decryptPsaOrPspIdAndEmail(encryptedPsaOrPspId, email) match {
         case Right(Tuple2(psaOrPspId, emailAddress)) =>
           request.body.validate[EmailEvents].fold(
@@ -53,7 +55,7 @@ class EmailResponseController @Inject()(
                 _.event == Opened
               ).foreach { event =>
                 logger.debug(s"Email Audit event is $event")
-                auditService.sendEvent(EmailAuditEvent(psaOrPspId, "PSA", emailAddress, event.event, requestId))(request, implicitly)
+                auditService.sendEvent(EmailAuditEvent(psaOrPspId, "PSA", emailAddress, event.event, requestId, reportVersion))(request, implicitly)
               }
               Ok
             }

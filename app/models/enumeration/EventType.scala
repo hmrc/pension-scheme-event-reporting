@@ -134,6 +134,12 @@ object EventType extends Enumerable.Implicits {
 
   def getEventType(s: String): Option[EventType] = values.find(_.toString == s)
 
+  def getEventTypesForAPI(apiType: ApiType): Seq[EventType] =
+    apiType match {
+      case ApiType.Api1826 => api1826Events
+      case _ => Nil
+    }
+
   def postApiTypeByEventType(eventType: EventType): Option[ApiType] = {
     eventType match {
       case evType1826 if api1826Events.contains(evType1826) => Some(ApiType.Api1826)

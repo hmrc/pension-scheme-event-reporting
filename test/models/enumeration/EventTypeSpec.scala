@@ -16,6 +16,7 @@
 
 package models.enumeration
 
+import models.enumeration.EventType.{Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, WindUp}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 
@@ -61,6 +62,15 @@ class EventTypeSpec extends AsyncWordSpec with Matchers {
       result mustBe Some(ApiType.Api1834)
     }
   }
+
+  "getEventTypesForAPI" must {
+    "return correctly for 1826" in {
+      EventType.getEventTypesForAPI(ApiType.Api1826).toSet mustBe Set(
+        WindUp, Event10, Event18, Event13, Event20, Event11, Event12, Event14, Event19
+      )
+    }
+  }
+
 }
 
 
