@@ -134,7 +134,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   private def generateMemberChangeInfo(oldMember: Option[JsObject],
                                   newMember: JsObject,
-                                  oldMemberChangeInfo: Option[MemberChangeInfo],
                                   currentVersion: Int): MemberChangeInfo = {
 
     def noVersion(obj:JsObject) = obj - "amendedVersion" - "memberStatus"
@@ -174,15 +173,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       (userAnswers \ ("event" + eventType.toString) \ "members").as[JsArray].value.map(_.as[JsObject])
     }
 
-    def getMemberChangeInfo(member: Option[JsObject]):Option[MemberChangeInfo] = member.flatMap { member =>
-      (member \ "memberStatus").asOpt[String].map { memberStatus =>
-        MemberChangeInfo(
-          (member \ "amendedVersion").as[String].toInt,
-          stringToMemberStatus(memberStatus)
-        )
-      }
-    }
-
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, _, _, _)) =>
         apiType match {
@@ -195,7 +185,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               val newMemberChangeInfo = generateMemberChangeInfo(
                   oldMemberDetail,
                   newMemberDetail,
-                  getMemberChangeInfo(oldMemberDetail),
                   currentVersion
                 )
 
