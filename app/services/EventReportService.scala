@@ -96,21 +96,16 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           case None =>
             Future.successful(None)
           case optUAData@Some(userAnswersDataToStore) =>
-            saveUserAnswers(externalId, pstr, eventType, year, version, userAnswersDataToStore).map(_ => optUAData)
+            for {
+              _ <- saveUserAnswers(externalId, pstr + "_original_cache", eventType, year, version, userAnswersDataToStore)
+              resp <- saveUserAnswers(externalId, pstr, eventType, year, version, userAnswersDataToStore).map(_ => optUAData)
+            } yield resp
         }
     }
 
 
   def getUserAnswers(externalId: String, pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     eventReportCacheRepository.getUserAnswers(externalId, pstr, None)
-
-  private def addMemberStatus(memberDetail: JsObject, amendedVersion: Int, memberStatus: String): JsObject = {
-    val map = memberDetail.as[JsObject].value
-    Json.toJson(map ++ Seq(
-      "amendedVersion" -> JsString(amendedVersion.toString),
-      "memberStatus" -> JsString(memberStatus)
-    )).as[JsObject]
-  }
 
   private case class MemberChangeInfo(amendedVersion: Int, status: MemberStatus)
 
@@ -137,95 +132,129 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     case memberStatus => throw new RuntimeException("Unknown member status: " + memberStatus)
   }
 
-  private def getMemberChangeInfo1832And1830(oldMemberDetail: Option[JsObject],
-                                             version: Int,
-                                             newDataMemberStatus: Option[MemberStatus]): MemberChangeInfo = {
-    oldMemberDetail.map { oldMemberDetail =>
+  private def generateMemberChangeInfo(oldMember: Option[JsObject],
+                                  newMember: JsObject,
+                                  oldMemberChangeInfo: Option[MemberChangeInfo],
+                                  currentVersion: Int): MemberChangeInfo = {
 
-      def getAmendedVersion(memberDetail:JsObject) = (memberDetail \ "amendedVersion").as[String].toInt
+    def noVersion(obj:JsObject) = obj - "amendedVersion" - "memberStatus"
 
+    def version(obj: JsObject) = obj.value.get("amendedVersion").map(_.as[String].toInt)
 
-      newDataMemberStatus match {
-        case Some(memberStatus) => MemberChangeInfo(version, memberStatus)
-        case None =>
-          val oldAmendedVersion = getAmendedVersion(oldMemberDetail)
+    def status(obj: JsObject) = obj.value.get("memberStatus").map(_.as[String]).map(stringToMemberStatus)
 
-          val oldDataMemberStatus = stringToMemberStatus((oldMemberDetail \ "memberStatus").as[String])
+    oldMember.map { oldMember =>
+      val oldMemberNoVersion = noVersion(oldMember)
+      val newMemberNoVersion = noVersion(newMember)
+      val memberChanged = oldMemberNoVersion.toString() != newMemberNoVersion.toString()
+      val oldMemberVersion = version(oldMember).getOrElse(currentVersion)
+      val hasSameVersion = version(newMember).contains(oldMemberVersion)
+      val oldMemberStatus = status(oldMember).getOrElse(New())
 
-          MemberChangeInfo(oldAmendedVersion, oldDataMemberStatus)
+      (hasSameVersion, memberChanged, oldMemberStatus) match {
+        case (false, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
+        case (true, _, New()) => MemberChangeInfo(oldMemberVersion, New())
+        case (true, true, New()) => MemberChangeInfo(currentVersion, New())
+        case (false, true, _) => MemberChangeInfo(currentVersion, Changed())
+        case (true, false, oldMemberStatus)  => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
       }
-
-    }.getOrElse(MemberChangeInfo(version, New()))
+    }.getOrElse(
+      MemberChangeInfo(currentVersion, New())
+    )
   }
 
-  private def memberChangeInfoTransformation(pstr:String,
-                                             startDate:String,
+  private def memberChangeInfoTransformation(oldUserAnswers: Option[JsObject],
+                                             newUserAnswers: JsObject,
                                              eventType: EventType,
-                                             newData: JsObject,
-                                             version: Int,
-                                             memberStatus: Option[MemberStatus])
-                                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader):Future[JsValue] = {
+                                             pstr: String,
+                                             currentVersion: Int)
+                                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader):JsObject = {
 
-    def transformEventDetails(oldData: Option[JsObject]) = (newData \ "memberEventsDetails" \ "eventDetails").as[JsArray]
-      .value.zipWithIndex.map { case (newMemberDetail, index) =>
-        val eventDetails = oldData.map(_.value("eventDetails").as[JsArray].value)
-        val oldMemberDetail = eventDetails.flatMap(x => Try(x(index)).toOption.map(_.as[JsObject]))
-        val memberChangeInfo = getMemberChangeInfo1832And1830(oldMemberDetail, version, memberStatus)
-        addMemberStatus(newMemberDetail.as[JsObject], memberChangeInfo.amendedVersion, memberChangeInfo.status.name)
+    def getMemberDetails(userAnswers: JsObject) = {
+      (userAnswers \ ("event" + eventType.toString) \ "members").as[JsArray].value.map(_.as[JsObject])
+    }
+
+    def getMemberChangeInfo(member: Option[JsObject]):Option[MemberChangeInfo] = member.flatMap { member =>
+      (member \ "memberStatus").asOpt[String].map { memberStatus =>
+        MemberChangeInfo(
+          (member \ "amendedVersion").as[String].toInt,
+          stringToMemberStatus(memberStatus)
+        )
       }
+    }
 
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, _, _, _)) =>
         apiType match {
           case ApiType.Api1830 =>
-            val newEventDetails = getEvent(pstr, startDate, version, eventType) map transformEventDetails
-            newEventDetails.map { newEventDetails =>
-              val newMemberEventsDetails = ((newData \ "memberEventsDetails").as[JsObject] - "eventDetails") + ("eventDetails", Json.toJson(newEventDetails))
-              (newData - "memberEventsDetails") + ("memberEventsDetails", newMemberEventsDetails)
-            }
+            val newMembers = getMemberDetails(newUserAnswers)
 
-          case _ => Future.successful(newData)
+            val newMembersWithChangeInfo = newMembers.zipWithIndex.map { case (newMemberDetail, index) =>
+              val oldMemberDetails = oldUserAnswers.map(getMemberDetails).getOrElse(Seq())
+              val oldMemberDetail = Try(oldMemberDetails(index)).toOption
+              val newMemberChangeInfo = generateMemberChangeInfo(
+                  oldMemberDetail,
+                  newMemberDetail,
+                  getMemberChangeInfo(oldMemberDetail),
+                  currentVersion
+                )
+
+              newMemberDetail +
+                ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
+                ("memberStatus", JsString(newMemberChangeInfo.status.name))
+            }
+            val event = ((newUserAnswers \ ("event" + eventType.toString)).as[JsObject] - "members") + ("members", Json.toJson(newMembersWithChangeInfo))
+            newUserAnswers - ("event" + eventType.toString) + ("event" + eventType.toString, event)
+
+          case _ => newUserAnswers
         }
       case _ => throw new RuntimeException("Unknown API type for eventType - " + eventType)
     }
   }
 
-  def compileEventReport(externalId: String, psaPspId: String, pstr: String, eventType: EventType, year: Int, version: Int)
+  def compileEventReport(externalId: String, psaPspId: String, pstr: String, eventType: EventType, year: Int, version: String)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
-        eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(eventType, year, version.toInt, externalId))).flatMap {
-          case Some(data) =>
-            val header = Json.obj(
-              "taxYear" -> year.toString
-            )
-            val fullData = data ++ header
-            val startDate = year.toString + "-04-06"
-            for {
-              transformedData <- Future.fromTry(toTry(fullData.validate(reads)))
-              dataWithMemberChangeInfo <- memberChangeInfoTransformation(
-                pstr,
-                startDate,
-                eventType,
-                transformedData,
-                version,
-                (fullData \ "memberStatus").asOpt[String] map stringToMemberStatus
+        val resp = for {
+          newUserAnswers <- eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(eventType, year, version.toInt, externalId)))
+          oldUserAnswers <- eventReportCacheRepository.getUserAnswers(
+            externalId, pstr + "_original_cache", Some(EventDataIdentifier(eventType, year, version.toInt, externalId))
+          )
+        } yield {
+          (newUserAnswers, oldUserAnswers) match {
+            case (Some(newUserAnswers), oldUserAnswers) =>
+              val header = Json.obj(
+                "taxYear" -> year.toString
               )
-              collatedData <- compilePayloadService.collatePayloadsAndUpdateCache(pstr, year, version, apiType, eventType, dataWithMemberChangeInfo)
-              _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(collatedData, schemaPath, apiType.toString))
-              response <- connectToAPI(psaPspId, pstr, collatedData, version)
-            } yield {
-              response.status match {
-                case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
-                case _ =>
-                  logger.debug(s"SUCCESSFUL SUBMISSION TO COMPILE API $apiType: $transformedData")
-                  NoContent
-              }
-            }
-          case None => Future.successful(NotFound)
 
-          case _ => Future.successful(NotFound)
+              val data = memberChangeInfoTransformation(oldUserAnswers, newUserAnswers, eventType, pstr, version.toInt)
+
+              val fullData = data ++ header
+
+              for {
+                transformedData <- Future.fromTry(toTry(fullData.validate(reads)))
+                collatedData <- compilePayloadService.collatePayloadsAndUpdateCache(
+                  pstr,
+                  year,
+                  version,
+                  apiType,
+                  eventType,
+                  transformedData)
+                _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(collatedData, schemaPath, apiType.toString))
+                response <- connectToAPI(psaPspId, pstr, collatedData, version)
+              } yield {
+                response.status match {
+                  case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
+                  case _ =>
+                    logger.debug(s"SUCCESSFUL SUBMISSION TO COMPILE API $apiType: $transformedData")
+                    NoContent
+                }
+              }
+            case _ => Future.successful(NotFound)
+          }
         }
+        resp.flatten
       case _ => Future.successful(BadRequest(s"Compile unimplemented for event type $eventType"))
     }
   }

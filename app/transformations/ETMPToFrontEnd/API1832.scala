@@ -129,7 +129,9 @@ private object API1832ReadsUtilities extends Transformer {
     (
       (pathUaMembersDetails \ Symbol("firstName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("firstName")).json.pick) and
         (pathUaMembersDetails \ Symbol("lastName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("lastName")).json.pick) and
-        (pathUaMembersDetails \ Symbol("nino")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("nino")).json.pick)
+        (pathUaMembersDetails \ Symbol("nino")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("nino")).json.pick) and
+        pathUaMemberStatus.json.copyFrom(pathEtmlMemberStatus.json.pick) and
+        pathUaAmendedVersion.json.copyFrom(pathEtmlAmendedVersion.json.pick)
       ).reduce
   }
 
@@ -228,6 +230,8 @@ private object MemberEventReportPaths {
 
   // UA - nested once
   val pathUaAmountPaid:                 JsPath = __ \ Symbol("amountPaid")
+  val pathUaMemberStatus:               JsPath = __ \ Symbol("memberStatus")
+  val pathUaAmendedVersion:             JsPath = __ \ Symbol("amendedVersion")
   val pathUaBeneficiaryDetails:         JsPath = __ \ Symbol("beneficiaryDetails")
   val pathUaChooseTaxYearEvent:         JsPath = __ \ Symbol("chooseTaxYear")
   val pathUaCrystallisedAmount:         JsPath = __ \ Symbol("crystallisedAmount")
@@ -257,6 +261,10 @@ private object MemberEventReportPaths {
 
   // ETMP - nested once or utils
   val pathEtmpEventDetails: JsPath = __ \ Symbol("eventDetails")
+
+  val pathEtmlAmendedVersion = __ \ Symbol("memberDetail") \ Symbol("amendedVersion")
+  val pathEtmlMemberStatus = __ \ Symbol("memberDetail") \ Symbol("memberStatus")
+
   private val pathEtmpMemberDetailEvent: JsPath = __ \ Symbol("memberDetail") \ Symbol("event")
   private val pathEtmpMemberDetailEventPaymentDetails: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails")
 

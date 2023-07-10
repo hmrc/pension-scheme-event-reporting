@@ -21,7 +21,6 @@ import play.api.libs.json._
 
 trait Transformer {
   protected val doNothing: Reads[JsObject] = __.json.put(Json.obj())
-
   protected def fail[A]: Reads[A] = Reads.failed[A]("Unknown value")
 
   protected def fail[A](s: A): Reads[A] = Reads.failed[A](s"Unknown value: $s")
