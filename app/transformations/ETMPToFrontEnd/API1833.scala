@@ -78,6 +78,11 @@ private object API1833ReadsUtilities extends Transformer {
       readsResPropDetailsWithDynamicUAPaths
     ).reduce
 
+  val readsMemberChangeInfo: Reads[JsObject] = (
+    reqReads(pathUAMemberStatus, pathEtmpMemberStatus) and
+      optReads(pathUAAmendedVersion, pathEtmpAmendedVersion)
+  ).reduce
+
   /**
    * These are utility functions for reading json from a given etmpPath into a given uaPath.
    * They may also include transformations of the etmp json before storing in the uaPath or doNothing if the node is missing in the response (i.e., it's an optional node).
@@ -297,6 +302,8 @@ private object EventOneReportPaths {
   val pathUAReasonForTheOverpaymentOrWriteOff: JsPath = __ \ Symbol("reasonForTheOverpaymentOrWriteOff")
   val pathUAMemberResidentialAddress: JsPath = __ \ Symbol("memberResidentialAddress")
   val pathUAEmployerResidentialAddress: JsPath = __ \ Symbol("employerResidentialAddress")
+  val pathUAMemberStatus: JsPath = __ \ Symbol("memberStatus")
+  val pathUAAmendedVersion: JsPath = __ \ Symbol("amendedVersion")
 
   /* ETMP */
   val pathEtmpEvent1Details: JsPath = __ \ "event1Details"
@@ -320,4 +327,6 @@ private object EventOneReportPaths {
   val pathEtmpUnAuthorisedPaymentDetailsPmtAmtOrLoanAmt: JsPath = pathEtmpUnAuthorisedPaymentDetails \ Symbol("pmtAmtOrLoanAmt")
   val pathEtmpUnAuthorisedPaymentDetailsFundValue: JsPath = pathEtmpUnAuthorisedPaymentDetails \ Symbol("fundValue")
   val pathEtmpUnAuthorisedPaymentDetailsResidentialPropertyAddress: JsPath = pathEtmpUnAuthorisedPaymentDetails \ Symbol("residentialPropertyAddress")
+  val pathEtmpMemberStatus:JsPath = pathEtmpEvent1Details \ Symbol("memberStatus")
+  val pathEtmpAmendedVersion:JsPath = pathEtmpEvent1Details \ Symbol("amendedVersion")
 }

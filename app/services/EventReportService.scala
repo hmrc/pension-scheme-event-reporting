@@ -161,6 +161,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     )
   }
 
+  //scalastyle:off method.length
   private def memberChangeInfoTransformation(oldUserAnswers: Option[JsObject],
                                              newUserAnswers: JsObject,
                                              eventType: EventType,
@@ -168,30 +169,40 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                              currentVersion: Int)
                                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader):JsObject = {
 
-    def getMemberDetails(userAnswers: JsObject) = {
-      (userAnswers \ ("event" + eventType.toString) \ "members").as[JsArray].value.map(_.as[JsObject])
+    def newMembersWithChangeInfo(getMemberDetails: JsObject => scala.collection.IndexedSeq[JsObject]) = {
+      val newMembers = getMemberDetails(newUserAnswers)
+
+      newMembers.zipWithIndex.map { case (newMemberDetail, index) =>
+        val oldMemberDetails = oldUserAnswers.map(getMemberDetails).getOrElse(Seq())
+        val oldMemberDetail = Try(oldMemberDetails(index)).toOption
+        val newMemberChangeInfo = generateMemberChangeInfo(
+          oldMemberDetail,
+          newMemberDetail,
+          currentVersion
+        )
+
+        newMemberDetail +
+          ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
+          ("memberStatus", JsString(newMemberChangeInfo.status.name))
+      }
     }
 
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, _, _, _)) =>
         apiType match {
-          case ApiType.Api1830 =>
-            val newMembers = getMemberDetails(newUserAnswers)
-
-            val newMembersWithChangeInfo = newMembers.zipWithIndex.map { case (newMemberDetail, index) =>
-              val oldMemberDetails = oldUserAnswers.map(getMemberDetails).getOrElse(Seq())
-              val oldMemberDetail = Try(oldMemberDetails(index)).toOption
-              val newMemberChangeInfo = generateMemberChangeInfo(
-                  oldMemberDetail,
-                  newMemberDetail,
-                  currentVersion
-                )
-
-              newMemberDetail +
-                ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
-                ("memberStatus", JsString(newMemberChangeInfo.status.name))
+          case ApiType.Api1827 =>
+            def getMemberDetails(userAnswers: JsObject) = {
+              (userAnswers \ "event1Details").as[JsArray].value.map(_.as[JsObject])
             }
-            val event = ((newUserAnswers \ ("event" + eventType.toString)).as[JsObject] - "members") + ("members", Json.toJson(newMembersWithChangeInfo))
+
+            newUserAnswers - "event1Details" + ("event1Details", newMembersWithChangeInfo(getMemberDetails))
+          case ApiType.Api1830 =>
+            def getMemberDetails(userAnswers: JsObject) = {
+              (userAnswers \ ("event" + eventType.toString) \ "members").as[JsArray].value.map(_.as[JsObject])
+            }
+
+            val event = ((newUserAnswers \ ("event" + eventType.toString)).as[JsObject] - "members") +
+              ("members", Json.toJson(newMembersWithChangeInfo(getMemberDetails)))
             newUserAnswers - ("event" + eventType.toString) + ("event" + eventType.toString, event)
 
           case _ => newUserAnswers
