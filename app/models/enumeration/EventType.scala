@@ -24,7 +24,7 @@ sealed trait EventType {
 
 object EventType extends Enumerable.Implicits {
 
-  case object WindUp extends WithName("0") with EventType {
+  case object WindUp extends WithName("WindUp") with EventType {
     override val order = 21
   }
 
