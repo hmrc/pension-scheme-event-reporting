@@ -145,9 +145,9 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     oldMember.map { oldMember =>
       val oldMemberNoVersion = noVersion(oldMember)
       val newMemberNoVersion = noVersion(newMember)
-      val memberChanged = oldMemberNoVersion.toString() != newMemberNoVersion.toString()
+      val memberChanged = oldMemberNoVersion != newMemberNoVersion
       val oldMemberVersion = version(oldMember).getOrElse(currentVersion)
-      val hasSameVersion = version(newMember).contains(oldMemberVersion)
+      val hasSameVersion = version(newMember).contains(currentVersion)
       val oldMemberStatus = status(oldMember).getOrElse(New())
 
       (hasSameVersion, memberChanged, oldMemberStatus) match {
