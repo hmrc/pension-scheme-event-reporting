@@ -149,10 +149,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       val oldMemberVersion = version(oldMember).getOrElse(currentVersion)
       val hasSameVersion = version(newMember).contains(currentVersion)
       val oldMemberStatus = status(oldMember).getOrElse(New())
-
-      println(Json.prettyPrint(newMember))
-      println(Json.prettyPrint(oldMember))
-      println(hasSameVersion, memberChanged, oldMemberStatus)
+      
       (hasSameVersion, memberChanged, oldMemberStatus) match {
         case (false, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
         case (true, _, New()) => MemberChangeInfo(oldMemberVersion, New())
@@ -220,8 +217,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               )
 
               val data = memberChangeInfoTransformation(oldUserAnswers, newUserAnswers, eventType, pstr, version.toInt)
-
-              println(Json.prettyPrint(data))
 
               val fullData = data ++ header
 
