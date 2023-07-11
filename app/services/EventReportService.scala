@@ -36,6 +36,7 @@ import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, Header
 import utils.JSONSchemaValidator
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 
 @Singleton()
@@ -95,7 +96,10 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           case None =>
             Future.successful(None)
           case optUAData@Some(userAnswersDataToStore) =>
-            saveUserAnswers(externalId, pstr, eventType, year, version, userAnswersDataToStore).map(_ => optUAData)
+            for {
+              _ <- saveUserAnswers(externalId, pstr + "_original_cache", eventType, year, version, userAnswersDataToStore)
+              resp <- saveUserAnswers(externalId, pstr, eventType, year, version, userAnswersDataToStore).map(_ => optUAData)
+            } yield resp
         }
     }
 
@@ -103,33 +107,142 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def getUserAnswers(externalId: String, pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     eventReportCacheRepository.getUserAnswers(externalId, pstr, None)
 
+  private case class MemberChangeInfo(amendedVersion: Int, status: MemberStatus)
+
+  private trait MemberStatus {
+    def name:String
+  }
+
+  private case class New() extends MemberStatus {
+    def name: String = "New"
+  }
+
+  private case class Deleted() extends MemberStatus {
+    def name: String = "Deleted"
+  }
+
+  private case class Changed() extends MemberStatus {
+    def name: String = "Changed"
+  }
+
+  private def stringToMemberStatus(memberStatus:String): MemberStatus = memberStatus match {
+    case "New" => New()
+    case "Deleted" => Deleted()
+    case "Changed" => Changed()
+    case memberStatus => throw new RuntimeException("Unknown member status: " + memberStatus)
+  }
+
+  private def generateMemberChangeInfo(oldMember: Option[JsObject],
+                                  newMember: JsObject,
+                                  currentVersion: Int): MemberChangeInfo = {
+
+    def noVersion(obj:JsObject) = obj - "amendedVersion" - "memberStatus"
+
+    def version(obj: JsObject) = obj.value.get("amendedVersion").map(_.as[String].toInt)
+
+    def status(obj: JsObject) = obj.value.get("memberStatus").map(_.as[String]).map(stringToMemberStatus)
+
+    oldMember.map { oldMember =>
+      val oldMemberNoVersion = noVersion(oldMember)
+      val newMemberNoVersion = noVersion(newMember)
+      val memberChanged = oldMemberNoVersion != newMemberNoVersion
+      val oldMemberVersion = version(oldMember).getOrElse(currentVersion)
+      val hasSameVersion = version(newMember).contains(currentVersion)
+      val oldMemberStatus = status(oldMember).getOrElse(New())
+      
+      (hasSameVersion, memberChanged, oldMemberStatus) match {
+        case (false, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
+        case (true, _, New()) => MemberChangeInfo(oldMemberVersion, New())
+        case (false, true, _) => MemberChangeInfo(currentVersion, Changed())
+        case (true, false, oldMemberStatus)  => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
+      }
+    }.getOrElse(
+      MemberChangeInfo(currentVersion, New())
+    )
+  }
+
+  private def memberChangeInfoTransformation(oldUserAnswers: Option[JsObject],
+                                             newUserAnswers: JsObject,
+                                             eventType: EventType,
+                                             pstr: String,
+                                             currentVersion: Int)
+                                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader):JsObject = {
+
+    def getMemberDetails(userAnswers: JsObject) = {
+      (userAnswers \ ("event" + eventType.toString) \ "members").as[JsArray].value.map(_.as[JsObject])
+    }
+
+    apiProcessingInfo(eventType, pstr) match {
+      case Some(APIProcessingInfo(apiType, _, _, _)) =>
+        apiType match {
+          case ApiType.Api1830 =>
+            val newMembers = getMemberDetails(newUserAnswers)
+
+            val newMembersWithChangeInfo = newMembers.zipWithIndex.map { case (newMemberDetail, index) =>
+              val oldMemberDetails = oldUserAnswers.map(getMemberDetails).getOrElse(Seq())
+              val oldMemberDetail = Try(oldMemberDetails(index)).toOption
+              val newMemberChangeInfo = generateMemberChangeInfo(
+                  oldMemberDetail,
+                  newMemberDetail,
+                  currentVersion
+                )
+
+              newMemberDetail +
+                ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
+                ("memberStatus", JsString(newMemberChangeInfo.status.name))
+            }
+            val event = ((newUserAnswers \ ("event" + eventType.toString)).as[JsObject] - "members") + ("members", Json.toJson(newMembersWithChangeInfo))
+            newUserAnswers - ("event" + eventType.toString) + ("event" + eventType.toString, event)
+
+          case _ => newUserAnswers
+        }
+      case _ => throw new RuntimeException("Unknown API type for eventType - " + eventType)
+    }
+  }
+
   def compileEventReport(externalId: String, psaPspId: String, pstr: String, eventType: EventType, year: Int, version: String)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
-        eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(eventType, year, version.toInt, externalId))).flatMap {
-          case Some(data) =>
-            val header = Json.obj(
-              "taxYear" -> year.toString
-            )
-            val fullData = data ++ header
-            for {
-              transformedData <- Future.fromTry(toTry(fullData.validate(reads)))
-              collatedData <- compilePayloadService.collatePayloadsAndUpdateCache(pstr, year, version, apiType, eventType, transformedData)
-              _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(collatedData, schemaPath, apiType.toString))
-              response <- connectToAPI(psaPspId, pstr, collatedData, version)
-            } yield {
-              response.status match {
-                case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
-                case _ =>
-                  logger.debug(s"SUCCESSFUL SUBMISSION TO COMPILE API $apiType: $transformedData")
-                  NoContent
-              }
-            }
-          case None => Future.successful(NotFound)
+        val resp = for {
+          newUserAnswers <- eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(eventType, year, version.toInt, externalId)))
+          oldUserAnswers <- eventReportCacheRepository.getUserAnswers(
+            externalId, pstr + "_original_cache", Some(EventDataIdentifier(eventType, year, version.toInt, externalId))
+          )
+        } yield {
+          (newUserAnswers, oldUserAnswers) match {
+            case (Some(newUserAnswers), oldUserAnswers) =>
+              val header = Json.obj(
+                "taxYear" -> year.toString
+              )
 
-          case _ => Future.successful(NotFound)
+              val data = memberChangeInfoTransformation(oldUserAnswers, newUserAnswers, eventType, pstr, version.toInt)
+
+              val fullData = data ++ header
+
+              for {
+                transformedData <- Future.fromTry(toTry(fullData.validate(reads)))
+                collatedData <- compilePayloadService.collatePayloadsAndUpdateCache(
+                  pstr,
+                  year,
+                  version,
+                  apiType,
+                  eventType,
+                  transformedData)
+                _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(collatedData, schemaPath, apiType.toString))
+                response <- connectToAPI(psaPspId, pstr, collatedData, version)
+              } yield {
+                response.status match {
+                  case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
+                  case _ =>
+                    logger.debug(s"SUCCESSFUL SUBMISSION TO COMPILE API $apiType: $transformedData")
+                    NoContent
+                }
+              }
+            case _ => Future.successful(NotFound)
+          }
         }
+        resp.flatten
       case _ => Future.successful(BadRequest(s"Compile unimplemented for event type $eventType"))
     }
   }
@@ -168,15 +281,19 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def getEventSummary(pstr: String, version: String, startDate: String)
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
-    //TODO: Implement for event 20A. I assume API 1831 will need to be used for this. -Pavel Vjalicin
     val resp1834Seq = eventReportConnector.getEvent(pstr, startDate, version, None).map { etmpJsonOpt =>
       etmpJsonOpt.map { etmpJson =>
         etmpJson.transform(transformations.ETMPToFrontEnd.API1834Summary.rdsFor1834) match {
-          case JsSuccess(seqOfEventTypes, _) => seqOfEventTypes
+          case JsSuccess(seqOfEventTypes, _) =>
+            seqOfEventTypes
           case JsError(errors) => throw JsResultException(errors)
         }
       }.getOrElse(JsArray())
+    }.recover { error =>
+      logger.error(error.getMessage, error)
+      JsArray()
     }
+
     val resp1831Seq = eventReportConnector.getEvent(pstr, startDate, version, Some(Event20A)).map { etmpJsonOpt =>
       etmpJsonOpt.map { etmpJson =>
         etmpJson.transform(transformations.ETMPToFrontEnd.API1834Summary.rdsFor1831) match {
@@ -184,9 +301,13 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           case JsError(errors) => throw JsResultException(errors)
         }
       }.getOrElse(JsArray())
+    } recover { error =>
+      logger.error(error.getMessage, error)
+      JsArray()
     }
-    Future.sequence(Set(resp1834Seq, resp1831Seq)) map {
-      _ reduce (_ ++ _)
+
+    Future.sequence(Set(resp1834Seq, resp1831Seq)) map { x =>
+      x reduce (_ ++ _)
     }
   }
 

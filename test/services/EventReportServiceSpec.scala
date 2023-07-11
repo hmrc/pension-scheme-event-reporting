@@ -100,7 +100,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
   "compileEventReport for event 1" must {
     "return NOT FOUND when no data return from repository" in {
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(Event1, 2020, 1, externalId))))(any()))
+      when(mockEventReportCacheRepository.getUserAnswers(any(), any(), any())(any()))
         .thenReturn(Future.successful(None))
       eventReportService.compileEventReport(externalId, psaId, "pstr", Event1, year, reportVersion)(implicitly, implicitly, implicitly).map {
         result => result.header.status mustBe NOT_FOUND
@@ -109,6 +109,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
     "return 204 No Content when valid data return from repository - event 1" in {
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(Event1, 2020, 1, externalId))))(any()))
+        .thenReturn(Future.successful(Some(responseJson)))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr + "_original_cache"), eqTo(Some(EventDataIdentifier(Event1, 2020, 1, externalId))))(any()))
         .thenReturn(Future.successful(Some(responseJson)))
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(None))(any()))
         .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
@@ -123,6 +125,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
     "return 400 when validation errors response for event one report" in {
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(Event1, 2020, 1, externalId))))(any()))
+        .thenReturn(Future.successful(Some(responseJson)))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr+"_original_cache"), eqTo(Some(EventDataIdentifier(Event1, 2020, 1, externalId))))(any()))
         .thenReturn(Future.successful(Some(responseJson)))
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(None))(any()))
         .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
@@ -140,6 +144,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     "throw Upstream5XXResponse on Internal Server Error" in {
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(Event1, 2020, 1, externalId))))(any()))
         .thenReturn(Future.successful(Some(responseJson)))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr+"_original_cache"), eqTo(Some(EventDataIdentifier(Event1, 2020, 1, externalId))))(any()))
+        .thenReturn(Future.successful(Some(responseJson)))
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(None))(any()))
         .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
 
@@ -156,7 +162,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
   "compileEventReport for event windup" must {
     "return Not Found when no data returned from repository" in {
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(WindUp, 2020, 1, externalId))))(any()))
+      when(mockEventReportCacheRepository.getUserAnswers(any(), any(), any())(any()))
         .thenReturn(Future.successful(None))
       eventReportService.compileEventReport(externalId, psaId, "pstr", WindUp, year, reportVersion)(implicitly, implicitly, implicitly).map {
         result => result.header.status mustBe NOT_FOUND
@@ -166,6 +172,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     "return 204 No Content when valid data return from repository - event 1" in {
 
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(WindUp, 2020, 1, externalId))))(any()))
+        .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr+"_original_cache"), eqTo(Some(EventDataIdentifier(WindUp, 2020, 1, externalId))))(any()))
         .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(None))(any()))
         .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
@@ -180,6 +188,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
     "return 400 when validation errors response" in {
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(WindUp, 2020, 1, externalId))))(any()))
+        .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr+"_original_cache"), eqTo(Some(EventDataIdentifier(WindUp, 2020, 1, externalId))))(any()))
         .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(None))(any()))
         .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
@@ -539,6 +549,8 @@ object EventReportServiceSpec {
       |    "eventDetails": [
       |    {
       |    "memberDetail": {
+      |        "memberStatus": "New",
+      |        "amendedVersion": "001",
       |        "event": {
       |          "eventType": "Event22",
       |          "individualDetails": {
@@ -565,6 +577,8 @@ object EventReportServiceSpec {
       |    "event22": {
       |      "members": [
       |        {
+      |          "memberStatus": "New",
+      |          "amendedVersion": "001",
       |          "membersDetails": {
       |            "firstName": "John",
       |            "lastName": "Smith",

@@ -35,9 +35,10 @@ class API1832Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
 
       val expectedResult =
         Json.obj(
-          "event22" -> Json.obj(
-            "members" -> Json.arr(
+          "event22" -> Json.obj("members" ->
+            Json.arr(
               Json.obj(
+                "memberStatus" -> "New",
                 "membersDetails" -> Json.obj(
                   "lastName" -> "Smith",
                   "firstName" -> "John",
