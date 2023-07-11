@@ -153,7 +153,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       (hasSameVersion, memberChanged, oldMemberStatus) match {
         case (false, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
         case (true, _, New()) => MemberChangeInfo(oldMemberVersion, New())
-        case (true, true, New()) => MemberChangeInfo(currentVersion, New())
         case (false, true, _) => MemberChangeInfo(currentVersion, Changed())
         case (true, false, oldMemberStatus)  => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
       }
@@ -282,15 +281,25 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def getEventSummary(pstr: String, version: String, startDate: String)
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
+    def replaceWindup(jsArray: JsArray) = Json.toJson(jsArray.value.map { jsValue =>
+      if (jsValue.as[String] == "0") "WindUp"
+      else jsValue.as[String]
+    }).as[JsArray]
+
     //TODO: Implement for event 20A. I assume API 1831 will need to be used for this. -Pavel Vjalicin
     val resp1834Seq = eventReportConnector.getEvent(pstr, startDate, version, None).map { etmpJsonOpt =>
       etmpJsonOpt.map { etmpJson =>
         etmpJson.transform(transformations.ETMPToFrontEnd.API1834Summary.rdsFor1834) match {
-          case JsSuccess(seqOfEventTypes, _) => seqOfEventTypes
+          case JsSuccess(seqOfEventTypes, _) =>
+            seqOfEventTypes
           case JsError(errors) => throw JsResultException(errors)
         }
       }.getOrElse(JsArray())
-    }
+    }.recover { error =>
+      logger.error(error.getMessage, error)
+      JsArray()
+    }.map { replaceWindup }
+
     val resp1831Seq = eventReportConnector.getEvent(pstr, startDate, version, Some(Event20A)).map { etmpJsonOpt =>
       etmpJsonOpt.map { etmpJson =>
         etmpJson.transform(transformations.ETMPToFrontEnd.API1834Summary.rdsFor1831) match {
@@ -298,9 +307,13 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           case JsError(errors) => throw JsResultException(errors)
         }
       }.getOrElse(JsArray())
+    } recover { error =>
+      logger.error(error.getMessage, error)
+      JsArray()
     }
-    Future.sequence(Set(resp1834Seq, resp1831Seq)) map {
-      _ reduce (_ ++ _)
+
+    Future.sequence(Set(resp1834Seq, resp1831Seq)) map { x =>
+      x reduce (_ ++ _)
     }
   }
 
