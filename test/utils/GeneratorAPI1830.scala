@@ -115,7 +115,6 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
           Json.arr(
             Json.obj(
               "memberStatus" -> "New",
-                "memberStatus" -> "New",
                 "membersDetails" -> Json.obj(
                   "firstName" -> map("firstName"),
                   "lastName" -> map("lastName"),
