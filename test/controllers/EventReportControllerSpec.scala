@@ -259,7 +259,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     "return OK with dummy json response" in {
       when(mockEventReportService.getEventSummary(
         ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq(reportVersion),
+        ArgumentMatchers.eq("001"),
         ArgumentMatchers.eq(startDate)
       )(any(), any()))
         .thenReturn(Future.successful(dummyJsValue))
