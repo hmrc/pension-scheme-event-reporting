@@ -18,6 +18,7 @@ package services
 
 import audit.{CompileEventAuditEvent, SubmitEventDeclarationAuditEvent}
 import base.SpecBase
+import models.enumeration.EventType
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{doNothing, reset, times, verify}
@@ -52,7 +53,7 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
     "send the correct audit event for a successful response" in {
       doNothing().when(mockAuditService).sendEvent(any())(any(), any())
       val service = new PostToAPIAuditService(mockAuditService)
-      val pf = service.sendSubmitEventDeclarationAuditEvent(pstr, requestData, reportVersion)
+      val pf = service.sendSubmitEventDeclarationAuditEvent(pstr, requestData, reportVersion, None)
       pf(Success(HttpResponse.apply(Status.OK, responseData, Map.empty)))
       val expectedAuditEvent = SubmitEventDeclarationAuditEvent(
         pstr = pstr,
@@ -60,7 +61,8 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
         request = requestData,
         response = Some(responseData),
         maybeErrorMessage = None,
-        reportVersion
+        reportVersion = reportVersion,
+        maybeEventType = None
       )
       verify(mockAuditService, times(1)).sendEvent(ArgumentMatchers.eq(expectedAuditEvent))(any(), any())
     }
@@ -68,7 +70,7 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
     "send the audit event with the status code when an upstream error occurs" in {
       doNothing().when(mockAuditService).sendEvent(any())(any(), any())
       val service = new PostToAPIAuditService(mockAuditService)
-      val pf = service.sendSubmitEventDeclarationAuditEvent(pstr, requestData, reportVersion)
+      val pf = service.sendSubmitEventDeclarationAuditEvent(pstr, requestData, reportVersion, Some(EventType.Event20A))
       val reportAs = 202
       val message = "The request was not found"
       val status = Status.NOT_FOUND
@@ -79,7 +81,8 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
         request = requestData,
         response = None,
         maybeErrorMessage = None,
-        reportVersion
+        reportVersion = reportVersion,
+        maybeEventType = Some(EventType.Event20A)
       )
       verify(mockAuditService, times(1)).sendEvent(ArgumentMatchers.eq(expectedAuditEvent))(any(), any())
     }
@@ -87,7 +90,7 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
     "send the audit event with the status code when an HttpException error occurs" in {
       doNothing().when(mockAuditService).sendEvent(any())(any(), any())
       val service = new PostToAPIAuditService(mockAuditService)
-      val pf = service.sendSubmitEventDeclarationAuditEvent(pstr, requestData, reportVersion)
+      val pf = service.sendSubmitEventDeclarationAuditEvent(pstr, requestData, reportVersion, None)
 
       val message = "The request had a network error"
       val status = Status.SERVICE_UNAVAILABLE
@@ -98,7 +101,8 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
         request = requestData,
         response = None,
         maybeErrorMessage = None,
-        reportVersion
+        reportVersion = reportVersion,
+        maybeEventType = None
       )
       verify(mockAuditService, times(1)).sendEvent(ArgumentMatchers.eq(expectedAuditEvent))(any(), any())
     }
@@ -106,7 +110,7 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
     "send the audit event when a throwable is thrown" in {
       doNothing().when(mockAuditService).sendEvent(any())(any(), any())
       val service = new PostToAPIAuditService(mockAuditService)
-      val pf = service.sendSubmitEventDeclarationAuditEvent(pstr, requestData, reportVersion)
+      val pf = service.sendSubmitEventDeclarationAuditEvent(pstr, requestData, reportVersion, None)
 
       val message = "The request had a network error"
       pf(Failure(new RuntimeException(message)))
@@ -116,7 +120,8 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
         request = requestData,
         response = None,
         maybeErrorMessage = Some(message),
-        reportVersion
+        reportVersion = reportVersion,
+        maybeEventType = None
       )
       verify(mockAuditService, times(1)).sendEvent(ArgumentMatchers.eq(expectedAuditEvent))(any(), any())
     }
@@ -211,14 +216,16 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
         request = requestData,
         response = Some(responseData),
         maybeErrorMessage = Some(errorMessage),
-        reportVersion
+        reportVersion = reportVersion,
+        maybeEventType = Some(EventType.Event20A)
       ).details mustBe Json.obj(
         "PensionSchemeTaxReference" -> "pstr",
         "status" -> 200,
         "request" -> requestData,
         "response" -> responseData,
         "errorMessage" -> errorMessage,
-        "reportVersion" -> reportVersion
+        "reportVersion" -> reportVersion,
+        "eventNumber" -> EventType.Event20A.toString
       )
     }
 
@@ -229,7 +236,8 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
         request = requestData,
         response = None,
         maybeErrorMessage = None,
-        reportVersion
+        reportVersion = reportVersion,
+        maybeEventType = None
       ).details mustBe Json.obj(
         "PensionSchemeTaxReference" -> "pstr",
         "request" -> requestData,
