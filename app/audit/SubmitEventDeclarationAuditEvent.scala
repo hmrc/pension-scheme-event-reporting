@@ -16,6 +16,7 @@
 
 package audit
 
+import models.enumeration.EventType
 import play.api.libs.json.{Format, JsObject, JsValue, Json}
 
 case class SubmitEventDeclarationAuditEvent(pstr: String,
@@ -23,11 +24,13 @@ case class SubmitEventDeclarationAuditEvent(pstr: String,
                                             request: JsValue,
                                             response: Option[JsValue],
                                             maybeErrorMessage: Option[String],
-                                            reportVersion: String
+                                            reportVersion: String,
+                                            maybeEventType: Option[EventType]
                                            ) extends AuditEvent {
   override def auditType: String = "EventReportTaxReturnSubmitted"
 
   override def details: JsObject = {
+    val eventTypeJson = maybeEventType.map(v => Json.obj("eventNumber" -> v)).getOrElse(Json.obj())
     val statusJson = maybeStatus.map(v => Json.obj("status" -> v)).getOrElse(Json.obj())
     val responseJson = response.map(response => Json.obj("response" -> response)).getOrElse(Json.obj())
     val errorMessageJson = maybeErrorMessage.map(errorMessage => Json.obj("errorMessage" -> errorMessage)).getOrElse(Json.obj())
@@ -36,7 +39,7 @@ case class SubmitEventDeclarationAuditEvent(pstr: String,
       "PensionSchemeTaxReference" -> pstr,
       "request" -> request,
       "reportVersion" -> reportVersion
-    ) ++ statusJson ++ responseJson ++ errorMessageJson
+    ) ++ eventTypeJson ++ statusJson ++ responseJson ++ errorMessageJson
   }
 }
 

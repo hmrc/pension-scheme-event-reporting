@@ -18,6 +18,7 @@ package services
 
 import audit.{CompileEventAuditEvent, SubmitEventDeclarationAuditEvent}
 import com.google.inject.Inject
+import models.enumeration.EventType
 import play.api.http.Status
 import play.api.libs.json._
 import play.api.mvc.RequestHeader
@@ -27,7 +28,7 @@ import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
 
 class PostToAPIAuditService @Inject()(auditService: AuditService) {
-  def sendSubmitEventDeclarationAuditEvent(pstr: String, data: JsValue, reportVersion: String)
+  def sendSubmitEventDeclarationAuditEvent(pstr: String, data: JsValue, reportVersion: String, maybeEventType: Option[EventType])
                                           (implicit ec: ExecutionContext, request: RequestHeader): PartialFunction[Try[HttpResponse], Unit] = {
     case Success(httpResponse) =>
       auditService.sendEvent(SubmitEventDeclarationAuditEvent(
@@ -36,7 +37,8 @@ class PostToAPIAuditService @Inject()(auditService: AuditService) {
         request = data,
         reportVersion = reportVersion,
         response = Some(httpResponse.json),
-        maybeErrorMessage = None
+        maybeErrorMessage = None,
+        maybeEventType = maybeEventType
       ))
     case Failure(error: UpstreamErrorResponse) =>
       auditService.sendEvent(
@@ -46,7 +48,9 @@ class PostToAPIAuditService @Inject()(auditService: AuditService) {
           request = data,
           reportVersion = reportVersion,
           response = None,
-          maybeErrorMessage = None))
+          maybeErrorMessage = None,
+          maybeEventType = maybeEventType
+        ))
     case Failure(error: HttpException) =>
       auditService.sendEvent(SubmitEventDeclarationAuditEvent(
         pstr = pstr,
@@ -54,7 +58,9 @@ class PostToAPIAuditService @Inject()(auditService: AuditService) {
         request = data,
         reportVersion = reportVersion,
         response = None,
-        maybeErrorMessage = None))
+        maybeErrorMessage = None,
+        maybeEventType = maybeEventType
+      ))
 
     case Failure(error: Throwable) =>
       auditService.sendEvent(SubmitEventDeclarationAuditEvent(
@@ -63,7 +69,8 @@ class PostToAPIAuditService @Inject()(auditService: AuditService) {
         request = data,
         reportVersion = reportVersion,
         response = None,
-        maybeErrorMessage = Some(error.getMessage)
+        maybeErrorMessage = Some(error.getMessage),
+        maybeEventType = maybeEventType
       ))
   }
 
