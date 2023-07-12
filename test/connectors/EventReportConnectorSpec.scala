@@ -74,7 +74,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
   override def beforeEach(): Unit = {
     reset(mockPostToAPIAuditService)
     when(mockHeaderUtils.getCorrelationId).thenReturn(testCorrelationId)
-    when(mockPostToAPIAuditService.sendSubmitEventDeclarationAuditEvent(any(), any(), any())(any(), any()))
+    when(mockPostToAPIAuditService.sendSubmitEventDeclarationAuditEvent(any(), any(), any(), any())(any(), any()))
       .thenReturn(pfSuccess)
     super.beforeEach()
   }
@@ -795,7 +795,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
 
       connector.submitEventDeclarationReport(pstr, data, reportVersion) map { response =>
         verify(mockPostToAPIAuditService, times(1))
-          .sendSubmitEventDeclarationAuditEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data), ArgumentMatchers.eq(reportVersion))(any(), any())
+          .sendSubmitEventDeclarationAuditEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data), ArgumentMatchers.eq(reportVersion), ArgumentMatchers.eq(None))(any(), any())
         response.status mustBe OK
       }
     }
@@ -811,7 +811,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       )
       recoverToExceptionIf[UpstreamErrorResponse](connector.submitEventDeclarationReport(pstr, data, reportVersion)) map { response =>
         verify(mockPostToAPIAuditService, times(1))
-          .sendSubmitEventDeclarationAuditEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data), ArgumentMatchers.eq(reportVersion))(any(), any())
+          .sendSubmitEventDeclarationAuditEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data), ArgumentMatchers.eq(reportVersion), ArgumentMatchers.eq(None))(any(), any())
         response.statusCode mustBe INTERNAL_SERVER_ERROR
       }
     }
@@ -941,7 +941,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       )
       connector.submitEvent20ADeclarationReport(pstr, data, reportVersion) map {
         verify(mockPostToAPIAuditService, times(1))
-          .sendSubmitEventDeclarationAuditEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data), ArgumentMatchers.eq(reportVersion))(any(), any())
+          .sendSubmitEventDeclarationAuditEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(data), ArgumentMatchers.eq(reportVersion), ArgumentMatchers.eq(Some(Event20A)))(any(), any())
         _.status mustBe OK
       }
     }
