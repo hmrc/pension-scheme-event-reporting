@@ -99,25 +99,30 @@ class EventReportConnector @Inject()(
                 case _ => headers
               }
             }
-            getForApi(headersWithEventType, pstr, api)
+            getForApi(headersWithEventType, pstr, api, eventType)
           case None =>
             Future.successful(None)
         }
-      case _ => getForApi(headers, pstr, Api1834)
+      case _ => getForApi(headers, pstr, Api1834, eventType)
     }
   }
 
-  private def getForApi(headers: Seq[(String, String)], pstr: String, api: ApiType)
+  private def getForApi(headers: Seq[(String, String)], pstr: String, api: ApiType, eventType: Option[EventType])
                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] = {
+
+    val etAsString = eventType.getOrElse("none")
 
     val apiUrl: String = s"${config.getApiUrlByApiNum(api.toString).format(pstr)}"
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = headers: _*)
-    logger.info(s"Get $api.toString (IF) called - URL: $apiUrl with headers: $headers")
+    val logMessage = s"Get ${api.toString} (IF) called for event type $etAsString - URL: $apiUrl with headers: $headers"
+    logger.warn(logMessage)
     http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
       response.status match {
         case OK =>
+          logger.warn(s"$logMessage and returned ${response.json}")
           Some(response.json.as[JsObject])
         case UNPROCESSABLE_ENTITY =>
+          logger.warn(s"$logMessage and returned 422")
           None
         case _ => handleErrorResponse("GET", apiUrl)(response)
       }
