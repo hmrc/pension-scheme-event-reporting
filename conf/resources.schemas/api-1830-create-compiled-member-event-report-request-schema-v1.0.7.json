@@ -45,7 +45,8 @@
                 "Event8",
                 "Event8A",
                 "Event22",
-                "Event23"
+                "Event23",
+                "Event24"
               ]
             }
           }
@@ -446,7 +447,8 @@
                             "type":"string",
                             "enum":[
                               "Event22",
-                              "Event23"
+                              "Event23",
+                              "Event24"
                             ]
                           },
                           "individualDetails":{
@@ -458,7 +460,7 @@
                             "properties":{
                               "monetaryAmount":{
                                 "$ref":"#/definitions/amountType",
-                                "description":"Event 22 - Aggregate Pension Input Amounts for the scheme, Event 23 - Aggregate Pension Input Amounts for money purchase arrangements under the scheme (£)"
+                                "description":"Event 22 - Aggregate Pension Input Amounts for the scheme, Event 23 - Aggregate Pension Input Amounts for money purchase arrangements under the scheme (£), Event 24 - Amount of additional Annual Allowance"
                               },
                               "taxYearEndingDate":{
                                 "$ref":"#/definitions/dateType"
