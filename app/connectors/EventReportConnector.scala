@@ -177,7 +177,7 @@ class EventReportConnector @Inject()(
           case OK => response
           case _ => handleErrorResponse("POST", submitEventDeclarationReportUrl)(response)
         }
-    } andThen postToAPIAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data, reportVersion)
+    } andThen postToAPIAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data, reportVersion, None)
   }
 
   def submitEvent20ADeclarationReport(pstr: String, data: JsValue, reportVersion: String)
@@ -191,7 +191,7 @@ class EventReportConnector @Inject()(
           case OK => response
           case _ => handleErrorResponse("POST", submitEvent20ADeclarationReportUrl)(response)
         }
-    } andThen postToAPIAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data, reportVersion)
+    } andThen postToAPIAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data, reportVersion, Some(EventType.Event20A))
   }
 
   def getVersions(pstr: String, reportType: String, startDate: String)
