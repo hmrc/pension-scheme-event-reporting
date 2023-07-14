@@ -21,12 +21,9 @@ import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.GetDetailsCacheDataIdentifier
 import models.enumeration.EventType
 import org.joda.time.DateTime
-import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
-import play.api.mvc.Result
-import play.api.mvc.Results.{NoContent, NotFound}
 import play.api.{Configuration, Logging}
 import repositories.GetDetailsCacheEntry.{eventTypeKey, expireAtKey, pstrKey, versionKey, yearKey}
 import uk.gov.hmrc.mongo.MongoComponent
@@ -79,9 +76,9 @@ object GetDetailsCacheEntry {
 
 @Singleton
 class GetDetailsCacheRepository @Inject()(
-                                            mongoComponent: MongoComponent,
-                                            config: Configuration
-                                          )(implicit val ec: ExecutionContext)
+                                           mongoComponent: MongoComponent,
+                                           config: Configuration
+                                         )(implicit val ec: ExecutionContext)
   extends PlayMongoRepository[GetDetailsCacheEntry](
     collectionName = config.underlying.getString("mongodb.get-details-cache-data.name"),
     mongoComponent = mongoComponent,
