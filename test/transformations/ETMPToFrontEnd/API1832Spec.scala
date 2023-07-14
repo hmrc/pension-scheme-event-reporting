@@ -66,5 +66,19 @@ class API1832Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
           }
         }
     )
+
+    "transform a a payload with no eventDetails node correctly as an empty json object" in {
+      val payload = {
+        val (json: JsObject, _) = {
+          generateUserAnswersAndPOSTBodyByEvent(Event4).sample.get
+        }
+        json - "eventDetails"
+      }
+
+      val expectedResponse: JsObject = Json.obj()
+      val result = payload.validate(API1832.rds1832Api(Event4)).asOpt
+      result mustBe Some(expectedResponse)
+    }
+
   }
 }
