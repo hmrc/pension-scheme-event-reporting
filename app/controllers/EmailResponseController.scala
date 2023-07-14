@@ -41,9 +41,10 @@ class EmailResponseController @Inject()(
   private val logger = Logger(classOf[EmailResponseController])
 
   def sendAuditEvents(
+                       submittedBy: String,
                        requestId: String,
-                       encryptedPsaOrPspId: String,
                        email: String,
+                       encryptedPsaOrPspId: String,
                        reportVersion: String): Action[JsValue] = Action(parser.tolerantJson) {
     implicit request =>
       decryptPsaOrPspIdAndEmail(encryptedPsaOrPspId, email) match {
@@ -55,7 +56,7 @@ class EmailResponseController @Inject()(
                 _.event == Opened
               ).foreach { event =>
                 logger.debug(s"Email Audit event is $event")
-                auditService.sendEvent(EmailAuditEvent(psaOrPspId, "PSA", emailAddress, event.event, requestId, reportVersion))(request, implicitly)
+                auditService.sendEvent(EmailAuditEvent(psaOrPspId, submittedBy, emailAddress, event.event, requestId, reportVersion))(request, implicitly)
               }
               Ok
             }
