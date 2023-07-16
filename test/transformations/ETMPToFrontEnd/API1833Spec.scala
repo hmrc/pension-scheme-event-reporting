@@ -69,6 +69,7 @@ object API1833Spec {
       |  },
       |  "event1Details": [
       |    {
+      |      "amendedVersion": "001",
       |      "memberStatus": "New",
       |      "memberType": "Individual",
       |      "individualMemberDetails": {
@@ -100,6 +101,8 @@ object API1833Spec {
       |  "event1": {
       |    "membersOrEmployers": [
       |      {
+      |        "memberStatus": "New",
+      |        "amendedVersion": "001",
       |        "schemeDetails": {
       |          "reference": "20034565RX",
       |          "schemeName": "ABCDEFGHIJKLMNOPQRSTUV"
@@ -143,6 +146,7 @@ object API1833Spec {
       |  },
       |  "event1Details": [
       |    {
+      |      "amendedVersion": "001",
       |      "memberStatus": "New",
       |      "memberType": "Employer",
       |      "employerMemberDetails": {
@@ -175,6 +179,8 @@ object API1833Spec {
       |  "event1": {
       |    "membersOrEmployers": [
       |      {
+      |        "amendedVersion": "001",
+      |        "memberStatus": "New",
       |        "employerTangibleMoveableProperty": "Sample description",
       |        "employerAddress": {
       |          "addressLine1": "123 Fun Lane",

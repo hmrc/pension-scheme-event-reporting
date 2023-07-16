@@ -28,7 +28,6 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
-import play.api.http.Status.{NOT_FOUND, NO_CONTENT}
 import play.api.libs.json.Json
 import uk.gov.hmrc.mongo.MongoComponent
 
@@ -205,7 +204,7 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
         case (documentsInDB, documentsInDB2, result) =>
           documentsInDB.size mustBe 0
           documentsInDB2.size mustBe 1
-          result.header.status mustBe NO_CONTENT
+          result.isDefined mustBe true
       }
     }
 
@@ -221,7 +220,7 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
       whenReady(documentsInDB) {
         case (documentsInDB, result) =>
           documentsInDB.size mustBe 0
-          result.header.status mustBe NOT_FOUND
+          result.isDefined mustBe false
       }
     }
   }
