@@ -34,7 +34,8 @@ object API1833 {
       (
         readsMemberType and
         readsIndividualOrEmployerMemberDetails and
-        readsUnAuthorisedPaymentDetails
+        readsUnAuthorisedPaymentDetails and
+          readsMemberChangeInfo
       ).reduce
     ).map(JsArray(_)))
 }
@@ -327,6 +328,6 @@ private object EventOneReportPaths {
   val pathEtmpUnAuthorisedPaymentDetailsPmtAmtOrLoanAmt: JsPath = pathEtmpUnAuthorisedPaymentDetails \ Symbol("pmtAmtOrLoanAmt")
   val pathEtmpUnAuthorisedPaymentDetailsFundValue: JsPath = pathEtmpUnAuthorisedPaymentDetails \ Symbol("fundValue")
   val pathEtmpUnAuthorisedPaymentDetailsResidentialPropertyAddress: JsPath = pathEtmpUnAuthorisedPaymentDetails \ Symbol("residentialPropertyAddress")
-  val pathEtmpMemberStatus:JsPath = pathEtmpEvent1Details \ Symbol("memberStatus")
-  val pathEtmpAmendedVersion:JsPath = pathEtmpEvent1Details \ Symbol("amendedVersion")
+  val pathEtmpMemberStatus:JsPath = __ \ Symbol("memberStatus")
+  val pathEtmpAmendedVersion:JsPath = __ \ Symbol("amendedVersion")
 }

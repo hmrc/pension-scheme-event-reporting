@@ -69,7 +69,11 @@ class EventReportController @Inject()(
                 eventReportService.saveUserAnswers(externalId, pstr, et, year, version, userAnswersJson).map(_ => Ok)
               case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
             }
-          case _ => eventReportService.saveUserAnswers(externalId, pstr, userAnswersJson).map(_ => Ok)
+          case _ =>
+            for {
+              x <- eventReportService.saveUserAnswers(externalId, pstr, userAnswersJson)
+              y <- eventReportService.saveUserAnswers(externalId, pstr + "_original_cache", userAnswersJson)
+            } yield Ok
         }
       }
   }
@@ -79,7 +83,15 @@ class EventReportController @Inject()(
     implicit request =>
       withAuth.flatMap { case Credentials(externalId, _) =>
         val Seq(pstr, version, newVersion) = requiredHeaders("pstr", "version", "newVersion")
-        eventReportService.changeVersion(externalId, pstr, version.toInt, newVersion.toInt)
+        for {
+          x <- eventReportService.changeVersion(externalId, pstr, version.toInt, newVersion.toInt)
+          y <- eventReportService.changeVersion(externalId, pstr + "_original_cache", version.toInt, newVersion.toInt)
+        } yield {
+          (x,y) match {
+            case (Some(_), Some(_)) => NoContent
+            case _ => NotFound
+          }
+        }
 
       }
   }

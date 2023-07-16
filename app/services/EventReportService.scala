@@ -23,6 +23,7 @@ import models.enumeration.ApiType._
 import models.enumeration.EventType._
 import models.enumeration.{ApiType, EventType}
 import models.{EROverview, ERVersion, EventDataIdentifier}
+import org.mongodb.scala.result
 import play.api.Logging
 import play.api.http.Status.NOT_IMPLEMENTED
 import play.api.libs.json.JsResult.toTry
@@ -79,7 +80,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     eventReportCacheRepository.upsert(externalId, pstr, userAnswersJson)
 
   def changeVersion(externalId: String, pstr: String, currentVersion: Int, newVersion: Int)
-                   (implicit ec: ExecutionContext): Future[Result] =
+                   (implicit ec: ExecutionContext): Future[Option[result.UpdateResult]] =
     eventReportCacheRepository.changeVersion(externalId, pstr, currentVersion, newVersion)
 
   def removeUserAnswers(externalId: String)(implicit ec: ExecutionContext): Future[Unit] =
@@ -191,11 +192,13 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case Some(APIProcessingInfo(apiType, _, _, _)) =>
         apiType match {
           case ApiType.Api1827 =>
-            def getMemberDetails(userAnswers: JsObject) = {
-              (userAnswers \ "event1Details").as[JsArray].value.map(_.as[JsObject])
-            }
+            def getMemberDetails(userAnswers: JsObject) =
+              (userAnswers \ "event1" \ "membersOrEmployers").as[JsArray].value.map(_.as[JsObject])
 
-            newUserAnswers - "event1Details" + ("event1Details", newMembersWithChangeInfo(getMemberDetails))
+            val event1 = ((newUserAnswers \ "event1").as[JsObject] - "membersOrEmployers") +
+              ("membersOrEmployers", Json.toJson(newMembersWithChangeInfo(getMemberDetails)))
+
+            newUserAnswers - "event1" + ("event1", event1)
           case ApiType.Api1830 =>
             def getMemberDetails(userAnswers: JsObject) = {
               (userAnswers \ ("event" + eventType.toString) \ "members").as[JsArray].value.map(_.as[JsObject])

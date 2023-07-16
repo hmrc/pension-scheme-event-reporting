@@ -23,10 +23,9 @@ import models.enumeration.EventType
 import org.joda.time.DateTime
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
+import org.mongodb.scala.result
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
-import play.api.mvc.Result
-import play.api.mvc.Results.{NoContent, NotFound}
 import play.api.{Configuration, Logging}
 import repositories.EventReportCacheEntry.{eventTypeKey, expireAtKey, externalIdKey, pstrKey, versionKey, yearKey}
 import uk.gov.hmrc.mongo.MongoComponent
@@ -139,7 +138,7 @@ class EventReportCacheRepository @Inject()(
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
   }
 
-  def changeVersion(externalId: String, pstr: String, version: Int, newVersion: Int)(implicit ec: ExecutionContext): Future[Result] = {
+  def changeVersion(externalId: String, pstr: String, version: Int, newVersion: Int)(implicit ec: ExecutionContext): Future[Option[result.UpdateResult]] = {
     val modifier = Updates.combine(
       Updates.set(versionKey, newVersion),
       Updates.set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC"))))
@@ -154,9 +153,9 @@ class EventReportCacheRepository @Inject()(
       if (foundItem.isDefined) {
         collection.updateMany(
           filter = selector,
-          update = modifier).toFuture().map(_ => NoContent)
+          update = modifier).toFuture() .map(Some(_))
       } else {
-        Future.successful(NotFound)
+        Future.successful(None)
       }
 
     }
