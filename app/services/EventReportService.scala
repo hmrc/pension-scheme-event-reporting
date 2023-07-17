@@ -37,7 +37,7 @@ import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, Header
 import utils.JSONSchemaValidator
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 
 @Singleton()
@@ -195,13 +195,29 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
             def getMemberDetails(userAnswers: JsObject) =
               (userAnswers \ "event1" \ "membersOrEmployers").as[JsArray].value.map(_.as[JsObject])
 
-            val event1 = ((newUserAnswers \ "event1").as[JsObject] - "membersOrEmployers") +
-              ("membersOrEmployers", Json.toJson(newMembersWithChangeInfo(getMemberDetails)))
+            val event1 = {
+              Try(
+                ((newUserAnswers \ "event1").as[JsObject] - "membersOrEmployers") +
+                ("membersOrEmployers", Json.toJson(newMembersWithChangeInfo(getMemberDetails)))
+              ) match {
+                case Failure(exception) =>
+                  logger.warn("Could not get member details for event 1", exception)
+                  IndexedSeq(JsObject(Seq()))
+                case Success(value) => value
+              }
+            }
 
             newUserAnswers - "event1" + ("event1", event1)
           case ApiType.Api1830 =>
             def getMemberDetails(userAnswers: JsObject) = {
-              (userAnswers \ ("event" + eventType.toString) \ "members").as[JsArray].value.map(_.as[JsObject])
+              Try(
+                (userAnswers \ ("event" + eventType.toString) \ "members").as[JsArray].value.map(_.as[JsObject])
+              ) match {
+                case Failure(exception) =>
+                  logger.warn("Could not get member details", exception)
+                  IndexedSeq(JsObject(Seq()))
+                case Success(value) => value
+              }
             }
 
             val event = ((newUserAnswers \ ("event" + eventType.toString)).as[JsObject] - "members") +
