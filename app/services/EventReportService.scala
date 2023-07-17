@@ -111,7 +111,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   private case class MemberChangeInfo(amendedVersion: Int, status: MemberStatus)
 
   private trait MemberStatus {
-    def name:String
+    def name: String
   }
 
   private case class New() extends MemberStatus {
@@ -126,7 +126,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     def name: String = "Changed"
   }
 
-  private def stringToMemberStatus(memberStatus:String): MemberStatus = memberStatus match {
+  private def stringToMemberStatus(memberStatus: String): MemberStatus = memberStatus match {
     case "New" => New()
     case "Deleted" => Deleted()
     case "Changed" => Changed()
@@ -134,10 +134,10 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   }
 
   private def generateMemberChangeInfo(oldMember: Option[JsObject],
-                                  newMember: JsObject,
-                                  currentVersion: Int): MemberChangeInfo = {
+                                       newMember: JsObject,
+                                       currentVersion: Int): MemberChangeInfo = {
 
-    def noVersion(obj:JsObject) = obj - "amendedVersion" - "memberStatus"
+    def noVersion(obj: JsObject) = obj - "amendedVersion" - "memberStatus"
 
     def version(obj: JsObject) = obj.value.get("amendedVersion").map(_.as[String].toInt)
 
@@ -150,12 +150,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       val oldMemberVersion = version(oldMember).getOrElse(currentVersion)
       val hasSameVersion = version(newMember).contains(currentVersion)
       val oldMemberStatus = status(oldMember).getOrElse(New())
-      
+
       (hasSameVersion, memberChanged, oldMemberStatus) match {
         case (false, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
         case (true, _, New()) => MemberChangeInfo(oldMemberVersion, New())
         case (false, true, _) => MemberChangeInfo(currentVersion, Changed())
-        case (true, false, oldMemberStatus)  => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
+        case (true, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
       }
     }.getOrElse(
       MemberChangeInfo(currentVersion, New())
@@ -168,7 +168,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                              eventType: EventType,
                                              pstr: String,
                                              currentVersion: Int)
-                                        (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader):JsObject = {
+                                            (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): JsObject = {
 
     def newMembersWithChangeInfo(getMemberDetails: JsObject => scala.collection.IndexedSeq[JsObject]) = {
       val newMembers = getMemberDetails(newUserAnswers)
@@ -198,7 +198,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
             val event1 = {
               Try(
                 ((newUserAnswers \ "event1").as[JsObject] - "membersOrEmployers") +
-                ("membersOrEmployers", Json.toJson(newMembersWithChangeInfo(getMemberDetails)))
+                  ("membersOrEmployers", Json.toJson(newMembersWithChangeInfo(getMemberDetails)))
               ) match {
                 case Failure(exception) =>
                   logger.warn("Could not get member details for event 1", exception)
@@ -243,7 +243,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           (newUserAnswers, oldUserAnswers) match {
             case (Some(newUserAnswers), oldUserAnswers) =>
               val header = Json.obj(
-                "taxYear" -> year.toString
+                "taxYear" -> year.toString,
+                "recordVersion" -> ("00" + version).takeRight(3)
               )
 
               val data = memberChangeInfoTransformation(oldUserAnswers, newUserAnswers, eventType, pstr, version.toInt)
