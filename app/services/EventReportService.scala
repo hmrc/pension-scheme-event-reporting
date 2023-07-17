@@ -202,12 +202,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               ) match {
                 case Failure(exception) =>
                   logger.warn("Could not get member details for event 1", exception)
-                  IndexedSeq(JsObject(Seq()))
+                  Json.toJson(IndexedSeq(JsObject(Seq())))
                 case Success(value) => value
               }
             }
 
-            newUserAnswers - "event1" + ("event1", event1)
+            (newUserAnswers - "event1") + ("event1", event1)
           case ApiType.Api1830 =>
             def getMemberDetails(userAnswers: JsObject) = {
               Try(

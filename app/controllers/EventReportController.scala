@@ -58,7 +58,7 @@ class EventReportController @Inject()(
         val userAnswersJson = requiredBody.validate[JsObject].getOrElse(throw new RuntimeException("Expected JsObject body"))
         val pstr = requiredHeaders("pstr").head
         val etVersionYear = (request.headers.get("eventType"), request.headers.get("version"), request.headers.get("year")) match {
-          case (Some(et), Some(version), Some(year)) => Some(et, version.toInt, year.toInt)
+          case (Some(et), Some(version), Some(year)) => Some((et, version.toInt, year.toInt))
           case _ => None
         }
 
@@ -71,8 +71,8 @@ class EventReportController @Inject()(
             }
           case _ =>
             for {
-              x <- eventReportService.saveUserAnswers(externalId, pstr, userAnswersJson)
-              y <- eventReportService.saveUserAnswers(externalId, pstr + "_original_cache", userAnswersJson)
+              _ <- eventReportService.saveUserAnswers(externalId, pstr, userAnswersJson)
+              _ <- eventReportService.saveUserAnswers(externalId, pstr + "_original_cache", userAnswersJson)
             } yield Ok
         }
       }
@@ -124,7 +124,7 @@ class EventReportController @Inject()(
       withAuth.flatMap { case Credentials(externalId, _) =>
         val pstr = requiredHeaders("pstr").head
         val etVersionYear = (request.headers.get("eventType"), request.headers.get("version"), request.headers.get("year")) match {
-          case (Some(et), Some(version), Some(year)) => Some(et, version.toInt, year.toInt)
+          case (Some(et), Some(version), Some(year)) => Some((et, version.toInt, year.toInt))
           case _ => None
         }
         process(externalId, pstr, etVersionYear)
