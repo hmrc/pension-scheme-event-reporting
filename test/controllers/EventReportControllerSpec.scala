@@ -16,6 +16,7 @@
 
 package controllers
 
+import com.mongodb.client.result.UpdateResult
 import models.enumeration.EventType
 import models.enumeration.EventType._
 import models.{ERVersion, EventReportValidationFailureException}
@@ -31,7 +32,7 @@ import play.api.Application
 import play.api.inject.bind
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json._
-import play.api.mvc.Results.{NoContent, NotFound}
+import play.api.mvc.Results.NoContent
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import services.EventReportService
@@ -349,7 +350,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
       when(mockEventReportService.getUserAnswers(
         ArgumentMatchers.eq(externalId),
-        ArgumentMatchers.eq(pstr)
+        any()
       )(any()))
         .thenReturn(Future.successful(Some(json)))
 
@@ -430,7 +431,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     "return OK when eventType missing" in {
       when(mockEventReportService.saveUserAnswers(
         ArgumentMatchers.eq(externalId),
-        ArgumentMatchers.eq(pstr),
+        any(),
         any()
       )(any()))
         .thenReturn(Future.successful(()))
@@ -459,11 +460,11 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     "return 204 OK when valid response" in {
       when(mockEventReportService.changeVersion(
         ArgumentMatchers.eq(externalId),
-        ArgumentMatchers.eq(pstr),
+        any(),
         ArgumentMatchers.eq(1),
         ArgumentMatchers.eq(2)
       )(any()))
-        .thenReturn(Future.successful(NoContent))
+        .thenReturn(Future.successful(Some(mock[UpdateResult])))
       val result = controller.changeVersion(fakeRequest.withHeaders(
         newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> reportVersion, "eventType" -> eventType, externalId -> externalId, "newVersion" -> "2"))
 
@@ -473,11 +474,11 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     "return 400 OK when not found" in {
       when(mockEventReportService.changeVersion(
         ArgumentMatchers.eq(externalId),
-        ArgumentMatchers.eq(pstr),
+        any(),
         ArgumentMatchers.eq(1),
         ArgumentMatchers.eq(2)
       )(any()))
-        .thenReturn(Future.successful(NotFound))
+        .thenReturn(Future.successful(None))
       val result = controller.changeVersion(fakeRequest.withHeaders(
         newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> reportVersion, "eventType" -> eventType, externalId -> externalId, "newVersion" -> "2"))
 

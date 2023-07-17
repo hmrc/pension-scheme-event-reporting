@@ -137,8 +137,9 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
         "memberPaymentNatureDescription" -> otherDesc,
         "memberResidentialAddress" -> Json.obj(
           "address" -> toUserAnswersFormat(address)
-        )
-
+        ),
+        "memberStatus" -> "New",
+        "amendedVersion" -> "001"
       )
 
       def freeTxtOrSchemeOrRecipientName = paymentNature match {
@@ -204,8 +205,9 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
 
       val expectedJson = Json.obj(
         "individualMemberDetails" -> indMembDetails,
-        "unAuthorisedPaymentDetails" ->
-          unAuthorisedPaymentDetails
+        "unAuthorisedPaymentDetails" -> unAuthorisedPaymentDetails,
+        "memberStatus" -> "New",
+        "amendedVersion" -> "001"
       )
       Tuple2(ua, expectedJson)
     }
@@ -250,7 +252,9 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
         ),
         "employerTangibleMoveableProperty" -> tangibleMoveableProperyDesc,
         "unauthorisedPaymentRecipientName" -> recipientName,
-        "paymentNatureDesc" -> paymentNatureDesc
+        "paymentNatureDesc" -> paymentNatureDesc,
+        "memberStatus" -> "New",
+        "amendedVersion" -> "001"
       )
 
       def freeTxtOrSchemeOrRecipientName: Option[String] = paymentNature match {
@@ -301,7 +305,9 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
           "addressDetails" -> toAPIFormat(address)
         ),
         "unAuthorisedPaymentDetails" ->
-          unauthorisedPaymentDetails
+          unauthorisedPaymentDetails,
+        "memberStatus" -> "New",
+        "amendedVersion" -> "001"
       )
       Tuple2(ua, expectedJson)
     }
@@ -343,8 +349,6 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
             "event1Details" -> Json.arr(
               generatedExpectedResult ++ Json.obj(
                 "memberType" -> whoReceivedUnauthorisedPaymentMap(whoReceivedUnauthorisedPayment)
-              ) ++ Json.obj(
-                "memberStatus" -> "New"
               )
             )
           )

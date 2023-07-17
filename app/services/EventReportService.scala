@@ -23,6 +23,7 @@ import models.enumeration.ApiType._
 import models.enumeration.EventType._
 import models.enumeration.{ApiType, EventType}
 import models.{EROverview, ERVersion, EventDataIdentifier}
+import org.mongodb.scala.result
 import play.api.Logging
 import play.api.http.Status.NOT_IMPLEMENTED
 import play.api.libs.json.JsResult.toTry
@@ -79,7 +80,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     eventReportCacheRepository.upsert(externalId, pstr, userAnswersJson)
 
   def changeVersion(externalId: String, pstr: String, currentVersion: Int, newVersion: Int)
-                   (implicit ec: ExecutionContext): Future[Result] =
+                   (implicit ec: ExecutionContext): Future[Option[result.UpdateResult]] =
     eventReportCacheRepository.changeVersion(externalId, pstr, currentVersion, newVersion)
 
   def removeUserAnswers(externalId: String)(implicit ec: ExecutionContext): Future[Unit] =
@@ -161,6 +162,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     )
   }
 
+  //scalastyle:off method.length
   private def memberChangeInfoTransformation(oldUserAnswers: Option[JsObject],
                                              newUserAnswers: JsObject,
                                              eventType: EventType,
@@ -168,37 +170,58 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                              currentVersion: Int)
                                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader):JsObject = {
 
-    def getMemberDetails(userAnswers: JsObject) = {
-      Try(
-        (userAnswers \ ("event" + eventType.toString) \ "members").as[JsArray].value.map(_.as[JsObject])
-      ) match {
-        case Failure(exception) =>
-          logger.warn("Could not get member details", exception)
-          IndexedSeq(JsObject(Seq()))
-        case Success(value) => value
+    def newMembersWithChangeInfo(getMemberDetails: JsObject => scala.collection.IndexedSeq[JsObject]) = {
+      val newMembers = getMemberDetails(newUserAnswers)
+
+      newMembers.zipWithIndex.map { case (newMemberDetail, index) =>
+        val oldMemberDetails = oldUserAnswers.map(getMemberDetails).getOrElse(Seq())
+        val oldMemberDetail = Try(oldMemberDetails(index)).toOption
+        val newMemberChangeInfo = generateMemberChangeInfo(
+          oldMemberDetail,
+          newMemberDetail,
+          currentVersion
+        )
+
+        newMemberDetail +
+          ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
+          ("memberStatus", JsString(newMemberChangeInfo.status.name))
       }
     }
 
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, _, _, _)) =>
         apiType match {
-          case ApiType.Api1830 =>
-            val newMembers = getMemberDetails(newUserAnswers)
+          case ApiType.Api1827 =>
+            def getMemberDetails(userAnswers: JsObject) =
+              (userAnswers \ "event1" \ "membersOrEmployers").as[JsArray].value.map(_.as[JsObject])
 
-            val newMembersWithChangeInfo = newMembers.zipWithIndex.map { case (newMemberDetail, index) =>
-              val oldMemberDetails = oldUserAnswers.map(getMemberDetails).getOrElse(Seq())
-              val oldMemberDetail = Try(oldMemberDetails(index)).toOption
-              val newMemberChangeInfo = generateMemberChangeInfo(
-                  oldMemberDetail,
-                  newMemberDetail,
-                  currentVersion
-                )
-
-              newMemberDetail +
-                ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
-                ("memberStatus", JsString(newMemberChangeInfo.status.name))
+            val event1 = {
+              Try(
+                ((newUserAnswers \ "event1").as[JsObject] - "membersOrEmployers") +
+                ("membersOrEmployers", Json.toJson(newMembersWithChangeInfo(getMemberDetails)))
+              ) match {
+                case Failure(exception) =>
+                  logger.warn("Could not get member details for event 1", exception)
+                  Json.toJson(IndexedSeq(JsObject(Seq())))
+                case Success(value) => value
+              }
             }
-            val event = ((newUserAnswers \ ("event" + eventType.toString)).as[JsObject] - "members") + ("members", Json.toJson(newMembersWithChangeInfo))
+
+            (newUserAnswers - "event1") + ("event1", event1)
+          case ApiType.Api1830 =>
+            def getMemberDetails(userAnswers: JsObject) = {
+              Try(
+                (userAnswers \ ("event" + eventType.toString) \ "members").as[JsArray].value.map(_.as[JsObject])
+              ) match {
+                case Failure(exception) =>
+                  logger.warn("Could not get member details", exception)
+                  IndexedSeq(JsObject(Seq()))
+                case Success(value) => value
+              }
+            }
+
+            val event = ((newUserAnswers \ ("event" + eventType.toString)).as[JsObject] - "members") +
+              ("members", Json.toJson(newMembersWithChangeInfo(getMemberDetails)))
             newUserAnswers - ("event" + eventType.toString) + ("event" + eventType.toString, event)
 
           case _ => newUserAnswers
