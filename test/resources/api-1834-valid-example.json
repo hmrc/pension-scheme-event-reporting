@@ -103,10 +103,6 @@
     "event23": {
       "recordVersion": "001",
       "numberOfMembers": 150000
-    },
-    "event24": {
-      "recordVersion": "001",
-      "numberOfMembers": 150000
     }
   },
   "event1ChargeDetails": {

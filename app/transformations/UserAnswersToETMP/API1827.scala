@@ -121,6 +121,14 @@ object API1827 extends Transformer {
   private val readsPaymentNatureMember: Reads[String] = (__ \ Symbol("paymentNatureMember")).json.pick.map(_.as[JsString].value)
   private val readsPaymentNatureEmployer: Reads[String] = (__ \ Symbol("paymentNatureEmployer")).json.pick.map(_.as[JsString].value)
 
+  private val readsMemberStatus = {
+    (__ \ Symbol("memberStatus")).json.pick
+  }
+
+  private val readsAmendedVersion = {
+    (__ \ Symbol("amendedVersion")).json.pick
+  }
+
   private val readsWhoReceivedUnauthorisedPayment: Reads[String] = {
     (__ \ Symbol("whoReceivedUnauthPayment")).json.pick.flatMap {
       case JsString("member") => Reads.pure[String](whoReceivedUnauthPaymentIndividual)
@@ -236,7 +244,8 @@ object API1827 extends Transformer {
     } yield {
       (
         (__ \ Symbol("memberType")).json.put(JsString(whoReceivedUnauthorisedPayment)) and
-          (__ \ Symbol("memberStatus")).json.put(JsString("New")) and
+          (__ \ Symbol("memberStatus")).json.copyFrom(readsMemberStatus) and
+          (__ \ Symbol("amendedVersion")).json.copyFrom(readsAmendedVersion) and
           readsMemberOrEmployer(whoReceivedUnauthorisedPayment) and
           readsUnauthorisedPaymentDetails(paymentNature, whoReceivedUnauthorisedPayment)
         ).reduce

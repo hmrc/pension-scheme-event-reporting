@@ -108,11 +108,9 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
 
     "return 204 No Content when valid data return from repository - event 1" in {
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(Event1, 2020, 1, externalId))))(any()))
-        .thenReturn(Future.successful(Some(responseJson)))
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr + "_original_cache"), eqTo(Some(EventDataIdentifier(Event1, 2020, 1, externalId))))(any()))
-        .thenReturn(Future.successful(Some(responseJson)))
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(None))(any()))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId),any(), eqTo(Some(EventDataIdentifier(Event1, 2020, 1, externalId))))(any()))
+        .thenReturn(Future.successful(Some(responseJsonEvent1)))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), any(), eqTo(None))(any()))
         .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
 
       when(mockEventReportConnector.compileEventOneReport(any(), any(), any(), any())(any(), any(), any()))
@@ -124,11 +122,9 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
 
     "return 400 when validation errors response for event one report" in {
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(Event1, 2020, 1, externalId))))(any()))
-        .thenReturn(Future.successful(Some(responseJson)))
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr+"_original_cache"), eqTo(Some(EventDataIdentifier(Event1, 2020, 1, externalId))))(any()))
-        .thenReturn(Future.successful(Some(responseJson)))
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(None))(any()))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), any(), eqTo(Some(EventDataIdentifier(Event1, 2020, 1, externalId))))(any()))
+        .thenReturn(Future.successful(Some(responseJsonEvent1)))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), any(), eqTo(None))(any()))
         .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
       when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(compileEventOneReportSchemaPath), any()))
         .thenReturn(Failure(new Exception("Message")))
@@ -142,11 +138,9 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
 
     "throw Upstream5XXResponse on Internal Server Error" in {
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(Event1, 2020, 1, externalId))))(any()))
-        .thenReturn(Future.successful(Some(responseJson)))
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr+"_original_cache"), eqTo(Some(EventDataIdentifier(Event1, 2020, 1, externalId))))(any()))
-        .thenReturn(Future.successful(Some(responseJson)))
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(None))(any()))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), any(), eqTo(Some(EventDataIdentifier(Event1, 2020, 1, externalId))))(any()))
+        .thenReturn(Future.successful(Some(responseJsonEvent1)))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), any(), eqTo(None))(any()))
         .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
 
       when(mockEventReportConnector.compileEventOneReport(any(), any(), any(), any())(any(), any(), any()))
@@ -241,7 +235,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
   "getEventSummary" must {
     "return the payload from the connector for API1834 and API1831" in {
-      val response = Set("1", "2", "3", "4", "5", "6", "7", "8", "8A", "10", "11", "12", "13", "14", "18", "19", "20", "22", "23", "24", "WindUp", "20A")
+      val response = Set("1", "2", "3", "4", "5", "6", "7", "8", "8A", "10", "11", "12", "13", "14", "18", "19", "20", "22", "23", "WindUp", "20A")
       when(mockEventReportConnector.getEvent(pstr, startDate, reportVersion, None)(implicitly, implicitly))
         .thenReturn(Future.successful(responseJsonForAPI1834))
       when(mockEventReportConnector.getEvent(pstr, startDate, reportVersion, Some(Event20A))(implicitly, implicitly))
@@ -518,6 +512,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
 object EventReportServiceSpec {
   private val responseJson: JsObject = Json.obj("event" -> "mockEvent - test passed")
+  private val responseJsonEvent1: JsObject = Json.obj("event1" -> Json.obj("membersOrEmployers" -> JsArray()))
   private val responseNoEventTypeJson: JsObject = Json.obj("taxYear" -> "2022")
   private val uaJsonEventWindUp: JsObject =
     Json.obj(
@@ -703,10 +698,6 @@ object EventReportServiceSpec {
       |        },
       |        "event23": {
       |            "recordVersion": "003",
-      |            "numberOfMembers": 150000
-      |        },
-      |        "event24": {
-      |            "recordVersion": "001",
       |            "numberOfMembers": 150000
       |        }
       |    },

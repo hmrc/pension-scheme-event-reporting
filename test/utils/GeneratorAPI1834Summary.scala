@@ -38,7 +38,7 @@ trait GeneratorAPI1834Summary extends Matchers with OptionValues with ResponseGe
     for {
       chosenEventTypesWithSeq <- Gen.someOf[String](Seq("10", "13", "19", "20"))
       chosenEventTypesWithoutSeq <- Gen.someOf[String](Seq("11", "12", "14", "WindUp"))
-      chosenMemberEventTypesSeq <- Gen.someOf[String](Seq("2", "3", "4", "5", "6", "7", "8", "8A", "22", "23", "24"))
+      chosenMemberEventTypesSeq <- Gen.someOf[String](Seq("2", "3", "4", "5", "6", "7", "8", "8A", "22", "23"))
     } yield {
       val payloadWithSeq = chosenEventTypesWithSeq.foldLeft(Json.obj()) { (acc, s) =>
         acc ++ Json.obj(
