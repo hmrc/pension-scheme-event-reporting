@@ -151,7 +151,7 @@ class EventReportController @Inject()(
     implicit request =>
       withAuth.flatMap { _ =>
         val Seq(pstr, version, startDate) = requiredHeaders("pstr", "reportVersionNumber", "reportStartDate")
-        eventReportService.getEventSummary(pstr, version, startDate).map(Ok(_))
+        eventReportService.getEventSummary(pstr, ("00" + version).takeRight(3), startDate).map(Ok(_))
       }
   }
 

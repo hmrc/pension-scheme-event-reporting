@@ -57,7 +57,7 @@ class EmailResponseControllerSpec extends AsyncWordSpec with Matchers with Mocki
 
   private val injector = application.injector
   private val controller = injector.instanceOf[EmailResponseController]
-  private val encryptedPsaId = injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(psa)).value
+  private val encryptedPsaId = injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(psaOrPspId)).value
   private val encryptedEmail = injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(email)).value
 
   override def beforeEach(): Unit = {
@@ -70,16 +70,24 @@ class EmailResponseControllerSpec extends AsyncWordSpec with Matchers with Mocki
   "EmailResponseController" must {
 
     "respond OK when given EmailEvents for PSA" in {
-      val result = controller.sendAuditEvents(requestId, encryptedPsaId, encryptedEmail, reportVersion)(fakeRequest.withBody(Json.toJson(emailEvents)))
+      val result = controller.sendAuditEvents(schemeAdministratorTypeAsPsa, requestId, encryptedEmail, encryptedPsaId, reportVersion)(fakeRequest.withBody(Json.toJson(emailEvents)))
 
       status(result) mustBe OK
       verify(mockAuditService, times(4)).sendEvent(eventCaptor.capture())(any(), any())
-      eventCaptor.getValue mustEqual EmailAuditEvent(psa, schemeAdministratorType, email, Complained, requestId, reportVersion)
+      eventCaptor.getValue mustEqual EmailAuditEvent(psaOrPspId, schemeAdministratorTypeAsPsa, email, Complained, requestId, reportVersion)
+    }
+
+    "respond OK when given EmailEvents for PSP" in {
+      val result = controller.sendAuditEvents(schemeAdministratorTypeAsPsp, requestId, encryptedEmail, encryptedPsaId, reportVersion)(fakeRequest.withBody(Json.toJson(emailEvents)))
+
+      status(result) mustBe OK
+      verify(mockAuditService, times(4)).sendEvent(eventCaptor.capture())(any(), any())
+      eventCaptor.getValue mustEqual EmailAuditEvent(psaOrPspId, schemeAdministratorTypeAsPsp, email, Complained, requestId, reportVersion)
     }
 
     "respond with BAD_REQUEST when not given EmailEvents" in {
       val result = controller.sendAuditEvents(
-        requestId, encryptedPsaId, encryptedEmail, reportVersion)(fakeRequest.withBody(Json.obj("name" -> "invalid")))
+        schemeAdministratorTypeAsPsp, requestId, encryptedEmail, encryptedPsaId, reportVersion)(fakeRequest.withBody(Json.obj("name" -> "invalid")))
 
       verify(mockAuditService, never).sendEvent(any())(any(), any())
       status(result) mustBe BAD_REQUEST
@@ -88,8 +96,9 @@ class EmailResponseControllerSpec extends AsyncWordSpec with Matchers with Mocki
 }
 
 object EmailResponseControllerSpec {
-  private val psa = "A7654321"
-  private val schemeAdministratorType = "PSA"
+  private val psaOrPspId = "A7654321"
+  private val schemeAdministratorTypeAsPsa = "PSA"
+  private val schemeAdministratorTypeAsPsp = "PSP"
   private val email = "test@test.com"
   private val requestId = "test-request-id"
   private val reportVersion = "1"

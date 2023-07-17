@@ -233,7 +233,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               val data = memberChangeInfoTransformation(oldUserAnswers, newUserAnswers, eventType, pstr, version.toInt)
 
               val fullData = data ++ header
-
+              logger.warn(s"Compiling event type $eventType for year $year and version $version. Payload is: $fullData")
               for {
                 transformedData <- Future.fromTry(toTry(fullData.validate(reads)))
                 collatedData <- compilePayloadService.collatePayloadsAndUpdateCache(
@@ -261,7 +261,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  private val api1832Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
+  private val api1832Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23)
   private val api1834Events: List[EventType] = List(WindUp, Event10, Event18, Event13, Event20, Event11, Event12, Event14, Event19)
 
   private def transformOrException(data: JsObject, reads: Reads[JsObject]): Option[JsObject] = {
