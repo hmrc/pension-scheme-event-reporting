@@ -36,7 +36,7 @@ import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, Header
 import utils.JSONSchemaValidator
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 
 @Singleton()
@@ -169,7 +169,14 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader):JsObject = {
 
     def getMemberDetails(userAnswers: JsObject) = {
-      (userAnswers \ ("event" + eventType.toString) \ "members").as[JsArray].value.map(_.as[JsObject])
+      Try(
+        (userAnswers \ ("event" + eventType.toString) \ "members").as[JsArray].value.map(_.as[JsObject])
+      ) match {
+        case Failure(exception) =>
+          logger.warn("Could not get member details", exception)
+          IndexedSeq(JsObject(Seq()))
+        case Success(value) => value
+      }
     }
 
     apiProcessingInfo(eventType, pstr) match {
