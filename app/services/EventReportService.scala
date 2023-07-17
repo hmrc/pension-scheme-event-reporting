@@ -219,7 +219,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               val data = memberChangeInfoTransformation(oldUserAnswers, newUserAnswers, eventType, pstr, version.toInt)
 
               val fullData = data ++ header
-
+              logger.warn(s"Compiling event type $eventType for year $year and version $version. Payload is: $fullData")
               for {
                 transformedData <- Future.fromTry(toTry(fullData.validate(reads)))
                 collatedData <- compilePayloadService.collatePayloadsAndUpdateCache(
