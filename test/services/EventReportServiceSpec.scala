@@ -164,7 +164,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
 
 
-    "return 204 No Content when valid data return from repository - event 1" in {
+    "return 204 No Content when valid data return from repository - event wind up" in {
 
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(WindUp, 2020, 2, externalId))))(any()))
         .thenReturn(Future.successful(Some(uaJsonEventWindUp)))

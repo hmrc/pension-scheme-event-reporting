@@ -39,7 +39,14 @@ class CompilePayloadService @Inject()(
   private final val EventDetailsNodeName = "eventDetails"
 
   def addRecordVersionToUserAnswersJson(eventType: EventType, version:Int, newUserAnswers: JsObject): JsObject = {
-    val recordVersionJson: JsObject = Json.obj(s"event${eventType.toString}" -> Json.obj("recordVersion" -> version))
+    val recordVersionJson: JsObject = {
+      val api1826Events: List[EventType] = List(Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, WindUp)
+      if (api1826Events.contains(eventType)) {
+        Json.obj(s"event${eventType.toString}" -> Json.obj("recordVersion" -> version))
+      } else {
+        Json.obj()
+      }
+    }
     newUserAnswers.deepMerge(recordVersionJson)
   }
 
