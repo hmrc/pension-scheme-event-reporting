@@ -245,11 +245,11 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               val header = Json.obj(
                 "taxYear" -> year.toString
               )
+              
+              // TODO: implementation might need to be different for EventType = WindUp as JSON nesting is different.
+              val recordVersionJson: JsObject = Json.obj(s"event${eventType.toString}" -> Json.obj("recordVersion" -> version.toInt))
 
-              // TODO: HEre we need to add the recordVErsion into the newUSerAnswers json but below the node for the eventType without overwriting whatever else is in this node
-              val nnn = newUserAnswers \ s"event$version"
-
-              val data = memberChangeInfoTransformation(oldUserAnswers, newUserAnswers, eventType, pstr, version.toInt)
+              val data = memberChangeInfoTransformation(oldUserAnswers, newUserAnswers.deepMerge(recordVersionJson), eventType, pstr, version.toInt)
 
               val fullData = data ++ header
               logger.warn(s"Compiling event type $eventType for year $year and version $version. Payload is: $fullData")
