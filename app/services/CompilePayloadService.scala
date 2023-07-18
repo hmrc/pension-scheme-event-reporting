@@ -39,13 +39,8 @@ class CompilePayloadService @Inject()(
   private final val EventDetailsNodeName = "eventDetails"
 
   def addRecordVersionToUserAnswersJson(eventType: EventType, version:Int, newUserAnswers: JsObject): JsObject = {
-    val recordVersionJson: JsObject = if (eventType == WindUp) {
-      Json.obj("recordVersion" -> version)
-    } else {
-      Json.obj(s"event${eventType.toString}" -> Json.obj("recordVersion" -> version))
-    }
-
-   newUserAnswers.deepMerge(recordVersionJson)
+    val recordVersionJson: JsObject = Json.obj(s"event${eventType.toString}" -> Json.obj("recordVersion" -> version))
+    newUserAnswers.deepMerge(recordVersionJson)
   }
 
   private def nodeNameJsObject(eventType: EventType): Option[String] = {

@@ -29,7 +29,10 @@ import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 import org.scalatestplus.mockito.MockitoSugar
+import play.api.Application
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
+import play.inject.guice.Guiceable.modules
 import repositories.GetDetailsCacheRepository
 import uk.gov.hmrc.http.HeaderCarrier
 import utils.{GeneratorAPI1826, GeneratorAPI1834, JSONSchemaValidator, JsonFileReader}
@@ -79,7 +82,25 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
     reset(mockEventReportConnector)
   }
 
-  ""
+  "addRecordVersionToUserAnswersJson" must {
+    "add recordVersion key-value pair to UA object at correct depth" in {
+      val application: Application = new GuiceApplicationBuilder()
+        .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false).build()
+      def compilePayloadService: CompilePayloadService = application.injector.instanceOf[CompilePayloadService]
+
+      val exampleUA =
+        Json.obj("event10" ->
+          Json.obj(
+            "schemeChangeDate" -> Json.obj("schemeChangeDate" -> "2024-01-31"),
+            "contractsOrPolicies" -> true,
+          "becomeOrCeaseScheme" -> "itBecameAnInvestmentRegulatedPensionScheme"
+        ))
+
+      val sampleWithVersion = compilePayloadService.addRecordVersionToUserAnswersJson(Event10, version.toInt, exampleUA)
+      (exampleUA \\ "recordVersion").toList mustEqual List.empty
+      (sampleWithVersion \\ "recordVersion").toList mustEqual List(JsNumber(1))
+      }
+  }
 
   "collatePayloadsAndUpdateCache" must {
     "interpolate event 11 payload where all event types except event 11 are in cache + event 10 is an empty payload" in {
