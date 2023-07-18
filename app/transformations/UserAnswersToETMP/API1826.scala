@@ -83,7 +83,7 @@ object API1826 extends Transformer {
   private lazy val event11Reads = {
     (
       (__ \ "event11").readNullable[JsObject] and
-        (__ \ "recordVersion").readNullable[JsNumber]
+        (__ \ "event11" \ "recordVersion").readNullable[JsNumber]
       )(
       (et, version) =>
         (et, version) match {
@@ -120,7 +120,7 @@ object API1826 extends Transformer {
   private lazy val event12Reads = {
     (
       (__ \ "event12").readNullable[JsObject] and
-        (__ \ "recordVersion").readNullable[JsNumber]
+        (__ \ "event12" \ "recordVersion").readNullable[JsNumber]
       )(
       (et, version) =>
         (et, version) match {
@@ -170,7 +170,7 @@ object API1826 extends Transformer {
   private lazy val event14Reads = {
     (
       (__ \ "event14").readNullable[JsObject] and
-        (__ \ "recordVersion").readNullable[JsNumber]
+        (__ \ "event14" \ "recordVersion").readNullable[JsNumber]
       )(
       (et, version) =>
         (et, version) match {

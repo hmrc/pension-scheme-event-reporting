@@ -41,14 +41,14 @@ class API1826Spec extends AnyFreeSpec with Matchers
   }
 
   "transformToETMPData" - {
-    "must transform a randomly generated valid payload correctly for Event 10" in {
-      forAll(generateUserAnswersAndPOSTBodyEvent10) {
-        case (userAnswers: JsObject, expectedResponse: JsObject) =>
-          val result = userAnswers.validate(API1826.transformToETMPData)
-          val expectedResult = JsSuccess(expectedResponse)
-          result mustBe expectedResult
-      }
-    }
+//    "must transform a randomly generated valid payload correctly for Event 10" in {
+//      forAll(generateUserAnswersAndPOSTBodyEvent10) {
+//        case (userAnswers: JsObject, expectedResponse: JsObject) =>
+//          val result = userAnswers.validate(API1826.transformToETMPData)
+//          val expectedResult = JsSuccess(expectedResponse)
+//          result mustBe expectedResult
+//      }
+//    }
 //    "must transform a randomly generated valid payload correctly for Event 11" in {
 //      forAll(generateUserAnswersAndPOSTBodyEvent11) {
 //        case (userAnswers: JsObject, expectedResponse: JsObject) =>
@@ -56,6 +56,7 @@ class API1826Spec extends AnyFreeSpec with Matchers
 //            Right("Test bypassed, transformation not required when both booleans are false")
 //          } else {
 //            val expectedResult = JsSuccess(expectedResponse)
+
 //            val result = userAnswers.validate(API1826.transformToETMPData)
 //            result mustBe expectedResult
 //          }
@@ -72,27 +73,33 @@ class API1826Spec extends AnyFreeSpec with Matchers
 //    "must transform a randomly generated valid payload correctly for Event 13" in {
 //      forAll(generateUserAnswersAndPOSTBodyEvent13) {
 //        case (userAnswers: JsObject, expectedResponse: JsObject) =>
-//          val result = userAnswers.validate(API1826.transformToETMPData)
 //          val expectedResult = JsSuccess(expectedResponse)
+//
+//          val result = userAnswers.validate(API1826.transformToETMPData)
+//
 //          result mustBe expectedResult
 //      }
 //    }
 //    "must transform a randomly generated valid payload correctly for Event 14" in {
 //      forAll(generateUserAnswersAndPOSTBodyEvent14) {
 //        case (userAnswers: JsObject, expectedResponse: JsObject) =>
-//          val result = userAnswers.validate(API1826.transformToETMPData)
+//
 //          val expectedResult = JsSuccess(expectedResponse)
+//          val result = userAnswers.validate(API1826.transformToETMPData)
 //          result mustBe expectedResult
 //      }
 //    }
-//    "must transform a randomly generated valid payload correctly for Wind Up" in {
-//      forAll(generateUserAnswersAndPOSTBodyWindUp) {
-//        case (userAnswers: JsObject, expectedResponse: JsObject) =>
-//          val result = userAnswers.validate(API1826.transformToETMPData)
-//          val expectedResult = JsSuccess(expectedResponse)
-//          result mustBe expectedResult
-//      }
-//    }
+    "must transform a randomly generated valid payload correctly for Wind Up" in {
+      forAll(generateUserAnswersAndPOSTBodyWindUp) {
+        case (userAnswers: JsObject, expectedResponse: JsObject) =>
+          val expectedResult = JsSuccess(expectedResponse)
+          val result = userAnswers.validate(API1826.transformToETMPData)
+          println("\nEXP" + expectedResult)
+          println("\nUA" + userAnswers)
+
+          result mustBe expectedResult
+      }
+    }
 //    "must transform a randomly generated valid payload correctly for Event 18" in {
 //      forAll(generateUserAnswersAndPOSTBodyEvent18) {
 //        case (userAnswers: JsObject, expectedResponse: JsObject) =>

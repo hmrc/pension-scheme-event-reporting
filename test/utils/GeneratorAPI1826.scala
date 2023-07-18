@@ -237,7 +237,6 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
           case ("other", true) =>
             Json.obj(
               "recordVersion" -> version,
-              "recordVersion" -> "001",
               "schemeStructure" -> schemeStructureUA,
               "changeDate" -> s"$taxYear-04-06",
               "schemeStructureDescription" -> schemeStructureDescription
@@ -245,13 +244,11 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
           case ("other", false) =>
             Json.obj(
               "recordVersion" -> version,
-              "recordVersion" -> "001",
               "schemeStructure" -> schemeStructureUA,
               "changeDate" -> s"$taxYear-04-06"
             )
           case _ => Json.obj(
             "recordVersion" -> version,
-            "recordVersion" -> "001",
             "schemeStructure" -> schemeStructureUA,
             "changeDate" -> s"$taxYear-04-06"
           )
