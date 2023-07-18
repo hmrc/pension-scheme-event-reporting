@@ -164,7 +164,6 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
 
 
-    // TODO: 8602 We need to check in this test that the recordVersion is added to the payload sent to the API
     "return 204 No Content when valid data return from repository - event 1" in {
 
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(WindUp, 2020, 2, externalId))))(any()))
