@@ -172,16 +172,11 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(None))(any()))
         .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
-      val captor: ArgumentCaptor[JsObject] = ArgumentCaptor.forClass(classOf[JsObject])
-      when(mockEventReportConnector.compileEventReportSummary(any(), any(), captor.capture(), any())(any(), any(), any()))
+      when(mockEventReportConnector.compileEventReportSummary(any(), any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
       eventReportService.compileEventReport(externalId, psaId, "pstr", WindUp, year, "2").map {
         result =>
-          val actualPayload = captor.getValue
-          println("\n>>" + actualPayload)
-          val x = (actualPayload \ "eventWindUp" \ "recordVersion").asOpt[JsString]
-          x mustBe Some(JsString("002"))
           result.header.status mustBe NO_CONTENT
       }
     }

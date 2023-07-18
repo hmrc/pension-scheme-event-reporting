@@ -79,6 +79,8 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
     reset(mockEventReportConnector)
   }
 
+  ""
+
   "collatePayloadsAndUpdateCache" must {
     "interpolate event 11 payload where all event types except event 11 are in cache + event 10 is an empty payload" in {
       val event11Payload = generateUserAnswersAndPOSTBodyEvent11.sample.get._2
