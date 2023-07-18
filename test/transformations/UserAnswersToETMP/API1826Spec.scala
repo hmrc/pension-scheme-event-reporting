@@ -30,14 +30,6 @@ class API1826Spec extends AnyFreeSpec with Matchers
 
     val actualResultForNode = actualResult.map(x => (x \ "eventDetails" \ eventType).asOpt[JsObject])
     val expectedResultForNode = JsSuccess((expectedResult \ "eventDetails" \ eventType).asOpt[JsObject])
-
-    //    if (actualResultForNode != expectedResultForNode) {
-    //      println("\nChecking " + eventType)
-    //      println("\nExp = " + expectedResult)
-    //      println("\nAct = " + actualResult)
-    //    }
-
-
     actualResultForNode mustBe expectedResultForNode
   }
 
@@ -121,6 +113,7 @@ class API1826Spec extends AnyFreeSpec with Matchers
     }
   }
 
+  // TODO: Haven't had time to fix the test below which fails due to different versions being generated. This is a test problem not code issue
   //  "must transform all events when present" in {
   //    val ev10 = generateUserAnswersAndPOSTBodyEvent10.sample.get
   //    val ev11 = generateUserAnswersAndPOSTBodyEvent11.sample.get
