@@ -203,6 +203,8 @@ private object API1833ReadsUtilities extends Transformer {
     case "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme" => pathUAEmployerTangibleMoveableProperty
     case "Court Order Payment/Confiscation Order" => pathUAUnauthorisedPaymentRecipientName
     case "Other" => pathUAPaymentNatureDesc
+    // TODO: check that below resolves issue.
+    case _ => pathUAPaymentNatureEmployer
   }
 
   // TODO: refactor
