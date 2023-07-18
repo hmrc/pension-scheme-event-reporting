@@ -108,12 +108,16 @@ object API1834 {
   }
 
   private val event12Reads: Reads[JsObject] = {
-    (__ \ "eventDetails" \ "event12" \ "twoOrMoreSchemesDate").readNullable[String].map {
-      case Some(date) =>
-        ((__ \ "event12" \ "hasSchemeChangedRules").json.put(JsBoolean(true)) and
-          (__ \ "event12" \ "dateOfChange" \ "dateOfChange").json.put(JsString(date))).reduce
-      case _ => Reads.pure(Json.obj())
-    }.flatMap(identity)
+    ((__ \ "eventDetails" \ "event12" \ "recordVersion").readNullable[String] and
+      (__ \ "eventDetails" \ "event12" \ "twoOrMoreSchemesDate").readNullable[String])(
+      (recordVersion, date) => (recordVersion, date) match {
+        case (Some(rv), Some(d)) =>
+          ((__ \ "event12" \ "hasSchemeChangedRules").json.put(JsBoolean(true)) and
+            (__ \ "event12" \ "dateOfChange" \ "dateOfChange").json.put(JsString(d)) and
+            (__ \ "event12" \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))).reduce
+        case _ => Reads.pure(Json.obj())
+      }
+    ).flatMap(identity)
   }
 
   private val event13Reads: Reads[JsObject] = {
@@ -126,13 +130,15 @@ object API1834 {
     }
 
     val event13Node = (
+      (__ \ "recordVersion").readNullable[String] and
       (__ \ "dateOfChange").readNullable[String] and
         (__ \ "schemeStructure").readNullable[String]
       )(
-      (date, structure) => {
-        (date, structure) match {
-          case (Some(d), Some(s)) =>
+      (recordVersion, date, structure) => {
+        (recordVersion, date, structure) match {
+          case (Some(rv), Some(d), Some(s)) =>
             (
+              (__ \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt)) and
               (__ \ "schemeStructure").json.put(JsString(mapStructure(s))) and
                 (__ \ "changeDate").json.put(JsString(d))
               ).reduce

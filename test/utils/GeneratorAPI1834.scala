@@ -148,7 +148,8 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
           "hasSchemeChangedRules" -> true,
           "dateOfChange" -> Json.obj {
             "dateOfChange" -> date
-          }
+          },
+          "recordVersion" -> 1
         )
       )
       Tuple2(payload, expected)
@@ -186,7 +187,8 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
       val expected = Json.obj(
         "event13" -> Json.obj(
           "schemeStructure" -> mapStructure(schemeStructure),
-          "changeDate" -> date
+          "changeDate" -> date,
+          "recordVersion" -> 1
         )
       )
       Tuple2(payload, expected)
