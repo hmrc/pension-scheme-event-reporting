@@ -112,7 +112,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     "return 204 No Content when valid data return from repository - event 1" in {
       when(mockCompilePayloadService.addRecordVersionToUserAnswersJson(any(), any(), any()))
         .thenReturn(responseJsonEvent1WithRecordVersion)
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId),any(), eqTo(Some(EventDataIdentifier(Event1, 2020, 1, externalId))))(any()))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), any(), eqTo(Some(EventDataIdentifier(Event1, 2020, 1, externalId))))(any()))
         .thenReturn(Future.successful(Some(responseJsonEvent1)))
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), any(), eqTo(None))(any()))
         .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
@@ -173,10 +173,11 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
 
     "return 204 No Content when valid data return from repository - event wind up" in {
-
+      when(mockCompilePayloadService.addRecordVersionToUserAnswersJson(any(), any(), any()))
+        .thenReturn(uaJsonEventWindUpWithRecordVersion)
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(WindUp, 2020, 2, externalId))))(any()))
         .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr+"_original_cache"), eqTo(Some(EventDataIdentifier(WindUp, 2020, 2, externalId))))(any()))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr + "_original_cache"), eqTo(Some(EventDataIdentifier(WindUp, 2020, 2, externalId))))(any()))
         .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(None))(any()))
         .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
@@ -190,9 +191,11 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
 
     "return 400 when validation errors response" in {
+      when(mockCompilePayloadService.addRecordVersionToUserAnswersJson(any(), any(), any()))
+        .thenReturn(uaJsonEventWindUpWithRecordVersion)
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(WindUp, 2020, 1, externalId))))(any()))
         .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr+"_original_cache"), eqTo(Some(EventDataIdentifier(WindUp, 2020, 1, externalId))))(any()))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr + "_original_cache"), eqTo(Some(EventDataIdentifier(WindUp, 2020, 1, externalId))))(any()))
         .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(None))(any()))
         .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
@@ -209,7 +212,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
 
     "throw Upstream5XXResponse on Internal Server Error" in {
-
+      when(mockCompilePayloadService.addRecordVersionToUserAnswersJson(any(), any(), any()))
+        .thenReturn(uaJsonEventWindUpWithRecordVersion)
       when(mockEventReportCacheRepository.getUserAnswers(any(), any(), any())(any()))
         .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(None))(any()))
@@ -524,10 +528,10 @@ object EventReportServiceSpec {
   private val responseJsonEvent1: JsObject = Json.obj("event1" -> Json.obj("membersOrEmployers" -> JsArray()))
   private val responseJsonEvent1WithRecordVersion: JsObject = Json.obj("event1" -> Json.obj("membersOrEmployers" -> JsArray(), "recordVersion" -> 1))
   private val responseNoEventTypeJson: JsObject = Json.obj("taxYear" -> "2022")
-  private val uaJsonEventWindUp: JsObject =
-    Json.obj(
-      "schemeWindUpDate" -> "2020-06-01"
-    )
+
+  private val uaJsonEventWindUp: JsObject = Json.obj("eventWindUp" -> Json.obj("schemeWindUpDate" -> "2020-06-01"))
+  private val uaJsonEventWindUpWithRecordVersion: JsObject = Json.obj("eventWindUp" -> Json.obj("schemeWindUpDate" -> "2020-06-01", "recordVersion" -> 1))
+
   private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
   private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.4.json"
 
