@@ -47,6 +47,7 @@ object API1834 {
     (__ \ "eventDetails" \ "event18" \ "recordVersion").readNullable[String])(
       (chargeablePmt, recordVersion) => {
         (chargeablePmt, recordVersion) match {
+          case (_, None) => Reads[JsObject](_ => JsError("record version is missing"))
           case (Some("Yes"), Some(rv)) =>
             ((__ \ "event18" \ "event18Confirmation").json.put(JsBoolean(true)) and
               (__ \ "event18" \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))).reduce
@@ -63,6 +64,7 @@ object API1834 {
       )(
       (countryCode, dateOfChange, recordVersion) => {
         (countryCode, dateOfChange, recordVersion) match {
+          case (_, _, None) => Reads[JsObject](_ => JsError("record version is missing"))
           case (Some(code), Some(date), Some(rv)) => (
             (__ \ "dateChangeMade").json.put(JsString(date)) and
               (__ \ "CountryOrTerritory").json.put(JsString(code)) and
@@ -89,6 +91,7 @@ object API1834 {
       (__ \ "recordVersion").readNullable[String]
       )((optStartDate, optStopDate, recordVersion) => {
       (optStartDate, optStopDate, recordVersion) match {
+        case (_, _, None) => Reads[JsObject](_ => JsError("record version is missing"))
         case (Some(startDate), None, Some(rv)) => ((__ \ "becameDate" \ "date").json.put(JsString(startDate)) and
           (__ \ "whatChange").json.put(JsString("becameOccupationalScheme")) and
           (__ \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))
@@ -117,6 +120,7 @@ object API1834 {
       (__ \ "eventDetails" \ "eventWindUp" \ "dateOfWindUp").readNullable[String]) (
       (recordVersion, dateOfWindUp) => {
         (recordVersion, dateOfWindUp) match {
+          case (None, _) => Reads[JsObject](_ => JsError("record version is missing"))
           case (Some(rv), Some(data)) => ((__ \ "eventWindUp" \ "schemeWindUpDate").json.put(JsString(data)) and
             (__ \ "eventWindUp" \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))).reduce
           case _ => Reads.pure(Json.obj())
@@ -129,6 +133,7 @@ object API1834 {
     ((__ \ "eventDetails" \ "event12" \ "recordVersion").readNullable[String] and
       (__ \ "eventDetails" \ "event12" \ "twoOrMoreSchemesDate").readNullable[String])(
       (recordVersion, date) => (recordVersion, date) match {
+        case (None, _) => Reads[JsObject](_ => JsError("record version is missing"))
         case (Some(rv), Some(d)) =>
           ((__ \ "event12" \ "hasSchemeChangedRules").json.put(JsBoolean(true)) and
             (__ \ "event12" \ "dateOfChange" \ "dateOfChange").json.put(JsString(d)) and
@@ -154,6 +159,7 @@ object API1834 {
       )(
       (recordVersion, date, structure) => {
         (recordVersion, date, structure) match {
+          case (None, _, _) => Reads[JsObject](_ => JsError("record version is missing"))
           case (Some(rv), Some(d), Some(s)) =>
             (
               (__ \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt)) and
@@ -180,6 +186,7 @@ object API1834 {
       (__ \ "eventDetails" \ "event14" \ "recordVersion").readNullable[String])(
       (schemeMembers, recordVersion) => {
         (schemeMembers, recordVersion) match {
+          case (_, None) => Reads[JsObject](_ => JsError("record version is missing"))
           case (Some(data), Some(rv)) =>
             ((__ \ "event14" \ "schemeMembers").json.put(JsString(data)) and
               (__ \ "event14" \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))).reduce
@@ -197,6 +204,7 @@ object API1834 {
       )(
       (recordVersion, unAuthDate, contractsDate) => {
         (recordVersion, unAuthDate, contractsDate) match {
+          case (None, _, _) => Reads[JsObject](_ => JsError("record version is missing"))
           case (Some(rv), Some(date1), Some(date2)) =>
             (
               (__ \ "event11" \ "hasSchemeChangedRulesUnAuthPayments").json.put(JsBoolean(true)) and
@@ -236,6 +244,7 @@ object API1834 {
         )(
         (recordVersion, startDate, contractsOrPolicies, ceaseDate) => {
           (recordVersion, startDate, contractsOrPolicies, ceaseDate) match {
+            case (None, _, _, _) => Reads[JsObject](_ => JsError("record version is missing"))
             case (Some(rv), Some(sd), Some(cop), None) =>
               (
                 (__ \ "becomeOrCeaseScheme").json.put(JsString("itBecameAnInvestmentRegulatedPensionScheme")) and
