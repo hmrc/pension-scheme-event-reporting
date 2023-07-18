@@ -43,10 +43,17 @@ object API1834 {
   }
 
   private val event18Reads = {
-    (__ \ "eventDetails" \ "event18" \ "chargeablePmt").readNullable[String].map {
-      case Some("Yes") => (__ \ "event18" \ "event18Confirmation").json.put(JsBoolean(true))
-      case _ => Reads.pure(Json.obj())
-    }.flatMap(identity)
+    ((__ \ "eventDetails" \ "event18" \ "chargeablePmt").readNullable[String] and
+    (__ \ "eventDetails" \ "event18" \ "recordVersion").readNullable[String])(
+      (chargeablePmt, recordVersion) => {
+        (chargeablePmt, recordVersion) match {
+          case (Some("Yes"), Some(rv)) =>
+            ((__ \ "event18" \ "event18Confirmation").json.put(JsBoolean(true)) and
+              (__ \ "event18" \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))).reduce
+          case _ => Reads.pure(Json.obj())
+        }
+      }
+    ).flatMap(identity)
   }
 
   private val event19Reads = {
@@ -158,10 +165,17 @@ object API1834 {
   }
 
   private val event14Reads = {
-    (__ \ "eventDetails" \ "event14" \ "schemeMembers").readNullable[String].map {
-      case Some(data) => (__ \ "event14" \ "schemeMembers").json.put(JsString(data))
-      case _ => Reads.pure(Json.obj())
-    }.flatMap(identity)
+    ((__ \ "eventDetails" \ "event14" \ "schemeMembers").readNullable[String] and
+      (__ \ "eventDetails" \ "event14" \ "recordVersion").readNullable[String])(
+      (schemeMembers, recordVersion) => {
+        (schemeMembers, recordVersion) match {
+          case (Some(data), Some(rv)) =>
+            ((__ \ "event14" \ "schemeMembers").json.put(JsString(data)) and
+              (__ \ "event14" \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))).reduce
+          case _ => Reads.pure(Json.obj())
+        }
+      }
+    ).flatMap(identity)
   }
 
   private val event11Reads: Reads[JsObject] = {

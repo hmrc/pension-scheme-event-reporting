@@ -218,7 +218,8 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
 
       val expected = Json.obj(
         "event14" -> Json.obj(
-          "schemeMembers" -> members
+          "schemeMembers" -> members,
+          "recordVersion" -> 1
         )
       )
       Tuple2(payload, expected)
@@ -238,7 +239,8 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
 
       val expected = Json.obj(
         "event18" -> Json.obj(
-          "event18Confirmation" -> true
+          "event18Confirmation" -> true,
+          "recordVersion" -> 1
         )
       )
       Tuple2(payload, expected)
