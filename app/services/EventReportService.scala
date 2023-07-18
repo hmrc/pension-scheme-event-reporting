@@ -243,9 +243,11 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           (newUserAnswers, oldUserAnswers) match {
             case (Some(newUserAnswers), oldUserAnswers) =>
               val header = Json.obj(
-                "taxYear" -> year.toString,
-                "recordVersion" -> version.toInt
+                "taxYear" -> year.toString
               )
+
+              // TODO: HEre we need to add the recordVErsion into the newUSerAnswers json but below the node for the eventType without overwriting whatever else is in this node
+              val nnn = newUserAnswers
 
               val data = memberChangeInfoTransformation(oldUserAnswers, newUserAnswers, eventType, pstr, version.toInt)
 
