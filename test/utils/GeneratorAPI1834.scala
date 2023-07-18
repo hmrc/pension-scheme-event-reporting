@@ -83,12 +83,15 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
       val conditionalJson = if (hasBecome) Json.obj("contractsOrPolicies" -> boolean) else Json.obj()
 
       val expected = Json.obj(
-        "event10" -> (Json.obj(
+        "event10" -> (
+          Json.obj(
           "becomeOrCeaseScheme" -> whatChangedUA,
           "schemeChangeDate" -> Json.obj(
             "schemeChangeDate" -> date
-          )
-        ) ++ conditionalJson)
+          ),
+            "recordVersion" -> 1
+        ) ++ conditionalJson
+        )
       )
 
       Tuple2(payload, expected)
@@ -119,7 +122,8 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
           "hasSchemeChangedRulesInvestmentsInAssets" -> true,
           "investmentsInAssetsRuleChangeDate" -> Json.obj(
             "date" -> date2
-          )
+          ),
+          "recordVersion" -> 1
         )
       )
       Tuple2(payload, expected)

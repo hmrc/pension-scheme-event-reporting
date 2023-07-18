@@ -117,7 +117,8 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
                 "hasSchemeChangedRulesInvestmentsInAssets" -> investmentsInAssets,
                 "investmentsInAssetsRuleChangeDate" -> Json.obj(
                   "date" -> s"$taxYear-08-30"
-                )
+                ),
+                "recordVersion" -> version
               )
             case (false, true) =>
               Json.obj(
@@ -125,7 +126,8 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
                 "hasSchemeChangedRulesInvestmentsInAssets" -> investmentsInAssets,
                 "investmentsInAssetsRuleChangeDate" -> Json.obj(
                   "date" -> s"$taxYear-08-30"
-                )
+                ),
+                "recordVersion" -> version
               )
             case (true, false) =>
               Json.obj(
@@ -133,7 +135,8 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
                 "unAuthPaymentsRuleChangeDate" -> Json.obj(
                   "date" -> s"$taxYear-08-06"
                 ),
-                "hasSchemeChangedRulesInvestmentsInAssets" -> investmentsInAssets
+                "hasSchemeChangedRulesInvestmentsInAssets" -> investmentsInAssets,
+                "recordVersion" -> version
               )
             case _ =>
               Json.obj()

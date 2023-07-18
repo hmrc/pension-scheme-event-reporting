@@ -160,34 +160,36 @@ object API1834 {
 
   private val event11Reads: Reads[JsObject] = {
     (
-      (__ \ "eventDetails" \ "event11" \ "unauthorisedPmtsDate").readNullable[String] and
+      (__ \ "eventDetails" \ "event11" \ "recordVersion").readNullable[String] and
+        (__ \ "eventDetails" \ "event11" \ "unauthorisedPmtsDate").readNullable[String] and
         (__ \ "eventDetails" \ "event11" \ "contractsOrPoliciesDate").readNullable[String]
       )(
-      (unAuthDate, contractsDate) => {
-        (unAuthDate, contractsDate) match {
-          case (Some(date1), Some(date2)) =>
+      (recordVersion, unAuthDate, contractsDate) => {
+        (recordVersion, unAuthDate, contractsDate) match {
+          case (Some(rv), Some(date1), Some(date2)) =>
             (
               (__ \ "event11" \ "hasSchemeChangedRulesUnAuthPayments").json.put(JsBoolean(true)) and
                 (__ \ "event11" \ "unAuthPaymentsRuleChangeDate" \ "date").json.put(JsString(date1)) and
                 (__ \ "event11" \ "hasSchemeChangedRulesInvestmentsInAssets").json.put(JsBoolean(true)) and
-                (__ \ "event11" \ "investmentsInAssetsRuleChangeDate" \ "date").json.put(JsString(date2))
+                (__ \ "event11" \ "investmentsInAssetsRuleChangeDate" \ "date").json.put(JsString(date2)) and
+                (__ \ "event11" \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))
               ).reduce
-          case (Some(date1), _) =>
+          case (Some(rv), Some(date1), _) =>
             (
               (__ \ "event11" \ "hasSchemeChangedRulesUnAuthPayments").json.put(JsBoolean(true)) and
                 (__ \ "event11" \ "unAuthPaymentsRuleChangeDate").json.put(JsString(date1)) and
-                (__ \ "event11" \ "hasSchemeChangedRulesInvestmentsInAssets").json.put(JsBoolean(false))
+                (__ \ "event11" \ "hasSchemeChangedRulesInvestmentsInAssets").json.put(JsBoolean(false)) and
+                (__ \ "event11" \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))
               ).reduce
-          case (_, Some(date2)) =>
+          case (Some(rv), _, Some(date2)) =>
             (
               (__ \ "event11" \ "hasSchemeChangedRulesUnAuthPayments").json.put(JsBoolean(false)) and
                 (__ \ "event11" \ "hasSchemeChangedRulesInvestmentsInAssets").json.put(JsBoolean(true)) and
-                (__ \ "event11" \ "investmentsInAssetsRuleChangeDate").json.put(JsString(date2))
+                (__ \ "event11" \ "investmentsInAssetsRuleChangeDate").json.put(JsString(date2)) and
+                (__ \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))
               ).reduce
           case _ => Reads.pure(Json.obj())
-
         }
-
       }
     ) flatMap identity
   }
@@ -196,24 +198,27 @@ object API1834 {
   private val event10Reads: Reads[JsObject] = {
     val event10ItemReads: Reads[JsObject] = {
       (
-        (__ \ "invRegScheme" \ "startDateDetails" \ "startDateOfInvReg").readNullable[String] and
+        (__ \ "recordVersion").readNullable[String] and
+          (__ \ "invRegScheme" \ "startDateDetails" \ "startDateOfInvReg").readNullable[String] and
           (__ \ "invRegScheme" \ "startDateDetails" \ "contractsOrPolicies").readNullable[String] and
           (__ \ "invRegScheme" \ "ceaseDateDetails" \ "ceaseDateOfInvReg").readNullable[String]
         )(
-        (startDate, contractsOrPolicies, ceaseDate) => {
-          (startDate, contractsOrPolicies, ceaseDate) match {
-            case (Some(sd), Some(cop), None) =>
+        (recordVersion, startDate, contractsOrPolicies, ceaseDate) => {
+          (recordVersion, startDate, contractsOrPolicies, ceaseDate) match {
+            case (Some(rv), Some(sd), Some(cop), None) =>
               (
                 (__ \ "becomeOrCeaseScheme").json.put(JsString("itBecameAnInvestmentRegulatedPensionScheme")) and
                   (__ \ "schemeChangeDate" \ "schemeChangeDate").json.put(JsString(sd)) and
-                  (__ \ "contractsOrPolicies").json.put(yesNoTransform(cop))
+                  (__ \ "contractsOrPolicies").json.put(yesNoTransform(cop)) and
+                  (__ \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))
                 ).reduce
-            case (None, None, Some(cd)) =>
+            case (Some(rv), None, None, Some(cd)) =>
               (
                 (__ \ "becomeOrCeaseScheme").json.put(JsString("itHasCeasedToBeAnInvestmentRegulatedPensionScheme")) and
-                  (__ \ "schemeChangeDate" \ "schemeChangeDate").json.put(JsString(cd))
+                  (__ \ "schemeChangeDate" \ "schemeChangeDate").json.put(JsString(cd)) and
+                  (__ \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))
                 ).reduce
-            case (a, b, c) => Reads.failed[JsObject](s"Invalid $a $b $c")
+            case (_, a, b, c) => Reads.failed[JsObject](s"Invalid $a $b $c")
           }
         }
       ).flatMap(identity)
