@@ -20,7 +20,7 @@ import connectors.EventReportConnector
 import models.enumeration.EventType
 import models.enumeration.EventType.{Event1, Event20A, Event22, Event3, WindUp}
 import models.{EROverview, EROverviewVersion, ERVersion, EventDataIdentifier}
-import org.mockito.ArgumentMatchers
+import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import org.scalacheck.Gen
@@ -163,20 +163,27 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       }
     }
 
+
+    // TODO: 8602 We need to check in this test that the recordVersion is added to the payload sent to the API
     "return 204 No Content when valid data return from repository - event 1" in {
 
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(WindUp, 2020, 1, externalId))))(any()))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(WindUp, 2020, 2, externalId))))(any()))
         .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr+"_original_cache"), eqTo(Some(EventDataIdentifier(WindUp, 2020, 1, externalId))))(any()))
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr+"_original_cache"), eqTo(Some(EventDataIdentifier(WindUp, 2020, 2, externalId))))(any()))
         .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(None))(any()))
         .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
-
-      when(mockEventReportConnector.compileEventReportSummary(any(), any(), any(), any())(any(), any(), any()))
+      val captor: ArgumentCaptor[JsObject] = ArgumentCaptor.forClass(classOf[JsObject])
+      when(mockEventReportConnector.compileEventReportSummary(any(), any(), captor.capture(), any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
-      eventReportService.compileEventReport(externalId, psaId, "pstr", WindUp, year, reportVersion).map {
-        result => result.header.status mustBe NO_CONTENT
+      eventReportService.compileEventReport(externalId, psaId, "pstr", WindUp, year, "2").map {
+        result =>
+          val actualPayload = captor.getValue
+          println("\n>>" + actualPayload)
+          val x = (actualPayload \ "eventWindUp" \ "recordVersion").asOpt[JsString]
+          x mustBe Some(JsString("002"))
+          result.header.status mustBe NO_CONTENT
       }
     }
 

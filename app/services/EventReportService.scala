@@ -247,7 +247,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               )
 
               // TODO: HEre we need to add the recordVErsion into the newUSerAnswers json but below the node for the eventType without overwriting whatever else is in this node
-              val nnn = newUserAnswers
+              val nnn = newUserAnswers \ ""
 
               val data = memberChangeInfoTransformation(oldUserAnswers, newUserAnswers, eventType, pstr, version.toInt)
 
