@@ -244,7 +244,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
             case (Some(newUserAnswers), oldUserAnswers) =>
               val header = Json.obj(
                 "taxYear" -> year.toString,
-                "recordVersion" -> ("00" + version).takeRight(3)
+                "recordVersion" -> version.toInt
               )
 
               val data = memberChangeInfoTransformation(oldUserAnswers, newUserAnswers, eventType, pstr, version.toInt)
