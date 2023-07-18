@@ -246,8 +246,11 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                 "taxYear" -> year.toString
               )
               
-              // TODO: implementation might need to be different for EventType = WindUp as JSON nesting is different.
-              val recordVersionJson: JsObject = Json.obj(s"event${eventType.toString}" -> Json.obj("recordVersion" -> version.toInt))
+              val recordVersionJson: JsObject = if (eventType == WindUp) {
+                Json.obj("recordVersion" -> version.toInt)
+              } else {
+                Json.obj(s"event${eventType.toString}" -> Json.obj("recordVersion" -> version.toInt))
+              }
 
               val data = memberChangeInfoTransformation(oldUserAnswers, newUserAnswers.deepMerge(recordVersionJson), eventType, pstr, version.toInt)
 
