@@ -191,7 +191,7 @@ object API1826 extends Transformer {
   private lazy val event18Reads = {
     (
       (__ \ "event18").readNullable[JsObject] and
-        (__ \ "recordVersion").readNullable[JsNumber]
+        (__ \ "event18" \ "recordVersion").readNullable[JsNumber]
       )(
       (et, version) =>
         (et, version) match {
@@ -212,7 +212,7 @@ object API1826 extends Transformer {
     mapReadsToOptionArray(eventTypeNodeName = "event19") { uaBaseForEventType =>
       ((__ \ "countryCode").json.copyFrom((uaBaseForEventType \ "CountryOrTerritory").json.pick) and
         (__ \ "dateOfChange").json.copyFrom((uaBaseForEventType \ "dateChangeMade").json.pick) and
-        recordVersionReads("event1")
+        recordVersionReads("event19")
         ).reduce
     }
   }
@@ -236,7 +236,7 @@ object API1826 extends Transformer {
   private lazy val schemeWindUpReads = {
     (
       (__ \ "eventWindUp").readNullable[JsObject] and
-        (__ \ "recordVersion").readNullable[JsNumber]
+        (__ \ "eventWindUp" \ "recordVersion").readNullable[JsNumber]
       )(
       (et, version) =>
         (et, version) match {
