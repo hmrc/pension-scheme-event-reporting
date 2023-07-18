@@ -90,6 +90,7 @@ class CompilePayloadService @Inject()(
   def collatePayloadsAndUpdateCache(pstr: String, year: Int, version: String,
                                     apiType: ApiType, eventTypeForEventBeingCompiled: EventType,
                                     jsonForEventBeingCompiled: JsObject)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[JsObject] = {
+
     val collatedPayloads = apiType match {
       case ApiType.Api1826 =>
         lazy val futureGetEventResponse: Future[Option[JsObject]] = eventReportConnector.getEvent(pstr, year.toString + "-04-06", version, None)

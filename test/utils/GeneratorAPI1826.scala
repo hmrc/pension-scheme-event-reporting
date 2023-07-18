@@ -27,6 +27,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
 
   def generateUserAnswersAndPOSTBodyEvent10: Gen[(JsObject, JsObject)] = {
     for {
+      version <- Gen.oneOf(1,2)
       becomeOrCeaseScheme <- Gen.oneOf(Seq("itBecameAnInvestmentRegulatedPensionScheme", "itHasCeasedToBeAnInvestmentRegulatedPensionScheme"))
       taxYear <- taxYearGenerator
       contractsOrPolicies <- arbitrary[Boolean]
@@ -72,7 +73,8 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
 
       val ua = Json.obj(
         "event10" -> event10DetailsUA(becomeOrCeaseScheme),
-        "taxYear" -> taxYear
+        "taxYear" -> taxYear,
+        "recordVersion" -> version
       )
       val expected = Json.obj(
         "eventReportDetails" -> Json.obj(
@@ -82,7 +84,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
         "eventDetails" -> Json.obj(
           "event10" -> Json.arr(
             Json.obj(
-              "recordVersion" -> "001",
+              "recordVersion" -> ("00" + version.toString),
               "invRegScheme" -> event10DetailsExpected(becomeOrCeaseScheme)
             )
           )
@@ -95,6 +97,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
 
   def generateUserAnswersAndPOSTBodyEvent11: Gen[(JsObject, JsObject)] = {
     for {
+      version <- Gen.oneOf(1,2)
       taxYear <- taxYearGenerator
       whichTest <- arbitrary[Boolean]
     } yield {
@@ -142,18 +145,18 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
           (unAuthPayments, investmentsInAssets) match {
             case (true, true) =>
               Json.obj(
-                "recordVersion" -> "001",
+                "recordVersion" -> ("00" + version.toString),
                 "unauthorisedPmtsDate" -> s"$taxYear-08-06",
                 "contractsOrPoliciesDate" -> s"$taxYear-08-30"
               )
             case (false, true) =>
               Json.obj(
-                "recordVersion" -> "001",
+                "recordVersion" -> ("00" + version.toString),
                 "contractsOrPoliciesDate" -> s"$taxYear-08-30"
               )
             case (true, false) =>
               Json.obj(
-                "recordVersion" -> "001",
+                "recordVersion" -> ("00" + version.toString),
                 "unauthorisedPmtsDate" -> s"$taxYear-08-06"
               )
             case _ =>
@@ -163,7 +166,8 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
 
         val ua = Json.obj(
           "event11" -> event11DetailsUA(hasSchemeChangedRulesUnAuthPayments, hasSchemeChangedRulesInvestmentsInAssets),
-          "taxYear" -> taxYear
+          "taxYear" -> taxYear,
+          "recordVersion" -> version
         )
         val expected = Json.obj(
           "eventReportDetails" -> Json.obj(
@@ -180,6 +184,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
 
   def generateUserAnswersAndPOSTBodyEvent12: Gen[(JsObject, JsObject)] = {
     for {
+      version <- Gen.oneOf(1, 2)
       taxYear <- taxYearGenerator
     } yield {
       val ua = Json.obj(
@@ -189,7 +194,8 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
             "dateOfChange" -> s"${taxYear}-04-06"
           )
         ),
-        "taxYear" -> taxYear
+        "taxYear" -> taxYear,
+        "recordVersion" -> version
       )
       val expected = Json.obj(
         "eventReportDetails" -> Json.obj(
@@ -198,7 +204,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
         ),
         "eventDetails" -> Json.obj(
           "event12" -> Json.obj(
-            "recordVersion" -> "001",
+            "recordVersion" -> ("00" + version.toString),
             "twoOrMoreSchemesDate" -> s"${taxYear}-04-06"
           )
         )
@@ -217,6 +223,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
 
   def generateUserAnswersAndPOSTBodyEvent13: Gen[(JsObject, JsObject)] = {
     for {
+      version <- Gen.oneOf(1, 2)
       taxYear <- taxYearGenerator
       schemeStructureUA <- Gen.oneOf(schemeStructureETMPEvent13.keys.toSeq)
       schemeStructureDescription <- Gen.alphaStr.suchThat(_.nonEmpty)
@@ -248,18 +255,18 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
       def event13DetailsExpected: JsObject = {
         (schemeStructureUA, isSchemeStructureDescPresent) match {
           case ("other", true) => Json.obj(
-            "recordVersion" -> "001",
+            "recordVersion" -> ("00" + version.toString),
             "schemeStructure" -> schemeStructureETMPEvent13(schemeStructureUA),
             "dateOfChange" -> s"$taxYear-04-06",
             "schemeStructureOther" -> schemeStructureDescription
           )
           case ("other", false) => Json.obj(
-            "recordVersion" -> "001",
+            "recordVersion" -> ("00" + version.toString),
             "schemeStructure" -> schemeStructureETMPEvent13(schemeStructureUA),
             "dateOfChange" -> s"$taxYear-04-06"
           )
           case _ => Json.obj(
-            "recordVersion" -> "001",
+            "recordVersion" -> ("00" + version.toString),
             "schemeStructure" -> schemeStructureETMPEvent13(schemeStructureUA),
             "dateOfChange" -> s"$taxYear-04-06"
           )
@@ -268,7 +275,8 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
 
       val ua = Json.obj(
         "event13" -> event13DetailsUA,
-        "taxYear" -> taxYear
+        "taxYear" -> taxYear,
+        "recordVersion" -> version
       )
       val expected = Json.obj(
         "eventReportDetails" -> Json.obj(
@@ -287,6 +295,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
 
   def generateUserAnswersAndPOSTBodyEvent14: Gen[(JsObject, JsObject)] = {
     for {
+      version <- Gen.oneOf(1, 2)
       taxYear <- taxYearGenerator
       schemeMembers <- Gen.oneOf(Seq("0", "1", "2 to 11", "12 to 50", "51 to 10,000", "More than 10,000"))
     } yield {
@@ -294,7 +303,8 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
         "event14" -> Json.obj(
           "schemeMembers" -> schemeMembers
         ),
-        "taxYear" -> taxYear
+        "taxYear" -> taxYear,
+        "recordVersion" -> version
       )
       val expected = Json.obj(
         "eventReportDetails" -> Json.obj(
@@ -303,7 +313,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
         ),
         "eventDetails" -> Json.obj(
           "event14" -> Json.obj(
-            "recordVersion" -> "001",
+            "recordVersion" -> ("00" + version.toString),
             "schemeMembers" -> schemeMembers
           )
         )
@@ -314,6 +324,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
 
   def generateUserAnswersAndPOSTBodyWindUp: Gen[(JsObject, JsObject)] = {
     for {
+      version <- Gen.oneOf(1, 2)
       schemeWindUpDate <- dateGenerator
       taxYear <- taxYearGenerator
     } yield {
@@ -322,7 +333,8 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
         "eventWindUp" -> Json.obj(
           "schemeWindUpDate" -> schemeWindUpDate
         ),
-        "taxYear" -> taxYear
+        "taxYear" -> taxYear,
+        "recordVersion" -> version
       )
       val fullExpectedResult = Json.obj(
         "eventReportDetails" -> Json.obj(
@@ -331,7 +343,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
         ),
         "eventDetails" -> Json.obj(
           "eventWindUp" -> Json.obj(
-            "recordVersion" -> "001",
+            "recordVersion" -> ("00" + version.toString),
             "dateOfWindUp" -> schemeWindUpDate
           )
         )
@@ -342,6 +354,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
 
   def generateUserAnswersAndPOSTBodyEvent18: Gen[(JsObject, JsObject)] = {
     for {
+      version <- Gen.oneOf(1, 2)
       taxYear <- taxYearGenerator
     } yield {
       val endTaxYear = (taxYear.toInt + 1).toString
@@ -349,7 +362,8 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
         "event18" -> Json.obj(
           "event18Confirmation" -> true,
         ),
-        "taxYear" -> taxYear
+        "taxYear" -> taxYear,
+        "recordVersion" -> version
       )
 
       val fullExpectedResult = Json.obj(
@@ -359,7 +373,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
         ),
         "eventDetails" -> Json.obj(
           "event18" -> Json.obj(
-            "recordVersion" -> "001",
+            "recordVersion" -> ("00" + version.toString),
             "chargeablePmt" -> "Yes"
           )
         )
@@ -370,6 +384,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
 
   def generateUserAnswersAndPOSTBodyEvent19: Gen[(JsObject, JsObject)] = {
     for {
+      version <- Gen.oneOf(1, 2)
       taxYear <- taxYearGenerator
       countryOrTerritory <- Gen.listOfN(2, nonEmptyString).map(_.mkString)
     } yield {
@@ -379,7 +394,8 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
           "CountryOrTerritory" -> countryOrTerritory,
           "dateChangeMade" -> s"$taxYear-12-21"
         ),
-        "taxYear" -> taxYear
+        "taxYear" -> taxYear,
+        "recordVersion" -> version
       )
 
       val fullExpectedResult = Json.obj(
@@ -390,7 +406,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
         "eventDetails" -> Json.obj(
           "event19" -> Json.arr(
             Json.obj(
-              "recordVersion" -> "001",
+              "recordVersion" -> ("00" + version.toString),
               "countryCode" -> countryOrTerritory,
               "dateOfChange" -> s"$taxYear-12-21"
             )
@@ -403,6 +419,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
   
   def generateUserAnswersAndPOSTBodyEvent20: Gen[(JsObject, JsObject)] = {
     for {
+      version <- Gen.oneOf(1, 2)
       whatChange <- Gen.oneOf(Seq("becameOccupationalScheme", "ceasedOccupationalScheme"))
       taxYear <- taxYearGenerator
     } yield {
@@ -441,7 +458,8 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
 
       val ua = Json.obj(
         "event20" -> event20DetailsUA(whatChange),
-        "taxYear" -> taxYear
+        "taxYear" -> taxYear,
+        "recordVersion" -> version
       )
       val expected = Json.obj(
         "eventReportDetails" -> Json.obj(
@@ -451,7 +469,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
         "eventDetails" -> Json.obj(
           "event20" -> Json.arr(
             Json.obj(
-              "recordVersion" -> "001",
+              "recordVersion" -> ("00" + version.toString),
               "occSchemeDetails" -> event20DetailsExpected(whatChange)
             )
           )
