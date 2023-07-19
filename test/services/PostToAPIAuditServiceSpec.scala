@@ -260,7 +260,7 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
         reportVersion
       ).details mustBe Json.obj(
         "pspOrPsaId" -> psaId,
-        "pstr" -> "pstr",
+        "PensionSchemeTaxReference" -> "pstr",
         "status" -> 200,
         "payload" -> requestData,
         "response" -> responseData,
@@ -280,7 +280,7 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
         reportVersion
       ).details mustBe Json.obj(
         "pspOrPsaId" -> psaId,
-        "pstr" -> "pstr",
+        "PensionSchemeTaxReference" -> "pstr",
         "payload" -> requestData,
         "reportVersion" -> reportVersion
       )

@@ -27,6 +27,7 @@ class EmailAuditEventSpec extends AnyFlatSpec with Matchers {
 
     val event = EmailAuditEvent(
       psaOrPspId = "A2500001",
+      pstr = "pstr-test",
       submittedBy = "PSA",
       emailAddress = "test@test.com",
       event = Sent,
@@ -40,7 +41,8 @@ class EmailAuditEventSpec extends AnyFlatSpec with Matchers {
       "emailAddress" -> "test@test.com",
       "event" -> Sent.toString,
       "submittedBy" -> "PSA",
-      "reportVersion" -> "1"
+      "reportVersion" -> "1",
+      "PensionSchemeTaxReference" -> "pstr-test"
     )
 
     event.auditType shouldBe "EventReportingEmailEvent"
@@ -51,6 +53,7 @@ class EmailAuditEventSpec extends AnyFlatSpec with Matchers {
 
     val event = EmailAuditEvent(
       psaOrPspId = "A2500001",
+      pstr = "pstr-test",
       submittedBy = "PSP",
       emailAddress = "test@test.com",
       event = Sent,
@@ -64,7 +67,8 @@ class EmailAuditEventSpec extends AnyFlatSpec with Matchers {
       "emailAddress" -> "test@test.com",
       "event" -> Sent.toString,
       "submittedBy" -> "PSP",
-      "reportVersion" -> "1"
+      "reportVersion" -> "1",
+      "PensionSchemeTaxReference" -> "pstr-test"
     )
 
     event.auditType shouldBe "EventReportingEmailEvent"

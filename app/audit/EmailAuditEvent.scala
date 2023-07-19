@@ -20,6 +20,7 @@ import models.Event
 import play.api.libs.json.{JsObject, Json}
 
 case class EmailAuditEvent(psaOrPspId: String,
+                           pstr: String,
                            submittedBy: String,
                            emailAddress: String,
                            event: Event,
@@ -40,7 +41,8 @@ case class EmailAuditEvent(psaOrPspId: String,
       "emailAddress" -> emailAddress,
       "event" -> event.toString,
       "submittedBy" -> submittedBy,
-      "reportVersion" -> reportVersion
+      "reportVersion" -> reportVersion,
+      "PensionSchemeTaxReference" -> pstr
     ) ++ psaOrPspIdJson
   }
 }

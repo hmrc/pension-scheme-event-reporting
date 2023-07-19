@@ -35,7 +35,7 @@ case class CompileEventAuditEvent(psaPspIdentifier: String,
 
     Json.obj(
       "pspOrPsaId" -> psaPspIdentifier,
-      "pstr" -> pstr,
+      "PensionSchemeTaxReference" -> pstr,
       "payload" -> payload,
       "reportVersion" -> reportVersion
     ) ++ optStatus ++ optResponse ++ optErrorMessage
