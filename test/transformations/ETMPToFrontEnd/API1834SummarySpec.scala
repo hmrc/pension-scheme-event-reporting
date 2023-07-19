@@ -64,7 +64,7 @@ class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar wit
 
       val generatedPayload = Json.obj(
         "event1ChargeDetails" -> Json.obj(
-          "event1" -> Json.obj("recordVersion" -> "002")
+          "recordVersion" -> "002"
         ),
         "memberEventsSummary" -> Json.obj(
           "event2" -> Json.obj("recordVersion" -> "001"),
@@ -76,19 +76,19 @@ class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar wit
         )
       )
 
-      val result = generatedPayload.validate(API1834Summary.rdsFor1834).asOpt
-      val expectedResult = Some(
+      val result = generatedPayload.validate(API1834Summary.rdsFor1834)
+      val expectedResult = JsSuccess(
         JsArray(
           Seq(
-            Json.obj("eventType" -> "1", "recordVersion" -> 2),
-            Json.obj("eventType" -> "2", "recordVersion" -> 1),
-            Json.obj("eventType" -> "3", "recordVersion" -> 2),
-            Json.obj("eventType" -> "10", "recordVersion" -> 2),
-            Json.obj("eventType" -> "11", "recordVersion" -> 1)
+            Json.obj("eventType" -> "event1", "recordVersion" -> 2),
+            Json.obj("eventType" -> "event2", "recordVersion" -> 1),
+            Json.obj("eventType" -> "event3", "recordVersion" -> 2),
+            Json.obj("eventType" -> "event10", "recordVersion" -> 2),
+            Json.obj("eventType" -> "event11", "recordVersion" -> 1)
           )
         )
       )
-      result.map(_.validate[Seq[String]].get) mustBe expectedResult
+      result mustBe expectedResult
     }
   }
 }
