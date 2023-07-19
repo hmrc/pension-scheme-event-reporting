@@ -57,8 +57,8 @@ object API1826 extends Transformer {
     case e => throw new RuntimeException("Quick fix" + e)
   }
 
-  private val recordVersionReads: Reads[JsObject] =
-    (__ \ "recordVersion").json.copyFrom((__ \ "recordVersion").json.pick.map(padLeftVersion))
+  private def recordVersionReads(eventTypeNodeName: String): Reads[JsObject] =
+    (__ \ "recordVersion").json.copyFrom((__ \ eventTypeNodeName \ "recordVersion").json.pick.map(padLeftVersion))
 
   private val invRegScheme = "invRegScheme"
 
@@ -70,11 +70,11 @@ object API1826 extends Transformer {
             .copyFrom((uaBaseForEventType \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
             (__ \ invRegScheme \ "startDateDetails" \ "contractsOrPolicies").json
               .copyFrom((uaBaseForEventType \ "contractsOrPolicies").json.pick.map(toYesNo)) and
-            recordVersionReads).reduce
+            recordVersionReads("event10")).reduce
         case _ =>
           ((__ \ invRegScheme \ "ceaseDateDetails" \ "ceaseDateOfInvReg").json
             .copyFrom((uaBaseForEventType \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
-            recordVersionReads).reduce
+            recordVersionReads("event10")).reduce
       }
     }
   }
@@ -83,7 +83,7 @@ object API1826 extends Transformer {
   private lazy val event11Reads = {
     (
       (__ \ "event11").readNullable[JsObject] and
-        (__ \ "recordVersion").readNullable[JsNumber]
+        (__ \ "event11" \ "recordVersion").readNullable[JsNumber]
       )(
       (et, version) =>
         (et, version) match {
@@ -120,7 +120,7 @@ object API1826 extends Transformer {
   private lazy val event12Reads = {
     (
       (__ \ "event12").readNullable[JsObject] and
-        (__ \ "recordVersion").readNullable[JsNumber]
+        (__ \ "event12" \ "recordVersion").readNullable[JsNumber]
       )(
       (et, version) =>
         (et, version) match {
@@ -155,12 +155,12 @@ object API1826 extends Transformer {
           (__ \ "schemeStructure").json.copyFrom((uaBaseForEventType \ "schemeStructure").json.pick.map(event13SchemeStructureTransformer)) and
             (__ \ "dateOfChange").json.copyFrom((uaBaseForEventType \ "changeDate").json.pick) and
             ((__ \ "schemeStructureOther").json.copyFrom((uaBaseForEventType \ "schemeStructureDescription").json.pick) orElse doNothing) and
-            recordVersionReads
+            recordVersionReads("event13")
           ).reduce
         case _ => (
           (__ \ "schemeStructure").json.copyFrom((uaBaseForEventType \ "schemeStructure").json.pick.map(event13SchemeStructureTransformer)) and
             (__ \ "dateOfChange").json.copyFrom((uaBaseForEventType \ "changeDate").json.pick) and
-            recordVersionReads
+            recordVersionReads("event13")
           ).reduce
       }
     }
@@ -170,7 +170,7 @@ object API1826 extends Transformer {
   private lazy val event14Reads = {
     (
       (__ \ "event14").readNullable[JsObject] and
-        (__ \ "recordVersion").readNullable[JsNumber]
+        (__ \ "event14" \ "recordVersion").readNullable[JsNumber]
       )(
       (et, version) =>
         (et, version) match {
@@ -191,7 +191,7 @@ object API1826 extends Transformer {
   private lazy val event18Reads = {
     (
       (__ \ "event18").readNullable[JsObject] and
-        (__ \ "recordVersion").readNullable[JsNumber]
+        (__ \ "event18" \ "recordVersion").readNullable[JsNumber]
       )(
       (et, version) =>
         (et, version) match {
@@ -212,7 +212,7 @@ object API1826 extends Transformer {
     mapReadsToOptionArray(eventTypeNodeName = "event19") { uaBaseForEventType =>
       ((__ \ "countryCode").json.copyFrom((uaBaseForEventType \ "CountryOrTerritory").json.pick) and
         (__ \ "dateOfChange").json.copyFrom((uaBaseForEventType \ "dateChangeMade").json.pick) and
-        recordVersionReads
+        recordVersionReads("event19")
         ).reduce
     }
   }
@@ -223,11 +223,11 @@ object API1826 extends Transformer {
         case "becameOccupationalScheme" =>
           ((__ \ "occSchemeDetails" \ "startDateOfOccScheme").json
             .copyFrom((uaBaseForEventType \ "becameDate" \ "date").json.pick) and
-            recordVersionReads).reduce
+            recordVersionReads("event20")).reduce
         case _ =>
           ((__ \ "occSchemeDetails" \ "stopDateOfOccScheme").json
             .copyFrom((uaBaseForEventType \ "ceasedDate" \ "date").json.pick) and
-            recordVersionReads).reduce
+            recordVersionReads("event20")).reduce
       }
     }
   }
@@ -236,7 +236,7 @@ object API1826 extends Transformer {
   private lazy val schemeWindUpReads = {
     (
       (__ \ "eventWindUp").readNullable[JsObject] and
-        (__ \ "recordVersion").readNullable[JsNumber]
+        (__ \ "eventWindUp" \ "recordVersion").readNullable[JsNumber]
       )(
       (et, version) =>
         (et, version) match {
