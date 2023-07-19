@@ -29,12 +29,18 @@ case class EmailAuditEvent(psaOrPspId: String,
   override def auditType: String = "EventReportingEmailEvent"
 
   override def details: JsObject = {
+
+    val psaOrPspIdJson = submittedBy match {
+      case "PSA" => Json.obj("PensionSchemeAdministratorId" -> psaOrPspId)
+      case _ => Json.obj("PensionSchemePractitionerId" -> psaOrPspId)
+    }
+
     Json.obj(
       fields = "email-initiation-request-id" -> requestId,
       "emailAddress" -> emailAddress,
       "event" -> event.toString,
       "submittedBy" -> submittedBy,
       "reportVersion" -> reportVersion
-    ) ++ Json.obj("psaId" -> psaOrPspId)
+    ) ++ psaOrPspIdJson
   }
 }
