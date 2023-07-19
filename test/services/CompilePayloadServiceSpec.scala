@@ -18,7 +18,7 @@ package services
 
 import connectors.EventReportConnector
 import models.GetDetailsCacheDataIdentifier
-import models.enumeration.EventType.{Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, WindUp}
+import models.enumeration.EventType.{Event1, Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, WindUp}
 import models.enumeration.{ApiType, EventType}
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
@@ -99,7 +99,70 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
       val sampleWithVersion = compilePayloadService.addRecordVersionToUserAnswersJson(Event10, version.toInt, exampleUA)
       (exampleUA \\ "recordVersion").toList mustEqual List.empty
       (sampleWithVersion \\ "recordVersion").toList mustEqual List(JsNumber(1))
+
+      val expectedUA =
+        Json.obj("event10" ->
+          Json.obj(
+            "recordVersion" -> version.toInt,
+            "schemeChangeDate" -> Json.obj("schemeChangeDate" -> "2024-01-31"),
+            "contractsOrPolicies" -> true,
+            "becomeOrCeaseScheme" -> "itBecameAnInvestmentRegulatedPensionScheme"
+          ))
+
+      sampleWithVersion mustBe expectedUA
+
       }
+
+    "add recordVersion key-value pair to UA object at correct depth when recordVersion already there" in {
+      val application: Application = new GuiceApplicationBuilder()
+        .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false).build()
+
+      def compilePayloadService: CompilePayloadService = application.injector.instanceOf[CompilePayloadService]
+
+      val exampleUA =
+        Json.obj("event10" ->
+          Json.obj(
+            "recordVersion" -> version.toInt,
+            "schemeChangeDate" -> Json.obj("schemeChangeDate" -> "2024-01-31"),
+            "contractsOrPolicies" -> true,
+            "becomeOrCeaseScheme" -> "itBecameAnInvestmentRegulatedPensionScheme"
+          ))
+
+      val sampleWithVersion = compilePayloadService.addRecordVersionToUserAnswersJson(Event10, 2, exampleUA)
+
+      val expectedUA =
+        Json.obj("event10" ->
+          Json.obj(
+            "recordVersion" -> 2,
+            "schemeChangeDate" -> Json.obj("schemeChangeDate" -> "2024-01-31"),
+            "contractsOrPolicies" -> true,
+            "becomeOrCeaseScheme" -> "itBecameAnInvestmentRegulatedPensionScheme"
+          ))
+
+      sampleWithVersion mustBe expectedUA
+
+    }
+
+    "do nothing when event type not api 1826" in {
+      val application: Application = new GuiceApplicationBuilder()
+        .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false).build()
+
+      def compilePayloadService: CompilePayloadService = application.injector.instanceOf[CompilePayloadService]
+
+      val exampleUA =
+        Json.obj("event10" ->
+          Json.obj(
+            "recordVersion" -> version.toInt,
+            "schemeChangeDate" -> Json.obj("schemeChangeDate" -> "2024-01-31"),
+            "contractsOrPolicies" -> true,
+            "becomeOrCeaseScheme" -> "itBecameAnInvestmentRegulatedPensionScheme"
+          ))
+
+      val sampleWithVersion = compilePayloadService.addRecordVersionToUserAnswersJson(Event1, 2, exampleUA)
+
+      sampleWithVersion mustBe exampleUA
+
+    }
   }
 
   "collatePayloadsAndUpdateCache" must {
