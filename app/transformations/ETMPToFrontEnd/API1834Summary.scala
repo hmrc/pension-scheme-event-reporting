@@ -63,11 +63,46 @@ object API1834Summary {
 
     val readsSeqInt = (
       (JsPath \ "event1ChargeDetails" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "memberEventsSummary" \ "event2" \ "recordVersion").readNullable[Int](readsIsEventTypePresent)
+        (JsPath \ "memberEventsSummary" \ "event2" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "memberEventsSummary" \ "event3" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "memberEventsSummary" \ "event4" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "memberEventsSummary" \ "event5" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "memberEventsSummary" \ "event6" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "memberEventsSummary" \ "event7" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "memberEventsSummary" \ "event8" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "memberEventsSummary" \ "event8A" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event10").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event11").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event13").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event14").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event18").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event19").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event20").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "memberEventsSummary" \ "event22" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "memberEventsSummary" \ "event23" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "eventWindUp" \ "recordVersion").readNullable[Int](readsIsEventTypePresent)
       )(
-      (event1, event2) => Seq(
+      (event1, event2, event3, event4, event5, event6, event7, event8, event8A, event10, event11, event12, event13, event14, event18, event19, event20, event22, event23, eventWindUp) => Seq(
         createRow(event1, "event1"),
-        createRow(event2, "event2")
+        createRow(event2, "event2"),
+        createRow(event3, "event3"),
+        createRow(event4, "event4"),
+        createRow(event5, "event5"),
+        createRow(event6, "event6"),
+        createRow(event7, "event7"),
+        createRow(event8, "event8"),
+        createRow(event8A, "event8A"),
+        createRow(event10, "event10"),
+        createRow(event11, "event11"),
+        createRow(event12, "event12"),
+        createRow(event13, "event13"),
+        createRow(event14, "event14"),
+        createRow(event18, "event18"),
+        createRow(event19, "event19"),
+        createRow(event20, "event20"),
+        createRow(event22, "event22"),
+        createRow(event23, "event23"),
+        createRow(eventWindUp, "eventWindUp")
       ).filter(_.fields.nonEmpty)
     )
 
