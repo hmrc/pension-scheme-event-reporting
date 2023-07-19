@@ -45,10 +45,11 @@ class EmailResponseController @Inject()(
                        requestId: String,
                        email: String,
                        encryptedPsaOrPspId: String,
+                       encryptedPstr: String,
                        reportVersion: String): Action[JsValue] = Action(parser.tolerantJson) {
     implicit request =>
-      decryptPsaOrPspIdAndEmail(encryptedPsaOrPspId, email) match {
-        case Right(Tuple2(psaOrPspId, emailAddress)) =>
+      decryptPsaOrPspIdAndEmail(encryptedPsaOrPspId, encryptedPstr, email) match {
+        case Right(Tuple3(psaOrPspId, pstr, emailAddress)) =>
           request.body.validate[EmailEvents].fold(
             _ => BadRequest("Bad request received for email call back event"),
             valid => {
@@ -56,7 +57,7 @@ class EmailResponseController @Inject()(
                 _.event == Opened
               ).foreach { event =>
                 logger.debug(s"Email Audit event is $event")
-                auditService.sendEvent(EmailAuditEvent(psaOrPspId, submittedBy, emailAddress, event.event, requestId, reportVersion))(request, implicitly)
+                auditService.sendEvent(EmailAuditEvent(psaOrPspId, pstr, submittedBy, emailAddress, event.event, requestId, reportVersion))(request, implicitly)
               }
               Ok
             }
@@ -66,8 +67,9 @@ class EmailResponseController @Inject()(
       }
   }
 
-  private def decryptPsaOrPspIdAndEmail(encryptedPsaOrPspId: String, email: String): Either[Result, (String, String)] = {
+  private def decryptPsaOrPspIdAndEmail(encryptedPsaOrPspId: String, encryptedPstr: String, email: String): Either[Result, (String, String, String)] = {
     val psaOrPspId = crypto.QueryParameterCrypto.decrypt(Crypted(encryptedPsaOrPspId)).value
+    val pstr = crypto.QueryParameterCrypto.decrypt(Crypted(encryptedPstr)).value
     val emailAddress = crypto.QueryParameterCrypto.decrypt(Crypted(email)).value
     val emailRegex: String = "^(?:[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*|\"" +
       "(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")" +
@@ -77,7 +79,7 @@ class EmailResponseController @Inject()(
 
     try {
       require(emailAddress.matches(emailRegex))
-      Right(Tuple2(psaOrPspId, emailAddress))
+      Right(Tuple3(psaOrPspId, pstr, emailAddress))
     } catch {
       case _: IllegalArgumentException => Left(Forbidden(s"Malformed email : $emailAddress"))
     }

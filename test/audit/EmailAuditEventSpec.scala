@@ -23,10 +23,11 @@ import play.api.libs.json.{JsObject, Json}
 
 class EmailAuditEventSpec extends AnyFlatSpec with Matchers {
 
-  "EmailAuditEvent" should "output the correct map of data" in {
+  "EmailAuditEvent" should "output the correct map of data for PSA" in {
 
     val event = EmailAuditEvent(
       psaOrPspId = "A2500001",
+      pstr = "pstr-test",
       submittedBy = "PSA",
       emailAddress = "test@test.com",
       event = Sent,
@@ -36,11 +37,38 @@ class EmailAuditEventSpec extends AnyFlatSpec with Matchers {
 
     val expected: JsObject = Json.obj(
       "email-initiation-request-id" -> "test-request-id",
-      "psaId" -> "A2500001",
+      "PensionSchemeAdministratorId" -> "A2500001",
       "emailAddress" -> "test@test.com",
       "event" -> Sent.toString,
       "submittedBy" -> "PSA",
-      "reportVersion" -> "1"
+      "reportVersion" -> "1",
+      "PensionSchemeTaxReference" -> "pstr-test"
+    )
+
+    event.auditType shouldBe "EventReportingEmailEvent"
+    event.details shouldBe expected
+  }
+
+  "EmailAuditEvent" should "output the correct map of data for PSP" in {
+
+    val event = EmailAuditEvent(
+      psaOrPspId = "A2500001",
+      pstr = "pstr-test",
+      submittedBy = "PSP",
+      emailAddress = "test@test.com",
+      event = Sent,
+      requestId = "test-request-id",
+      reportVersion = "1"
+    )
+
+    val expected: JsObject = Json.obj(
+      "email-initiation-request-id" -> "test-request-id",
+      "PensionSchemePractitionerId" -> "A2500001",
+      "emailAddress" -> "test@test.com",
+      "event" -> Sent.toString,
+      "submittedBy" -> "PSP",
+      "reportVersion" -> "1",
+      "PensionSchemeTaxReference" -> "pstr-test"
     )
 
     event.auditType shouldBe "EventReportingEmailEvent"
