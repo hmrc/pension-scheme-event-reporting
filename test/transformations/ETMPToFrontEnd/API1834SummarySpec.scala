@@ -27,54 +27,67 @@ class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar wit
   with GeneratorAPI1834Summary with GeneratorAPI1832 with ScalaCheckPropertyChecks {
 
   "Reads" - {
-//    "transform a valid payload correctly when read from sample file from API 1834" in {
-//      val json = readJsonFromFile("/api-1834-valid-example.json")
-//      val result = json.validate(API1834Summary.rdsFor1834).asOpt
-//
-//      val expectedResult = Some(
-//        Seq("1","2","3","4","5","6","7","8","8A","10","11","12","13","14","19","20","22","23","WindUp")
-//      )
-//
-//      result.map(_.validate[Seq[String]].get) mustBe expectedResult
-//    }
-//
-//    "transform a randomly generated API 1834 events valid payload correctly" in {
-//      forAll(generateGET1834ResponseAndUserAnswers) {
-//        case (json: JsObject, eventTypes: Seq[String]) =>
-//          val result = json.validate(API1834Summary.rdsFor1834).asOpt
-//          val expectedResult = Some(eventTypes)
-//          result.map(_.validate[Seq[String]].get) mustBe expectedResult
-//      }
-//    }
-//
-//    "transform a valid payload correctly when read from sample file from API 1831" in {
-//      val json = readJsonFromFile("/api-1831-valid-example.json")
-//      val result = json.validate(API1834Summary.rdsFor1831).asOpt
-//      val expectedResult = Some(Seq("20A"))
-//      result.map(_.validate[Seq[String]].get) mustBe expectedResult
-//    }
-//
-//    "transform a randomly generated API 1831 events valid payload correctly" in {
-//      val generatedPayload = Json.obj("er20aDetails" -> Json.obj("reportVersionNumber" -> "001"))
-//      val result = generatedPayload.validate(API1834Summary.rdsFor1831).asOpt
-//      val expectedResult = Some(Seq("20A"))
-//      result.map(_.validate[Seq[String]].get) mustBe expectedResult
-//    }
+    //    "transform a valid payload correctly when read from sample file from API 1834" in {
+    //      val json = readJsonFromFile("/api-1834-valid-example.json")
+    //      val result = json.validate(API1834Summary.rdsFor1834).asOpt
+    //
+    //      val expectedResult = Some(
+    //        Seq("1","2","3","4","5","6","7","8","8A","10","11","12","13","14","19","20","22","23","WindUp")
+    //      )
+    //
+    //      result.map(_.validate[Seq[String]].get) mustBe expectedResult
+    //    }
+    //
+    //    "transform a randomly generated API 1834 events valid payload correctly" in {
+    //      forAll(generateGET1834ResponseAndUserAnswers) {
+    //        case (json: JsObject, eventTypes: Seq[String]) =>
+    //          val result = json.validate(API1834Summary.rdsFor1834).asOpt
+    //          val expectedResult = Some(eventTypes)
+    //          result.map(_.validate[Seq[String]].get) mustBe expectedResult
+    //      }
+    //    }
+    //
+    //    "transform a valid payload correctly when read from sample file from API 1831" in {
+    //      val json = readJsonFromFile("/api-1831-valid-example.json")
+    //      val result = json.validate(API1834Summary.rdsFor1831).asOpt
+    //      val expectedResult = Some(Seq("20A"))
+    //      result.map(_.validate[Seq[String]].get) mustBe expectedResult
+    //    }
+    //
+    //    "transform a randomly generated API 1831 events valid payload correctly" in {
+    //      val generatedPayload = Json.obj("er20aDetails" -> Json.obj("reportVersionNumber" -> "001"))
+    //      val result = generatedPayload.validate(API1834Summary.rdsFor1831).asOpt
+    //      val expectedResult = Some(Seq("20A"))
+    //      result.map(_.validate[Seq[String]].get) mustBe expectedResult
+    //    }
     "transform a randomly generated API 1834 events valid payload correctly with different recordVersions" in {
-      val generatedPayload = Json.obj("eventDetails" -> Json.obj(
-        "event1" -> Json.obj("reportVersionNumber" -> "002"),
-        "event2" -> Json.obj("reportVersionNumber" -> "001"),
-        "event3" -> Json.obj("reportVersionNumber" -> "002"),
-        "event10" -> Json.obj("reportVersionNumber" -> "002"),
-      "event11" -> Json.obj("reportVersionNumber" -> "001")
-      ))
+
+      val generatedPayload = Json.obj(
+        "event1ChargeDetails" -> Json.obj(
+          "event1" -> Json.obj("recordVersion" -> "002")
+        ),
+        "memberEventsSummary" -> Json.obj(
+          "event2" -> Json.obj("recordVersion" -> "001"),
+          "event3" -> Json.obj("recordVersion" -> "002")
+        ),
+        "eventDetails" -> Json.obj(
+          "event10" -> Json.obj("recordVersion" -> "002"),
+          "event11" -> Json.obj("recordVersion" -> "001"),
+        )
+      )
+
       val result = generatedPayload.validate(API1834Summary.rdsFor1834).asOpt
-      val expectedResult = Some(JsArray.apply(Seq(
-        Json.obj("eventType" -> "1", "reportVersionNumber" -> 2),
-        Json.obj("eventType" -> "2", "reportVersionNumber" -> 1),
-        Json.obj("eventType" -> "3", "reportVersionNumber" -> 2),
-        Json.obj("eventType" -> "10", "reportVersionNumber" -> 2),
-        Json.obj("eventType" -> "11", "reportVersionNumber" -> 1))))
+      val expectedResult = Some(
+        JsArray(
+          Seq(
+            Json.obj("eventType" -> "1", "recordVersion" -> 2),
+            Json.obj("eventType" -> "2", "recordVersion" -> 1),
+            Json.obj("eventType" -> "3", "recordVersion" -> 2),
+            Json.obj("eventType" -> "10", "recordVersion" -> 2),
+            Json.obj("eventType" -> "11", "recordVersion" -> 1)
+          )
+        )
+      )
       result.map(_.validate[Seq[String]].get) mustBe expectedResult
     }
   }
