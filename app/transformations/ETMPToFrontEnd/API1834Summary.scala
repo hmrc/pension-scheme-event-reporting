@@ -26,16 +26,13 @@ object API1834Summary {
 
   private val fieldNameRecordVersion = "recordVersion"
 
-  private val readsIsEventTypePresentFromSeq: Reads[Boolean] = {
+  private val readsIsEventTypePresentFromSeq: Reads[Option[String]] = {
     Reads {
       case JsArray(eventDetails) =>
         JsSuccess(
-          eventDetails.exists {
+          eventDetails.foldLeft {
             item =>
-              item \ fieldNameRecordVersion match {
-                case JsDefined(JsString("001")) => true
-                case _ => false
-              }
+              (item \ fieldNameRecordVersion).validateOpt[String].getOrElse(None)
           }
         )
       case e =>
@@ -43,12 +40,12 @@ object API1834Summary {
     }
   }
 
-  private val readsIsEventTypePresent: Reads[Boolean] = {
+  private val readsIsEventTypePresent: Reads[Option[String]] = {
     Reads {
-      case JsString(_) =>
-        JsSuccess(true)
+      case JsString(v) =>
+        JsSuccess(Some(v))
       case _ =>
-        JsSuccess(false)
+        JsSuccess(None)
     }
   }
 
@@ -57,27 +54,27 @@ object API1834Summary {
    */
   implicit val rdsFor1834: Reads[JsArray] = {
 
-    val readsSeq:Seq[(Reads[Option[Boolean]], EventType)] = Seq(
-      (JsPath \ "event1ChargeDetails" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event1,
-      (JsPath \ "memberEventsSummary" \ "event2" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event2,
-        (JsPath \ "memberEventsSummary" \ "event3" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event3,
-        (JsPath \ "memberEventsSummary" \ "event4" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event4,
-        (JsPath \ "memberEventsSummary" \ "event5" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event5,
-        (JsPath \ "memberEventsSummary" \ "event6" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event6,
-        (JsPath \ "memberEventsSummary" \ "event7" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event7,
-        (JsPath \ "memberEventsSummary" \ "event8" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event8,
-        (JsPath \ "memberEventsSummary" \ "event8A" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event8A,
-      (JsPath \ "eventDetails" \ "event10").readNullable[Boolean](readsIsEventTypePresentFromSeq) -> Event10,
-        (JsPath \ "eventDetails" \ "event11" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event11,
-        (JsPath \ "eventDetails" \ "event12" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event12,
-        (JsPath \ "eventDetails" \ "event13").readNullable[Boolean](readsIsEventTypePresentFromSeq) -> Event13,
-        (JsPath \ "eventDetails" \ "event14" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event14,
-        (JsPath \ "eventDetails" \ "event18" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event18,
-        (JsPath \ "eventDetails" \ "event19").readNullable[Boolean](readsIsEventTypePresentFromSeq) -> Event19,
-        (JsPath \ "eventDetails" \ "event20").readNullable[Boolean](readsIsEventTypePresentFromSeq) -> Event20,
-        (JsPath \ "memberEventsSummary" \ "event22" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event22,
-        (JsPath \ "memberEventsSummary" \ "event23" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event23,
-        (JsPath \ "eventDetails" \ "eventWindUp" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> WindUp
+    val readsSeq:Seq[(Reads[Option[String]], EventType)] = Seq(
+      (JsPath \ "event1ChargeDetails" \ "recordVersion").readNullable[Option[String]](readsIsEventTypePresent) -> Event1,
+      (JsPath \ "memberEventsSummary" \ "event2" \ "recordVersion").readNullable[Option[String]](readsIsEventTypePresent) -> Event2,
+        (JsPath \ "memberEventsSummary" \ "event3" \ "recordVersion").readNullable[Option[String]](readsIsEventTypePresent) -> Event3,
+        (JsPath \ "memberEventsSummary" \ "event4" \ "recordVersion").readNullable[Option[String]](readsIsEventTypePresent) -> Event4,
+        (JsPath \ "memberEventsSummary" \ "event5" \ "recordVersion").readNullable[Option[String]](readsIsEventTypePresent) -> Event5,
+        (JsPath \ "memberEventsSummary" \ "event6" \ "recordVersion").readNullable[Option[String]](readsIsEventTypePresent) -> Event6,
+        (JsPath \ "memberEventsSummary" \ "event7" \ "recordVersion").readNullable[Option[String]](readsIsEventTypePresent) -> Event7,
+        (JsPath \ "memberEventsSummary" \ "event8" \ "recordVersion").readNullable[Option[String]](readsIsEventTypePresent) -> Event8,
+        (JsPath \ "memberEventsSummary" \ "event8A" \ "recordVersion").readNullable[Option[String]](readsIsEventTypePresent) -> Event8A,
+      (JsPath \ "eventDetails" \ "event10").readNullable[Option[String]](readsIsEventTypePresentFromSeq) -> Event10,
+        (JsPath \ "eventDetails" \ "event11" \ "recordVersion").readNullable[Option[String]](readsIsEventTypePresent) -> Event11,
+        (JsPath \ "eventDetails" \ "event12" \ "recordVersion").readNullable[Option[String]](readsIsEventTypePresent) -> Event12,
+        (JsPath \ "eventDetails" \ "event13").readNullable[Option[String]](readsIsEventTypePresentFromSeq) -> Event13,
+        (JsPath \ "eventDetails" \ "event14" \ "recordVersion").readNullable[Option[String]](readsIsEventTypePresent) -> Event14,
+        (JsPath \ "eventDetails" \ "event18" \ "recordVersion").readNullable[Option[String]](readsIsEventTypePresent) -> Event18,
+        (JsPath \ "eventDetails" \ "event19").readNullable[Option[String]](readsIsEventTypePresentFromSeq) -> Event19,
+        (JsPath \ "eventDetails" \ "event20").readNullable[Option[String]](readsIsEventTypePresentFromSeq) -> Event20,
+        (JsPath \ "memberEventsSummary" \ "event22" \ "recordVersion").readNullable[Option[String]](readsIsEventTypePresent) -> Event22,
+        (JsPath \ "memberEventsSummary" \ "event23" \ "recordVersion").readNullable[Option[String]](readsIsEventTypePresent) -> Event23,
+        (JsPath \ "eventDetails" \ "eventWindUp" \ "recordVersion").readNullable[Option[String]](readsIsEventTypePresent) -> WindUp
       )
 
     def modifyReads(reads:Reads[Option[Boolean]], event: EventType) =  reads.map(x => JsArray(booleanToValue(x, event).map(JsString)))
