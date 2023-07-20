@@ -31,12 +31,6 @@ class API1826Spec extends AnyFreeSpec with Matchers
     val actualResultForNode = actualResult.map(x => (x \ "eventDetails" \ eventType).asOpt[JsObject])
     val expectedResultForNode = JsSuccess((expectedResult \ "eventDetails" \ eventType).asOpt[JsObject])
 
-    if (actualResultForNode != expectedResultForNode) {
-      println("\nChecking " + eventType)
-      println("\nExp = " + expectedResult)
-      println("\nAct = " + actualResult)
-    }
-
     actualResultForNode mustBe expectedResultForNode
   }
 
