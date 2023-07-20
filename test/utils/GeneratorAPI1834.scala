@@ -21,7 +21,7 @@ import models.enumeration.EventType.{Event10, Event11, Event12, Event13, Event14
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsObject, JsString, Json}
 
 
 //noinspection ScalaStyle
@@ -83,12 +83,15 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
       val conditionalJson = if (hasBecome) Json.obj("contractsOrPolicies" -> boolean) else Json.obj()
 
       val expected = Json.obj(
-        "event10" -> (Json.obj(
+        "event10" -> (
+          Json.obj(
           "becomeOrCeaseScheme" -> whatChangedUA,
           "schemeChangeDate" -> Json.obj(
             "schemeChangeDate" -> date
-          )
-        ) ++ conditionalJson)
+          ),
+            "recordVersion" -> 1
+        ) ++ conditionalJson
+        )
       )
 
       Tuple2(payload, expected)
@@ -119,7 +122,8 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
           "hasSchemeChangedRulesInvestmentsInAssets" -> true,
           "investmentsInAssetsRuleChangeDate" -> Json.obj(
             "date" -> date2
-          )
+          ),
+          "recordVersion" -> 1
         )
       )
       Tuple2(payload, expected)
@@ -144,7 +148,8 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
           "hasSchemeChangedRules" -> true,
           "dateOfChange" -> Json.obj {
             "dateOfChange" -> date
-          }
+          },
+          "recordVersion" -> 1
         )
       )
       Tuple2(payload, expected)
@@ -182,7 +187,8 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
       val expected = Json.obj(
         "event13" -> Json.obj(
           "schemeStructure" -> mapStructure(schemeStructure),
-          "changeDate" -> date
+          "changeDate" -> date,
+          "recordVersion" -> 1
         )
       )
       Tuple2(payload, expected)
@@ -212,7 +218,8 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
 
       val expected = Json.obj(
         "event14" -> Json.obj(
-          "schemeMembers" -> members
+          "schemeMembers" -> members,
+          "recordVersion" -> 1
         )
       )
       Tuple2(payload, expected)
@@ -232,7 +239,8 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
 
       val expected = Json.obj(
         "event18" -> Json.obj(
-          "event18Confirmation" -> true
+          "event18Confirmation" -> true,
+          "recordVersion" -> 1
         )
       )
       Tuple2(payload, expected)
@@ -258,7 +266,8 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
       val expected = Json.obj(
         "event19" -> Json.obj(
           "CountryOrTerritory" -> "GB", // TODO: other countries
-          "dateChangeMade" -> date
+          "dateChangeMade" -> date,
+          "recordVersion" -> 1
         )
       )
       Tuple2(payload, expected)
@@ -276,10 +285,12 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
         case ("payload", "ceasedOccupationalScheme") => Json.obj("stopDateOfOccScheme" -> date)
         case (_, "becameOccupationalScheme") => Json.obj(
           "becameDate" -> Json.obj("date" -> date),
-          "whatChange" -> "becameOccupationalScheme")
+          "whatChange" -> "becameOccupationalScheme",
+          "recordVersion" -> 1)
         case _ => Json.obj(
           "ceasedDate" -> Json.obj("date" -> date),
-          "whatChange" -> "ceasedOccupationalScheme")
+          "whatChange" -> "ceasedOccupationalScheme",
+          "recordVersion" -> 1)
       }
 
       val payload: JsObject = Json.obj(
@@ -315,7 +326,8 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
 
       val expected = Json.obj(
         "eventWindUp" -> Json.obj(
-          "schemeWindUpDate" -> date
+          "schemeWindUpDate" -> date,
+          "recordVersion" -> 1
         )
       )
       Tuple2(payload, expected)
