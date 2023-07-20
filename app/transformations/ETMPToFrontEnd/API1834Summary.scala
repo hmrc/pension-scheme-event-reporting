@@ -79,26 +79,26 @@ object API1834Summary {
       )(
       (event1, event2, event3, event4, event5, event6, event7, event8, event8A, event10, event11, event12, event13, event14, event18, event19, event20, event22, event23, eventWindup) => {
         Seq(
-          createRow(event1, "event1"),
-          createRow(event2, "event2"),
-          createRow(event3, "event3"),
-          createRow(event4, "event4"),
-          createRow(event5, "event5"),
-          createRow(event6, "event6"),
-          createRow(event7, "event7"),
-          createRow(event8, "event8"),
-          createRow(event8A, "event8A"),
-          createRow(event10, "event10"),
-          createRow(event11, "event11"),
-          createRow(event12, "event12"),
-          createRow(event13, "event13"),
-          createRow(event14, "event14"),
-          createRow(event18, "event18"),
-          createRow(event19, "event19"),
-          createRow(event20, "event20"),
-          createRow(event22, "event22"),
-          createRow(event23, "event23"),
-          createRow(eventWindup, "eventWindUp")
+          createRow(event1, "1"),
+          createRow(event2, "2"),
+          createRow(event3, "3"),
+          createRow(event4, "4"),
+          createRow(event5, "5"),
+          createRow(event6, "6"),
+          createRow(event7, "7"),
+          createRow(event8, "8"),
+          createRow(event8A, "8A"),
+          createRow(event10, "10"),
+          createRow(event11, "11"),
+          createRow(event12, "12"),
+          createRow(event13, "13"),
+          createRow(event14, "14"),
+          createRow(event18, "18"),
+          createRow(event19, "19"),
+          createRow(event20, "20"),
+          createRow(event22, "22"),
+          createRow(event23, "23"),
+          createRow(eventWindup, "WindUp")
 
         ).filter(_.fields.nonEmpty)
       }
@@ -118,7 +118,7 @@ object API1834Summary {
       (JsPath \ "er20aDetails" \ "reportVersionNumber").readNullable[Int](readsIsEventTypePresent).map {
         event20a => {
           Seq(
-            createRow(event20a, "event20a")
+            createRow(event20a, "20A")
 
           ).filter(_.fields.nonEmpty)
         }
@@ -127,23 +127,6 @@ object API1834Summary {
     readsSeqInt.map { s =>
       JsArray(s)
     }
-
-
-
-//    Reads.pure(JsArray.empty)
-//      val readsSeq: Seq[(Reads[Option[Boolean]], EventType)] = Seq(
-//        (JsPath \ "er20aDetails" \ "reportVersionNumber").readNullable[Boolean](readsIsEventTypePresentAPI1831) -> Event20A
-//      )
-//
-//      def modifyReads(reads: Reads[Option[Boolean]], event: EventType) = reads.map(x => JsArray(booleanToValue(x, event).map(JsString)))
-//
-//      val head = readsSeq.head
-//      readsSeq.tail.foldLeft(modifyReads(head._1, head._2)) { case (acc, (reads, event)) =>
-//        (acc and modifyReads(reads, event))((r1, r2) => r1 ++ r2)
-//      }
   }
-
-  private def booleanToValue(b: Option[Boolean], v: EventType): Seq[String] = if (b.getOrElse(false)) Seq(v.toString) else Nil
-
 }
 

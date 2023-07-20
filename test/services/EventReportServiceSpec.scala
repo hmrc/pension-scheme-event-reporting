@@ -257,23 +257,23 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, reportVersion, Some(Event20A))(implicitly, implicitly)
 
         val expected = Json.parse(
-          """[{"eventType":"event1","recordVersion":2},
-            |{"eventType":"event2","recordVersion":1},
-            |{"eventType":"event3","recordVersion":2},
-            |{"eventType":"event4","recordVersion":1},
-            |{"eventType":"event5","recordVersion":4},
-            |{"eventType":"event6","recordVersion":7},
-            |{"eventType":"event7","recordVersion":2},
-            |{"eventType":"event8","recordVersion":4},
-            |{"eventType":"event8A","recordVersion":3},
-            |{"eventType":"event11","recordVersion":1},
-            |{"eventType":"event12","recordVersion":1},
-            |{"eventType":"event14","recordVersion":1},
-            |{"eventType":"event18","recordVersion":1},
-            |{"eventType":"event22","recordVersion":4},
-            |{"eventType":"event23","recordVersion":3},
-            |{"eventType":"eventWindUp","recordVersion":1},
-            |{"eventType":"event20a","recordVersion":1}]""".stripMargin).as[JsArray]
+          """[{"eventType":"1","recordVersion":2},
+            |{"eventType":"2","recordVersion":1},
+            |{"eventType":"3","recordVersion":2},
+            |{"eventType":"4","recordVersion":1},
+            |{"eventType":"5","recordVersion":4},
+            |{"eventType":"6","recordVersion":7},
+            |{"eventType":"7","recordVersion":2},
+            |{"eventType":"8","recordVersion":4},
+            |{"eventType":"8A","recordVersion":3},
+            |{"eventType":"11","recordVersion":1},
+            |{"eventType":"12","recordVersion":1},
+            |{"eventType":"14","recordVersion":1},
+            |{"eventType":"18","recordVersion":1},
+            |{"eventType":"22","recordVersion":4},
+            |{"eventType":"23","recordVersion":3},
+            |{"eventType":"WindUp","recordVersion":1},
+            |{"eventType":"20A","recordVersion":1}]""".stripMargin).as[JsArray]
         result mustBe expected
       }
     }

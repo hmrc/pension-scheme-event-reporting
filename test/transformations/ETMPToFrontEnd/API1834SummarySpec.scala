@@ -33,7 +33,7 @@ class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar wit
       val expectedResult = JsSuccess(
         JsArray(
           Seq(
-            Json.obj("eventType" -> "event20a", "recordVersion" -> 1)
+            Json.obj("eventType" -> "20A", "recordVersion" -> 1)
           )
         ),
         __ \ "er20aDetails" \ "reportVersionNumber"
@@ -49,7 +49,7 @@ class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar wit
       val expectedResult = JsSuccess(
         JsArray(
           Seq(
-            Json.obj("eventType" -> "event20a", "recordVersion" -> 2)
+            Json.obj("eventType" -> "20A", "recordVersion" -> 2)
           )
         ),
         __ \ "er20aDetails" \ "reportVersionNumber"
@@ -90,25 +90,25 @@ class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar wit
       val expectedResult = JsSuccess(
         JsArray(
           Seq(
-            Json.obj("eventType" -> "event1", "recordVersion" -> 2),
-            Json.obj("eventType" -> "event2", "recordVersion" -> 1),
-            Json.obj("eventType" -> "event3", "recordVersion" -> 2),
-            Json.obj("eventType" -> "event4", "recordVersion" -> 1),
-            Json.obj("eventType" -> "event5", "recordVersion" -> 2),
-            Json.obj("eventType" -> "event6", "recordVersion" -> 1),
-            Json.obj("eventType" -> "event7", "recordVersion" -> 2),
-            Json.obj("eventType" -> "event8", "recordVersion" -> 1),
-            Json.obj("eventType" -> "event8A", "recordVersion" -> 2),
-            Json.obj("eventType" -> "event10", "recordVersion" -> 2),
-            Json.obj("eventType" -> "event11", "recordVersion" -> 1),
-            Json.obj("eventType" -> "event12", "recordVersion" -> 1),
-            Json.obj("eventType" -> "event13", "recordVersion" -> 2),
-            Json.obj("eventType" -> "event14", "recordVersion" -> 1),
-            Json.obj("eventType" -> "event18", "recordVersion" -> 2),
-            Json.obj("eventType" -> "event19", "recordVersion" -> 1),
-            Json.obj("eventType" -> "event20", "recordVersion" -> 2),
-            Json.obj("eventType" -> "event22", "recordVersion" -> 1),
-            Json.obj("eventType" -> "event23", "recordVersion" -> 2)
+            Json.obj("eventType" -> "1", "recordVersion" -> 2),
+            Json.obj("eventType" -> "2", "recordVersion" -> 1),
+            Json.obj("eventType" -> "3", "recordVersion" -> 2),
+            Json.obj("eventType" -> "4", "recordVersion" -> 1),
+            Json.obj("eventType" -> "5", "recordVersion" -> 2),
+            Json.obj("eventType" -> "6", "recordVersion" -> 1),
+            Json.obj("eventType" -> "7", "recordVersion" -> 2),
+            Json.obj("eventType" -> "8", "recordVersion" -> 1),
+            Json.obj("eventType" -> "8A", "recordVersion" -> 2),
+            Json.obj("eventType" -> "10", "recordVersion" -> 2),
+            Json.obj("eventType" -> "11", "recordVersion" -> 1),
+            Json.obj("eventType" -> "12", "recordVersion" -> 1),
+            Json.obj("eventType" -> "13", "recordVersion" -> 2),
+            Json.obj("eventType" -> "14", "recordVersion" -> 1),
+            Json.obj("eventType" -> "18", "recordVersion" -> 2),
+            Json.obj("eventType" -> "19", "recordVersion" -> 1),
+            Json.obj("eventType" -> "20", "recordVersion" -> 2),
+            Json.obj("eventType" -> "22", "recordVersion" -> 1),
+            Json.obj("eventType" -> "23", "recordVersion" -> 2)
           )
         )
       )
