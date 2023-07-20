@@ -33,8 +33,6 @@ class JSONSchemaValidator {
   private val basePath = System.getProperty("user.dir")
 
   private def validateJsonPayload(jsonSchemaPath: String, data: JsValue): ValidationReport = {
-    println("\n\n\njsonSchemepath: " + jsonSchemaPath)
-    println("\n\n\ndata: " + data)
     val deepValidationCheck = true
     val factory = JsonSchemaFactory.byDefault()
     val schemaPath = JsonLoader.fromPath(s"$basePath/conf/$jsonSchemaPath")
@@ -46,7 +44,6 @@ class JSONSchemaValidator {
       val jsArray = Json.parse(doValidation.asInstanceOf[ListProcessingReport].asJson().toString).asInstanceOf[JsArray].value
       val jsArrayErrors = jsArray.map {
         error =>
-          println("\n\n\n\n\n\n ERROR: " + error)
           ((error \ "instance" \ "pointer").asOpt[String], (error \ "message").asOpt[String]) match {
             case Tuple2(Some(instanceOfError), Some(messageOfError)) => ErrorReport(instanceOfError, messageOfError)
             case _ => throw new RuntimeException(s"Error: $jsArray")
