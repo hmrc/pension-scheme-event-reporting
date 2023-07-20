@@ -114,17 +114,33 @@ object API1834Summary {
    * Used for getting summary for Event20A -Sharad Jamdade
    */
   implicit val rdsFor1831: Reads[JsArray] = {
-    Reads.pure(JsArray.empty)
-      val readsSeq: Seq[(Reads[Option[Boolean]], EventType)] = Seq(
-        (JsPath \ "er20aDetails" \ "reportVersionNumber").readNullable[Boolean](readsIsEventTypePresentAPI1831) -> Event20A
-      )
+    val readsSeqInt =
+      (JsPath \ "er20aDetails" \ "reportVersionNumber").readNullable[Int](readsIsEventTypePresent).map {
+        event20a => {
+          Seq(
+            createRow(event20a, "event20a")
 
-      def modifyReads(reads: Reads[Option[Boolean]], event: EventType) = reads.map(x => JsArray(booleanToValue(x, event).map(JsString)))
-
-      val head = readsSeq.head
-      readsSeq.tail.foldLeft(modifyReads(head._1, head._2)) { case (acc, (reads, event)) =>
-        (acc and modifyReads(reads, event))((r1, r2) => r1 ++ r2)
+          ).filter(_.fields.nonEmpty)
+        }
       }
+
+    readsSeqInt.map { s =>
+      JsArray(s)
+    }
+
+
+
+//    Reads.pure(JsArray.empty)
+//      val readsSeq: Seq[(Reads[Option[Boolean]], EventType)] = Seq(
+//        (JsPath \ "er20aDetails" \ "reportVersionNumber").readNullable[Boolean](readsIsEventTypePresentAPI1831) -> Event20A
+//      )
+//
+//      def modifyReads(reads: Reads[Option[Boolean]], event: EventType) = reads.map(x => JsArray(booleanToValue(x, event).map(JsString)))
+//
+//      val head = readsSeq.head
+//      readsSeq.tail.foldLeft(modifyReads(head._1, head._2)) { case (acc, (reads, event)) =>
+//        (acc and modifyReads(reads, event))((r1, r2) => r1 ++ r2)
+//      }
   }
 
   private def booleanToValue(b: Option[Boolean], v: EventType): Seq[String] = if (b.getOrElse(false)) Seq(v.toString) else Nil
