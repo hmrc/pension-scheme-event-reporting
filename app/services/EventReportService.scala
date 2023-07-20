@@ -297,39 +297,61 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                    memberIdToDelete: Int)
                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
 
-    def deleteMemberTransform(ua: JsObject):JsObject = {
-      def membersPath = eventType match {
-        case EventType.Event1 => "membersOrEmployers"
-        case _ => "members"
-      }
-
-      val eventPath = "event" + eventType
-
-      val event = ua.value.getOrElse(eventPath, throw new RuntimeException("Event not available")).as[JsObject].value
-      val members = event
-        .getOrElse(membersPath, throw new RuntimeException("Members not available"))
-        .as[JsArray].value
-        .map(_.as[JsObject])
-
+    def memberTransform(members: Seq[JsObject]): Seq[JsObject] = {
       val member = Try(members(memberIdToDelete)) match {
         case Failure(exception) => throw new RuntimeException("Member does not exist", exception)
         case Success(member) => member + ("memberStatus", JsString(Deleted().name))
       }
-
-      val newMembers = members.updated(memberIdToDelete, member)
-
-      val newEvent = Json.toJson(event).as[JsObject] + (membersPath, Json.toJson(newMembers))
-
-      ua + (eventPath, newEvent)
+      members.updated(memberIdToDelete, member)
     }
 
     getUserAnswers(externalId, pstr, eventType, year, version.toInt).flatMap {
-      case Some(ua) => saveUserAnswers(externalId, pstr, eventType, year, version.toInt, deleteMemberTransform(ua)).flatMap { _ =>
+      case Some(ua) => saveUserAnswers(externalId, pstr, eventType, year, version.toInt, deleteMembersTransform(ua, eventType, memberTransform)).flatMap { _ =>
         compileEventReport(externalId, psaPspId, pstr, eventType, year, version)
       }
       case None => throw new RuntimeException("User answers not available")
     }
 
+  }
+
+  private def deleteMembersTransform(ua: JsObject, eventType: EventType, membersTransform: Seq[JsObject] => Seq[JsObject]): JsObject = {
+    def membersPath = eventType match {
+      case EventType.Event1 => "membersOrEmployers"
+      case _ => "members"
+    }
+
+    val eventPath = "event" + eventType
+
+    val event = ua.value.getOrElse(eventPath, throw new RuntimeException("Event not available")).as[JsObject].value
+    val members = event
+      .getOrElse(membersPath, throw new RuntimeException("Members not available"))
+      .as[JsArray].value
+      .map(_.as[JsObject])
+
+    val newMembers = membersTransform(members.toSeq)
+
+    val newEvent = Json.toJson(event).as[JsObject] + (membersPath, Json.toJson(newMembers))
+
+    ua + (eventPath, newEvent)
+  }
+
+  def deleteEvent(externalId: String,
+                   psaPspId: String,
+                   pstr: String,
+                   eventType: EventType,
+                   year: Int,
+                   version: String)
+                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
+    def memberTransform(members: Seq[JsObject]): Seq[JsObject] = {
+      members.map(member => member + ("memberStatus", JsString(Deleted().name)))
+    }
+
+    getUserAnswers(externalId, pstr, eventType, year, version.toInt).flatMap {
+      case Some(ua) => saveUserAnswers(externalId, pstr, eventType, year, version.toInt, deleteMembersTransform(ua, eventType, memberTransform)).flatMap { _ =>
+        compileEventReport(externalId, psaPspId, pstr, eventType, year, version)
+      }
+      case None => throw new RuntimeException("User answers not available")
+    }
   }
 
   private val api1832Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23)
