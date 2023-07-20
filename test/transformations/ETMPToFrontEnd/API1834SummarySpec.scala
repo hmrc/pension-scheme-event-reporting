@@ -56,6 +56,7 @@ class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar wit
       )
       result mustBe expectedResult
     }
+
     "transform a randomly generated API 1834 events valid payload correctly with different recordVersions" in {
 
       val generatedPayload = Json.obj(
@@ -75,14 +76,14 @@ class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar wit
           "event23" -> Json.obj("recordVersion" -> "002"),
         ),
         "eventDetails" -> Json.obj(
-          "event10" -> Json.obj("recordVersion" -> "002"),
+          "event10" -> Json.arr(Json.obj("recordVersion" -> "002")), // array
           "event11" -> Json.obj("recordVersion" -> "001"),
           "event12" -> Json.obj("recordVersion" -> "001"),
-          "event13" -> Json.obj("recordVersion" -> "002"),
+          "event13" -> Json.arr(Json.obj("recordVersion" -> "002")), // array
           "event14" -> Json.obj("recordVersion" -> "001"),
           "event18" -> Json.obj("recordVersion" -> "002"),
-          "event19" -> Json.obj("recordVersion" -> "001"),
-          "event20" -> Json.obj("recordVersion" -> "002")
+          "event19" -> Json.arr(Json.obj("recordVersion" -> "001")), // array
+          "event20" -> Json.arr(Json.obj("recordVersion" -> "002")) // array
         )
       )
 
@@ -107,6 +108,58 @@ class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar wit
             Json.obj("eventType" -> "18", "recordVersion" -> 2),
             Json.obj("eventType" -> "19", "recordVersion" -> 1),
             Json.obj("eventType" -> "20", "recordVersion" -> 2),
+            Json.obj("eventType" -> "22", "recordVersion" -> 1),
+            Json.obj("eventType" -> "23", "recordVersion" -> 2)
+          )
+        )
+      )
+      result mustBe expectedResult
+    }
+
+
+    "transform when array types missing" in {
+
+      val generatedPayload = Json.obj(
+        "event1ChargeDetails" -> Json.obj(
+          "recordVersion" -> "002"
+        ),
+        "memberEventsSummary" -> Json.obj(
+          "event2" -> Json.obj("recordVersion" -> "001"),
+          "event3" -> Json.obj("recordVersion" -> "002"),
+          "event4" -> Json.obj("recordVersion" -> "001"),
+          "event5" -> Json.obj("recordVersion" -> "002"),
+          "event6" -> Json.obj("recordVersion" -> "001"),
+          "event7" -> Json.obj("recordVersion" -> "002"),
+          "event8" -> Json.obj("recordVersion" -> "001"),
+          "event8A" -> Json.obj("recordVersion" -> "002"),
+          "event22" -> Json.obj("recordVersion" -> "001"),
+          "event23" -> Json.obj("recordVersion" -> "002"),
+        ),
+        "eventDetails" -> Json.obj(
+          "event11" -> Json.obj("recordVersion" -> "001"),
+          "event12" -> Json.obj("recordVersion" -> "001"),
+          "event14" -> Json.obj("recordVersion" -> "001"),
+          "event18" -> Json.obj("recordVersion" -> "002")
+        )
+      )
+
+      val result = generatedPayload.validate(API1834Summary.rdsFor1834)
+      val expectedResult = JsSuccess(
+        JsArray(
+          Seq(
+            Json.obj("eventType" -> "1", "recordVersion" -> 2),
+            Json.obj("eventType" -> "2", "recordVersion" -> 1),
+            Json.obj("eventType" -> "3", "recordVersion" -> 2),
+            Json.obj("eventType" -> "4", "recordVersion" -> 1),
+            Json.obj("eventType" -> "5", "recordVersion" -> 2),
+            Json.obj("eventType" -> "6", "recordVersion" -> 1),
+            Json.obj("eventType" -> "7", "recordVersion" -> 2),
+            Json.obj("eventType" -> "8", "recordVersion" -> 1),
+            Json.obj("eventType" -> "8A", "recordVersion" -> 2),
+            Json.obj("eventType" -> "11", "recordVersion" -> 1),
+            Json.obj("eventType" -> "12", "recordVersion" -> 1),
+            Json.obj("eventType" -> "14", "recordVersion" -> 1),
+            Json.obj("eventType" -> "18", "recordVersion" -> 2),
             Json.obj("eventType" -> "22", "recordVersion" -> 1),
             Json.obj("eventType" -> "23", "recordVersion" -> 2)
           )

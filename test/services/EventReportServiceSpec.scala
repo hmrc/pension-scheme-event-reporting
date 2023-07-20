@@ -257,7 +257,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, reportVersion, Some(Event20A))(implicitly, implicitly)
 
         val expected = Json.parse(
-          """[{"eventType":"1","recordVersion":2},
+          """ [{"eventType":"1","recordVersion":2},
             |{"eventType":"2","recordVersion":1},
             |{"eventType":"3","recordVersion":2},
             |{"eventType":"4","recordVersion":1},
@@ -266,10 +266,14 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
             |{"eventType":"7","recordVersion":2},
             |{"eventType":"8","recordVersion":4},
             |{"eventType":"8A","recordVersion":3},
+            |{"eventType":"10","recordVersion":1},
             |{"eventType":"11","recordVersion":1},
             |{"eventType":"12","recordVersion":1},
+            |{"eventType":"13","recordVersion":1},
             |{"eventType":"14","recordVersion":1},
             |{"eventType":"18","recordVersion":1},
+            |{"eventType":"19","recordVersion":1},
+            |{"eventType":"20","recordVersion":1},
             |{"eventType":"22","recordVersion":4},
             |{"eventType":"23","recordVersion":3},
             |{"eventType":"WindUp","recordVersion":1},

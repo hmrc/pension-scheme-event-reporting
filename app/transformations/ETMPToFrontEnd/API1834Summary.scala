@@ -54,7 +54,6 @@ object API1834Summary {
    * Used for getting summaries for all of the events except for Event1 and Event22A -Pavel Vjalicin
    */
   implicit val rdsFor1834: Reads[JsArray] = {
-
     val readsSeqInt = (
       (JsPath \ "event1ChargeDetails" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
         (JsPath \ "memberEventsSummary" \ "event2" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
@@ -65,14 +64,14 @@ object API1834Summary {
         (JsPath \ "memberEventsSummary" \ "event7" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
         (JsPath \ "memberEventsSummary" \ "event8" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
         (JsPath \ "memberEventsSummary" \ "event8A" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "eventDetails" \ "event10" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event10" \ 0 \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
         (JsPath \ "eventDetails" \ "event11" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
         (JsPath \ "eventDetails" \ "event12" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "eventDetails" \ "event13" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event13" \ 0 \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
         (JsPath \ "eventDetails" \ "event14" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
         (JsPath \ "eventDetails" \ "event18" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "eventDetails" \ "event19" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "eventDetails" \ "event20" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event19" \ 0 \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event20" \ 0 \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
         (JsPath \ "memberEventsSummary" \ "event22" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
         (JsPath \ "memberEventsSummary" \ "event23" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
         (JsPath \ "eventDetails" \ "eventWindUp" \ "recordVersion").readNullable[Int](readsIsEventTypePresent)
