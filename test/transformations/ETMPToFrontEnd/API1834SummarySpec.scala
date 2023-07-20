@@ -27,38 +27,92 @@ class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar wit
   with GeneratorAPI1834Summary with GeneratorAPI1832 with ScalaCheckPropertyChecks {
 
   "Reads" - {
-    "transform a valid payload correctly when read from sample file from API 1834" in {
-      val json = readJsonFromFile("/api-1834-valid-example.json")
-      val result = json.validate(API1834Summary.rdsFor1834).asOpt
-
-      val expectedResult = Some(
-        Seq("1","2","3","4","5","6","7","8","8A","10","11","12","13","14","19","20","22","23","WindUp")
-      )
-
-      result.map(_.validate[Seq[String]].get) mustBe expectedResult
-    }
-
-    "transform a randomly generated API 1834 events valid payload correctly" in {
-      forAll(generateGET1834ResponseAndUserAnswers) {
-        case (json: JsObject, eventTypes: Seq[String]) =>
-          val result = json.validate(API1834Summary.rdsFor1834).asOpt
-          val expectedResult = Some(eventTypes)
-          result.map(_.validate[Seq[String]].get) mustBe expectedResult
-      }
-    }
-
     "transform a valid payload correctly when read from sample file from API 1831" in {
       val json = readJsonFromFile("/api-1831-valid-example.json")
-      val result = json.validate(API1834Summary.rdsFor1831).asOpt
-      val expectedResult = Some(Seq("20A"))
-      result.map(_.validate[Seq[String]].get) mustBe expectedResult
+      val result = json.validate(API1834Summary.rdsFor1831)
+      val expectedResult = JsSuccess(
+        JsArray(
+          Seq(
+            Json.obj("eventType" -> "20A", "recordVersion" -> 1)
+          )
+        ),
+        __ \ "er20aDetails" \ "reportVersionNumber"
+      )
+
+
+      result mustBe expectedResult
     }
 
     "transform a randomly generated API 1831 events valid payload correctly" in {
-      val generatedPayload = Json.obj("er20aDetails" -> Json.obj("reportVersionNumber" -> "001"))
-      val result = generatedPayload.validate(API1834Summary.rdsFor1831).asOpt
-      val expectedResult = Some(Seq("20A"))
-      result.map(_.validate[Seq[String]].get) mustBe expectedResult
+      val generatedPayload = Json.obj("er20aDetails" -> Json.obj("reportVersionNumber" -> "002"))
+      val result = generatedPayload.validate(API1834Summary.rdsFor1831)
+      val expectedResult = JsSuccess(
+        JsArray(
+          Seq(
+            Json.obj("eventType" -> "20A", "recordVersion" -> 2)
+          )
+        ),
+        __ \ "er20aDetails" \ "reportVersionNumber"
+      )
+      result mustBe expectedResult
+    }
+    "transform a randomly generated API 1834 events valid payload correctly with different recordVersions" in {
+
+      val generatedPayload = Json.obj(
+        "event1ChargeDetails" -> Json.obj(
+          "recordVersion" -> "002"
+        ),
+        "memberEventsSummary" -> Json.obj(
+          "event2" -> Json.obj("recordVersion" -> "001"),
+          "event3" -> Json.obj("recordVersion" -> "002"),
+          "event4" -> Json.obj("recordVersion" -> "001"),
+          "event5" -> Json.obj("recordVersion" -> "002"),
+          "event6" -> Json.obj("recordVersion" -> "001"),
+          "event7" -> Json.obj("recordVersion" -> "002"),
+          "event8" -> Json.obj("recordVersion" -> "001"),
+          "event8A" -> Json.obj("recordVersion" -> "002"),
+          "event22" -> Json.obj("recordVersion" -> "001"),
+          "event23" -> Json.obj("recordVersion" -> "002"),
+        ),
+        "eventDetails" -> Json.obj(
+          "event10" -> Json.obj("recordVersion" -> "002"),
+          "event11" -> Json.obj("recordVersion" -> "001"),
+          "event12" -> Json.obj("recordVersion" -> "001"),
+          "event13" -> Json.obj("recordVersion" -> "002"),
+          "event14" -> Json.obj("recordVersion" -> "001"),
+          "event18" -> Json.obj("recordVersion" -> "002"),
+          "event19" -> Json.obj("recordVersion" -> "001"),
+          "event20" -> Json.obj("recordVersion" -> "002")
+        )
+      )
+
+      val result = generatedPayload.validate(API1834Summary.rdsFor1834)
+      val expectedResult = JsSuccess(
+        JsArray(
+          Seq(
+            Json.obj("eventType" -> "1", "recordVersion" -> 2),
+            Json.obj("eventType" -> "2", "recordVersion" -> 1),
+            Json.obj("eventType" -> "3", "recordVersion" -> 2),
+            Json.obj("eventType" -> "4", "recordVersion" -> 1),
+            Json.obj("eventType" -> "5", "recordVersion" -> 2),
+            Json.obj("eventType" -> "6", "recordVersion" -> 1),
+            Json.obj("eventType" -> "7", "recordVersion" -> 2),
+            Json.obj("eventType" -> "8", "recordVersion" -> 1),
+            Json.obj("eventType" -> "8A", "recordVersion" -> 2),
+            Json.obj("eventType" -> "10", "recordVersion" -> 2),
+            Json.obj("eventType" -> "11", "recordVersion" -> 1),
+            Json.obj("eventType" -> "12", "recordVersion" -> 1),
+            Json.obj("eventType" -> "13", "recordVersion" -> 2),
+            Json.obj("eventType" -> "14", "recordVersion" -> 1),
+            Json.obj("eventType" -> "18", "recordVersion" -> 2),
+            Json.obj("eventType" -> "19", "recordVersion" -> 1),
+            Json.obj("eventType" -> "20", "recordVersion" -> 2),
+            Json.obj("eventType" -> "22", "recordVersion" -> 1),
+            Json.obj("eventType" -> "23", "recordVersion" -> 2)
+          )
+        )
+      )
+      result mustBe expectedResult
     }
   }
 }

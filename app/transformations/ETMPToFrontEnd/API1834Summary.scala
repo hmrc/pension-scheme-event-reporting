@@ -26,24 +26,22 @@ object API1834Summary {
 
   private val fieldNameRecordVersion = "recordVersion"
 
-  private val readsIsEventTypePresentFromSeq: Reads[Boolean] = {
+  private val readsIsEventTypePresent: Reads[Int] = {
     Reads {
-      case JsArray(eventDetails) =>
-        JsSuccess(
-          eventDetails.exists {
-            item =>
-              item \ fieldNameRecordVersion match {
-                case JsDefined(JsString("001")) => true
-                case _ => false
-              }
-          }
-        )
-      case e =>
-        JsError(s"Invalid json $e")
+      case JsString(v) => JsSuccess(v.toInt)
+      case s => JsError(s"Invalid json $s")
     }
   }
+  private def createRow(event: Option[Int], eventType: String): JsObject = {
+    event.fold(Json.obj())(version =>
+      Json.obj(
+        "eventType" -> eventType,
+        "recordVersion" -> version
+      )
+    )
+  }
 
-  private val readsIsEventTypePresent: Reads[Boolean] = {
+  private val readsIsEventTypePresentAPI1831: Reads[Boolean] = {
     Reads {
       case JsString(_) =>
         JsSuccess(true)
@@ -57,54 +55,78 @@ object API1834Summary {
    */
   implicit val rdsFor1834: Reads[JsArray] = {
 
-    val readsSeq:Seq[(Reads[Option[Boolean]], EventType)] = Seq(
-      (JsPath \ "event1ChargeDetails" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event1,
-      (JsPath \ "memberEventsSummary" \ "event2" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event2,
-        (JsPath \ "memberEventsSummary" \ "event3" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event3,
-        (JsPath \ "memberEventsSummary" \ "event4" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event4,
-        (JsPath \ "memberEventsSummary" \ "event5" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event5,
-        (JsPath \ "memberEventsSummary" \ "event6" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event6,
-        (JsPath \ "memberEventsSummary" \ "event7" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event7,
-        (JsPath \ "memberEventsSummary" \ "event8" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event8,
-        (JsPath \ "memberEventsSummary" \ "event8A" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event8A,
-      (JsPath \ "eventDetails" \ "event10").readNullable[Boolean](readsIsEventTypePresentFromSeq) -> Event10,
-        (JsPath \ "eventDetails" \ "event11" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event11,
-        (JsPath \ "eventDetails" \ "event12" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event12,
-        (JsPath \ "eventDetails" \ "event13").readNullable[Boolean](readsIsEventTypePresentFromSeq) -> Event13,
-        (JsPath \ "eventDetails" \ "event14" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event14,
-        (JsPath \ "eventDetails" \ "event18" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event18,
-        (JsPath \ "eventDetails" \ "event19").readNullable[Boolean](readsIsEventTypePresentFromSeq) -> Event19,
-        (JsPath \ "eventDetails" \ "event20").readNullable[Boolean](readsIsEventTypePresentFromSeq) -> Event20,
-        (JsPath \ "memberEventsSummary" \ "event22" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event22,
-        (JsPath \ "memberEventsSummary" \ "event23" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> Event23,
-        (JsPath \ "eventDetails" \ "eventWindUp" \ "recordVersion").readNullable[Boolean](readsIsEventTypePresent) -> WindUp
-      )
+    val readsSeqInt = (
+      (JsPath \ "event1ChargeDetails" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "memberEventsSummary" \ "event2" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "memberEventsSummary" \ "event3" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "memberEventsSummary" \ "event4" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "memberEventsSummary" \ "event5" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "memberEventsSummary" \ "event6" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "memberEventsSummary" \ "event7" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "memberEventsSummary" \ "event8" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "memberEventsSummary" \ "event8A" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event10" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event11" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event12" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event13" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event14" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event18" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event19" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "event20" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "memberEventsSummary" \ "event22" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "memberEventsSummary" \ "event23" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        (JsPath \ "eventDetails" \ "eventWindUp" \ "recordVersion").readNullable[Int](readsIsEventTypePresent)
+      )(
+      (event1, event2, event3, event4, event5, event6, event7, event8, event8A, event10, event11, event12, event13, event14, event18, event19, event20, event22, event23, eventWindup) => {
+        Seq(
+          createRow(event1, "1"),
+          createRow(event2, "2"),
+          createRow(event3, "3"),
+          createRow(event4, "4"),
+          createRow(event5, "5"),
+          createRow(event6, "6"),
+          createRow(event7, "7"),
+          createRow(event8, "8"),
+          createRow(event8A, "8A"),
+          createRow(event10, "10"),
+          createRow(event11, "11"),
+          createRow(event12, "12"),
+          createRow(event13, "13"),
+          createRow(event14, "14"),
+          createRow(event18, "18"),
+          createRow(event19, "19"),
+          createRow(event20, "20"),
+          createRow(event22, "22"),
+          createRow(event23, "23"),
+          createRow(eventWindup, "WindUp")
 
-    def modifyReads(reads:Reads[Option[Boolean]], event: EventType) =  reads.map(x => JsArray(booleanToValue(x, event).map(JsString)))
-
-    val head = readsSeq.head
-
-    readsSeq.tail.foldLeft( modifyReads(head._1, head._2) ) { case (acc, (reads, event)) =>
-      (acc and  modifyReads(reads, event)) ((r1, r2) => r1 ++ r2)
+        ).filter(_.fields.nonEmpty)
+      }
+    )
+    readsSeqInt.map { s =>
+      JsArray(s)
     }
   }
+
+
 
   /**
    * Used for getting summary for Event20A -Sharad Jamdade
    */
   implicit val rdsFor1831: Reads[JsArray] = {
-    val readsSeq: Seq[(Reads[Option[Boolean]], EventType)] = Seq(
-      (JsPath \ "er20aDetails" \ "reportVersionNumber").readNullable[Boolean](readsIsEventTypePresent) -> Event20A
-    )
+    val readsSeqInt =
+      (JsPath \ "er20aDetails" \ "reportVersionNumber").readNullable[Int](readsIsEventTypePresent).map {
+        event20a => {
+          Seq(
+            createRow(event20a, "20A")
 
-    def modifyReads(reads: Reads[Option[Boolean]], event: EventType) = reads.map(x => JsArray(booleanToValue(x, event).map(JsString)))
+          ).filter(_.fields.nonEmpty)
+        }
+      }
 
-    val head = readsSeq.head
-    readsSeq.tail.foldLeft(modifyReads(head._1, head._2)) { case (acc, (reads, event)) =>
-      (acc and modifyReads(reads, event))((r1, r2) => r1 ++ r2)
+    readsSeqInt.map { s =>
+      JsArray(s)
     }
   }
-  private def booleanToValue(b: Option[Boolean], v: EventType): Seq[String] = if (b.getOrElse(false)) Seq(v.toString) else Nil
-
 }
 
