@@ -192,6 +192,24 @@ class EventReportController @Inject()(
     }
   }
 
+  def deleteMember(): Action[AnyContent] = Action.async { implicit request =>
+    withAuth.flatMap { case Credentials(externalId, psaPspId) =>
+      val Seq(pstr, et, version, year, memberIdToDelete) = requiredHeaders("pstr", "eventType", "version", "year", "memberIdToDelete")
+      EventType.getEventType(et) match {
+        case Some(eventType) => eventReportService.deleteMember(
+          externalId,
+          psaPspId,
+          pstr,
+          eventType,
+          year.toInt,
+          version,
+          memberIdToDelete.toInt
+        )
+        case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
+      }
+    }
+  }
+
   def submitEventDeclarationReport: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { _ =>

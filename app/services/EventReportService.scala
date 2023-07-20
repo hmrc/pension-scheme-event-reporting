@@ -135,13 +135,15 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   private def generateMemberChangeInfo(oldMember: Option[JsObject],
                                        newMember: JsObject,
-                                       currentVersion: Int): MemberChangeInfo = {
+                                       currentVersion: Int): Option[MemberChangeInfo] = {
 
     def noVersion(obj: JsObject) = obj - "amendedVersion" - "memberStatus"
 
     def version(obj: JsObject) = obj.value.get("amendedVersion").map(_.as[String].toInt)
 
     def status(obj: JsObject) = obj.value.get("memberStatus").map(_.as[String]).map(stringToMemberStatus)
+
+    val newMemberStatus = status(newMember).getOrElse(New())
 
     oldMember.map { oldMember =>
       val oldMemberNoVersion = noVersion(oldMember)
@@ -151,14 +153,22 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       val hasSameVersion = version(newMember).contains(currentVersion)
       val oldMemberStatus = status(oldMember).getOrElse(New())
 
-      (hasSameVersion, memberChanged, oldMemberStatus) match {
-        case (false, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
-        case (true, _, New()) => MemberChangeInfo(oldMemberVersion, New())
-        case (false, true, _) => MemberChangeInfo(currentVersion, Changed())
-        case (true, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
+      val result = (oldMemberStatus, newMemberStatus) match {
+        case (Deleted(), Deleted()) => MemberChangeInfo(oldMemberVersion, Deleted())
+        case (_, Deleted()) => MemberChangeInfo(currentVersion, Deleted())
+        case _ => (hasSameVersion, memberChanged, oldMemberStatus) match {
+          case (false, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
+          case (true, _, New()) => MemberChangeInfo(oldMemberVersion, New())
+          case (false, true, _) => MemberChangeInfo(currentVersion, Changed())
+          case (true, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
+        }
       }
+
+      Some(result)
     }.getOrElse(
-      MemberChangeInfo(currentVersion, New())
+      if(newMemberStatus == Deleted()) {
+        None
+      } else Some(MemberChangeInfo(currentVersion, New()))
     )
   }
 
@@ -173,18 +183,18 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     def newMembersWithChangeInfo(getMemberDetails: JsObject => scala.collection.IndexedSeq[JsObject]) = {
       val newMembers = getMemberDetails(newUserAnswers)
 
-      newMembers.zipWithIndex.map { case (newMemberDetail, index) =>
+      newMembers.zipWithIndex.flatMap { case (newMemberDetail, index) =>
         val oldMemberDetails = oldUserAnswers.map(getMemberDetails).getOrElse(Seq())
         val oldMemberDetail = Try(oldMemberDetails(index)).toOption
-        val newMemberChangeInfo = generateMemberChangeInfo(
+        generateMemberChangeInfo(
           oldMemberDetail,
           newMemberDetail,
           currentVersion
-        )
-
-        newMemberDetail +
-          ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
-          ("memberStatus", JsString(newMemberChangeInfo.status.name))
+        ).map { newMemberChangeInfo =>
+          newMemberDetail +
+            ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
+            ("memberStatus", JsString(newMemberChangeInfo.status.name))
+        }
       }
     }
 
@@ -276,6 +286,50 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         resp.flatten
       case _ => Future.successful(BadRequest(s"Compile unimplemented for event type $eventType"))
     }
+  }
+
+  def deleteMember(externalId: String,
+                   psaPspId: String,
+                   pstr: String,
+                   eventType: EventType,
+                   year: Int,
+                   version: String,
+                   memberIdToDelete: Int)
+                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
+
+    def deleteMemberTransform(ua: JsObject):JsObject = {
+      def membersPath = eventType match {
+        case EventType.Event1 => "membersOrEmployers"
+        case _ => "members"
+      }
+
+      val eventPath = "event" + eventType
+
+      val event = ua.value.getOrElse(eventPath, throw new RuntimeException("Event not available")).as[JsObject].value
+      val members = event
+        .getOrElse(membersPath, throw new RuntimeException("Members not available"))
+        .as[JsArray].value
+        .map(_.as[JsObject])
+
+      val member = Try(members(memberIdToDelete)) match {
+        case Failure(exception) => throw new RuntimeException("Member does not exist", exception)
+        case Success(member) => member + ("memberStatus", JsString(Deleted().name))
+      }
+
+      val newMembers = members.updated(memberIdToDelete, member)
+
+      val newEvent = Json.toJson(event).as[JsObject] + (membersPath, Json.toJson(newMembers))
+
+      ua + (eventPath, newEvent)
+    }
+
+    getUserAnswers(externalId, pstr, eventType, year, version.toInt).flatMap {
+      case Some(ua) => saveUserAnswers(externalId, pstr, eventType, year, version.toInt, deleteMemberTransform(ua)).flatMap { _ =>
+        compileEventReport(externalId, psaPspId, pstr, eventType, year, version)
+      }
+      case None => throw new RuntimeException("User answers not available")
+    }
+
   }
 
   private val api1832Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23)
