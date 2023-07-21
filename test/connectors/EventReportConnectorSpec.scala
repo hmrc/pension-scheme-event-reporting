@@ -582,7 +582,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         }
       }
 
-      "return a NotFoundException for NOT FOUND - 404" in {
+      "return nothing for NOT FOUND - 404" in {
         server.stubFor(
           get(urlEqualTo(getApi1832Url))
             .willReturn(
@@ -591,11 +591,8 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             )
         )
 
-        recoverToExceptionIf[NotFoundException] {
-          connector.getEvent(pstr, fromDt, reportVersion, Some(Event3))
-        } map { response =>
-          response.responseCode mustEqual NOT_FOUND
-          response.message must include("NOT_FOUND")
+        connector.getEvent(pstr, fromDt, reportVersion, Some(Event3)).map { actualResponse =>
+          actualResponse mustBe None
         }
       }
 
@@ -634,7 +631,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         }
       }
 
-      "return a NotFoundException for NOT FOUND - 404" in {
+      "return nothing for NOT FOUND - 404" in {
         server.stubFor(
           get(urlEqualTo(getApi1833Url))
             .willReturn(
@@ -643,12 +640,10 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             )
         )
 
-        recoverToExceptionIf[NotFoundException] {
-          connector.getEvent(pstr, fromDt, reportVersion, Some(Event1))
-        } map { response =>
-          response.responseCode mustEqual NOT_FOUND
-          response.message must include("NOT_FOUND")
+        connector.getEvent(pstr, fromDt, reportVersion, Some(Event1)).map { actualResponse =>
+          actualResponse mustBe None
         }
+
       }
 
       "throw Upstream5XX for INTERNAL SERVER ERROR - 500" in {
@@ -686,7 +681,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         }
       }
 
-      "return a NotFoundException for NOT FOUND - 404" in {
+      "return nothing for NOT FOUND - 404" in {
         server.stubFor(
           get(urlEqualTo(getApi1834Url))
             .willReturn(
@@ -695,12 +690,10 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             )
         )
 
-        recoverToExceptionIf[NotFoundException] {
-          connector.getEvent(pstr, fromDt, reportVersion, Some(Event10))
-        } map { response =>
-          response.responseCode mustEqual NOT_FOUND
-          response.message must include("NOT_FOUND")
-        }
+          connector.getEvent(pstr, fromDt, reportVersion, Some(Event10)).map { actualResponse =>
+
+            actualResponse mustBe None
+          }
       }
 
       "throw Upstream5XX for INTERNAL SERVER ERROR - 500" in {
@@ -737,7 +730,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
         }
       }
 
-      "return a NotFoundException for NOT FOUND - 404" in {
+      "return nothing for NOT FOUND - 404" in {
         server.stubFor(
           get(urlEqualTo(getApi1831Url))
             .willReturn(
@@ -746,12 +739,10 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
             )
         )
 
-        recoverToExceptionIf[NotFoundException] {
-          connector.getEvent(pstr, fromDt, reportVersion, Some(Event20A))
-        } map { response =>
-          response.responseCode mustEqual NOT_FOUND
-          response.message must include("NOT_FOUND")
-        }
+          connector.getEvent(pstr, fromDt, reportVersion, Some(Event20A)).map { actualResponse =>
+            actualResponse mustBe None
+          }
+
       }
 
       "throw Upstream5XX for INTERNAL SERVER ERROR - 500" in {

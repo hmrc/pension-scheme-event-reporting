@@ -230,7 +230,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def compileEventReport(externalId: String, psaPspId: String, pstr: String, eventType: EventType, year: Int, version: String)
+  def compileEventReport(externalId: String, psaPspId: String, pstr: String,
+                         eventType: EventType, year: Int, currentVersion: String, version: String)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
     apiProcessingInfo(eventType, pstr) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
@@ -256,6 +257,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                 collatedData <- compilePayloadService.collatePayloadsAndUpdateCache(
                   pstr,
                   year,
+                  currentVersion,
                   version,
                   apiType,
                   eventType,
