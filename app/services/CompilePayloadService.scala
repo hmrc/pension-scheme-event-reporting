@@ -137,7 +137,6 @@ class CompilePayloadService @Inject()(
       case _ => Future.successful(jsonForEventBeingCompiled)
     }
     collatedPayloads.foreach { p =>
-      println( "\nPAYLOAD TO SUBIMIT:" + p)
       logger.warn(s"Collated payload: ${p.toString}")
     }
     collatedPayloads
