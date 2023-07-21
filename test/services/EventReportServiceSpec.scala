@@ -166,13 +166,25 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     "return Not Found when no data returned from repository" in {
       when(mockEventReportCacheRepository.getUserAnswers(any(), any(), any())(any()))
         .thenReturn(Future.successful(None))
-      eventReportService.compileEventReport(externalId, psaId, "pstr", WindUp, year, reportVersion, reportVersion)(implicitly, implicitly, implicitly).map {
+
+      val reportVersion = "2"
+      val currentVersion = "1"
+      when(mockCompilePayloadService.collatePayloadsAndUpdateCache(any(), any(),
+        ArgumentMatchers.eq(currentVersion), ArgumentMatchers.eq(reportVersion), any(), any(), any())(any(), any()))
+        .thenReturn(Future.successful(Json.obj()))
+
+      eventReportService.compileEventReport(externalId, psaId, "pstr", WindUp, year, currentVersion, reportVersion)(implicitly, implicitly, implicitly).map {
+        verify(mockCompilePayloadService, times(0))
+          .collatePayloadsAndUpdateCache(any(), any(),
+            ArgumentMatchers.eq(currentVersion), ArgumentMatchers.eq(reportVersion), any(), any(), any())(any(), any())
         result => result.header.status mustBe NOT_FOUND
       }
     }
 
 
     "return 204 No Content when valid data return from repository - event wind up" in {
+      val reportVersion = "2"
+      val currentVersion = "1"
       when(mockCompilePayloadService.addRecordVersionToUserAnswersJson(any(), any(), any()))
         .thenReturn(uaJsonEventWindUpWithRecordVersion)
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(WindUp, 2020, 2, externalId))))(any()))
@@ -184,8 +196,15 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportConnector.compileEventReportSummary(any(), any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
-      eventReportService.compileEventReport(externalId, psaId, "pstr", WindUp, year, "2", "2").map {
+      when(mockCompilePayloadService.collatePayloadsAndUpdateCache(any(), any(),
+        ArgumentMatchers.eq(currentVersion), ArgumentMatchers.eq(reportVersion), any(), any(), any())(any(), any()))
+        .thenReturn(Future.successful(Json.obj()))
+
+      eventReportService.compileEventReport(externalId, psaId, "pstr", WindUp, year, currentVersion, reportVersion).map {
         result =>
+          verify(mockCompilePayloadService, times(1))
+            .collatePayloadsAndUpdateCache(any(), any(),
+              ArgumentMatchers.eq(currentVersion), ArgumentMatchers.eq(reportVersion), any(), any(), any())(any(), any())
           result.header.status mustBe NO_CONTENT
       }
     }
