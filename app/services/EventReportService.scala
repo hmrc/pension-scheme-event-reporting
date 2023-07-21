@@ -135,7 +135,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   private def generateMemberChangeInfo(oldMember: Option[JsObject],
                                        newMember: JsObject,
-                                       currentVersion: Int): Option[MemberChangeInfo] = {
+                                       currentVersion: Int): MemberChangeInfo = {
 
     def noVersion(obj: JsObject) = obj - "amendedVersion" - "memberStatus"
 
@@ -153,7 +153,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       val hasSameVersion = version(newMember).contains(currentVersion)
       val oldMemberStatus = status(oldMember).getOrElse(New())
 
-      val result = (oldMemberStatus, newMemberStatus) match {
+      (oldMemberStatus, newMemberStatus) match {
         case (Deleted(), Deleted()) => MemberChangeInfo(oldMemberVersion, Deleted())
         case (_, Deleted()) => MemberChangeInfo(currentVersion, Deleted())
         case _ => (hasSameVersion, memberChanged, oldMemberStatus) match {
@@ -163,12 +163,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           case (true, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
         }
       }
-
-      Some(result)
     }.getOrElse(
-      if(newMemberStatus == Deleted()) {
-        None
-      } else Some(MemberChangeInfo(currentVersion, New()))
+      MemberChangeInfo(currentVersion, newMemberStatus)
     )
   }
 
@@ -183,18 +179,17 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     def newMembersWithChangeInfo(getMemberDetails: JsObject => scala.collection.IndexedSeq[JsObject]) = {
       val newMembers = getMemberDetails(newUserAnswers)
 
-      newMembers.zipWithIndex.flatMap { case (newMemberDetail, index) =>
+      newMembers.zipWithIndex.map { case (newMemberDetail, index) =>
         val oldMemberDetails = oldUserAnswers.map(getMemberDetails).getOrElse(Seq())
         val oldMemberDetail = Try(oldMemberDetails(index)).toOption
-        generateMemberChangeInfo(
+        val newMemberChangeInfo = generateMemberChangeInfo(
           oldMemberDetail,
           newMemberDetail,
           currentVersion
-        ).map { newMemberChangeInfo =>
-          newMemberDetail +
-            ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
-            ("memberStatus", JsString(newMemberChangeInfo.status.name))
-        }
+        )
+        newMemberDetail +
+          ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
+          ("memberStatus", JsString(newMemberChangeInfo.status.name))
       }
     }
 
@@ -258,6 +253,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
               val data = memberChangeInfoTransformation(oldUserAnswers,
                 compilePayloadService.addRecordVersionToUserAnswersJson(eventType, version.toInt, newUserAnswers), eventType, pstr, version.toInt)
+
+              println(Json.prettyPrint(data))
 
               val fullData = data ++ header
               logger.warn(s"Compiling event type $eventType for year $year and version $version. Payload is: $fullData")
@@ -346,11 +343,22 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       members.map(member => member + ("memberStatus", JsString(Deleted().name)))
     }
 
-    getUserAnswers(externalId, pstr, eventType, year, version.toInt).flatMap {
+    def processMemberEvents = getUserAnswers(externalId, pstr, eventType, year, version.toInt).flatMap {
       case Some(ua) => saveUserAnswers(externalId, pstr, eventType, year, version.toInt, deleteMembersTransform(ua, eventType, memberTransform)).flatMap { _ =>
         compileEventReport(externalId, psaPspId, pstr, eventType, year, version)
       }
       case None => throw new RuntimeException("User answers not available")
+    }
+
+    apiProcessingInfo(eventType, pstr) match {
+      case Some(APIProcessingInfo(apiType, _, _, _)) =>
+        apiType match {
+          case ApiType.Api1827 => processMemberEvents
+          case ApiType.Api1830 => processMemberEvents
+          case ApiType.ApiNone => //TODO: Implement non member event deletion -Pavel Vjalicin
+            Future.successful(NoContent)
+        }
+      case None => throw new RuntimeException(s"Api for event type $eventType is unavailable")
     }
   }
 
