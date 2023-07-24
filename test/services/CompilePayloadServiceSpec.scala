@@ -50,7 +50,8 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
   private val mockEventReportConnector = mock[EventReportConnector]
   private val pstr = "pstr"
   private val year = 2022
-  private val version = "1"
+  private val version = "2"
+  private val currentVersion = "1"
   private val startDate = s"$year-04-06"
   private val eventTypesFor1834ExcludingEvent11: Seq[EventType] = Seq(WindUp, Event10, Event18, Event13, Event20, Event12, Event14, Event19)
   private val eventTypesFor1834ExcludingEvent10: Seq[EventType] = Seq(WindUp, Event18, Event13, Event20, Event12, Event14, Event19, Event11)
@@ -96,9 +97,9 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
           "becomeOrCeaseScheme" -> "itBecameAnInvestmentRegulatedPensionScheme"
         ))
 
-      val sampleWithVersion = compilePayloadService.addRecordVersionToUserAnswersJson(Event10, version.toInt, exampleUA)
+      val sampleWithVersion = compilePayloadService.addRecordVersionToUserAnswersJson(Event10, 2, exampleUA)
       (exampleUA \\ "recordVersion").toList mustEqual List.empty
-      (sampleWithVersion \\ "recordVersion").toList mustEqual List(JsNumber(1))
+      (sampleWithVersion \\ "recordVersion").toList mustEqual List(JsNumber(2))
 
       val expectedUA =
         Json.obj("event10" ->
@@ -171,7 +172,6 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
       val eventTypes = ifResponsesByEventType(eventTypesFor1834ExcludingEvent11)
       eventTypesFor1834ExcludingEvent11.foreach { et =>
         val gdcdi = GetDetailsCacheDataIdentifier(et, year, version.toInt)
-        val etmpResponse = eventTypes(et)
         when(mockGetDetailsCacheRepository.get(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi))(any()))
           .thenReturn(Future.successful(Some(et match {
             case Event10 => Json.obj()
@@ -183,7 +183,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
         .thenReturn(Future.successful((): Unit))
 
       val service = new CompilePayloadService(mockGetDetailsCacheRepository, mockEventReportConnector)
-      whenReady(service.collatePayloadsAndUpdateCache(pstr, year, version, ApiType.Api1826,
+      whenReady(service.collatePayloadsAndUpdateCache(pstr, year, currentVersion, version, ApiType.Api1826,
         EventType.Event11, event11Payload)(global, implicitly)) { result =>
         validator.validatePayload(result, SchemaPath1826, "API1834") mustBe Success((): Unit)
         val eventDetailsNode = (result \ "eventDetails").as[JsObject]
@@ -216,7 +216,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
         .thenReturn(Future.successful((): Unit))
 
       val service = new CompilePayloadService(mockGetDetailsCacheRepository, mockEventReportConnector)
-      whenReady(service.collatePayloadsAndUpdateCache(pstr, year, version, ApiType.Api1826,
+      whenReady(service.collatePayloadsAndUpdateCache(pstr, year, currentVersion, version, ApiType.Api1826,
         EventType.Event11, event11Payload)(global, implicitly)) { result =>
 
         validator.validatePayload(result, SchemaPath1826, "API1834") mustBe Success((): Unit)
@@ -236,7 +236,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
     "interpolate event 11 payload to all other event types for 1834 (summary) where nothing in cache but values present in API but not for events 10 & 11" in {
       val event11Payload = generateUserAnswersAndPOSTBodyEvent11.sample.get._2
       when(mockEventReportConnector.getEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(startDate),
-        ArgumentMatchers.eq(version), ArgumentMatchers.eq(None))(any(), any()))
+        ArgumentMatchers.eq(currentVersion), ArgumentMatchers.eq(None))(any(), any()))
         .thenReturn(Future.successful(Some(ifResponseFromGetEvent(eventTypesFor1834ExcludingEvent10And11))))
       eventTypesFor1834ExcludingEvent11.foreach { et =>
         val gdcdi = GetDetailsCacheDataIdentifier(et, year, version.toInt)
@@ -251,7 +251,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
         .thenReturn(Future.successful((): Unit))
 
       val service = new CompilePayloadService(mockGetDetailsCacheRepository, mockEventReportConnector)
-      whenReady(service.collatePayloadsAndUpdateCache(pstr, year, version, ApiType.Api1826,
+      whenReady(service.collatePayloadsAndUpdateCache(pstr, year, currentVersion, version, ApiType.Api1826,
         EventType.Event11, event11Payload)(global, implicitly)) { result =>
         validator.validatePayload(result, SchemaPath1826, "API1834") mustBe Success((): Unit)
         val eventDetailsNode = (result \ "eventDetails").as[JsObject]
@@ -277,7 +277,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
         when(mockGetDetailsCacheRepository.upsert(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi), any())(any()))
           .thenReturn(Future.successful((): Unit))
         when(mockEventReportConnector.getEvent(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(startDate),
-          ArgumentMatchers.eq(version), ArgumentMatchers.eq(None))(any(), any()))
+          ArgumentMatchers.eq(currentVersion), ArgumentMatchers.eq(None))(any(), any()))
           .thenReturn(Future.successful(None))
       }
       val gdcdi = GetDetailsCacheDataIdentifier(Event11, year, version.toInt)
@@ -285,7 +285,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
         .thenReturn(Future.successful((): Unit))
 
       val service = new CompilePayloadService(mockGetDetailsCacheRepository, mockEventReportConnector)
-      whenReady(service.collatePayloadsAndUpdateCache(pstr, year, version, ApiType.Api1826,
+      whenReady(service.collatePayloadsAndUpdateCache(pstr, year, currentVersion, version, ApiType.Api1826,
         EventType.Event11, event11Payload)(global, implicitly)) { result =>
         validator.validatePayload(result, SchemaPath1826, "API1834") mustBe Success((): Unit)
         val eventDetailsNode = (result \ "eventDetails").as[JsObject]

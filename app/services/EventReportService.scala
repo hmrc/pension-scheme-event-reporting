@@ -58,15 +58,20 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                        connectToAPI: (String, String, JsValue, String) => Future[HttpResponse]
                                       )
 
-  private def apiProcessingInfo(eventType: EventType, pstr: String)
+  private def apiProcessingInfo(eventType: EventType, pstr: String, delete: Boolean)
                                (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Option[APIProcessingInfo] = {
     EventType.postApiTypeByEventType(eventType) flatMap {
       case Api1826 =>
-        Some(APIProcessingInfo(Api1826, API1826.transformToETMPData, SchemaPath1826, eventReportConnector.compileEventReportSummary))
+        Some(APIProcessingInfo(
+          Api1826,
+          API1826.transformToETMPData(eventType, delete),
+          SchemaPath1826,
+          eventReportConnector.compileEventReportSummary
+        ))
       case Api1827 =>
-        Some(APIProcessingInfo(Api1827, API1827.transformToETMPData, SchemaPath1827, eventReportConnector.compileEventOneReport))
+        Some(APIProcessingInfo(Api1827, API1827.transformToETMPData(delete), SchemaPath1827, eventReportConnector.compileEventOneReport))
       case Api1830 =>
-        Some(APIProcessingInfo(Api1830, API1830.transformToETMPData(eventType, pstr), SchemaPath1830,
+        Some(APIProcessingInfo(Api1830, API1830.transformToETMPData(eventType, pstr, delete), SchemaPath1830,
           eventReportConnector.compileMemberEventReport))
       case _ => None
     }
@@ -143,6 +148,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
     def status(obj: JsObject) = obj.value.get("memberStatus").map(_.as[String]).map(stringToMemberStatus)
 
+    val newMemberStatus = status(newMember).getOrElse(New())
+
     oldMember.map { oldMember =>
       val oldMemberNoVersion = noVersion(oldMember)
       val newMemberNoVersion = noVersion(newMember)
@@ -151,14 +158,18 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       val hasSameVersion = version(newMember).contains(currentVersion)
       val oldMemberStatus = status(oldMember).getOrElse(New())
 
-      (hasSameVersion, memberChanged, oldMemberStatus) match {
-        case (false, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
-        case (true, _, New()) => MemberChangeInfo(oldMemberVersion, New())
-        case (false, true, _) => MemberChangeInfo(currentVersion, Changed())
-        case (true, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
+      (oldMemberStatus, newMemberStatus) match {
+        case (Deleted(), Deleted()) => MemberChangeInfo(oldMemberVersion, Deleted())
+        case (_, Deleted()) => MemberChangeInfo(currentVersion, Deleted())
+        case _ => (hasSameVersion, memberChanged, oldMemberStatus) match {
+          case (false, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
+          case (true, _, New()) => MemberChangeInfo(oldMemberVersion, New())
+          case (false, true, _) => MemberChangeInfo(currentVersion, Changed())
+          case (true, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
+        }
       }
     }.getOrElse(
-      MemberChangeInfo(currentVersion, New())
+      MemberChangeInfo(currentVersion, newMemberStatus)
     )
   }
 
@@ -167,7 +178,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                              newUserAnswers: JsObject,
                                              eventType: EventType,
                                              pstr: String,
-                                             currentVersion: Int)
+                                             currentVersion: Int,
+                                             delete: Boolean)
                                             (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): JsObject = {
 
     def newMembersWithChangeInfo(getMemberDetails: JsObject => scala.collection.IndexedSeq[JsObject]) = {
@@ -181,14 +193,13 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           newMemberDetail,
           currentVersion
         )
-
         newMemberDetail +
           ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
           ("memberStatus", JsString(newMemberChangeInfo.status.name))
       }
     }
 
-    apiProcessingInfo(eventType, pstr) match {
+    apiProcessingInfo(eventType, pstr, delete) match {
       case Some(APIProcessingInfo(apiType, _, _, _)) =>
         apiType match {
           case ApiType.Api1827 =>
@@ -230,9 +241,16 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def compileEventReport(externalId: String, psaPspId: String, pstr: String, eventType: EventType, year: Int, version: String)
+  def compileEventReport(externalId: String,
+                         psaPspId: String,
+                         pstr: String,
+                         eventType: EventType,
+                         year: Int,
+                         version: String,
+                         currentVersion: String,
+                         deleteEvent: Boolean = false)
                         (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
-    apiProcessingInfo(eventType, pstr) match {
+    apiProcessingInfo(eventType, pstr, deleteEvent) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
         val resp = for {
           newUserAnswers <- eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(eventType, year, version.toInt, externalId)))
@@ -247,7 +265,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               )
 
               val data = memberChangeInfoTransformation(oldUserAnswers,
-                compilePayloadService.addRecordVersionToUserAnswersJson(eventType, version.toInt, newUserAnswers), eventType, pstr, version.toInt)
+                compilePayloadService.addRecordVersionToUserAnswersJson(eventType, version.toInt, newUserAnswers), eventType, pstr, version.toInt, deleteEvent)
 
               val fullData = data ++ header
               logger.warn(s"Compiling event type $eventType for year $year and version $version. Payload is: $fullData")
@@ -256,6 +274,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                 collatedData <- compilePayloadService.collatePayloadsAndUpdateCache(
                   pstr,
                   year,
+                  currentVersion,
                   version,
                   apiType,
                   eventType,
@@ -276,6 +295,54 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         resp.flatten
       case _ => Future.successful(BadRequest(s"Compile unimplemented for event type $eventType"))
     }
+  }
+
+  def deleteMember(externalId: String,
+                   psaPspId: String,
+                   pstr: String,
+                   eventType: EventType,
+                   year: Int,
+                   version: String,
+                   memberIdToDelete: Int,
+                   currentVersion: String)
+                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
+
+    def memberTransform(members: Seq[JsObject]): Seq[JsObject] = {
+      val member = Try(members(memberIdToDelete)) match {
+        case Failure(exception) => throw new RuntimeException("Member does not exist", exception)
+        case Success(member) => member + ("memberStatus", JsString(Deleted().name))
+      }
+      members.updated(memberIdToDelete, member)
+    }
+
+    getUserAnswers(externalId, pstr, eventType, year, version.toInt).flatMap {
+      case Some(ua) => saveUserAnswers(externalId, pstr, eventType, year, version.toInt, deleteMembersTransform(ua, eventType, memberTransform)).flatMap { _ =>
+        compileEventReport(externalId, psaPspId, pstr, eventType, year, version, currentVersion)
+      }
+      case None => throw new RuntimeException("User answers not available")
+    }
+
+  }
+
+  private def deleteMembersTransform(ua: JsObject, eventType: EventType, membersTransform: Seq[JsObject] => Seq[JsObject]): JsObject = {
+    def membersPath = eventType match {
+      case EventType.Event1 => "membersOrEmployers"
+      case _ => "members"
+    }
+
+    val eventPath = "event" + eventType
+
+    val event = ua.value.getOrElse(eventPath, throw new RuntimeException("Event not available")).as[JsObject].value
+    val members = event
+      .getOrElse(membersPath, throw new RuntimeException("Members not available"))
+      .as[JsArray].value
+      .map(_.as[JsObject])
+
+    val newMembers = membersTransform(members.toSeq)
+
+    val newEvent = Json.toJson(event).as[JsObject] + (membersPath, Json.toJson(newMembers))
+
+    ua + (eventPath, newEvent)
   }
 
   private val api1832Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23)

@@ -20,7 +20,7 @@ import connectors.EventReportConnector
 import models.enumeration.EventType
 import models.enumeration.EventType.{Event1, Event20A, Event22, Event3, WindUp}
 import models.{EROverview, EROverviewVersion, ERVersion, EventDataIdentifier}
-import org.mockito.{ArgumentCaptor, ArgumentMatchers}
+import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import org.scalacheck.Gen
@@ -86,13 +86,13 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     reset(mockJSONPayloadSchemaValidator)
     reset(mockCompilePayloadService)
     when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any())).thenReturn(Success(()))
-    when(mockCompilePayloadService.collatePayloadsAndUpdateCache(any(), any(), any(), any(), any(), any())(any(), any()))
+    when(mockCompilePayloadService.collatePayloadsAndUpdateCache(any(), any(), any(), any(), any(), any(), any())(any(), any()))
       .thenReturn(Future.successful(Json.obj()))
   }
 
   "compileEventReport for unimplemented api type" must {
     "return Bad Request" in {
-      eventReportService.compileEventReport(externalId, psaId, "pstr", Event20A, year, reportVersion)(implicitly, implicitly, implicitly).map {
+      eventReportService.compileEventReport(externalId, psaId, "pstr", Event20A, year, reportVersion, reportVersion)(implicitly, implicitly, implicitly).map {
         result => result.header.status mustBe BAD_REQUEST
       }
     }
@@ -104,7 +104,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(responseJsonEvent1WithRecordVersion)
       when(mockEventReportCacheRepository.getUserAnswers(any(), any(), any())(any()))
         .thenReturn(Future.successful(None))
-      eventReportService.compileEventReport(externalId, psaId, "pstr", Event1, year, reportVersion)(implicitly, implicitly, implicitly).map {
+      eventReportService.compileEventReport(externalId, psaId, "pstr", Event1, year, reportVersion, reportVersion)(implicitly, implicitly, implicitly).map {
         result => result.header.status mustBe NOT_FOUND
       }
     }
@@ -120,7 +120,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportConnector.compileEventOneReport(any(), any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
-      eventReportService.compileEventReport(externalId, psaId, "pstr", Event1, year, reportVersion).map {
+      eventReportService.compileEventReport(externalId, psaId, "pstr", Event1, year, reportVersion, reportVersion).map {
         result => result.header.status mustBe NO_CONTENT
       }
     }
@@ -136,7 +136,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Failure(new Exception("Message")))
 
       recoverToExceptionIf[Exception] {
-        eventReportService.compileEventReport(externalId, psaId, "pstr", Event1, year, reportVersion)
+        eventReportService.compileEventReport(externalId, psaId, "pstr", Event1, year, reportVersion, reportVersion)
       } map {
         failure =>
           failure.getMessage mustBe "Message"
@@ -155,7 +155,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
 
       recoverToExceptionIf[UpstreamErrorResponse] {
-        eventReportService.compileEventReport(externalId, psaId, "pstr", Event1, year, reportVersion)
+        eventReportService.compileEventReport(externalId, psaId, "pstr", Event1, year, reportVersion, reportVersion)
       } map {
         _.statusCode mustBe INTERNAL_SERVER_ERROR
       }
@@ -166,26 +166,44 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     "return Not Found when no data returned from repository" in {
       when(mockEventReportCacheRepository.getUserAnswers(any(), any(), any())(any()))
         .thenReturn(Future.successful(None))
-      eventReportService.compileEventReport(externalId, psaId, "pstr", WindUp, year, reportVersion)(implicitly, implicitly, implicitly).map {
+
+      val reportVersion = "2"
+      val currentVersion = "1"
+      when(mockCompilePayloadService.collatePayloadsAndUpdateCache(any(), any(),
+        ArgumentMatchers.eq(currentVersion), ArgumentMatchers.eq(reportVersion), any(), any(), any())(any(), any()))
+        .thenReturn(Future.successful(Json.obj()))
+
+      eventReportService.compileEventReport(externalId, psaId, "pstr", WindUp, year, currentVersion, reportVersion)(implicitly, implicitly, implicitly).map {
+        verify(mockCompilePayloadService, times(0))
+          .collatePayloadsAndUpdateCache(any(), any(),
+            ArgumentMatchers.eq(currentVersion), ArgumentMatchers.eq(reportVersion), any(), any(), any())(any(), any())
         result => result.header.status mustBe NOT_FOUND
       }
     }
 
 
     "return 204 No Content when valid data return from repository - event wind up" in {
+      val reportVersion = "2"
+      val currentVersion = "1"
       when(mockCompilePayloadService.addRecordVersionToUserAnswersJson(any(), any(), any()))
         .thenReturn(uaJsonEventWindUpWithRecordVersion)
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(WindUp, 2020, 2, externalId))))(any()))
-        .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr + "_original_cache"), eqTo(Some(EventDataIdentifier(WindUp, 2020, 2, externalId))))(any()))
-        .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
+      when(mockEventReportCacheRepository.getUserAnswers(
+        any(), any(), any())(any())
+      ).thenReturn(Future.successful(Some(uaJsonEventWindUp)))
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(None))(any()))
         .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
       when(mockEventReportConnector.compileEventReportSummary(any(), any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
-      eventReportService.compileEventReport(externalId, psaId, "pstr", WindUp, year, "2").map {
+      when(mockCompilePayloadService.collatePayloadsAndUpdateCache(any(), any(),
+        any(), any(), any(), any(), any())(any(), any()))
+        .thenReturn(Future.successful(Json.obj()))
+
+      eventReportService.compileEventReport(externalId, psaId, "pstr", WindUp, year, currentVersion, reportVersion).map {
         result =>
+          verify(mockCompilePayloadService, times(1))
+            .collatePayloadsAndUpdateCache(any(), any(),
+              any(), any(), any(), any(), any())(any(), any())
           result.header.status mustBe NO_CONTENT
       }
     }
@@ -204,7 +222,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Failure(new Exception("Message")))
 
       recoverToExceptionIf[Exception] {
-        eventReportService.compileEventReport(externalId, psaId, "pstr", WindUp, year, reportVersion)
+        eventReportService.compileEventReport(externalId, psaId, "pstr", WindUp, year, reportVersion, reportVersion)
       } map {
         failure =>
           failure.getMessage mustBe "Message"
@@ -223,7 +241,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Future.failed(UpstreamErrorResponse(message = "Internal Server Error", INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR)))
 
       recoverToExceptionIf[UpstreamErrorResponse] {
-        eventReportService.compileEventReport(externalId, psaId, "pstr", WindUp, year, reportVersion)
+        eventReportService.compileEventReport(externalId, psaId, "pstr", WindUp, year, reportVersion, reportVersion)
       } map {
         _.statusCode mustBe INTERNAL_SERVER_ERROR
       }
@@ -248,7 +266,6 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
   "getEventSummary" must {
     "return the payload from the connector for API1834 and API1831" in {
-      val response = Set("1", "2", "3", "4", "5", "6", "7", "8", "8A", "10", "11", "12", "13", "14", "18", "19", "20", "22", "23", "WindUp", "20A")
       when(mockEventReportConnector.getEvent(pstr, startDate, reportVersion, None)(implicitly, implicitly))
         .thenReturn(Future.successful(responseJsonForAPI1834))
       when(mockEventReportConnector.getEvent(pstr, startDate, reportVersion, Some(Event20A))(implicitly, implicitly))
@@ -256,7 +273,30 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       eventReportService.getEventSummary(pstr, reportVersion, startDate).map { result =>
         verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, reportVersion, None)(implicitly, implicitly)
         verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, reportVersion, Some(Event20A))(implicitly, implicitly)
-        result.value.map(_.validate[String].get).toSet mustBe response
+
+        val expected = Json.parse(
+          """ [{"eventType":"1","recordVersion":2},
+            |{"eventType":"2","recordVersion":1},
+            |{"eventType":"3","recordVersion":2},
+            |{"eventType":"4","recordVersion":1},
+            |{"eventType":"5","recordVersion":4},
+            |{"eventType":"6","recordVersion":7},
+            |{"eventType":"7","recordVersion":2},
+            |{"eventType":"8","recordVersion":4},
+            |{"eventType":"8A","recordVersion":3},
+            |{"eventType":"10","recordVersion":1},
+            |{"eventType":"11","recordVersion":1},
+            |{"eventType":"12","recordVersion":1},
+            |{"eventType":"13","recordVersion":1},
+            |{"eventType":"14","recordVersion":1},
+            |{"eventType":"18","recordVersion":1},
+            |{"eventType":"19","recordVersion":1},
+            |{"eventType":"20","recordVersion":1},
+            |{"eventType":"22","recordVersion":4},
+            |{"eventType":"23","recordVersion":3},
+            |{"eventType":"WindUp","recordVersion":1},
+            |{"eventType":"20A","recordVersion":1}]""".stripMargin).as[JsArray]
+        result mustBe expected
       }
     }
   }

@@ -491,11 +491,11 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     "return 204 No Content when valid response" in {
       when(mockAuthConnector.authorise[Option[String] ~ Enrolments](any(), any())(any(), any())) thenReturn
         Future.successful(new~(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"), enrolments))
-      when(mockEventReportService.compileEventReport(any(), any(), any(), any(), any(), any())(any(), any(), any()))
+      when(mockEventReportService.compileEventReport(any(), any(), any(), any(), any(), any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(NoContent))
 
       val result = controller.compileEvent(fakeRequest.withJsonBody(compileEventSuccessResponse).withHeaders(
-        newHeaders = "pstr" -> pstr, "eventType" -> "1", "year" -> "2020", "reportVersion" -> "1", externalId -> externalId, "version" -> reportVersion))
+        newHeaders = "pstr" -> pstr, "eventType" -> "1", "year" -> "2020", "currentVersion" -> "1", "reportVersion" -> "1", externalId -> externalId, "version" -> reportVersion))
 
       status(result) mustBe NO_CONTENT
     }
@@ -512,6 +512,46 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       }
     }
   }
+
+  "deleteMember" must {
+    "return 204 No Content when valid response" in {
+      when(mockAuthConnector.authorise[Option[String] ~ Enrolments](any(), any())(any(), any())) thenReturn
+        Future.successful(new~(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"), enrolments))
+      when(mockEventReportService.deleteMember(any(), any(), any(), any(), any(), any(), any(), any())(any(), any(), any()))
+        .thenReturn(Future.successful(NoContent))
+
+      val result = controller.deleteMember()(fakeRequest.withJsonBody(compileEventSuccessResponse).withHeaders(
+        newHeaders = "pstr" -> pstr,
+        "eventType" -> "1",
+        "year" -> "2020",
+        "reportVersion" -> "1",
+        externalId -> externalId,
+        "version" -> reportVersion,
+        "memberIdToDelete" -> "0",
+        "currentVersion" -> "1")
+      )
+
+      status(result) mustBe NO_CONTENT
+    }
+
+    "throw a 401 Unauthorised Exception if auth fails" in {
+      when(mockAuthConnector.authorise[Option[String] ~ Enrolments](any(), any())(any(), any())) thenReturn
+        Future.successful(new~(None, enrolments))
+      recoverToExceptionIf[UnauthorizedException] {
+        controller.deleteMember()(fakeRequest.withJsonBody(compileEventSuccessResponse)
+          .withHeaders(newHeaders =
+            "pstr" -> pstr,
+            "eventType" -> "1",
+            externalId -> externalId,
+            "version" -> reportVersion,
+            "memberIdToDelete" -> "0"))
+      } map { response =>
+        response.responseCode mustBe UNAUTHORIZED
+        response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
+      }
+    }
+  }
+
 }
 
 object EventReportControllerSpec {

@@ -252,15 +252,16 @@ object API1827 extends Transformer {
     }).flatMap[JsObject](identity)
   }
 
-  val transformToETMPData: Reads[JsObject] = {
+  def transformToETMPData(delete:Boolean): Reads[JsObject] = {
     val reads = (__ \ Symbol("event1") \ Symbol("membersOrEmployers")).readNullable[JsArray](__.read(Reads.seq(readsMember))
-      .map(JsArray(_))).map { optionJsArray =>
-      val jsonArray = optionJsArray.getOrElse(Json.arr())
-      Json.obj(
-        "event1Details" -> Json.obj(
-          "event1Details" -> jsonArray
+      .map(JsArray(_))).map {
+        case None =>  Json.obj()
+        case Some(x) =>
+          if(delete) Json.obj() else Json.obj(
+            "event1Details" -> Json.obj(
+              "event1Details" -> x
+            )
         )
-      )
     }
 
     for {

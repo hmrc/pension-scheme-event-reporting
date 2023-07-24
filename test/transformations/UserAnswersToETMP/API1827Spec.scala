@@ -29,7 +29,7 @@ class API1827Spec extends AnyFreeSpec with Matchers
     "must transform a randomly generated valid payload correctly" in {
       forAll(generateUserAnswersAndPOSTBody) {
         case (userAnswers: JsObject, expectedResponse: JsObject) =>
-          val result = userAnswers.validate(API1827.transformToETMPData)
+          val result = userAnswers.validate(API1827.transformToETMPData(false))
           val expectedResult = JsSuccess(expectedResponse)
           result mustBe expectedResult
       }
