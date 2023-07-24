@@ -495,7 +495,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         .thenReturn(Future.successful(NoContent))
 
       val result = controller.compileEvent(fakeRequest.withJsonBody(compileEventSuccessResponse).withHeaders(
-        newHeaders = "pstr" -> pstr, "eventType" -> "1", "year" -> "2020", "reportVersion" -> "1", externalId -> externalId, "version" -> reportVersion))
+        newHeaders = "pstr" -> pstr, "eventType" -> "1", "year" -> "2020", "currentVersion" -> "1", "reportVersion" -> "1", externalId -> externalId, "version" -> reportVersion))
 
       status(result) mustBe NO_CONTENT
     }
