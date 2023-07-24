@@ -64,7 +64,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case Api1826 =>
         Some(APIProcessingInfo(
           Api1826,
-          API1826.transformToETMPData(if(delete) Some(eventType) else None),
+          API1826.transformToETMPData(eventType, delete),
           SchemaPath1826,
           eventReportConnector.compileEventReportSummary
         ))

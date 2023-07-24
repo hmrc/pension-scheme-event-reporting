@@ -256,7 +256,7 @@ object API1826 extends Transformer {
   }
 
 
-  def transformToETMPData(deleteEvent: Option[EventType]): Reads[JsObject] = {
+  def transformToETMPData(deleteEvent: EventType, delete: Boolean): Reads[JsObject] = {
 
     def eventTypeNodes(events: Seq[JsObject]): JsObject = {
       val eventDetailNodes = events.foldLeft(Json.obj())((a, b) => a ++ b)
@@ -266,11 +266,9 @@ object API1826 extends Transformer {
 
 
     def deleteEventTransform(eventType: EventType, reads:Reads[Option[JsObject]]) = {
-      deleteEvent.map { deleteEvent =>
-        if(deleteEvent == eventType) Reads.pure(None):Reads[Option[JsObject]]
-        else reads
-      }.getOrElse(reads)
-
+      if(delete && deleteEvent == eventType) {
+        Reads.pure(None):Reads[Option[JsObject]]
+      } else reads
     }
 
     for {
