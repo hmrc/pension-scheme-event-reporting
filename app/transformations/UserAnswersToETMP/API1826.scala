@@ -16,6 +16,7 @@
 
 package transformations.UserAnswersToETMP
 
+import models.enumeration.EventType
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json.Reads.JsObjectReducer
 import play.api.libs.json._
@@ -255,23 +256,33 @@ object API1826 extends Transformer {
   }
 
 
-  val transformToETMPData: Reads[JsObject] = {
+  def transformToETMPData(deleteEvent: Option[EventType]): Reads[JsObject] = {
 
     def eventTypeNodes(events: Seq[JsObject]): JsObject = {
       val eventDetailNodes = events.foldLeft(Json.obj())((a, b) => a ++ b)
       if (events.isEmpty) Json.obj() else Json.obj("eventDetails" -> eventDetailNodes)
     }
 
+
+
+    def deleteEventTransform(eventType: EventType, reads:Reads[Option[JsObject]]) = {
+      deleteEvent.map { deleteEvent =>
+        if(deleteEvent == eventType) Reads.pure(None):Reads[Option[JsObject]]
+        else reads
+      }.getOrElse(reads)
+
+    }
+
     for {
-      ev10 <- event10Reads
-      ev11 <- event11Reads
-      ev12 <- event12Reads
-      ev13 <- event13Reads
-      ev14 <- event14Reads
-      ev18 <- event18Reads
-      ev19 <- event19Reads
-      ev20 <- event20Reads
-      schWindUp <- schemeWindUpReads
+      ev10 <- deleteEventTransform(EventType.Event10,event10Reads)
+      ev11 <- deleteEventTransform(EventType.Event11,event11Reads)
+      ev12 <- deleteEventTransform(EventType.Event12,event12Reads)
+      ev13 <- deleteEventTransform(EventType.Event13,event13Reads)
+      ev14 <- deleteEventTransform(EventType.Event14,event14Reads)
+      ev18 <- deleteEventTransform(EventType.Event18,event18Reads)
+      ev19 <- deleteEventTransform(EventType.Event19,event19Reads)
+      ev20 <- deleteEventTransform(EventType.Event20,event20Reads)
+      schWindUp <- deleteEventTransform(EventType.WindUp, schemeWindUpReads)
       header <- HeaderForAllAPIs.transformToETMPData()
     } yield {
       header ++ eventTypeNodes((ev10 ++ ev11 ++ ev12 ++ ev13 ++ ev14 ++ ev18 ++ ev19 ++ ev20 ++ schWindUp).toSeq)
