@@ -303,7 +303,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                    eventType: EventType,
                    year: Int,
                    version: String,
-                   memberIdToDelete: Int)
+                   memberIdToDelete: Int,
+                   currentVersion: String)
                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
 
     def memberTransform(members: Seq[JsObject]): Seq[JsObject] = {
@@ -316,7 +317,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
     getUserAnswers(externalId, pstr, eventType, year, version.toInt).flatMap {
       case Some(ua) => saveUserAnswers(externalId, pstr, eventType, year, version.toInt, deleteMembersTransform(ua, eventType, memberTransform)).flatMap { _ =>
-        compileEventReport(externalId, psaPspId, pstr, eventType, year, version)
+        compileEventReport(externalId, psaPspId, pstr, eventType, year, version, currentVersion)
       }
       case None => throw new RuntimeException("User answers not available")
     }
