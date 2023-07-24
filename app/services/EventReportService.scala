@@ -260,8 +260,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               val data = memberChangeInfoTransformation(oldUserAnswers,
                 compilePayloadService.addRecordVersionToUserAnswersJson(eventType, version.toInt, newUserAnswers), eventType, pstr, version.toInt, deleteEvent)
 
-              println(Json.prettyPrint(data))
-
               val fullData = data ++ header
               logger.warn(s"Compiling event type $eventType for year $year and version $version. Payload is: $fullData")
               for {
@@ -276,7 +274,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                 _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(collatedData, schemaPath, apiType.toString))
                 response <- connectToAPI(psaPspId, pstr, collatedData, version)
               } yield {
-                println(Json.prettyPrint(collatedData))
                 response.status match {
                   case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
                   case _ =>
@@ -311,8 +308,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
     getUserAnswers(externalId, pstr, eventType, year, version.toInt).flatMap {
       case Some(ua) => saveUserAnswers(externalId, pstr, eventType, year, version.toInt, deleteMembersTransform(ua, eventType, memberTransform)).flatMap { _ =>
-        println("Delete member transform")
-        println(Json.prettyPrint(deleteMembersTransform(ua, eventType, memberTransform)))
         compileEventReport(externalId, psaPspId, pstr, eventType, year, version)
       }
       case None => throw new RuntimeException("User answers not available")
