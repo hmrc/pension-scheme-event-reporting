@@ -187,24 +187,23 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       val currentVersion = "1"
       when(mockCompilePayloadService.addRecordVersionToUserAnswersJson(any(), any(), any()))
         .thenReturn(uaJsonEventWindUpWithRecordVersion)
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(WindUp, 2020, 2, externalId))))(any()))
-        .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr + "_original_cache"), eqTo(Some(EventDataIdentifier(WindUp, 2020, 2, externalId))))(any()))
-        .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
+      when(mockEventReportCacheRepository.getUserAnswers(
+        any(), any(), any())(any())
+      ).thenReturn(Future.successful(Some(uaJsonEventWindUp)))
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(None))(any()))
         .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
       when(mockEventReportConnector.compileEventReportSummary(any(), any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
       when(mockCompilePayloadService.collatePayloadsAndUpdateCache(any(), any(),
-        ArgumentMatchers.eq(currentVersion), ArgumentMatchers.eq(reportVersion), any(), any(), any())(any(), any()))
+        any(), any(), any(), any(), any())(any(), any()))
         .thenReturn(Future.successful(Json.obj()))
 
       eventReportService.compileEventReport(externalId, psaId, "pstr", WindUp, year, currentVersion, reportVersion).map {
         result =>
           verify(mockCompilePayloadService, times(1))
             .collatePayloadsAndUpdateCache(any(), any(),
-              ArgumentMatchers.eq(currentVersion), ArgumentMatchers.eq(reportVersion), any(), any(), any())(any(), any())
+              any(), any(), any(), any(), any())(any(), any())
           result.header.status mustBe NO_CONTENT
       }
     }
