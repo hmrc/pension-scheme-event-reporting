@@ -25,7 +25,7 @@ import transformations.Transformer
 
 object API1830 extends Transformer {
 
-  def transformToETMPData(eventType: EventType, pstr: String, delete: Boolean): Reads[JsObject] = {
+  def transformToETMPData(eventType: EventType, pstr: String): Reads[JsObject] = {
     val extraFieldsForHeaderReads = Reads.pure(
       Json.obj(
         "eventReportDetails" -> Json.obj(
@@ -43,9 +43,9 @@ object API1830 extends Transformer {
         readsIndividualMemberDetailsByEventType(eventType)))
         .map(JsArray(_))).map { optionJsArray =>
         val jsonArray = optionJsArray.getOrElse(Json.arr())
-        val eventDetails = if(delete) Json.obj() else Json.obj(
+        val eventDetails = Json.obj(
           "eventDetails" -> jsonArray
-        )
+          )
         Json.obj("memberEventsDetails" -> (eventDetails ++ fullHdr))
       }
     }

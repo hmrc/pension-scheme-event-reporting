@@ -69,9 +69,9 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           eventReportConnector.compileEventReportSummary
         ))
       case Api1827 =>
-        Some(APIProcessingInfo(Api1827, API1827.transformToETMPData(delete), SchemaPath1827, eventReportConnector.compileEventOneReport))
+        Some(APIProcessingInfo(Api1827, API1827.transformToETMPData, SchemaPath1827, eventReportConnector.compileEventOneReport))
       case Api1830 =>
-        Some(APIProcessingInfo(Api1830, API1830.transformToETMPData(eventType, pstr, delete), SchemaPath1830,
+        Some(APIProcessingInfo(Api1830, API1830.transformToETMPData(eventType, pstr), SchemaPath1830,
           eventReportConnector.compileMemberEventReport))
       case _ => None
     }
@@ -322,6 +322,38 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case None => throw new RuntimeException("User answers not available")
     }
 
+  }
+
+  def deleteEvent(externalId: String,
+                  psaPspId: String,
+                  pstr: String,
+                  eventType: EventType,
+                  year: Int,
+                  version: String,
+                  currentVersion: String)
+                 (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
+    def memberTransform(members: Seq[JsObject]): Seq[JsObject] = {
+      members.map(member => member + ("memberStatus", JsString(Deleted().name)))
+    }
+
+    def cer = compileEventReport(externalId, psaPspId, pstr, eventType, year, version, currentVersion, true)
+
+    def processMemberEvents = getUserAnswers(externalId, pstr, eventType, year, version.toInt).flatMap {
+      case Some(ua) => saveUserAnswers(externalId, pstr, eventType, year, version.toInt, deleteMembersTransform(ua, eventType, memberTransform)).flatMap { _ =>
+        cer
+      }
+      case None => throw new RuntimeException("User answers not available")
+    }
+
+    apiProcessingInfo(eventType, pstr, true) match {
+      case Some(APIProcessingInfo(apiType, _, _, _)) =>
+        apiType match {
+          case ApiType.Api1827 => processMemberEvents
+          case ApiType.Api1830 => processMemberEvents
+          case _ => cer
+        }
+      case None => throw new RuntimeException(s"Api for event type $eventType is unavailable")
+    }
   }
 
   private def deleteMembersTransform(ua: JsObject, eventType: EventType, membersTransform: Seq[JsObject] => Seq[JsObject]): JsObject = {
