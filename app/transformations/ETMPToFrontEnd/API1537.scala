@@ -25,11 +25,11 @@ import play.api.libs.json._
 // Some([{"versionInfo":{"version":1,"status":"submitted","submitterName":"ABC Limited"}}]) (API1537Spec.scala:60)
 object API1537 {
 
-  private val test: Reads[JsString] = jsVal => jsVal match {
-    case JsString("SubmittedAndInProgress") => Reads.pure(JsString("submitted"))
+  private val test: JsValue => JsString = {
+    case JsString("SubmittedAndInProgress") => JsString("submitted")
     case JsString("SubmittedAndSuccessfullyProcessed") => (JsString("submitted"))
     case JsString("Compiled") => JsString("compiled")
-    case _ => JsError()
+    case e => throw new RuntimeException("Not a string: " + e)
   }
 
   private val readsDetail = (

@@ -16,6 +16,7 @@
 
 package transformations.ETMPToFrontEnd
 
+import org.scalacheck.Gen
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
@@ -28,38 +29,61 @@ class API1537Spec extends AnyFreeSpec
   "Reads" - {
 
     "transform a valid payload from API 1533 correctly" in {
-      val payload = Json.parse("""  [
-                      |    {
-                      |      "reportFormBundleNumber": "123456785015",
-                      |      "reportVersion": 1,
-                      |      "reportStatus": "SubmittedAndInProgress",
-                      |      "compilationOrSubmissionDate": "2021-04-01T09:30:47Z",
-                      |      "reportSubmitterDetails": {
-                      |        "reportSubmittedBy": "PSP",
-                      |        "orgOrPartnershipDetails": {
-                      |          "orgOrPartnershipName": "ABC Limited"
-                      |        }
-                      |      },
-                      |      "psaDetails": {
-                      |        "psaOrgOrPartnershipDetails": {
-                      |          "orgOrPartnershipName": "XYZ Limited"
-                      |        }
-                      |      }
-                      |    }
-                      |  ]""".stripMargin)
+      for {
+        reportStatus <- Gen.oneOf(Seq("SubmittedAndInProgress", "SubmittedAndSuccessfullyProcessed", "Compiled"))
+        version <- Gen.oneOf(1, 2, 3)
+        orgOrInd <- Gen.oneOf("organisationOrPartnershipDetails", "individualDetails")
+      } yield {
 
-      val expected = Json.arr(Json.obj(
-        "versionInfo" -> Json.obj(
-        "version"-> 1,
-          "status" -> "submitted"
-      ),
-        "submitterName" ->  "ABC Limited"
-      ))
+        val x = orgOrInd match {
+          case "organisationOrPartnershipDetails" => Json.obj(
 
-      val result = payload.validate(API1537.reads).asOpt
+          )
+          case _ =>
+            Json.obj(
 
-      result mustBe Some(expected)
+            )
+        }
+
+        val payload = Json.parse(
+          s"""  [
+            |    {
+            |      "reportFormBundleNumber": "123456785015",
+            |      "reportVersion": $version,
+            |      "reportStatus": "$reportStatus",
+            |      "compilationOrSubmissionDate": "2021-04-01T09:30:47Z",
+            |      "reportSubmitterDetails": {
+            |        "reportSubmittedBy": "PSP",
+            |        "$orgOrInd": {
+            |          "orgOrPartnershipName": "ABC Limited"
+            |        }
+            |      },
+            |      "psaDetails": {
+            |        "psaOrgOrPartnershipDetails": {
+            |          "orgOrPartnershipName": "XYZ Limited"
+            |        }
+            |      }
+            |    }
+            |  ]""".stripMargin)
+
+        val expectedReportStatus = reportStatus match {
+          case "SubmittedAndInProgress" => "submitted"
+          case "SubmittedAndSuccessfullyProcessed" => "submitted"
+          case _ => "compiled"
+        }
+
+        val expected = Json.arr(Json.obj(
+          "versionInfo" -> Json.obj(
+            "version" -> version,
+            "status" -> expectedReportStatus
+          ),
+          "submitterName" -> "ABC Limited"
+        ))
+
+        val result = payload.validate(API1537.reads).asOpt
+
+        result mustBe Some(expected)
+      }
     }
   }
-
 }
