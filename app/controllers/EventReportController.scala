@@ -178,18 +178,29 @@ class EventReportController @Inject()(
   def compileEvent: Action[AnyContent] = Action.async { implicit request =>
     withAuth.flatMap { case Credentials(externalId, psaPspId) =>
       val Seq(pstr, et, version, currentVersion, year) = requiredHeaders("pstr", "eventType", "version", "currentVersion", "year")
-      val delete = request.headers.get("delete").contains("delete")
+
+      val delete = request.headers.get("delete").contains("true")
       EventType.getEventType(et) match {
-        case Some(eventType) => eventReportService.compileEventReport(
-          externalId,
-          psaPspId,
-          pstr,
-          eventType,
-          year.toInt,
-          version,
-          currentVersion,
-          delete
-        )
+        case Some(eventType) => if(delete)
+          eventReportService.deleteEvent(
+            externalId,
+            psaPspId,
+            pstr,
+            eventType,
+            year.toInt,
+            version,
+            currentVersion
+          )
+        else
+          eventReportService.compileEventReport(
+            externalId,
+            psaPspId,
+            pstr,
+            eventType,
+            year.toInt,
+            version,
+            currentVersion
+          )
         case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
       }
     }
