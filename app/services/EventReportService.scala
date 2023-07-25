@@ -157,7 +157,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       val oldMemberVersion = version(oldMember).getOrElse(currentVersion)
       val hasSameVersion = version(newMember).contains(currentVersion)
       val oldMemberStatus = status(oldMember).getOrElse(New())
-      println(oldMemberStatus, newMemberStatus)
       (oldMemberStatus, newMemberStatus) match {
         case (Deleted(), Deleted()) => MemberChangeInfo(oldMemberVersion, Deleted())
         case (_, Deleted()) => MemberChangeInfo(currentVersion, Deleted())

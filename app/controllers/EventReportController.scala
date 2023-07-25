@@ -180,7 +180,6 @@ class EventReportController @Inject()(
       val Seq(pstr, et, version, currentVersion, year) = requiredHeaders("pstr", "eventType", "version", "currentVersion", "year")
 
       val delete = request.headers.get("delete").contains("true")
-      println("Delete: " + delete)
       EventType.getEventType(et) match {
         case Some(eventType) => if(delete)
           eventReportService.deleteEvent(
