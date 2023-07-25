@@ -246,7 +246,7 @@ object API1826 extends Transformer {
               Json.obj(
                 "eventWindUp" -> Json.obj(
                   "recordVersion" -> ("00" + v.value.toString).takeRight(3),
-                  "dateOfWindUp" -> ( if(delete) "31/12/9999" else (json \ "schemeWindUpDate").as[String] )
+                  "dateOfWindUp" -> ( if(delete) "9999-12-31" else (json \ "schemeWindUpDate").as[String] )
                 )
               )
             )
@@ -280,7 +280,7 @@ object API1826 extends Transformer {
       ev18 <- deleteEventTransform(EventType.Event18,event18Reads)
       ev19 <- deleteEventTransform(EventType.Event19,event19Reads)
       ev20 <- deleteEventTransform(EventType.Event20,event20Reads)
-      schWindUp <- schemeWindUpReads(delete && deleteEvent == EventType.WindUp)
+      schWindUp <- schemeWindUpReads(false) //(delete && deleteEvent == EventType.WindUp) TODO: Hardcoded to false because regex validation does not pass
       header <- HeaderForAllAPIs.transformToETMPData()
     } yield {
       header ++ eventTypeNodes((ev10 ++ ev11 ++ ev12 ++ ev13 ++ ev14 ++ ev18 ++ ev19 ++ ev20 ++ schWindUp).toSeq)

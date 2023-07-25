@@ -157,7 +157,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       val oldMemberVersion = version(oldMember).getOrElse(currentVersion)
       val hasSameVersion = version(newMember).contains(currentVersion)
       val oldMemberStatus = status(oldMember).getOrElse(New())
-
+      println(oldMemberStatus, newMemberStatus)
       (oldMemberStatus, newMemberStatus) match {
         case (Deleted(), Deleted()) => MemberChangeInfo(oldMemberVersion, Deleted())
         case (_, Deleted()) => MemberChangeInfo(currentVersion, Deleted())
@@ -282,6 +282,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                 _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(collatedData, schemaPath, apiType.toString))
                 response <- connectToAPI(psaPspId, pstr, collatedData, version)
               } yield {
+                println(Json.prettyPrint(collatedData))
                 response.status match {
                   case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
                   case _ =>
