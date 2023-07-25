@@ -18,7 +18,7 @@ package connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import models.enumeration.EventType._
-import models.{EROverview, EROverviewVersion, ERVersion}
+import models.{EROverview, EROverviewVersion}
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, times, verify, when}
@@ -1100,11 +1100,11 @@ object EventReportConnectorSpec {
     )
   )
 
-  private val erVersions = {
-    val version = ERVersion(1,
-      LocalDate.of(2022, 4, 1),
-      "Compiled")
-    Seq(version)
-  }
+  private val erVersions = Json.arr(Json.obj(
+    "versionInfo" -> Json.obj(
+      "version"-> 1,
+      "status" -> "submitted",
+      "submitterName" ->  "ABC Limited"
+    )))
 }
 

@@ -19,7 +19,7 @@ package services
 import connectors.EventReportConnector
 import models.enumeration.EventType
 import models.enumeration.EventType.{Event1, Event20A, Event22, Event3, WindUp}
-import models.{EROverview, EROverviewVersion, ERVersion, EventDataIdentifier}
+import models.{EROverview, EROverviewVersion, EventDataIdentifier}
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
@@ -581,17 +581,20 @@ object EventReportServiceSpec {
 
   private val endDate = "2023-04-05"
 
-  private val version = ERVersion(1,
-    LocalDate.of(2022, 4, 6),
-    "Compiled")
+  private val erVersions = Json.arr(Json.obj(
+    "versionInfo" -> Json.obj(
+      "version"-> 1,
+      "status" -> "compiled",
+      "submitterName" ->  "ABC Limited"
+    )))
 
-  private val erVersions = Seq(version)
+  private val erVersionsER20A = Json.arr(Json.obj(
+    "versionInfo" -> Json.obj(
+      "version"-> 2,
+      "status" -> "compiled",
+      "submitterName" ->  "ABC Limited"
+    )))
 
-  private val versionER20A = ERVersion(2,
-    LocalDate.of(2022, 6, 4),
-    "Compiled")
-
-  private val erVersionsER20A = Seq(versionER20A)
 
   private val getEvent22PayLoadData: Option[JsObject] = Some(Json.parse(
     """

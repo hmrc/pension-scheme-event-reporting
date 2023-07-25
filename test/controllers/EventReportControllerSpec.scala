@@ -19,7 +19,7 @@ package controllers
 import com.mongodb.client.result.UpdateResult
 import models.enumeration.EventType
 import models.enumeration.EventType._
-import models.{ERVersion, EventReportValidationFailureException}
+import models.EventReportValidationFailureException
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{never, reset, verify, when}
@@ -560,10 +560,13 @@ object EventReportControllerSpec {
     )
   )
 
-  private val erVersion = ERVersion(1,
-    LocalDate.of(2022, 4, 6),
-    "Compiled")
-  private val erVersions = Seq(erVersion)
+  private val erVersions = Json.arr(Json.obj(
+    "versionInfo" -> Json.obj(
+      "version"-> 1,
+      "status" -> "compiled",
+      "submitterName" ->  "ABC Limited"
+    )))
+
 
   private val saveUserAnswersToCacheSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678955")
