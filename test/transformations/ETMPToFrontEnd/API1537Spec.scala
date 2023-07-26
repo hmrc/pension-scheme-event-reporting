@@ -16,76 +16,16 @@
 
 package transformations.ETMPToFrontEnd
 
-import org.scalacheck.Gen
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json._
-import utils.JsonFileReader
+import utils.{GeneratorAPI1537, JsonFileReader}
 
-class API1537Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader with ScalaCheckPropertyChecks {
-
+class API1537Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader with ScalaCheckPropertyChecks with GeneratorAPI1537 {
 
   "Reads" - {
-
-    def generateGetVersionJson: Gen[(JsArray, JsArray)] = {
-      for {
-        reportStatus <- Gen.oneOf(Seq("SubmittedAndInProgress", "SubmittedAndSuccessfullyProcessed", "Compiled"))
-        version <- Gen.oneOf(1, 2, 3)
-        orgOrInd <- Gen.oneOf("organisationOrPartnershipDetails", "individualDetails")
-      } yield {
-
-        val expectedReportStatus = reportStatus match {
-          case "SubmittedAndInProgress" => "submitted"
-          case "SubmittedAndSuccessfullyProcessed" => "submitted"
-          case _ => "compiled"
-        }
-
-        val expectedSubmitterName = orgOrInd match {
-          case "organisationOrPartnershipDetails" => "ABC Limited"
-          case _ => "Simon Walker"
-        }
-
-        def orgOrIndividual: (String, JsObject) = orgOrInd match {
-          case "organisationOrPartnershipDetails" =>
-            "organisationOrPartnershipDetails" -> Json.obj(
-              "organisationOrPartnershipName" -> "ABC Limited"
-            )
-          case _ =>
-            "individualDetails" -> Json.obj(
-              "firstName" -> "Simon",
-              "lastName" -> "Walker"
-            )
-        }
-
-        val payload = Json.arr( Json.obj(
-          "reportFormBundleNumber" -> "123456785015",
-          "reportVersion" -> version,
-          "reportStatus" -> reportStatus,
-          "compilationOrSubmissionDate" -> "2021-04-01T09:30:47Z",
-          "reportSubmitterDetails" -> Json.obj(
-            "reportSubmittedBy" -> "PSP",
-            orgOrIndividual._1 -> orgOrIndividual._2
-          ),
-          "psaDetails" -> Json.obj(
-            "psaOrgOrPartnershipDetails" -> Json.obj(
-              "orgOrPartnershipName" -> "XYZ Limited"
-            )
-          )
-        ))
-        val expected = Json.arr(Json.obj(
-          "versionInfo" -> Json.obj(
-            "version" -> version,
-            "status" -> expectedReportStatus
-          ),
-          "submitterName" -> expectedSubmitterName
-        ))
-
-        Tuple2(payload, expected)
-      }
-    }
-
     "transform a valid payload from API 1537 correctly" in {
       forAll(generateGetVersionJson) {
         case (payload: JsArray, expected: JsArray) => {
