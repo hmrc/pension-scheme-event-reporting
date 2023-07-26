@@ -104,7 +104,6 @@ class EventReportConnector @Inject()(
       http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
         response.status match {
           case OK =>
-            logger.warn(s"$logMessage and returned ${response.json}")
             Some(response.json.as[JsObject])
           case NOT_FOUND | UNPROCESSABLE_ENTITY =>
             logger.warn(s"$logMessage and returned ${response.status}")
