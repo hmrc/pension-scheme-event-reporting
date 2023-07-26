@@ -20,14 +20,11 @@ import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 
-
-// Some([{"versionInfo":{"version":1,"status":"submitted"},"submitterName":"ABC Limited"}]) was not equal to
-// Some([{"versionInfo":{"version":1,"status":"submitted","submitterName":"ABC Limited"}}]) (API1537Spec.scala:60)
 object API1537 {
 
   private val test: JsValue => JsString = {
     case JsString("SubmittedAndInProgress") => JsString("submitted")
-    case JsString("SubmittedAndSuccessfullyProcessed") => (JsString("submitted"))
+    case JsString("SubmittedAndSuccessfullyProcessed") => JsString("submitted")
     case JsString("Compiled") => JsString("compiled")
     case e => throw new RuntimeException("Not a string: " + e)
   }
@@ -35,7 +32,7 @@ object API1537 {
   private val readsDetail = (
     (__ \ "versionInfo" \ "version").json.copyFrom((__ \ "reportVersion").json.pick) and
     (__ \ "versionInfo" \ "status").json.copyFrom((__ \ "reportStatus").json.pick.map(test)) and
-    (__ \ "submitterName").json.copyFrom((__ \ "reportSubmitterDetails" \ "orgOrPartnershipDetails" \ "orgOrPartnershipName" ).json.pick)).reduce
+    (__ \ "submitterName").json.copyFrom((__ \ "reportSubmitterDetails" \ "organisationOrPartnershipDetails" \ "organisationOrPartnershipName" ).json.pick)).reduce
 
   val reads: Reads[JsArray] = Reads.seq(readsDetail).map(JsArray(_))
 
