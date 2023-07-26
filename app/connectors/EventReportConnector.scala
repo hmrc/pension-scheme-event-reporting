@@ -100,7 +100,7 @@ class EventReportConnector @Inject()(
       val versionAsString = ("00" + version).takeRight(3)
       val logMessage =
         s"Get ${api.toString} (IF) called (URL $apiUrl). Event type: $etAsString reportStartDate: $startDate and reportVersionNumber: $versionAsString"
-      logger.warn(logMessage)
+      logger.info(logMessage)
       http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
         response.status match {
           case OK =>
