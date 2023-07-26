@@ -29,11 +29,11 @@ class API1537Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
 
   "Reads" - {
 
-    def generateGetVersionJson: Gen[(JsObject, JsArray)] = {
+    def generateGetVersionJson: Gen[(JsArray, JsArray)] = {
       for {
         reportStatus <- Gen.oneOf(Seq("SubmittedAndInProgress", "SubmittedAndSuccessfullyProcessed", "Compiled"))
         version <- Gen.oneOf(1, 2, 3)
-        orgOrInd <- Gen.oneOf("organisationOrPartnershipDetails", "organisationOrPartnershipDetails")
+        orgOrInd <- Gen.oneOf("organisationOrPartnershipDetails", "individualDetails")
       } yield {
 
         val expectedReportStatus = reportStatus match {
@@ -44,7 +44,7 @@ class API1537Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
 
         val expectedSubmitterName = orgOrInd match {
           case "organisationOrPartnershipDetails" => "ABC Limited"
-//          case _ => "Simon Walker"
+          case _ => "Simon Walker"
         }
 
         def orgOrIndividual: (String, JsObject) = orgOrInd match {
@@ -52,14 +52,14 @@ class API1537Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
             "organisationOrPartnershipDetails" -> Json.obj(
               "organisationOrPartnershipName" -> "ABC Limited"
             )
-//          case _ =>
-//            "individualDetails" -> Json.obj(
-//              "firstName" -> "Simon",
-//              "lastName" -> "Walker"
-//            )
+          case _ =>
+            "individualDetails" -> Json.obj(
+              "firstName" -> "Simon",
+              "lastName" -> "Walker"
+            )
         }
 
-        val payload = Json.obj(
+        val payload = Json.arr( Json.obj(
           "reportFormBundleNumber" -> "123456785015",
           "reportVersion" -> version,
           "reportStatus" -> reportStatus,
@@ -73,7 +73,7 @@ class API1537Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
               "orgOrPartnershipName" -> "XYZ Limited"
             )
           )
-        )
+        ))
         val expected = Json.arr(Json.obj(
           "versionInfo" -> Json.obj(
             "version" -> version,
@@ -88,12 +88,12 @@ class API1537Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
 
     "transform a valid payload from API 1537 correctly" in {
       forAll(generateGetVersionJson) {
-        case (payload: JsObject, expected: JsArray) => {
+        case (payload: JsArray, expected: JsArray) => {
           println("\n\n\n\n\nPAYLOAD " + payload)
           println("\n\n\n\n\nEXPECTED " + expected)
           val result = payload.validate(API1537.reads)
           println("\n\n\n\n\nRESULT " + result)
-          result mustBe Some(expected)
+          result mustBe JsSuccess(expected)
         }
       }
     }

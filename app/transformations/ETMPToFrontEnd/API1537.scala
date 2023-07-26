@@ -19,8 +19,9 @@ package transformations.ETMPToFrontEnd
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json.Reads._
 import play.api.libs.json._
+import transformations.Transformer
 
-object API1537 {
+object API1537 extends Transformer {
 
   private val test: JsValue => JsString = {
     case JsString("SubmittedAndInProgress") => JsString("submitted")
@@ -29,33 +30,24 @@ object API1537 {
     case e => throw new RuntimeException("Not a string: " + e)
   }
 
+  private val readsSubmitter: Reads[JsString] =
+    (
+      (__ \ "reportSubmitterDetails" \ "organisationOrPartnershipDetails" \ "organisationOrPartnershipName").readNullable[String] and
+        (__ \ "reportSubmitterDetails" \ "individualDetails" \ "firstName").readNullable[String] and
+        (__ \ "reportSubmitterDetails" \ "individualDetails" \ "lastName").readNullable[String]
+      )(
+      (orgName, firstName, lastName) =>
+        (orgName, firstName, lastName) match {
+          case (None, Some(fn), Some(ln)) => Reads.pure(JsString(s"$fn $ln"))
+          case (Some(o), None, None) => Reads.pure(JsString(o))
+          case _ => fail[JsString]
+        }
+    ).flatMap(identity)
+
   private val readsDetail = (
     (__ \ "versionInfo" \ "version").json.copyFrom((__ \ "reportVersion").json.pick) and
-    (__ \ "versionInfo" \ "status").json.copyFrom((__ \ "reportStatus").json.pick.map(test)) and
-    (__ \ "submitterName").json.copyFrom((__ \ "reportSubmitterDetails" \ "organisationOrPartnershipDetails" \ "organisationOrPartnershipName" ).json.pick)).reduce
+      (__ \ "versionInfo" \ "status").json.copyFrom((__ \ "reportStatus").json.pick.map(test)) and
+      (__ \ "submitterName").json.copyFrom(readsSubmitter)).reduce
 
   val reads: Reads[JsArray] = Reads.seq(readsDetail).map(JsArray(_))
-
-
-
-    //[
-  //  {
-  //    "reportFormBundleNumber": "123456785015",
-  //    "reportVersion": 1,
-  //    "reportStatus": "Submitted",
-  //    "compilationOrSubmissionDate": "2021-04-01T09:30:47Z",
-  //    "reportSubmitterDetails": {
-  //      "reportSubmittedBy": "PSP",
-  //      "orgOrPartnershipDetails": {
-  //        "orgOrPartnershipName": "ABC Limited"
-  //      }
-  //    },
-  //    "psaDetails": {
-  //      "psaOrgOrPartnershipDetails": {
-  //        "orgOrPartnershipName": "XYZ Limited"
-  //      }
-  //    }
-  //  }
-  //]
 }
-
