@@ -81,32 +81,39 @@ class EventReportConnector @Inject()(
     }
   }
 
+
   def getEvent(pstr: String, startDate: String, version: String, eventType: Option[EventType])
               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] = {
-    val versionAsString = ("00" + version).takeRight(3)
     val headers = integrationFrameworkHeader ++
       Seq(
         "reportStartDate" -> startDate,
-        "reportVersionNumber" -> versionAsString
+        "reportVersionNumber" -> ("00" + version).takeRight(3)
       )
 
-    def getForApi(api: ApiType, eventType: Option[EventType]): Future[Option[JsObject]] = {
+    def getForApi(headers: Seq[(String, String)], pstr: String, api: ApiType, eventType: Option[EventType])
+                 (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] = {
+
       val etAsString = eventType.getOrElse("none")
+
       val apiUrl: String = s"${config.getApiUrlByApiNum(api.toString).format(pstr)}"
       implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = headers: _*)
+      val versionAsString = ("00" + version).takeRight(3)
       val logMessage =
         s"Get ${api.toString} (IF) called (URL $apiUrl). Event type: $etAsString reportStartDate: $startDate and reportVersionNumber: $versionAsString"
-      logger.info(logMessage)
+      logger.warn(logMessage)
       http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
         response.status match {
           case OK =>
+            logger.warn(s"$logMessage and returned ${response.json}")
             Some(response.json.as[JsObject])
           case NOT_FOUND | UNPROCESSABLE_ENTITY =>
+            logger.warn(s"$logMessage and returned ${response.status}")
             None
           case _ => handleErrorResponse("GET", apiUrl)(response)
         }
       }
     }
+
     eventType match {
       case Some(et) =>
         getApiTypeByEventType(et) match {
@@ -117,13 +124,16 @@ class EventReportConnector @Inject()(
                 case _ => headers
               }
             }
-            getForApi(api, eventType)
+            getForApi(headersWithEventType, pstr, api, eventType)
           case None =>
             Future.successful(None)
         }
-      case _ => getForApi(Api1834, eventType)
+      case _ => getForApi(headers, pstr, Api1834, eventType)
     }
   }
+
+
+
 
   def compileEventReportSummary(psaPspId: String, pstr: String, data: JsValue, reportVersion: String)
                                (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
