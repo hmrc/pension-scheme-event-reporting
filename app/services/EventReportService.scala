@@ -267,7 +267,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                 compilePayloadService.addRecordVersionToUserAnswersJson(eventType, version.toInt, newUserAnswers), eventType, pstr, version.toInt, deleteEvent)
 
               val fullData = data ++ header
-              logger.warn(s"Compiling event type $eventType for year $year and version $version. Payload is: $fullData")
               for {
                 transformedData <- Future.fromTry(toTry(fullData.validate(reads)))
                 collatedData <- compilePayloadService.collatePayloadsAndUpdateCache(
@@ -285,7 +284,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                 response.status match {
                   case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
                   case _ =>
-                    logger.debug(s"SUCCESSFUL SUBMISSION TO COMPILE API $apiType: $transformedData")
                     NoContent
                 }
               }

@@ -60,7 +60,6 @@ class CacheRepository @Inject()(collectionName: String,
     }
 
   def save(id: String, userData: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
-    logger.debug(s"Calling save in $collectionName Cache")
     val upsertOptions = new FindOneAndUpdateOptions().upsert(true)
     collection.findOneAndUpdate(
       filter = Filters.eq(idKey, id),
@@ -75,7 +74,6 @@ class CacheRepository @Inject()(collectionName: String,
   }
 
   def get(id: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
-    logger.debug(s"Calling get in $collectionName Cache")
     collection.find(
       filter = Filters.eq(idKey, id)
     ).toFuture().map {
@@ -86,7 +84,6 @@ class CacheRepository @Inject()(collectionName: String,
   }
 
   def remove(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {
-    logger.warn(s"Removing row from collection from $collectionName Cache with id:$id")
     collection.deleteOne(
       filter = Filters.eq(idKey, id)
     ).toFuture().map(_ => true)
