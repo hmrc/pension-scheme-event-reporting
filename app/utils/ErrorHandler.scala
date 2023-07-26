@@ -17,16 +17,14 @@
 package utils
 
 import akka.util.ByteString
-import play.api.Logger
 import play.api.http.HttpEntity
 import play.api.http.Status.{CONFLICT, FORBIDDEN}
-import play.api.libs.json.{JsResultException, JsValue}
+import play.api.libs.json.JsResultException
 import play.api.mvc.{ResponseHeader, Result}
 import uk.gov.hmrc.http._
 
 import scala.concurrent.Future
 import scala.util.matching.Regex
-import scala.util.{Success, Try}
 
 trait ErrorHandler {
 
@@ -78,12 +76,6 @@ trait ErrorHandler {
     }
 
     Result(ResponseHeader(ex.responseCode), httpEntity)
-  }
-
-  private val logger = Logger(classOf[ErrorHandler])
-
-  protected def logWarning(endpoint: String): PartialFunction[Try[Either[HttpException, JsValue]], Unit] = {
-    case Success(Left(e: HttpResponse)) => logger.warn(s"$endpoint received error response from If", e)
   }
 }
 

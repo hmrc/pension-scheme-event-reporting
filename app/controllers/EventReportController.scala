@@ -231,7 +231,6 @@ class EventReportController @Inject()(
       withAuth.flatMap { _ =>
         val Seq(pstr, version) = requiredHeaders("pstr", "version")
         val userAnswersJson = requiredBody
-        logger.debug(message = s"[Submit Event Declaration Report - Incoming payload]$userAnswersJson")
         eventReportService.submitEventDeclarationReport(pstr, userAnswersJson, version).map(_ => NoContent)
       }
   }
@@ -241,8 +240,6 @@ class EventReportController @Inject()(
       withAuth.flatMap { _ =>
         val Seq(pstr, version) = requiredHeaders("pstr", "version")
         val userAnswersJson = requiredBody
-
-        logger.debug(message = s"[Submit Event 20A Declaration Report - Incoming payload]$userAnswersJson")
         eventReportService.submitEvent20ADeclarationReport(pstr, userAnswersJson, version).map(_ => NoContent)
       }
   }
