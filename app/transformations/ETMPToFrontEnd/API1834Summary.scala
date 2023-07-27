@@ -72,7 +72,7 @@ object API1834Summary {
   implicit val rdsFor1834: Reads[JsArray] = {
     val readsSeqInt = (
       (JsPath \ "event1ChargeDetails" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        memberReads (List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A)) and
+        memberReads(List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A)) and
         (JsPath \ "eventDetails" \ "event10" \ 0 \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
         (JsPath \ "eventDetails" \ "event11" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
         (JsPath \ "eventDetails" \ "event12" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
@@ -86,7 +86,7 @@ object API1834Summary {
       )(
       (event1, memberReads, event10, event11, event12, event13, event14, event18, event19, event20, event22and23, eventWindup) => {
         val result = Seq(
-          createRow(event1, "1"),
+          createRow(event1, "1")
         ) ++ memberReads ++ Seq(
           createRow(event10, "10"),
           createRow(event11, "11"),
