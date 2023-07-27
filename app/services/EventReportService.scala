@@ -280,7 +280,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                 _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(collatedData, schemaPath, apiType.toString))
                 response <- connectToAPI(psaPspId, pstr, collatedData, version)
               } yield {
-                println(Json.prettyPrint(collatedData))
                 response.status match {
                   case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
                   case _ =>
