@@ -149,7 +149,7 @@ object API1833Spec {
       |      "amendedVersion": "001",
       |      "memberStatus": "New",
       |      "memberType": "Employer",
-      |      "employerMemDetails": {
+      |      "employerMemberDetails": {
       |        "compOrOrgName": "The Biz Ltd",
       |        "crnNumber": "12345679",
       |        "addressDetails": {

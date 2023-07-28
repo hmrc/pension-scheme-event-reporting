@@ -158,7 +158,7 @@
 							}
 						}	
 					},	
-					"employerMemDetails": {
+					"employerMemberDetails": {
 						"description": "This node is mandatory if the Member Type is 02-Employer",
 						"type": "object",
 						"required": [
