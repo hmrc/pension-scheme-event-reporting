@@ -1100,11 +1100,24 @@ object EventReportConnectorSpec {
     )
   )
 
-  private val erVersions = Json.arr(Json.obj(
-    "versionInfo" -> Json.obj(
-      "version"-> 1,
-      "status" -> "submitted",
-      "submitterName" ->  "ABC Limited"
-    )))
+  private val erVersions = Json.parse("""[
+  {
+    "reportFormBundleNumber": "123456789012",
+    "reportVersion": 1,
+    "reportStatus": "Compiled",
+    "compilationOrSubmissionDate": "2022-04-01T09:30:47Z",
+    "reportSubmitterDetails": {
+      "reportSubmittedBy": "PSP",
+      "organisationOrPartnershipDetails": {
+      "organisationOrPartnershipName": "ABC Limited"
+    }
+    },
+    "psaDetails": {
+      "psaOrganisationOrPartnershipDetails": {
+      "organisationOrPartnershipName": "XYZ Limited"
+    }
+    }
+  }
+  ]""".stripMargin)
 }
 
