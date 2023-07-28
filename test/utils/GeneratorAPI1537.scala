@@ -19,6 +19,8 @@ package utils
 import org.scalacheck.Gen
 import play.api.libs.json.{JsArray, JsObject, Json}
 
+import java.time.LocalDate
+
 //noinspection ScalaStyle
 trait GeneratorAPI1537 extends ResponseGenerators {
 
@@ -68,11 +70,12 @@ trait GeneratorAPI1537 extends ResponseGenerators {
         )
       ))
       val expected = Json.arr(Json.obj(
-        "versionInfo" -> Json.obj(
+        "versionDetails" -> Json.obj(
           "version" -> version,
           "status" -> expectedReportStatus
         ),
-        "submitterName" -> expectedSubmitterName
+        "submitterName" -> expectedSubmitterName,
+        "submittedDate" -> LocalDate.of(2021,4, 1)
       ))
 
       Tuple2(payload, expected)

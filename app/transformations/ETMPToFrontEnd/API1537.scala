@@ -30,6 +30,11 @@ object API1537 extends Transformer {
     case e => throw new RuntimeException("Not a string: " + e)
   }
 
+  private val dateFormatter: JsValue => JsString = {
+    case JsString(x) => JsString(x.take(10))
+    case e => throw new RuntimeException("Incorrect date string format: " + e)
+  }
+
   private val readsSubmitter: Reads[JsString] =
     (
       (__ \ "reportSubmitterDetails" \ "organisationOrPartnershipDetails" \ "organisationOrPartnershipName").readNullable[String] and
@@ -45,8 +50,9 @@ object API1537 extends Transformer {
     ).flatMap(identity)
 
   private val readsDetail = (
-    (__ \ "versionInfo" \ "version").json.copyFrom((__ \ "reportVersion").json.pick) and
-      (__ \ "versionInfo" \ "status").json.copyFrom((__ \ "reportStatus").json.pick.map(test)) and
+    (__ \ "versionDetails" \ "version").json.copyFrom((__ \ "reportVersion").json.pick) and
+      (__ \ "versionDetails" \ "status").json.copyFrom((__ \ "reportStatus").json.pick.map(test)) and
+      (__ \ "submittedDate").json.copyFrom((__ \ "compilationOrSubmissionDate").json.pick.map(dateFormatter)) and
       (__ \ "submitterName").json.copyFrom(readsSubmitter)).reduce
 
   val reads: Reads[JsArray] = Reads.seq(readsDetail).map(JsArray(_))
