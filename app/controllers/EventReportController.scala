@@ -157,7 +157,6 @@ class EventReportController @Inject()(
 
   def getVersions: Action[AnyContent] = Action.async {
     implicit request =>
-      println("\n\n\n\n\ntututututut")
       withAuth.flatMap { _ =>
         val Seq(pstr, startDate) = requiredHeaders("pstr", "startDate")
         eventReportService.getVersions(pstr, startDate).map {

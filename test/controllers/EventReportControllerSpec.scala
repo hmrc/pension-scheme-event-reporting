@@ -233,7 +233,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         newHeaders = "pstr" -> pstr, "startDate" -> startDate))
 
       status(result) mustBe OK
-      contentAsJson(result) mustBe erVersionResponseJson
+      contentAsJson(result) mustBe erVersions
     }
 
     "throw a Bad Request Exception when startDate parameter is missing in header" in {
@@ -552,18 +552,11 @@ object EventReportControllerSpec {
   private val submitEvent20ADeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> "2023-06-14",
     "formBundleNumber" -> "12345670811")
 
-  private val erVersionResponseJson: JsArray = Json.arr(
-    Json.obj(
-      "reportVersion" -> 1,
-      "reportStatus" -> "Compiled",
-      "date" -> startDate
-    )
-  )
-
   private val erVersions = Json.arr(Json.obj(
-    "versionInfo" -> Json.obj(
+    "versionDetails" -> Json.obj(
       "version"-> 1,
       "status" -> "compiled",
+      "submittedDate" -> startDate,
       "submitterName" ->  "ABC Limited"
     )))
 
