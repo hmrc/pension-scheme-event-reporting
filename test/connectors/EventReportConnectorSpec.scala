@@ -1088,13 +1088,13 @@ object EventReportConnectorSpec {
       "compilationOrSubmissionDate" -> s"${startDt}T09:30:47Z",
       "reportSubmitterDetails" -> Json.obj(
         "reportSubmittedBy" -> "PSP",
-        "orgOrPartnershipDetails" -> Json.obj(
-          "orgOrPartnershipName" -> "ABC Limited"
+        "organisationOrPartnershipDetails" -> Json.obj(
+          "organisationOrPartnershipName" -> "ABC Limited"
         )
       ),
       "psaDetails" -> Json.obj(
-        "psaOrgOrPartnershipDetails" -> Json.obj(
-          "orgOrPartnershipName" -> "XYZ Limited"
+        "psaOrganisationOrPartnershipDetails" -> Json.obj(
+          "organisationOrPartnershipName" -> "XYZ Limited"
         )
       )
     )
