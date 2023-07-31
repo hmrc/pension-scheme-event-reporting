@@ -29,41 +29,50 @@ object API1834Summary {
   private val readsIsEventTypePresent: Reads[Int] = {
     Reads {
       case JsString(v) => JsSuccess(v.toInt)
+      case JsNumber(v) => JsSuccess(v.toInt)
       case s => JsError(s"Invalid json $s")
     }
   }
-  private def createRow(event: Option[Int], eventType: String): JsObject = {
+  private def createRow(event: Option[Int], eventType: String, numberOfMembersOpt: Option[Int] = None): JsObject = {
     event.fold(Json.obj())(version =>
       Json.obj(
         "eventType" -> eventType,
         "recordVersion" -> version
-      )
+      ) ++ numberOfMembersOpt.map { numberOfMembers => Json.obj("numberOfMembers" -> JsNumber(numberOfMembers))}.getOrElse(Json.obj())
     )
   }
 
-  private val readsIsEventTypePresentAPI1831: Reads[Boolean] = {
-    Reads {
-      case JsString(_) =>
-        JsSuccess(true)
-      case _ =>
-        JsSuccess(false)
-    }
-  }
+  private def memberReads(list:List[EventType]) = {
+    def combineReads(list: List[Reads[Option[Int]]]) = list
+      .foldLeft(Reads.pure(Seq.empty[Option[Int]])) { (acc, reads) =>
+        for {
+          acc <- acc
+          reads <- reads
+        } yield {
+          acc :+ reads
+        }
+      }
 
-  /**
-   * Used for getting summaries for all of the events except for Event1 and Event22A -Pavel Vjalicin
-   */
+    for {
+      recordVersions <- combineReads(list.map(readsMemberRecordVersion))
+      numberOfMembers <- combineReads(list.map(readsNumberOfMembers))
+    } yield {
+      list.zip(recordVersions).zip(numberOfMembers).map { case ((eventType, recordVersion), numberOfMembers) =>
+        createRow(recordVersion, eventType.toString, numberOfMembers)
+      }
+    }
+
+  }
+  private def readsMemberRecordVersion(eventType: EventType) =
+    (JsPath \ "memberEventsSummary" \ ("event" + eventType) \ "recordVersion").readNullable[Int](readsIsEventTypePresent)
+
+  private def readsNumberOfMembers(eventType: EventType) =
+    (JsPath \ "memberEventsSummary" \ ("event" + eventType) \ "numberOfMembers").readNullable[Int](readsIsEventTypePresent)
+
   implicit val rdsFor1834: Reads[JsArray] = {
     val readsSeqInt = (
       (JsPath \ "event1ChargeDetails" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "memberEventsSummary" \ "event2" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "memberEventsSummary" \ "event3" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "memberEventsSummary" \ "event4" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "memberEventsSummary" \ "event5" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "memberEventsSummary" \ "event6" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "memberEventsSummary" \ "event7" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "memberEventsSummary" \ "event8" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "memberEventsSummary" \ "event8A" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        memberReads(List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A)) and
         (JsPath \ "eventDetails" \ "event10" \ 0 \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
         (JsPath \ "eventDetails" \ "event11" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
         (JsPath \ "eventDetails" \ "event12" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
@@ -72,21 +81,13 @@ object API1834Summary {
         (JsPath \ "eventDetails" \ "event18" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
         (JsPath \ "eventDetails" \ "event19" \ 0 \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
         (JsPath \ "eventDetails" \ "event20" \ 0 \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "memberEventsSummary" \ "event22" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "memberEventsSummary" \ "event23" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
+        memberReads(List(Event22, Event23)) and
         (JsPath \ "eventDetails" \ "eventWindUp" \ "recordVersion").readNullable[Int](readsIsEventTypePresent)
       )(
-      (event1, event2, event3, event4, event5, event6, event7, event8, event8A, event10, event11, event12, event13, event14, event18, event19, event20, event22, event23, eventWindup) => {
-        Seq(
-          createRow(event1, "1"),
-          createRow(event2, "2"),
-          createRow(event3, "3"),
-          createRow(event4, "4"),
-          createRow(event5, "5"),
-          createRow(event6, "6"),
-          createRow(event7, "7"),
-          createRow(event8, "8"),
-          createRow(event8A, "8A"),
+      (event1, memberReads, event10, event11, event12, event13, event14, event18, event19, event20, event22and23, eventWindup) => {
+        val result = Seq(
+          createRow(event1, "1")
+        ) ++ memberReads ++ Seq(
           createRow(event10, "10"),
           createRow(event11, "11"),
           createRow(event12, "12"),
@@ -94,12 +95,12 @@ object API1834Summary {
           createRow(event14, "14"),
           createRow(event18, "18"),
           createRow(event19, "19"),
-          createRow(event20, "20"),
-          createRow(event22, "22"),
-          createRow(event23, "23"),
+          createRow(event20, "20")
+        ) ++ event22and23 ++ Seq(
           createRow(eventWindup, "WindUp")
+        )
 
-        ).filter(_.fields.nonEmpty)
+        result.filter(_.fields.nonEmpty)
       }
     )
     readsSeqInt.map { s =>
@@ -108,10 +109,6 @@ object API1834Summary {
   }
 
 
-
-  /**
-   * Used for getting summary for Event20A -Sharad Jamdade
-   */
   implicit val rdsFor1831: Reads[JsArray] = {
     val readsSeqInt =
       (JsPath \ "er20aDetails" \ "reportVersionNumber").readNullable[Int](readsIsEventTypePresent).map {

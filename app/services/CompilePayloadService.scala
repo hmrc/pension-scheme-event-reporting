@@ -38,7 +38,7 @@ class CompilePayloadService @Inject()(
   private final val EventReportDetailsNodeName = "eventReportDetails"
   private final val EventDetailsNodeName = "eventDetails"
 
-  def addRecordVersionToUserAnswersJson(eventType: EventType, version:Int, newUserAnswers: JsObject): JsObject = {
+  def addRecordVersionToUserAnswersJson(eventType: EventType, version: Int, newUserAnswers: JsObject): JsObject = {
     val recordVersionJson: JsObject = {
       val api1826Events: List[EventType] = List(Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, WindUp)
       if (api1826Events.contains(eventType)) {
@@ -102,8 +102,7 @@ class CompilePayloadService @Inject()(
   def collatePayloadsAndUpdateCache(pstr: String, year: Int, currentVersion: String, version: String,
                                     apiType: ApiType, eventTypeForEventBeingCompiled: EventType,
                                     jsonForEventBeingCompiled: JsObject)(implicit ec: ExecutionContext, hc: HeaderCarrier): Future[JsObject] = {
-
-    val collatedPayloads = apiType match {
+    apiType match {
       case ApiType.Api1826 =>
         lazy val futureGetEventResponse: Future[Option[JsObject]] =
           eventReportConnector.getEvent(pstr, year.toString + "-04-06", currentVersion, None)
@@ -136,9 +135,5 @@ class CompilePayloadService @Inject()(
         }
       case _ => Future.successful(jsonForEventBeingCompiled)
     }
-    collatedPayloads.foreach { p =>
-      logger.warn(s"Collated payload: ${p.toString}")
-    }
-    collatedPayloads
   }
 }

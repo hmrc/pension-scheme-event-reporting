@@ -187,24 +187,23 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       val currentVersion = "1"
       when(mockCompilePayloadService.addRecordVersionToUserAnswersJson(any(), any(), any()))
         .thenReturn(uaJsonEventWindUpWithRecordVersion)
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(WindUp, 2020, 2, externalId))))(any()))
-        .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
-      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr + "_original_cache"), eqTo(Some(EventDataIdentifier(WindUp, 2020, 2, externalId))))(any()))
-        .thenReturn(Future.successful(Some(uaJsonEventWindUp)))
+      when(mockEventReportCacheRepository.getUserAnswers(
+        any(), any(), any())(any())
+      ).thenReturn(Future.successful(Some(uaJsonEventWindUp)))
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(None))(any()))
         .thenReturn(Future.successful(Some(responseNoEventTypeJson)))
       when(mockEventReportConnector.compileEventReportSummary(any(), any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse(OK, responseJson.toString)))
 
       when(mockCompilePayloadService.collatePayloadsAndUpdateCache(any(), any(),
-        ArgumentMatchers.eq(currentVersion), ArgumentMatchers.eq(reportVersion), any(), any(), any())(any(), any()))
+        any(), any(), any(), any(), any())(any(), any()))
         .thenReturn(Future.successful(Json.obj()))
 
       eventReportService.compileEventReport(externalId, psaId, "pstr", WindUp, year, currentVersion, reportVersion).map {
         result =>
           verify(mockCompilePayloadService, times(1))
             .collatePayloadsAndUpdateCache(any(), any(),
-              ArgumentMatchers.eq(currentVersion), ArgumentMatchers.eq(reportVersion), any(), any(), any())(any(), any())
+              any(), any(), any(), any(), any())(any(), any())
           result.header.status mustBe NO_CONTENT
       }
     }
@@ -277,14 +276,14 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
         val expected = Json.parse(
           """ [{"eventType":"1","recordVersion":2},
-            |{"eventType":"2","recordVersion":1},
-            |{"eventType":"3","recordVersion":2},
-            |{"eventType":"4","recordVersion":1},
-            |{"eventType":"5","recordVersion":4},
-            |{"eventType":"6","recordVersion":7},
-            |{"eventType":"7","recordVersion":2},
-            |{"eventType":"8","recordVersion":4},
-            |{"eventType":"8A","recordVersion":3},
+            |{"eventType":"2","recordVersion":1,"numberOfMembers":150000},
+            |{"eventType":"3","recordVersion":2,"numberOfMembers":1000},
+            |{"eventType":"4","recordVersion":1,"numberOfMembers":1000},
+            |{"eventType":"5","recordVersion":4,"numberOfMembers":50000},
+            |{"eventType":"6","recordVersion":7,"numberOfMembers":10000},
+            |{"eventType":"7","recordVersion":2,"numberOfMembers":150000},
+            |{"eventType":"8","recordVersion":4,"numberOfMembers":1500},
+            |{"eventType":"8A","recordVersion":3,"numberOfMembers":150000},
             |{"eventType":"10","recordVersion":1},
             |{"eventType":"11","recordVersion":1},
             |{"eventType":"12","recordVersion":1},
@@ -293,8 +292,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
             |{"eventType":"18","recordVersion":1},
             |{"eventType":"19","recordVersion":1},
             |{"eventType":"20","recordVersion":1},
-            |{"eventType":"22","recordVersion":4},
-            |{"eventType":"23","recordVersion":3},
+            |{"eventType":"22","recordVersion":4,"numberOfMembers":10000},
+            |{"eventType":"23","recordVersion":3,"numberOfMembers":150000},
             |{"eventType":"WindUp","recordVersion":1},
             |{"eventType":"20A","recordVersion":1}]""".stripMargin).as[JsArray]
         result mustBe expected

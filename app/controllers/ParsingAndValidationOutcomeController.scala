@@ -41,10 +41,7 @@ class ParsingAndValidationOutcomeController @Inject()(
     implicit request =>
       getId { id =>
         repository.get(id).map { response =>
-          logger.debug(message = s"ParsingAndValidationOutcomeController.get: Response for request Id $id is $response")
-          response.map {
-            Ok(_)
-          } getOrElse NotFound
+          response.map(Ok(_)) getOrElse NotFound
         }
       }
   }

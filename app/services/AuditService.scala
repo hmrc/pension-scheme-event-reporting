@@ -51,9 +51,7 @@ class AuditServiceImpl @Inject()(
 
   def sendEvent[T <: AuditEvent](event: T)
                                 (implicit rh: RequestHeader, ec: ExecutionContext): Unit = {
-
     logger.info(s"[AuditService][sendEvent] sending ${event.auditType}")
-
     val result: Future[AuditResult] = connector.sendExtendedEvent(
       ExtendedDataEvent(
         auditSource = config.appName,
@@ -72,7 +70,5 @@ class AuditServiceImpl @Inject()(
       case Failure(e) =>
         logger.error(s"[AuditService][sendEvent] failed to send event ${event.auditType}", e)
     }
-
   }
-
 }

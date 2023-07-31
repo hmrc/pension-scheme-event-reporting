@@ -35,15 +35,18 @@ object API1830 extends Transformer {
       )
     )
 
+
+
     HeaderForAllAPIs.transformToETMPData(extraFieldsForHeaderReads).flatMap { hdr =>
       val fullHdr = hdr
       (__ \ Symbol(s"event${eventType.toString}") \ Symbol("members")).readNullable[JsArray](__.read(Reads.seq(
         readsIndividualMemberDetailsByEventType(eventType)))
         .map(JsArray(_))).map { optionJsArray =>
         val jsonArray = optionJsArray.getOrElse(Json.arr())
-        Json.obj("memberEventsDetails" -> (Json.obj(
+        val eventDetails = Json.obj(
           "eventDetails" -> jsonArray
-        ) ++ fullHdr))
+          )
+        Json.obj("memberEventsDetails" -> (eventDetails ++ fullHdr))
       }
     }
   }

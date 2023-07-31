@@ -5,6 +5,7 @@ GET           /versions                                                         
 
 GET           /event-summary                                                                    controllers.EventReportController.getEventSummary
 POST          /compile                                                                          controllers.EventReportController.compileEvent
+POST          /delete-member                                                                    controllers.EventReportController.deleteMember
 
 POST          /submit-event-declaration-report                                                  controllers.EventReportController.submitEventDeclarationReport
 POST          /submit-event20a-declaration-report                                               controllers.EventReportController.submitEvent20ADeclarationReport
