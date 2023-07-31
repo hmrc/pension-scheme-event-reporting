@@ -2,10 +2,6 @@
 
 ## Technical documentation
 
-What goes here depends on the type of app.
-
-See the links below for example content to put here.
-
 ### Before running the app (if applicable)
 
 Anything that's not done automatically by the development environment:
