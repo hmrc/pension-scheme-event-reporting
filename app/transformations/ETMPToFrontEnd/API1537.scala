@@ -23,7 +23,7 @@ import transformations.Transformer
 
 object API1537 extends Transformer {
 
-  private val test: JsValue => JsString = {
+  private val statusNode: JsValue => JsString = {
     case JsString("SubmittedAndInProgress") => JsString("submitted")
     case JsString("SubmittedAndSuccessfullyProcessed") => JsString("submitted")
     case JsString("Compiled") => JsString("compiled")
@@ -31,7 +31,7 @@ object API1537 extends Transformer {
   }
 
   private val dateFormatter: JsValue => JsString = {
-    case JsString(x) => JsString(x.take(10))
+    case JsString(dateStr) => JsString(dateStr.take(10))
     case e => throw new RuntimeException("Incorrect date string format: " + e)
   }
 
@@ -51,7 +51,7 @@ object API1537 extends Transformer {
 
   private val readsDetail = (
     (__ \ "versionDetails" \ "version").json.copyFrom((__ \ "reportVersion").json.pick) and
-      (__ \ "versionDetails" \ "status").json.copyFrom((__ \ "reportStatus").json.pick.map(test)) and
+      (__ \ "versionDetails" \ "status").json.copyFrom((__ \ "reportStatus").json.pick.map(statusNode)) and
       (__ \ "submittedDate").json.copyFrom((__ \ "compilationOrSubmissionDate").json.pick.map(dateFormatter)) and
       (__ \ "submitterName").json.copyFrom(readsSubmitter)).reduce
 

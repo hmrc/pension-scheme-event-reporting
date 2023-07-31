@@ -459,9 +459,9 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def getVersions(pstr: String, startDate: String)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
     val erVersions = eventReportConnector.getVersions(pstr, reportType = "ER", startDate)
 
-    erVersions.map{ g =>
-      g.transform(API1537.reads) match {
-        case JsSuccess(j, _) => j
+    erVersions.map{ jsArray =>
+      jsArray.transform(API1537.reads) match {
+        case JsSuccess(transformedJsArr, _) => transformedJsArr
         case JsError(e) => throw JsResultException(e)
       }
      }
