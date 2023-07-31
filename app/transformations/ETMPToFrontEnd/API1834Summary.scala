@@ -33,12 +33,12 @@ object API1834Summary {
       case s => JsError(s"Invalid json $s")
     }
   }
-  private def createRow(event: Option[Int], eventType: String, numberOfMembers: Option[Int] = None): JsObject = {
+  private def createRow(event: Option[Int], eventType: String, numberOfMembersOpt: Option[Int] = None): JsObject = {
     event.fold(Json.obj())(version =>
       Json.obj(
         "eventType" -> eventType,
         "recordVersion" -> version
-      ) ++ numberOfMembers.map { x => Json.obj("numberOfMembers" -> JsNumber(x))}.getOrElse(Json.obj())
+      ) ++ numberOfMembersOpt.map { numberOfMembers => Json.obj("numberOfMembers" -> JsNumber(numberOfMembers))}.getOrElse(Json.obj())
     )
   }
 
