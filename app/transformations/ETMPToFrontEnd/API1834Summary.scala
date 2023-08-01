@@ -17,9 +17,8 @@
 package transformations.ETMPToFrontEnd
 
 import models.enumeration.EventType
-import models.enumeration.EventType._
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json.{JsArray, _}
+import play.api.libs.json._
 
 
 object API1834Summary {
@@ -35,15 +34,15 @@ object API1834Summary {
   }
 
   private val readsRecordVersionForEvent1: Reads[Option[Int]] = (
-      (JsPath \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
-        (JsPath \ "numberOfMembers").readNullable[Int]
-      )(
-      (recordVersion, numberMembers) =>
-        (recordVersion, numberMembers) match {
-          case (v, Some(n)) if n > 0 => v
-          case _ => None
-        }
-    )
+    (JsPath \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
+      (JsPath \ "numberOfMembers").readNullable[Int]
+    )(
+    (recordVersion, numberMembers) =>
+      (recordVersion, numberMembers) match {
+        case (v, Some(n)) if n > 0 => v
+        case _ => None
+      }
+  )
 
   private def createRow(event: Option[Int], eventType: String): JsObject = {
     event.fold(Json.obj())(version =>
@@ -54,7 +53,9 @@ object API1834Summary {
     )
   }
 
-  private def memberReads(list:Seq[EventType]): Reads[Seq[JsObject]] = {
+  private def memberReads: Reads[Seq[JsObject]] = {
+    val seqEventTypes = EventType.getMemberEvents
+
     def combineReads(list: Seq[Reads[Option[Int]]]): Reads[Seq[Option[Int]]] = list
       .foldLeft(Reads.pure(Seq.empty[Option[Int]])) { (acc, reads) =>
         for {
@@ -66,10 +67,10 @@ object API1834Summary {
       }
 
     for {
-      recordVersions <- combineReads(list.map(readsMemberRecordVersion))
-      numberOfMembers <- combineReads(list.map(readsNumberOfMembers))
+      recordVersions <- combineReads(seqEventTypes.map(readsMemberRecordVersion))
+      numberOfMembers <- combineReads(seqEventTypes.map(readsNumberOfMembers))
     } yield {
-      list.zip(recordVersions).zip(numberOfMembers).map { case ((eventType, recordVersion), numberOfMembers) =>
+      seqEventTypes.zip(recordVersions).zip(numberOfMembers).map { case ((eventType, recordVersion), numberOfMembers) =>
         numberOfMembers match {
           case Some(0) => Json.obj()
           case _ => createRow(recordVersion, eventType.toString)
@@ -86,11 +87,10 @@ object API1834Summary {
       .readNullable[Int](readsRecordVersion)
 
 
-
   implicit val rdsFor1834: Reads[JsArray] = {
     val readsSeqInt = (
       (JsPath \ "event1ChargeDetails").read[Option[Int]](readsRecordVersionForEvent1) and
-        memberReads(EventType.getMemberEvents) and
+        memberReads and
         (JsPath \ "eventDetails" \ "event10" \ 0 \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
         (JsPath \ "eventDetails" \ "event11" \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
         (JsPath \ "eventDetails" \ "event12" \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
