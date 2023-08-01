@@ -54,7 +54,7 @@ object API1834Summary {
   }
 
   private def memberReads: Reads[Seq[JsObject]] = {
-    val seqEventTypes = EventType.getMemberEvents
+    val seqEventTypes = EventType.memberEventTypes
 
     def combineReads(list: Seq[Reads[Option[Int]]]): Reads[Seq[Option[Int]]] = list
       .foldLeft(Reads.pure(Seq.empty[Option[Int]])) { (acc, reads) =>
