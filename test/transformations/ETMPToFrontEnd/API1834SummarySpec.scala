@@ -20,7 +20,7 @@ import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
-import play.api.libs.json._
+import play.api.libs.json.{Json, _}
 import utils.{GeneratorAPI1832, GeneratorAPI1834Summary, JsonFileReader}
 
 class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar with JsonFileReader
@@ -101,6 +101,8 @@ class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar wit
             Json.obj("eventType" -> "7", "recordVersion" -> 2),
             Json.obj("eventType" -> "8", "recordVersion" -> 1),
             Json.obj("eventType" -> "8A", "recordVersion" -> 2),
+            Json.obj("eventType" -> "22", "recordVersion" -> 1),
+            Json.obj("eventType" -> "23", "recordVersion" -> 2),
             Json.obj("eventType" -> "10", "recordVersion" -> 2),
             Json.obj("eventType" -> "11", "recordVersion" -> 1),
             Json.obj("eventType" -> "12", "recordVersion" -> 1),
@@ -108,9 +110,7 @@ class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar wit
             Json.obj("eventType" -> "14", "recordVersion" -> 1),
             Json.obj("eventType" -> "18", "recordVersion" -> 2),
             Json.obj("eventType" -> "19", "recordVersion" -> 1),
-            Json.obj("eventType" -> "20", "recordVersion" -> 2),
-            Json.obj("eventType" -> "22", "recordVersion" -> 1),
-            Json.obj("eventType" -> "23", "recordVersion" -> 2)
+            Json.obj("eventType" -> "20", "recordVersion" -> 2)
           )
         )
       )
@@ -158,12 +158,12 @@ class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar wit
             Json.obj("eventType" -> "7", "recordVersion" -> 2),
             Json.obj("eventType" -> "8", "recordVersion" -> 1),
             Json.obj("eventType" -> "8A", "recordVersion" -> 2),
+            Json.obj("eventType" -> "22", "recordVersion" -> 1),
+            Json.obj("eventType" -> "23", "recordVersion" -> 2),
             Json.obj("eventType" -> "11", "recordVersion" -> 1),
             Json.obj("eventType" -> "12", "recordVersion" -> 1),
             Json.obj("eventType" -> "14", "recordVersion" -> 1),
-            Json.obj("eventType" -> "18", "recordVersion" -> 2),
-            Json.obj("eventType" -> "22", "recordVersion" -> 1),
-            Json.obj("eventType" -> "23", "recordVersion" -> 2)
+            Json.obj("eventType" -> "18", "recordVersion" -> 2)
           )
         )
       )

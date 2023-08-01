@@ -284,6 +284,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
             |{"eventType":"7","recordVersion":2},
             |{"eventType":"8","recordVersion":4},
             |{"eventType":"8A","recordVersion":3},
+            |{"eventType":"22","recordVersion":4},
+            |{"eventType":"23","recordVersion":3},
             |{"eventType":"10","recordVersion":1},
             |{"eventType":"11","recordVersion":1},
             |{"eventType":"12","recordVersion":1},
@@ -292,8 +294,6 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
             |{"eventType":"18","recordVersion":1},
             |{"eventType":"19","recordVersion":1},
             |{"eventType":"20","recordVersion":1},
-            |{"eventType":"22","recordVersion":4},
-            |{"eventType":"23","recordVersion":3},
             |{"eventType":"WindUp","recordVersion":1},
             |{"eventType":"20A","recordVersion":1}]""".stripMargin).as[JsArray]
         result mustBe expected

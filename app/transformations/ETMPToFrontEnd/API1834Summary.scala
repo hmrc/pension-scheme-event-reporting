@@ -33,6 +33,18 @@ object API1834Summary {
       case s => JsError(s"Invalid json $s")
     }
   }
+
+  private val readsRecordVersionForEvent1: Reads[Option[Int]] = (
+      (JsPath \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
+        (JsPath \ "numberOfMembers").readNullable[Int]
+      )(
+      (recordVersion, numberMembers) =>
+        (recordVersion, numberMembers) match {
+          case (v, Some(n)) if n > 0 => v
+          case _ => None
+        }
+    )
+
   private def createRow(event: Option[Int], eventType: String): JsObject = {
     event.fold(Json.obj())(version =>
       Json.obj(
@@ -42,8 +54,8 @@ object API1834Summary {
     )
   }
 
-  private def memberReads(list:List[EventType]): Reads[List[JsObject]] = {
-    def combineReads(list: List[Reads[Option[Int]]]): Reads[Seq[Option[Int]]] = list
+  private def memberReads(list:Seq[EventType]): Reads[Seq[JsObject]] = {
+    def combineReads(list: Seq[Reads[Option[Int]]]): Reads[Seq[Option[Int]]] = list
       .foldLeft(Reads.pure(Seq.empty[Option[Int]])) { (acc, reads) =>
         for {
           acc <- acc
@@ -73,22 +85,12 @@ object API1834Summary {
     (JsPath \ "memberEventsSummary" \ ("event" + eventType) \ "numberOfMembers")
       .readNullable[Int](readsRecordVersion)
 
-  private val readsRecordVersionForEvent1: Reads[Option[Int]] =
-    (
-      (JsPath \ FieldNameRecordVersion).readNullable[String] and
-      (JsPath \ "numberOfMembers").readNullable[Int]
-    )(
-      (recordVersion, numberMembers) =>
-        (recordVersion, numberMembers) match {
-          case (v, Some(n)) if n > 0 => v.map(_.toInt)
-          case _ => None
-        }
-    )
+
 
   implicit val rdsFor1834: Reads[JsArray] = {
     val readsSeqInt = (
       (JsPath \ "event1ChargeDetails").read[Option[Int]](readsRecordVersionForEvent1) and
-        memberReads(List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A)) and
+        memberReads(EventType.getMemberEvents) and
         (JsPath \ "eventDetails" \ "event10" \ 0 \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
         (JsPath \ "eventDetails" \ "event11" \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
         (JsPath \ "eventDetails" \ "event12" \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
@@ -97,13 +99,10 @@ object API1834Summary {
         (JsPath \ "eventDetails" \ "event18" \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
         (JsPath \ "eventDetails" \ "event19" \ 0 \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
         (JsPath \ "eventDetails" \ "event20" \ 0 \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
-        memberReads(List(Event22, Event23)) and
         (JsPath \ "eventDetails" \ "eventWindUp" \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion)
       )(
-      (event1, memberReads, event10, event11, event12, event13, event14, event18, event19, event20, event22and23, eventWindup) => {
-        val result = Seq(
-          createRow(event1, "1")
-        ) ++ memberReads ++ Seq(
+      (event1, memberReads, event10, event11, event12, event13, event14, event18, event19, event20, eventWindup) => {
+        val result = Seq(createRow(event1, "1")) ++ memberReads ++ Seq(
           createRow(event10, "10"),
           createRow(event11, "11"),
           createRow(event12, "12"),
@@ -112,7 +111,7 @@ object API1834Summary {
           createRow(event18, "18"),
           createRow(event19, "19"),
           createRow(event20, "20")
-        ) ++ event22and23 ++ Seq(
+        ) ++ Seq(
           createRow(eventWindup, "WindUp")
         )
 
