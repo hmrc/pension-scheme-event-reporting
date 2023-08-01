@@ -43,7 +43,7 @@ class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar wit
       result mustBe expectedResult
     }
 
-    "transform a randomly generated API 1831 events valid payload correctly" in {
+    "transform an API 1831 events valid payload correctly" in {
       val generatedPayload = Json.obj("er20aDetails" -> Json.obj("reportVersionNumber" -> "002"))
       val result = generatedPayload.validate(API1834Summary.rdsFor1831)
       val expectedResult = JsSuccess(
@@ -57,23 +57,24 @@ class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar wit
       result mustBe expectedResult
     }
 
-    "transform a randomly generated API 1834 events valid payload correctly with different recordVersions" in {
+    "transform an API 1834 events valid payload correctly with different recordVersions" in {
 
       val generatedPayload = Json.obj(
         "event1ChargeDetails" -> Json.obj(
-          "recordVersion" -> "002"
+          "recordVersion" -> "002",
+          "numberOfMembers" -> 1
         ),
         "memberEventsSummary" -> Json.obj(
-          "event2" -> Json.obj("recordVersion" -> "001"),
-          "event3" -> Json.obj("recordVersion" -> "002"),
-          "event4" -> Json.obj("recordVersion" -> "001"),
-          "event5" -> Json.obj("recordVersion" -> "002"),
-          "event6" -> Json.obj("recordVersion" -> "001"),
-          "event7" -> Json.obj("recordVersion" -> "002"),
-          "event8" -> Json.obj("recordVersion" -> "001"),
-          "event8A" -> Json.obj("recordVersion" -> "002"),
-          "event22" -> Json.obj("recordVersion" -> "001"),
-          "event23" -> Json.obj("recordVersion" -> "002"),
+          "event2" -> Json.obj("recordVersion" -> "001", "numberOfMembers" -> 1),
+          "event3" -> Json.obj("recordVersion" -> "002", "numberOfMembers" -> 1),
+          "event4" -> Json.obj("recordVersion" -> "001", "numberOfMembers" -> 1),
+          "event5" -> Json.obj("recordVersion" -> "002", "numberOfMembers" -> 1),
+          "event6" -> Json.obj("recordVersion" -> "001", "numberOfMembers" -> 1),
+          "event7" -> Json.obj("recordVersion" -> "002", "numberOfMembers" -> 1),
+          "event8" -> Json.obj("recordVersion" -> "001", "numberOfMembers" -> 1),
+          "event8A" -> Json.obj("recordVersion" -> "002", "numberOfMembers" -> 1),
+          "event22" -> Json.obj("recordVersion" -> "001", "numberOfMembers" -> 1),
+          "event23" -> Json.obj("recordVersion" -> "002", "numberOfMembers" -> 1),
         ),
         "eventDetails" -> Json.obj(
           "event10" -> Json.arr(Json.obj("recordVersion" -> "002")), // array
@@ -121,19 +122,20 @@ class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar wit
 
       val generatedPayload = Json.obj(
         "event1ChargeDetails" -> Json.obj(
-          "recordVersion" -> "002"
+          "recordVersion" -> "002",
+          "numberOfMembers" -> 1
         ),
         "memberEventsSummary" -> Json.obj(
-          "event2" -> Json.obj("recordVersion" -> "001"),
-          "event3" -> Json.obj("recordVersion" -> "002"),
-          "event4" -> Json.obj("recordVersion" -> "001"),
-          "event5" -> Json.obj("recordVersion" -> "002"),
-          "event6" -> Json.obj("recordVersion" -> "001"),
-          "event7" -> Json.obj("recordVersion" -> "002"),
-          "event8" -> Json.obj("recordVersion" -> "001"),
-          "event8A" -> Json.obj("recordVersion" -> "002"),
-          "event22" -> Json.obj("recordVersion" -> "001"),
-          "event23" -> Json.obj("recordVersion" -> "002"),
+          "event2" -> Json.obj("recordVersion" -> "001", "numberOfMembers" -> 1),
+          "event3" -> Json.obj("recordVersion" -> "002", "numberOfMembers" -> 1),
+          "event4" -> Json.obj("recordVersion" -> "001", "numberOfMembers" -> 1),
+          "event5" -> Json.obj("recordVersion" -> "002", "numberOfMembers" -> 1),
+          "event6" -> Json.obj("recordVersion" -> "001", "numberOfMembers" -> 1),
+          "event7" -> Json.obj("recordVersion" -> "002", "numberOfMembers" -> 1),
+          "event8" -> Json.obj("recordVersion" -> "001", "numberOfMembers" -> 1),
+          "event8A" -> Json.obj("recordVersion" -> "002", "numberOfMembers" -> 1),
+          "event22" -> Json.obj("recordVersion" -> "001", "numberOfMembers" -> 1),
+          "event23" -> Json.obj("recordVersion" -> "002", "numberOfMembers" -> 1),
         ),
         "eventDetails" -> Json.obj(
           "event11" -> Json.obj("recordVersion" -> "001"),
@@ -167,5 +169,32 @@ class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar wit
       )
       result mustBe expectedResult
     }
+
+    "transform an API 1834 events valid members payload correctly when numberOfMembers is zero" in {
+      val generatedPayload = Json.obj(
+        "event1ChargeDetails" -> Json.obj(
+          "recordVersion" -> "002", "numberOfMembers" -> 0
+        ),
+        "memberEventsSummary" -> Json.obj(
+          "event2" -> Json.obj("recordVersion" -> "001", "numberOfMembers" -> 0),
+          "event3" -> Json.obj("recordVersion" -> "002", "numberOfMembers" -> 0),
+          "event4" -> Json.obj("recordVersion" -> "001", "numberOfMembers" -> 0),
+          "event5" -> Json.obj("recordVersion" -> "002", "numberOfMembers" -> 0),
+          "event6" -> Json.obj("recordVersion" -> "001", "numberOfMembers" -> 0),
+          "event7" -> Json.obj("recordVersion" -> "002", "numberOfMembers" -> 0),
+          "event8" -> Json.obj("recordVersion" -> "001", "numberOfMembers" -> 0),
+          "event8A" -> Json.obj("recordVersion" -> "002", "numberOfMembers" -> 0),
+          "event22" -> Json.obj("recordVersion" -> "001", "numberOfMembers" -> 0),
+          "event23" -> Json.obj("recordVersion" -> "002", "numberOfMembers" -> 0),
+        )
+      )
+
+      val result = generatedPayload.validate(API1834Summary.rdsFor1834)
+      val expectedResult = JsSuccess(
+        JsArray(Nil)
+      )
+      result mustBe expectedResult
+    }
+
   }
 }
