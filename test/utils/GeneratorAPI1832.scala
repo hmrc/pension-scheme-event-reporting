@@ -103,6 +103,12 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
       map <- randomValues()
     } yield {
 
+
+      val jsonFreeText = freeTextEvent3(map("reasonBenefitTakenEvent3")) match {
+        case Some(v) => Json.obj("freeText" -> v)
+        case None => Json.obj()
+      }
+
       val etmpPayload = etmpData(Event3) ++
         Json.obj("eventDetails" -> Json.arr(
           Json.obj("memberDetail" -> Json.obj(
@@ -114,17 +120,17 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
                 "lastName" -> map("lastName"),
                 "nino" -> map("nino")
               ),
-              "paymentDetails" -> Json.obj(
+              "paymentDetails" -> (Json.obj(
                 "reasonBenefitTaken" -> map("reasonBenefitTakenEvent3"),
                 "amountBenefit" -> map("pensionAmt"),
-                "eventDate" -> s"${map("taxYearEndDate")}-04-05",
-                "freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3")
-                )
+                "eventDate" -> s"${map("taxYearEndDate")}-04-05"
+                ) ++ jsonFreeText)
               )
             )
           )
           )
-        ))
+        )
+
       val userAnswers = Json.obj(
         s"event${Event3.toString}" -> Json.obj("members" -> Json.arr(
           Json.obj(
@@ -133,10 +139,9 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
                 "firstName" -> map("firstName"),
                 "lastName" -> map("lastName"),
                 "nino" -> map("nino")),
-              "benefitType" -> Json.obj(
-                "reasonBenefitTaken" -> reasonBenefitTakenUAEvent3(map("reasonBenefitTakenEvent3")),
-                "freeText" -> freeTextEvent3(map("reasonBenefitTakenEvent3"))
-              ),
+              "benefitType" -> (Json.obj(
+                "reasonBenefitTaken" -> reasonBenefitTakenUAEvent3(map("reasonBenefitTakenEvent3"))
+              ) ++ jsonFreeText),
               "paymentDetails" -> Json.obj(
                 "amountPaid" -> map("pensionAmt"),
                 "eventDate" -> s"${map("taxYearEndDate")}-04-05"
@@ -564,7 +569,8 @@ object GeneratorAPI1832 {
     case "Enhanced" => "enhancedProtection"
   }
 
-  private def freeTextEvent3(rBT: String): String = if (rBT != "Other") "N/A" else "Example brief description"
+  private def freeTextEvent3(rBT: String): Option[String] = if (rBT != "Other") None else Some("Example brief description")
+//  private def freeTextEvent3(rBT: String): String = if (rBT != "Other") "N/A" else "Example brief description"
 
   private def reasonBenefitTakenUAEvent3(rBT: String): String = rBT match {
     case "Ill Health" => "illHealth"
