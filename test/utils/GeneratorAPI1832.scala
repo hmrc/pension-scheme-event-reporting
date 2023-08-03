@@ -384,7 +384,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
-  private def toJsonObject(s:String, fieldName: String, f: String => String = identity) = s match {
+  private def toJsonObject(s: String, fieldName: String, f: String => String = identity) = s match {
     case "" => Json.obj()
     case t => Json.obj(fieldName -> f(t))
   }
@@ -394,8 +394,8 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
       map <- randomValues()
     } yield {
       val typeOfProtectionJson = toJsonObject(map("typeOfProtectionEvent8A"), "typeOfProtection")
-      val reasonBenefitTakenJson =  toJsonObject(map("reasonBenefitTakenEvent8A"), "reasonBenefitTaken")
-      val freeTextJson =  toJsonObject(map("typeOfProtectionReference8A"), "freeText")
+      val reasonBenefitTakenJson = toJsonObject(map("reasonBenefitTakenEvent8A"), "reasonBenefitTaken")
+      val freeTextJson = toJsonObject(map("typeOfProtectionReference8A"), "freeText")
       val etmpPayload = etmpData(Event8A) ++
         Json.obj("eventDetails" -> Json.arr(
           Json.obj("memberDetail" -> Json.obj(
@@ -416,12 +416,6 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
           )
         )
         )
-      /* Optional now:-
-                                      - reasonBenefitTaken DONE
-                                      - typeOfProtection DONE
-                                      - amountLumpSum
-                                      - freeText
-       */
 
       val typeOfProtectionUAJson = toJsonObject(map("typeOfProtectionEvent8A"), "typeOfProtection", typeOfProtectionUAEvent8A)
       val reasonBenefitTakenUAJson = toJsonObject(map("reasonBenefitTakenEvent8A"), "paymentType", paymentTypeUAEvent8A)
@@ -435,7 +429,6 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
               "firstName" -> map("firstName"),
               "lastName" -> map("lastName"),
               "nino" -> map("nino")),
-//            "typeOfProtectionReference" -> map("typeOfProtectionReference"),
             "lumpSumAmountAndDate" -> Json.obj(
               "lumpSumAmount" -> map("lumpSumAmount"),
               "lumpSumDate" -> s"${map("taxYearEndDate")}-04-05",
