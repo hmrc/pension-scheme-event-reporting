@@ -122,26 +122,20 @@ private object API1832ReadsUtilities extends Transformer {
       ).reduce
   }
 
+  private def readAdditiveIfPresent(etmpPath: JsPath, uaPath: JsPath, f: String => String = identity): JsObject => Reads[JsObject] = jsObj =>
+    etmpPath.readNullable[String].flatMap {
+      case None => Reads.pure(jsObj)
+      case Some(str) => uaPath.json.put(JsString(f(str))).map(_ ++ jsObj)
+    }
+
   lazy val readsEvent8APaymentDetails: Reads[JsObject] = {
     (
       pathUaLumpSumAmountNested.json.copyFrom(pathEtmpAmountLumpSum.json.pick) and
-      pathUaLumpSumDateNested.json.copyFrom(pathEtmpEventDate.json.pick)
-      ).reduce.flatMap { jsObj =>
-      pathEtmpTypeOfProtection.readNullable[String].flatMap {
-        case None => Reads.pure(jsObj)
-        case Some(str) => pathUaTypeOfProtection.json.put(JsString(typeOfProtectionUAEvent8A(str))).map(_ ++ jsObj)
-      }
-    }.flatMap { jsObj =>
-      pathEtmpReasonBenefitTaken.readNullable[String].flatMap {
-        case None => Reads.pure(jsObj)
-        case Some(str) => pathUaPaymentType.json.put(JsString(paymentTypeUAEvent8A(str))).map(_ ++ jsObj)
-      }
-    }.flatMap { jsObj =>
-      pathEtmpFreeText.readNullable[String].flatMap {
-        case None => Reads.pure(jsObj)
-        case Some(str) => pathUaTypeOfProtectionReference.json.put(JsString(str)).map(_ ++ jsObj)
-      }
-    }
+        pathUaLumpSumDateNested.json.copyFrom(pathEtmpEventDate.json.pick)
+      ).reduce
+      .flatMap(readAdditiveIfPresent(pathEtmpTypeOfProtection, pathUaTypeOfProtection, typeOfProtectionUAEvent8A))
+      .flatMap(readAdditiveIfPresent(pathEtmpReasonBenefitTaken, pathUaPaymentType, paymentTypeUAEvent8A))
+      .flatMap(readAdditiveIfPresent(pathEtmpFreeText, pathUaTypeOfProtectionReference))
   }
 
   lazy val readsEvent22Or23PaymentDetails: Reads[JsObject] = {
@@ -182,13 +176,6 @@ private object API1832ReadsUtilities extends Transformer {
   private lazy val readsTypeOfProtectionEvent6: Reads[JsString] = {
     pathEtmpTypeOfProtection.json.pick.flatMap {
       case JsString(str) => Reads.pure(JsString(typeOfProtectionUAEvent6(str)))
-      case _ => fail[JsString]
-    }
-  }
-
-  private lazy val readsPaymentTypeEvent8A: Reads[JsString] = {
-    pathEtmpReasonBenefitTaken.json.pick.flatMap {
-      case JsString(str) => Reads.pure(JsString(paymentTypeUAEvent8A(str)))
       case _ => fail[JsString]
     }
   }
@@ -288,8 +275,8 @@ private object MemberEventReportPaths {
   // ETMP - nested once or utils
   val pathEtmpEventDetails: JsPath = __ \ Symbol("eventDetails")
 
-  val pathEtmlAmendedVersion = __ \ Symbol("memberDetail") \ Symbol("amendedVersion")
-  val pathEtmlMemberStatus = __ \ Symbol("memberDetail") \ Symbol("memberStatus")
+  val pathEtmlAmendedVersion: JsPath = __ \ Symbol("memberDetail") \ Symbol("amendedVersion")
+  val pathEtmlMemberStatus: JsPath = __ \ Symbol("memberDetail") \ Symbol("memberStatus")
 
   private val pathEtmpMemberDetailEvent: JsPath = __ \ Symbol("memberDetail") \ Symbol("event")
   private val pathEtmpMemberDetailEventPaymentDetails: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails")
