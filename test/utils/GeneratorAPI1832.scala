@@ -577,7 +577,6 @@ object GeneratorAPI1832 {
   }
 
   private def freeTextEvent3(rBT: String): Option[String] = if (rBT != "Other") None else Some("Example brief description")
-  //  private def freeTextEvent3(rBT: String): String = if (rBT != "Other") "N/A" else "Example brief description"
 
   private def reasonBenefitTakenUAEvent3(rBT: String): String = rBT match {
     case "Ill Health" => "illHealth"
