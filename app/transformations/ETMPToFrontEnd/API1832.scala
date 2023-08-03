@@ -123,13 +123,16 @@ private object API1832ReadsUtilities extends Transformer {
   }
 
   lazy val readsEvent8APaymentDetails: Reads[JsObject] = {
-    (
-      pathUaPaymentType.json.copyFrom(readsPaymentTypeEvent8A) and
-        pathUaTypeOfProtection.json.copyFrom(readsTypeOfProtectionEvent8A) and
-        pathUaTypeOfProtectionReference.json.copyFrom(pathEtmpFreeText.json.pick) and
-        pathUaLumpSumAmountNested.json.copyFrom(pathEtmpAmountLumpSum.json.pick) and
-        pathUaLumpSumDateNested.json.copyFrom(pathEtmpEventDate.json.pick)
-      ).reduce
+    (pathUaPaymentType.json.copyFrom(readsPaymentTypeEvent8A) and
+      pathUaTypeOfProtectionReference.json.copyFrom(pathEtmpFreeText.json.pick) and
+      pathUaLumpSumAmountNested.json.copyFrom(pathEtmpAmountLumpSum.json.pick) and
+      pathUaLumpSumDateNested.json.copyFrom(pathEtmpEventDate.json.pick)
+      ).reduce.flatMap { jsObj =>
+      pathEtmpTypeOfProtection.readNullable[String].flatMap {
+        case None => Reads.pure(jsObj)
+        case Some(str) => pathUaTypeOfProtection.json.put(JsString(typeOfProtectionUAEvent8A(str))).map(_ ++ jsObj)
+      }
+    }
   }
 
   lazy val readsEvent22Or23PaymentDetails: Reads[JsObject] = {
@@ -188,11 +191,17 @@ private object API1832ReadsUtilities extends Transformer {
     }
   }
 
-  private lazy val readsTypeOfProtectionEvent8A: Reads[JsString] = {
-    pathEtmpTypeOfProtection.json.pick.flatMap {
-      case JsString(str) => Reads.pure(JsString(typeOfProtectionUAEvent8A(str)))
-      case _ => fail[JsString]
+  private lazy val readsTypeOfProtectionEvent8A: Reads[Option[String]] = {
+
+    pathEtmpTypeOfProtection.readNullable[String].map {
+      case None => None
+      case Some(str) => Some(typeOfProtectionUAEvent8A(str))
     }
+
+    //    pathEtmpTypeOfProtection.json.pick.flatMap {
+    //      case JsString(str) => Reads.pure(JsString(typeOfProtectionUAEvent8A(str)))
+    //      case _ => fail[JsString]
+    //    }
   }
 
   private lazy val readsReasonBenefitTakenEvent3: Reads[JsString] = {
