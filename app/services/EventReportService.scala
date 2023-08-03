@@ -140,7 +140,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   private def generateMemberChangeInfo(oldMember: Option[JsObject],
                                        newMember: JsObject,
-                                       currentVersion: Int): MemberChangeInfo = {
+                                       currentVersion: Int): Option[MemberChangeInfo] = {
 
     def noVersion(obj: JsObject) = obj - "amendedVersion" - "memberStatus"
 
@@ -157,19 +157,23 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       val oldMemberVersion = version(oldMember).getOrElse(currentVersion)
       val hasSameVersion = version(newMember).contains(currentVersion)
       val oldMemberStatus = status(oldMember).getOrElse(New())
-      (oldMemberStatus, newMemberStatus) match {
-        case (Deleted(), Deleted()) => MemberChangeInfo(oldMemberVersion, Deleted())
-        case (_, Deleted()) => MemberChangeInfo(currentVersion, Deleted())
-        case _ => (hasSameVersion, memberChanged, oldMemberStatus) match {
-          case (false, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
-          case (true, _, New()) => MemberChangeInfo(oldMemberVersion, New())
-          case (false, true, _) => MemberChangeInfo(currentVersion, Changed())
-          case (true, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
-        }
+      val memberChangeInfo = (hasSameVersion, oldMemberStatus, newMemberStatus) match {
+        case (_, Deleted(), Deleted()) => Some(MemberChangeInfo(oldMemberVersion, Deleted()))
+        case (true, New(), Deleted()) => None
+        case (_, _, Deleted()) => Some(MemberChangeInfo(currentVersion, Deleted()))
+        case _ =>
+          val memberChangeInfo = (hasSameVersion, memberChanged, oldMemberStatus) match {
+            case (false, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
+            case (true, _, New()) => MemberChangeInfo(oldMemberVersion, New())
+            case (false, true, _) => MemberChangeInfo(currentVersion, Changed())
+            case (true, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
+          }
+          Some(memberChangeInfo)
       }
-    }.getOrElse(
-      MemberChangeInfo(currentVersion, newMemberStatus)
-    )
+      memberChangeInfo
+    }.getOrElse({
+      if(newMemberStatus == Deleted()) None else Some(MemberChangeInfo(currentVersion, newMemberStatus))
+    })
   }
 
   //scalastyle:off method.length
@@ -184,17 +188,18 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     def newMembersWithChangeInfo(getMemberDetails: JsObject => scala.collection.IndexedSeq[JsObject]) = {
       val newMembers = getMemberDetails(newUserAnswers)
 
-      newMembers.zipWithIndex.map { case (newMemberDetail, index) =>
+      newMembers.zipWithIndex.flatMap { case (newMemberDetail, index) =>
         val oldMemberDetails = oldUserAnswers.map(getMemberDetails).getOrElse(Seq())
         val oldMemberDetail = Try(oldMemberDetails(index)).toOption
-        val newMemberChangeInfo = generateMemberChangeInfo(
+        generateMemberChangeInfo(
           oldMemberDetail,
           newMemberDetail,
           currentVersion
-        )
-        newMemberDetail +
-          ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
-          ("memberStatus", JsString(newMemberChangeInfo.status.name))
+        ).map { newMemberChangeInfo =>
+          newMemberDetail +
+            ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
+            ("memberStatus", JsString(newMemberChangeInfo.status.name))
+        }
       }
     }
 
