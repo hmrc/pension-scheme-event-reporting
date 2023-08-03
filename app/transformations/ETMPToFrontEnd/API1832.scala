@@ -123,7 +123,7 @@ private object API1832ReadsUtilities extends Transformer {
   }
 
   lazy val readsEvent8APaymentDetails: Reads[JsObject] = {
-    (pathUaPaymentType.json.copyFrom(readsPaymentTypeEvent8A) and
+    (
       pathUaTypeOfProtectionReference.json.copyFrom(pathEtmpFreeText.json.pick) and
       pathUaLumpSumAmountNested.json.copyFrom(pathEtmpAmountLumpSum.json.pick) and
       pathUaLumpSumDateNested.json.copyFrom(pathEtmpEventDate.json.pick)
@@ -131,6 +131,11 @@ private object API1832ReadsUtilities extends Transformer {
       pathEtmpTypeOfProtection.readNullable[String].flatMap {
         case None => Reads.pure(jsObj)
         case Some(str) => pathUaTypeOfProtection.json.put(JsString(typeOfProtectionUAEvent8A(str))).map(_ ++ jsObj)
+      }
+    }.flatMap { jsObj =>
+      pathEtmpReasonBenefitTaken.readNullable[String].flatMap {
+        case None => Reads.pure(jsObj)
+        case Some(str) => pathUaPaymentType.json.put(JsString(paymentTypeUAEvent8A(str))).map(_ ++ jsObj)
       }
     }
   }
@@ -189,19 +194,6 @@ private object API1832ReadsUtilities extends Transformer {
       case JsString(str) => Reads.pure(JsString(typeOfProtectionUAEvent8(str)))
       case _ => fail[JsString]
     }
-  }
-
-  private lazy val readsTypeOfProtectionEvent8A: Reads[Option[String]] = {
-
-    pathEtmpTypeOfProtection.readNullable[String].map {
-      case None => None
-      case Some(str) => Some(typeOfProtectionUAEvent8A(str))
-    }
-
-    //    pathEtmpTypeOfProtection.json.pick.flatMap {
-    //      case JsString(str) => Reads.pure(JsString(typeOfProtectionUAEvent8A(str)))
-    //      case _ => fail[JsString]
-    //    }
   }
 
   private lazy val readsReasonBenefitTakenEvent3: Reads[JsString] = {
