@@ -395,6 +395,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
     } yield {
       val typeOfProtectionJson = toJsonObject(map("typeOfProtectionEvent8A"), "typeOfProtection")
       val reasonBenefitTakenJson =  toJsonObject(map("reasonBenefitTakenEvent8A"), "reasonBenefitTaken")
+      val freeTextJson =  toJsonObject(map("typeOfProtectionReference8A"), "freeText")
       val etmpPayload = etmpData(Event8A) ++
         Json.obj("eventDetails" -> Json.arr(
           Json.obj("memberDetail" -> Json.obj(
@@ -408,16 +409,15 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
               ),
               "paymentDetails" -> (Json.obj(
                 "amountLumpSum" -> map("lumpSumAmount"),
-                "eventDate" -> s"${map("taxYearEndDate")}-04-05",
-                "freeText" -> map("typeOfProtectionReference")
-              ) ++ reasonBenefitTakenJson ++ typeOfProtectionJson)
+                "eventDate" -> s"${map("taxYearEndDate")}-04-05"
+              ) ++ reasonBenefitTakenJson ++ typeOfProtectionJson ++ freeTextJson)
             )
           )
           )
         )
         )
       /* Optional now:-
-                                      - reasonBenefitTaken
+                                      - reasonBenefitTaken DONE
                                       - typeOfProtection DONE
                                       - amountLumpSum
                                       - freeText
@@ -425,6 +425,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
 
       val typeOfProtectionUAJson = toJsonObject(map("typeOfProtectionEvent8A"), "typeOfProtection", typeOfProtectionUAEvent8A)
       val reasonBenefitTakenUAJson = toJsonObject(map("reasonBenefitTakenEvent8A"), "paymentType", paymentTypeUAEvent8A)
+      val typeOfProtectionReferenceUAJson = toJsonObject(map("typeOfProtectionReference8A"), "typeOfProtectionReference")
 
       val userAnswers = Json.obj(
         s"event${Event8A.toString}" -> Json.obj("members" -> Json.arr(
@@ -434,12 +435,12 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
               "firstName" -> map("firstName"),
               "lastName" -> map("lastName"),
               "nino" -> map("nino")),
-            "typeOfProtectionReference" -> map("typeOfProtectionReference"),
+//            "typeOfProtectionReference" -> map("typeOfProtectionReference"),
             "lumpSumAmountAndDate" -> Json.obj(
               "lumpSumAmount" -> map("lumpSumAmount"),
               "lumpSumDate" -> s"${map("taxYearEndDate")}-04-05",
             ),
-          ) ++ typeOfProtectionUAJson ++ reasonBenefitTakenUAJson
+          ) ++ typeOfProtectionUAJson ++ reasonBenefitTakenUAJson ++ typeOfProtectionReferenceUAJson
         )
         )
       )
@@ -617,6 +618,7 @@ object GeneratorAPI1832 {
       typeOfProtectionEvent8 <- Gen.oneOf(Seq("Primary Protection", "Enhanced protection"))
       typeOfProtectionEvent8A <- Gen.oneOf(Seq("Primary Protection", "Enhanced", ""))
       typeOfProtectionReference <- Gen.chooseNum(10000000, 99999999)
+      typeOfProtectionReference8A <- Gen.oneOf("10000000", "99999999", "")
       taxYearEndDate <- Gen.oneOf(2020, 2021, 2022)
       reasonBenefitTakenEvent8A <- Gen.oneOf(
         "Member where payment of a stand-alone lump sum (100 per lump sum) and the member had protected lump sum rights of more than £375,000 with either primary protection or enhanced protection",
@@ -641,6 +643,7 @@ object GeneratorAPI1832 {
         "typeOfProtectionEvent8" -> typeOfProtectionEvent8,
         "typeOfProtectionEvent8A" -> typeOfProtectionEvent8A,
         "typeOfProtectionReference" -> typeOfProtectionReference.toString,
+        "typeOfProtectionReference8A" -> typeOfProtectionReference8A,
         "reasonBenefitTakenEvent8A" -> reasonBenefitTakenEvent8A
       )
     }

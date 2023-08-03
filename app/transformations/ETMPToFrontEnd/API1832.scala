@@ -124,7 +124,6 @@ private object API1832ReadsUtilities extends Transformer {
 
   lazy val readsEvent8APaymentDetails: Reads[JsObject] = {
     (
-      pathUaTypeOfProtectionReference.json.copyFrom(pathEtmpFreeText.json.pick) and
       pathUaLumpSumAmountNested.json.copyFrom(pathEtmpAmountLumpSum.json.pick) and
       pathUaLumpSumDateNested.json.copyFrom(pathEtmpEventDate.json.pick)
       ).reduce.flatMap { jsObj =>
@@ -136,6 +135,11 @@ private object API1832ReadsUtilities extends Transformer {
       pathEtmpReasonBenefitTaken.readNullable[String].flatMap {
         case None => Reads.pure(jsObj)
         case Some(str) => pathUaPaymentType.json.put(JsString(paymentTypeUAEvent8A(str))).map(_ ++ jsObj)
+      }
+    }.flatMap { jsObj =>
+      pathEtmpFreeText.readNullable[String].flatMap {
+        case None => Reads.pure(jsObj)
+        case Some(str) => pathUaTypeOfProtectionReference.json.put(JsString(str)).map(_ ++ jsObj)
       }
     }
   }
