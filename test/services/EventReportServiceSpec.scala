@@ -572,7 +572,7 @@ object EventReportServiceSpec {
   private val uaJsonEventWindUp: JsObject = Json.obj("eventWindUp" -> Json.obj("schemeWindUpDate" -> "2020-06-01"))
   private val uaJsonEventWindUpWithRecordVersion: JsObject = Json.obj("eventWindUp" -> Json.obj("schemeWindUpDate" -> "2020-06-01", "recordVersion" -> 1))
 
-  private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
+  private val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.1.0.json"
   private val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.4.json"
 
   private final val SchemaPath1828 = "/resources.schemas/api-1828-submit-event-declaration-report-request-schema-v1.0.4.json"

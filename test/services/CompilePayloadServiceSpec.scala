@@ -60,7 +60,7 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
 
   implicit def noShrink[T]: Shrink[T] = Shrink.shrinkAny // Stop scalacheck from auto-shrinking:-
 
-  private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
+  private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.1.0.json"
 
   private def ifResponsesByEventType(eventTypes: Seq[EventType]): Map[EventType, JsObject] = {
     eventTypes.foldLeft[Map[EventType, JsObject]](Map.empty)((acc, et) =>

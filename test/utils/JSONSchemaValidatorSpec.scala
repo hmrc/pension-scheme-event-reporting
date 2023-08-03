@@ -25,8 +25,10 @@ import play.api.inject.bind
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import repositories.EventReportCacheRepository
 
+import scala.util.Success
+
 class JSONSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with JsonFileReader with TryValues {
-  val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.0.0.json"
+  val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.1.0.json"
   val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.4.json"
   val submitEventDeclarationReportSchemaPath = "/resources.schemas/api-1828-submit-event-declaration-report-request-schema-v1.0.4.json"
   val submitEvent20ADeclarationReportSchemaPath = "/resources.schemas/api-1829-submit-event20a-declaration-report-request-schema-v1.0.0.json"
@@ -49,6 +51,12 @@ class JSONSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with Matcher
       val json = readJsonFromFile("/api-1826-valid-example.json")
       val result = jsonPayloadSchemaValidator.validatePayload(json, createCompiledEventSummaryReportSchemaPath, testEventName)
       result.success.value mustBe (())
+    }
+
+    "Behaviour for valid payload for API 1826 where windup is being deleted" in {
+      val json = readJsonFromFile("/api-1826-valid-example-delete-windup.json")
+      val result = jsonPayloadSchemaValidator.validatePayload(json, createCompiledEventSummaryReportSchemaPath, testEventName)
+      result mustBe Success(():Unit)
     }
 
     "Behaviour for invalid payload with 2 invalid inputs for API 1826" in {
