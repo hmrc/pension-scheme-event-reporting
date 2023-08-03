@@ -125,8 +125,8 @@ class MemberChangeInfoServiceSpec extends AsyncWordSpec with Matchers with Mocki
       service.generateMemberChangeInfo(None, n, 1) mustBe expected
     }
 
-    "return same status and version if old member not available" in {
-      val n = generateJsonNew(Some(New()), 1)
+    "return same new status if old member not available" in {
+      val n = generateJsonNew(None, 1)
       val expected = Some(MemberChangeInfo(1, New()))
       service.generateMemberChangeInfo(None, n, 1) mustBe expected
     }
