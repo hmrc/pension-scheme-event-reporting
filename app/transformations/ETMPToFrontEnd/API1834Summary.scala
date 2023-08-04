@@ -19,9 +19,10 @@ package transformations.ETMPToFrontEnd
 import models.enumeration.EventType
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
+import transformations.Transformer
 
 
-object API1834Summary {
+object API1834Summary extends Transformer {
 
   private final val FieldNameRecordVersion = "recordVersion"
 
@@ -89,7 +90,7 @@ object API1834Summary {
 
   implicit val rdsFor1834: Reads[JsArray] = {
     val readsSeqInt = (
-      (JsPath \ "event1ChargeDetails").read[Option[Int]](readsRecordVersionForEvent1) and
+      (JsPath \ "event1ChargeDetails").readNullable[Option[Int]](readsRecordVersionForEvent1) and
         memberReads and
         (JsPath \ "eventDetails" \ "event10" \ 0 \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
         (JsPath \ "eventDetails" \ "event11" \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
@@ -102,7 +103,7 @@ object API1834Summary {
         (JsPath \ "eventDetails" \ "eventWindUp" \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion)
       )(
       (event1, memberReads, event10, event11, event12, event13, event14, event18, event19, event20, eventWindup) => {
-        val result = Seq(createRow(event1, "1")) ++ memberReads ++ Seq(
+        val result = Seq(createRow(event1.flatten, "1")) ++ memberReads ++ Seq(
           createRow(event10, "10"),
           createRow(event11, "11"),
           createRow(event12, "12"),
