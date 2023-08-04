@@ -19,6 +19,7 @@ package services
 
 import com.google.inject.{Inject, Singleton}
 import connectors.EventReportConnector
+import models.MemberChangeInfo.Deleted
 import models.enumeration.ApiType._
 import models.enumeration.EventType._
 import models.enumeration.{ApiType, EventType}
@@ -44,7 +45,8 @@ import scala.util.{Failure, Success, Try}
 class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    eventReportCacheRepository: EventReportCacheRepository,
                                    jsonPayloadSchemaValidator: JSONSchemaValidator,
-                                   compilePayloadService: CompilePayloadService
+                                   compilePayloadService: CompilePayloadService,
+                                   memberChangeInfoService: MemberChangeInfoService
                                   ) extends Logging {
   private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.1.0.json"
   private final val SchemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.4.json"
@@ -113,65 +115,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def getUserAnswers(externalId: String, pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     eventReportCacheRepository.getUserAnswers(externalId, pstr, None)
 
-  private case class MemberChangeInfo(amendedVersion: Int, status: MemberStatus)
-
-  private trait MemberStatus {
-    def name: String
-  }
-
-  private case class New() extends MemberStatus {
-    def name: String = "New"
-  }
-
-  private case class Deleted() extends MemberStatus {
-    def name: String = "Deleted"
-  }
-
-  private case class Changed() extends MemberStatus {
-    def name: String = "Changed"
-  }
-
-  private def stringToMemberStatus(memberStatus: String): MemberStatus = memberStatus match {
-    case "New" => New()
-    case "Deleted" => Deleted()
-    case "Changed" => Changed()
-    case memberStatus => throw new RuntimeException("Unknown member status: " + memberStatus)
-  }
-
-  private def generateMemberChangeInfo(oldMember: Option[JsObject],
-                                       newMember: JsObject,
-                                       currentVersion: Int): MemberChangeInfo = {
-
-    def noVersion(obj: JsObject) = obj - "amendedVersion" - "memberStatus"
-
-    def version(obj: JsObject) = obj.value.get("amendedVersion").map(_.as[String].toInt)
-
-    def status(obj: JsObject) = obj.value.get("memberStatus").map(_.as[String]).map(stringToMemberStatus)
-
-    val newMemberStatus = status(newMember).getOrElse(New())
-
-    oldMember.map { oldMember =>
-      val oldMemberNoVersion = noVersion(oldMember)
-      val newMemberNoVersion = noVersion(newMember)
-      val memberChanged = oldMemberNoVersion != newMemberNoVersion
-      val oldMemberVersion = version(oldMember).getOrElse(currentVersion)
-      val hasSameVersion = version(newMember).contains(currentVersion)
-      val oldMemberStatus = status(oldMember).getOrElse(New())
-      (oldMemberStatus, newMemberStatus) match {
-        case (Deleted(), Deleted()) => MemberChangeInfo(oldMemberVersion, Deleted())
-        case (_, Deleted()) => MemberChangeInfo(currentVersion, Deleted())
-        case _ => (hasSameVersion, memberChanged, oldMemberStatus) match {
-          case (false, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
-          case (true, _, New()) => MemberChangeInfo(oldMemberVersion, New())
-          case (false, true, _) => MemberChangeInfo(currentVersion, Changed())
-          case (true, false, oldMemberStatus) => MemberChangeInfo(oldMemberVersion, oldMemberStatus)
-        }
-      }
-    }.getOrElse(
-      MemberChangeInfo(currentVersion, newMemberStatus)
-    )
-  }
-
   //scalastyle:off method.length
   private def memberChangeInfoTransformation(oldUserAnswers: Option[JsObject],
                                              newUserAnswers: JsObject,
@@ -184,17 +127,18 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     def newMembersWithChangeInfo(getMemberDetails: JsObject => scala.collection.IndexedSeq[JsObject]) = {
       val newMembers = getMemberDetails(newUserAnswers)
 
-      newMembers.zipWithIndex.map { case (newMemberDetail, index) =>
+      newMembers.zipWithIndex.flatMap { case (newMemberDetail, index) =>
         val oldMemberDetails = oldUserAnswers.map(getMemberDetails).getOrElse(Seq())
         val oldMemberDetail = Try(oldMemberDetails(index)).toOption
-        val newMemberChangeInfo = generateMemberChangeInfo(
+        memberChangeInfoService.generateMemberChangeInfo(
           oldMemberDetail,
           newMemberDetail,
           currentVersion
-        )
-        newMemberDetail +
-          ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
-          ("memberStatus", JsString(newMemberChangeInfo.status.name))
+        ).map { newMemberChangeInfo =>
+          newMemberDetail +
+            ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
+            ("memberStatus", JsString(newMemberChangeInfo.status.name))
+        }
       }
     }
 
