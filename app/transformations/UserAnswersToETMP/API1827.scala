@@ -245,7 +245,7 @@ object API1827 extends Transformer {
       (
         (__ \ Symbol("memberType")).json.put(JsString(whoReceivedUnauthorisedPayment)) and
           (__ \ Symbol("memberStatus")).json.copyFrom(readsMemberStatus) and
-          (__ \ Symbol("amendedVersion")).json.copyFrom(readsAmendedVersion) and
+          (__ \ Symbol("amendedVersion")).json.copyFrom(readsAmendedVersion).orElse(doNothing) and
           readsMemberOrEmployer(whoReceivedUnauthorisedPayment) and
           readsUnauthorisedPaymentDetails(paymentNature, whoReceivedUnauthorisedPayment)
         ).reduce
