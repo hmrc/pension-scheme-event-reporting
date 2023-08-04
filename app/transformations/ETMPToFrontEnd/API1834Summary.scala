@@ -17,33 +17,46 @@
 package transformations.ETMPToFrontEnd
 
 import models.enumeration.EventType
-import models.enumeration.EventType._
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json.{JsArray, _}
+import play.api.libs.json._
 
 
 object API1834Summary {
 
-  private val fieldNameRecordVersion = "recordVersion"
+  private final val FieldNameRecordVersion = "recordVersion"
 
-  private val readsIsEventTypePresent: Reads[Int] = {
+  private val readsRecordVersion: Reads[Int] = {
     Reads {
       case JsString(v) => JsSuccess(v.toInt)
       case JsNumber(v) => JsSuccess(v.toInt)
       case s => JsError(s"Invalid json $s")
     }
   }
-  private def createRow(event: Option[Int], eventType: String, numberOfMembersOpt: Option[Int] = None): JsObject = {
+
+  private val readsRecordVersionForEvent1: Reads[Option[Int]] = (
+    (JsPath \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
+      (JsPath \ "numberOfMembers").readNullable[Int]
+    )(
+    (recordVersion, numberMembers) =>
+      (recordVersion, numberMembers) match {
+        case (v, Some(n)) if n > 0 => v
+        case _ => None
+      }
+  )
+
+  private def createRow(event: Option[Int], eventType: String): JsObject = {
     event.fold(Json.obj())(version =>
       Json.obj(
         "eventType" -> eventType,
-        "recordVersion" -> version
-      ) ++ numberOfMembersOpt.map { numberOfMembers => Json.obj("numberOfMembers" -> JsNumber(numberOfMembers))}.getOrElse(Json.obj())
+        FieldNameRecordVersion -> version
+      )
     )
   }
 
-  private def memberReads(list:List[EventType]) = {
-    def combineReads(list: List[Reads[Option[Int]]]) = list
+  private def memberReads: Reads[Seq[JsObject]] = {
+    val seqEventTypes = EventType.memberEventTypes
+
+    def combineReads(list: Seq[Reads[Option[Int]]]): Reads[Seq[Option[Int]]] = list
       .foldLeft(Reads.pure(Seq.empty[Option[Int]])) { (acc, reads) =>
         for {
           acc <- acc
@@ -54,40 +67,42 @@ object API1834Summary {
       }
 
     for {
-      recordVersions <- combineReads(list.map(readsMemberRecordVersion))
-      numberOfMembers <- combineReads(list.map(readsNumberOfMembers))
+      recordVersions <- combineReads(seqEventTypes.map(readsMemberRecordVersion))
+      numberOfMembers <- combineReads(seqEventTypes.map(readsNumberOfMembers))
     } yield {
-      list.zip(recordVersions).zip(numberOfMembers).map { case ((eventType, recordVersion), numberOfMembers) =>
-        createRow(recordVersion, eventType.toString, numberOfMembers)
+      seqEventTypes.zip(recordVersions).zip(numberOfMembers).map { case ((eventType, recordVersion), numberOfMembers) =>
+        numberOfMembers match {
+          case Some(0) => Json.obj()
+          case _ => createRow(recordVersion, eventType.toString)
+        }
       }
     }
-
   }
-  private def readsMemberRecordVersion(eventType: EventType) =
-    (JsPath \ "memberEventsSummary" \ ("event" + eventType) \ "recordVersion").readNullable[Int](readsIsEventTypePresent)
 
-  private def readsNumberOfMembers(eventType: EventType) =
-    (JsPath \ "memberEventsSummary" \ ("event" + eventType) \ "numberOfMembers").readNullable[Int](readsIsEventTypePresent)
+  private def readsMemberRecordVersion(eventType: EventType): Reads[Option[Int]] =
+    (JsPath \ "memberEventsSummary" \ ("event" + eventType) \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion)
+
+  private def readsNumberOfMembers(eventType: EventType): Reads[Option[Int]] =
+    (JsPath \ "memberEventsSummary" \ ("event" + eventType) \ "numberOfMembers")
+      .readNullable[Int](readsRecordVersion)
+
 
   implicit val rdsFor1834: Reads[JsArray] = {
     val readsSeqInt = (
-      (JsPath \ "event1ChargeDetails" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        memberReads(List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A)) and
-        (JsPath \ "eventDetails" \ "event10" \ 0 \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "eventDetails" \ "event11" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "eventDetails" \ "event12" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "eventDetails" \ "event13" \ 0 \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "eventDetails" \ "event14" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "eventDetails" \ "event18" \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "eventDetails" \ "event19" \ 0 \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        (JsPath \ "eventDetails" \ "event20" \ 0 \ "recordVersion").readNullable[Int](readsIsEventTypePresent) and
-        memberReads(List(Event22, Event23)) and
-        (JsPath \ "eventDetails" \ "eventWindUp" \ "recordVersion").readNullable[Int](readsIsEventTypePresent)
+      (JsPath \ "event1ChargeDetails").read[Option[Int]](readsRecordVersionForEvent1) and
+        memberReads and
+        (JsPath \ "eventDetails" \ "event10" \ 0 \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
+        (JsPath \ "eventDetails" \ "event11" \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
+        (JsPath \ "eventDetails" \ "event12" \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
+        (JsPath \ "eventDetails" \ "event13" \ 0 \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
+        (JsPath \ "eventDetails" \ "event14" \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
+        (JsPath \ "eventDetails" \ "event18" \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
+        (JsPath \ "eventDetails" \ "event19" \ 0 \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
+        (JsPath \ "eventDetails" \ "event20" \ 0 \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
+        (JsPath \ "eventDetails" \ "eventWindUp" \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion)
       )(
-      (event1, memberReads, event10, event11, event12, event13, event14, event18, event19, event20, event22and23, eventWindup) => {
-        val result = Seq(
-          createRow(event1, "1")
-        ) ++ memberReads ++ Seq(
+      (event1, memberReads, event10, event11, event12, event13, event14, event18, event19, event20, eventWindup) => {
+        val result = Seq(createRow(event1, "1")) ++ memberReads ++ Seq(
           createRow(event10, "10"),
           createRow(event11, "11"),
           createRow(event12, "12"),
@@ -96,7 +111,7 @@ object API1834Summary {
           createRow(event18, "18"),
           createRow(event19, "19"),
           createRow(event20, "20")
-        ) ++ event22and23 ++ Seq(
+        ) ++ Seq(
           createRow(eventWindup, "WindUp")
         )
 
@@ -111,7 +126,7 @@ object API1834Summary {
 
   implicit val rdsFor1831: Reads[JsArray] = {
     val readsSeqInt =
-      (JsPath \ "er20aDetails" \ "reportVersionNumber").readNullable[Int](readsIsEventTypePresent).map {
+      (JsPath \ "er20aDetails" \ "reportVersionNumber").readNullable[Int](readsRecordVersion).map {
         event20a => {
           Seq(
             createRow(event20a, "20A")
