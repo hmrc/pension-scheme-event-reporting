@@ -276,14 +276,16 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
         val expected = Json.parse(
           """ [{"eventType":"1","recordVersion":2},
-            |{"eventType":"2","recordVersion":1,"numberOfMembers":150000},
-            |{"eventType":"3","recordVersion":2,"numberOfMembers":1000},
-            |{"eventType":"4","recordVersion":1,"numberOfMembers":1000},
-            |{"eventType":"5","recordVersion":4,"numberOfMembers":50000},
-            |{"eventType":"6","recordVersion":7,"numberOfMembers":10000},
-            |{"eventType":"7","recordVersion":2,"numberOfMembers":150000},
-            |{"eventType":"8","recordVersion":4,"numberOfMembers":1500},
-            |{"eventType":"8A","recordVersion":3,"numberOfMembers":150000},
+            |{"eventType":"2","recordVersion":1},
+            |{"eventType":"3","recordVersion":2},
+            |{"eventType":"4","recordVersion":1},
+            |{"eventType":"5","recordVersion":4},
+            |{"eventType":"6","recordVersion":7},
+            |{"eventType":"7","recordVersion":2},
+            |{"eventType":"8","recordVersion":4},
+            |{"eventType":"8A","recordVersion":3},
+            |{"eventType":"22","recordVersion":4},
+            |{"eventType":"23","recordVersion":3},
             |{"eventType":"10","recordVersion":1},
             |{"eventType":"11","recordVersion":1},
             |{"eventType":"12","recordVersion":1},
@@ -292,8 +294,6 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
             |{"eventType":"18","recordVersion":1},
             |{"eventType":"19","recordVersion":1},
             |{"eventType":"20","recordVersion":1},
-            |{"eventType":"22","recordVersion":4,"numberOfMembers":10000},
-            |{"eventType":"23","recordVersion":3,"numberOfMembers":150000},
             |{"eventType":"WindUp","recordVersion":1},
             |{"eventType":"20A","recordVersion":1}]""".stripMargin).as[JsArray]
         result mustBe expected
