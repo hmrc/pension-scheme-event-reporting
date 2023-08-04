@@ -135,8 +135,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           newMemberDetail,
           currentVersion
         ).map { newMemberChangeInfo =>
-          newMemberDetail +
-            ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
+          newMemberDetail - "amendedVersion" +
             ("memberStatus", JsString(newMemberChangeInfo.status.name))
         }
       }
