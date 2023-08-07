@@ -163,7 +163,7 @@ private object API1833ReadsUtilities extends Transformer {
     case "Transfer to an Employer Financed retirement Benefit scheme (EFRB)" => "anEmployerFinanced"
     case "Transfer to a non-recognised pension scheme which is not a qualifying overseas pension scheme" => "nonRecognisedScheme"
     case "Widow and/or orphan" => "widowOrOrphan"
-    case "Refund of contributions other" => "other" // TODO: check what this option fills in FE Mongo, there is no equivalent transformation in API1827.scala. Consider renaming in FE: "refundOfContributionsOther"
+    case "Refund of contributions other" => "other"
     case "Death of member" => "deathOfMember"
     case "Death of dependent" => "deathOfDependent"
     case "Dependent no longer qualified for pension" => "dependentNoLongerQualifiedForPension"
