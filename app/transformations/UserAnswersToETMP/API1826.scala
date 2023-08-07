@@ -41,8 +41,7 @@ object API1826 extends Transformer {
         Reads.pure(None)
     }
   }
-
-  //TODO: The below method is to be used for the refactor ticket PODS-8410
+  
   private def mapReadsToOptionObject(eventTypeNodeName: String)(reads: JsPath => Reads[JsObject]): Reads[Option[JsObject]] = {
     (__ \ eventTypeNodeName).readNullable[JsObject].flatMap {
       case Some(_) =>
