@@ -22,7 +22,6 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json._
 import utils.{GeneratorAPI1828, JsonFileReader}
 
-// TODO: Consider relocation of code to different package.
 class API1828Spec extends AnyFreeSpec with Matchers
   with JsonFileReader with GeneratorAPI1828 with ScalaCheckPropertyChecks {
 

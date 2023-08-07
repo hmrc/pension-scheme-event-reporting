@@ -21,7 +21,6 @@ import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
 import play.api.libs.json.{JsObject, Json}
 
-// TODO: Consider relocation of code to different package.
 // scalastyle:off
 trait GeneratorAPI1828 extends Matchers with OptionValues with ResponseGenerators {
   def generateUserAnswersAndPOSTBody: Gen[(JsObject, JsObject)] = {
