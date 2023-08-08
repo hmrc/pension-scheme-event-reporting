@@ -250,13 +250,14 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
   private def generateForEvent19: Gen[(JsObject, JsObject)] = {
     for {
       date <- dateGeneratorYMD
+      countryCode <- Gen.alphaUpperChar.flatMap{ a => Gen.alphaUpperChar.map{ b => a.toString + b.toString}}
     } yield {
       val payload: JsObject = Json.obj(
         "eventDetails" -> Json.obj(
           "event19" -> Json.arr(
             Json.obj(
               "recordVersion" -> "001",
-              "countryCode" -> "GB",
+              "countryCode" -> countryCode,
               "dateOfChange" -> date
             )
           )
@@ -265,7 +266,7 @@ trait GeneratorAPI1834 extends Matchers with OptionValues with ResponseGenerator
 
       val expected = Json.obj(
         "event19" -> Json.obj(
-          "CountryOrTerritory" -> "GB", // TODO: other countries
+          "CountryOrTerritory" -> countryCode,
           "dateChangeMade" -> date,
           "recordVersion" -> 1
         )

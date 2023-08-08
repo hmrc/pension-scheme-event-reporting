@@ -28,30 +28,6 @@ class API1832Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
   with GeneratorAPI1832 with ScalaCheckPropertyChecks {
 
   "Reads" - {
-    "transform a valid payload correctly when read from sample file from API 1834" in {
-      val json = readJsonFromFile("/api-1832-valid-example.json")
-      val result = json.validate(API1832.rds1832Api(Event22)).asOpt
-
-      val expectedResult =
-        Json.obj(
-          "event22" -> Json.obj("members" ->
-            Json.arr(
-              Json.obj(
-                "memberStatus" -> "New",
-                "membersDetails" -> Json.obj(
-                  "lastName" -> "Smith",
-                  "firstName" -> "John",
-                  "nino" -> "AA345678B"
-                ),
-                "chooseTaxYear" -> "2020",
-                "totalPensionAmounts" -> 123.99
-              )
-            )
-          )
-        )
-
-      result mustBe Some(expectedResult)
-    }
 
     val api1832Events = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23)
 
@@ -66,7 +42,7 @@ class API1832Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
         }
     )
 
-    "transform a a payload with no eventDetails node correctly as an empty json object" in {
+    "transform a payload with no eventDetails node correctly as an empty json object" in {
       val payload = {
         val (json: JsObject, _) = {
           generateUserAnswersAndPOSTBodyByEvent(Event4).sample.get
@@ -78,6 +54,5 @@ class API1832Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
       val result = payload.validate(API1832.rds1832Api(Event4)).asOpt
       result mustBe Some(expectedResponse)
     }
-
   }
 }

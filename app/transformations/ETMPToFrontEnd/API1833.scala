@@ -33,10 +33,10 @@ object API1833 {
     Reads.seq(
       (
         readsMemberType and
-        readsIndividualOrEmployerMemberDetails and
-        readsUnAuthorisedPaymentDetails and
+          readsIndividualOrEmployerMemberDetails and
+          readsUnAuthorisedPaymentDetails and
           readsMemberChangeInfo
-      ).reduce
+        ).reduce
     ).map(JsArray(_)))
 }
 
@@ -53,8 +53,8 @@ private object API1833ReadsUtilities extends Transformer {
   }
 
   val readsIndividualMemberDetails: Reads[JsObject] = (
-      reqReads(pathUAMembersDetailsFirstName, pathEtmpIndividualMemberDetailsFirstName) and
-      reqReads(pathUAMembersDetailsLastName,pathEtmpIndividualMemberDetailsLastName) and
+    reqReads(pathUAMembersDetailsFirstName, pathEtmpIndividualMemberDetailsFirstName) and
+      reqReads(pathUAMembersDetailsLastName, pathEtmpIndividualMemberDetailsLastName) and
       reqReads(pathUAMembersDetailsNino, pathEtmpIndividualMemberDetailsNino) and
       optReadsBoolTransform(pathUADoYouHoldSignedMandate, pathEtmpIndividualMemberDetailsSignedMandate, yesNoTransform) and
       optReadsBoolTransform(pathUAValueOfUnauthorisedPayment, pathEtmpIndividualMemberDetailsPmtMoreThan25PerFundValue, yesNoTransform) and
@@ -62,13 +62,13 @@ private object API1833ReadsUtilities extends Transformer {
     ).reduce
 
   val readsEmployerMemberDetails: Reads[JsObject] = (
-      reqReads(pathUACompanyName, pathEtmpEmployerMemberDetailsCompOrOrgName) and
+    reqReads(pathUACompanyName, pathEtmpEmployerMemberDetailsCompOrOrgName) and
       reqReads(pathUACompanyNumber, pathEtmpEmployerMemberDetailsCrnNumber) and
       reqReads(pathUAEmployerAddress, pathEtmpEmployerMemberDetailsAddressDetails)
     ).reduce
 
   val readsUnAuthorisedPaymentDetails: Reads[JsObject] = (
-      readsUnAuthorisedPmtType1WithDynamicUAPaths and
+    readsUnAuthorisedPmtType1WithDynamicUAPaths and
       reqReads(pathUAUnAuthorisedPaymentDate, pathEtmpUnAuthorisedPaymentDetailsDateOfUnauthorisedPayment) and
       reqReads(pathUAUnAuthorisedPaymentValue, pathEtmpUnAuthorisedPaymentDetailsValueOfUnauthorisedPayment) and
       optReadsDynamicPathStrTransform(dynamicPathUnAuthorisedPmtType2, pathEtmpUnAuthorisedPaymentDetailsUnAuthorisedPmtType2, unAuthorisedPmtType2Transform) and
@@ -82,7 +82,7 @@ private object API1833ReadsUtilities extends Transformer {
   val readsMemberChangeInfo: Reads[JsObject] = (
     reqReads(pathUAMemberStatus, pathEtmpMemberStatus) and
       optReads(pathUAAmendedVersion, pathEtmpAmendedVersion)
-  ).reduce
+    ).reduce
 
   /**
    * These are utility functions for reading json from a given etmpPath into a given uaPath.
@@ -98,8 +98,8 @@ private object API1833ReadsUtilities extends Transformer {
       uaPath.json.copyFrom(etmpPath.json.pick.flatMap {
         case JsString(str) => Reads.pure(JsString(transform(str)))
         case _ => fail[JsString]
-    })
-  }
+      })
+    }
 
   lazy val optReadsBoolTransform: (JsPath, JsPath, String => Boolean) => Reads[JsObject] =
     (uaPath: JsPath, etmpPath: JsPath, transform: String => Boolean) => {
@@ -163,7 +163,7 @@ private object API1833ReadsUtilities extends Transformer {
     case "Transfer to an Employer Financed retirement Benefit scheme (EFRB)" => "anEmployerFinanced"
     case "Transfer to a non-recognised pension scheme which is not a qualifying overseas pension scheme" => "nonRecognisedScheme"
     case "Widow and/or orphan" => "widowOrOrphan"
-    case "Refund of contributions other" => "other" // TODO: check what this option fills in FE Mongo, there is no equivalent transformation in API1827.scala. Consider renaming in FE: "refundOfContributionsOther"
+    case "Refund of contributions other" => "other"
     case "Death of member" => "deathOfMember"
     case "Death of dependent" => "deathOfDependent"
     case "Dependent no longer qualified for pension" => "dependentNoLongerQualifiedForPension"
@@ -203,19 +203,15 @@ private object API1833ReadsUtilities extends Transformer {
     case "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme" => pathUAEmployerTangibleMoveableProperty
     case "Court Order Payment/Confiscation Order" => pathUAUnauthorisedPaymentRecipientName
     case "Other" => pathUAPaymentNatureDesc
-    // TODO: check that below resolves issue.
     case _ => pathUAPaymentNatureEmployer
   }
 
-  // TODO: refactor
   lazy val dynamicPathUnAuthorisedPmtType2: String => JsPath = {
-    case "anEmployerFinanced" => pathUAWhoWasTheTransferMade
-    case "nonRecognisedScheme" => pathUAWhoWasTheTransferMade
+    case "anEmployerFinanced" | "nonRecognisedScheme" => pathUAWhoWasTheTransferMade
     case "widowOrOrphan" => pathUARefundOfContributions
-    case "deathOfMember" => pathUAReasonForTheOverpaymentOrWriteOff
-    case "deathOfDependent" => pathUAReasonForTheOverpaymentOrWriteOff
-    case "dependentNoLongerQualifiedForPension" => pathUAReasonForTheOverpaymentOrWriteOff
-    case "other" => pathUAReasonForTheOverpaymentOrWriteOff
+    case "deathOfMember" | "deathOfDependent"
+         | "dependentNoLongerQualifiedForPension"
+         | "other" => pathUAReasonForTheOverpaymentOrWriteOff
   }
 
   /**
@@ -275,8 +271,8 @@ private object EventOneReportPaths {
   val pathUAEvent1MembersOrEmployers: JsPath = __ \ Symbol("event1") \ Symbol("membersOrEmployers")
   val pathUAWhoReceivedUnauthPayment: JsPath = __ \ Symbol("whoReceivedUnauthPayment")
   val pathUAMembersDetailsFirstName: JsPath = __ \ Symbol("membersDetails") \ Symbol("firstName")
-  val pathUAMembersDetailsLastName: JsPath = __ \ Symbol("membersDetails")  \ Symbol("lastName")
-  val pathUAMembersDetailsNino: JsPath = __ \ Symbol("membersDetails")  \ Symbol("nino")
+  val pathUAMembersDetailsLastName: JsPath = __ \ Symbol("membersDetails") \ Symbol("lastName")
+  val pathUAMembersDetailsNino: JsPath = __ \ Symbol("membersDetails") \ Symbol("nino")
   val pathUADoYouHoldSignedMandate: JsPath = __ \ Symbol("doYouHoldSignedMandate")
   val pathUAValueOfUnauthorisedPayment: JsPath = __ \ Symbol("valueOfUnauthorisedPayment")
   val pathUASchemeUnAuthPaySurchargeMember: JsPath = __ \ Symbol("schemeUnAuthPaySurchargeMember")
@@ -311,12 +307,12 @@ private object EventOneReportPaths {
   /* ETMP */
   val pathEtmpEvent1Details: JsPath = __ \ "event1Details"
   val pathEtmpMemberType: JsPath = __ \ Symbol("memberType")
-  val pathEtmpIndividualMemberDetailsFirstName: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("firstName")
-  val pathEtmpIndividualMemberDetailsLastName: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("lastName")
-  val pathEtmpIndividualMemberDetailsNino: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("nino")
-  val pathEtmpIndividualMemberDetailsSignedMandate: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("signedMandate")
-  val pathEtmpIndividualMemberDetailsPmtMoreThan25PerFundValue: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("pmtMoreThan25PerFundValue")
-  val pathEtmpIndividualMemberDetailsSchemePayingSurcharge: JsPath = __ \ Symbol("individualMemberDetails")  \ Symbol("schemePayingSurcharge")
+  val pathEtmpIndividualMemberDetailsFirstName: JsPath = __ \ Symbol("individualMemberDetails") \ Symbol("firstName")
+  val pathEtmpIndividualMemberDetailsLastName: JsPath = __ \ Symbol("individualMemberDetails") \ Symbol("lastName")
+  val pathEtmpIndividualMemberDetailsNino: JsPath = __ \ Symbol("individualMemberDetails") \ Symbol("nino")
+  val pathEtmpIndividualMemberDetailsSignedMandate: JsPath = __ \ Symbol("individualMemberDetails") \ Symbol("signedMandate")
+  val pathEtmpIndividualMemberDetailsPmtMoreThan25PerFundValue: JsPath = __ \ Symbol("individualMemberDetails") \ Symbol("pmtMoreThan25PerFundValue")
+  val pathEtmpIndividualMemberDetailsSchemePayingSurcharge: JsPath = __ \ Symbol("individualMemberDetails") \ Symbol("schemePayingSurcharge")
   val pathEtmpEmployerMemberDetailsCompOrOrgName: JsPath = __ \ Symbol("employerMemberDetails") \ Symbol("compOrOrgName")
   val pathEtmpEmployerMemberDetailsCrnNumber: JsPath = __ \ Symbol("employerMemberDetails") \ Symbol("crnNumber")
   val pathEtmpEmployerMemberDetailsAddressDetails: JsPath = __ \ Symbol("employerMemberDetails") \ Symbol("addressDetails")
@@ -330,6 +326,6 @@ private object EventOneReportPaths {
   val pathEtmpUnAuthorisedPaymentDetailsPmtAmtOrLoanAmt: JsPath = pathEtmpUnAuthorisedPaymentDetails \ Symbol("pmtAmtOrLoanAmt")
   val pathEtmpUnAuthorisedPaymentDetailsFundValue: JsPath = pathEtmpUnAuthorisedPaymentDetails \ Symbol("fundValue")
   val pathEtmpUnAuthorisedPaymentDetailsResidentialPropertyAddress: JsPath = pathEtmpUnAuthorisedPaymentDetails \ Symbol("residentialPropertyAddress")
-  val pathEtmpMemberStatus:JsPath = __ \ Symbol("memberStatus")
-  val pathEtmpAmendedVersion:JsPath = __ \ Symbol("amendedVersion")
+  val pathEtmpMemberStatus: JsPath = __ \ Symbol("memberStatus")
+  val pathEtmpAmendedVersion: JsPath = __ \ Symbol("amendedVersion")
 }
