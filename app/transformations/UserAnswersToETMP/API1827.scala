@@ -256,6 +256,7 @@ object API1827 extends Transformer {
     val reads = (__ \ Symbol("event1") \ Symbol("membersOrEmployers")).readNullable[JsArray](__.read(Reads.seq(readsMember))
       .map(JsArray(_))).map {
         case None =>  Json.obj()
+        case Some(x) if x.value.isEmpty => Json.obj()
         case Some(x) =>
           Json.obj(
             "event1Details" -> Json.obj(

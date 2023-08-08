@@ -34,6 +34,15 @@ class API1827Spec extends AnyFreeSpec with Matchers
           result mustBe expectedResult
       }
     }
+
+    "must transform an empty payload correctly" in {
+      forAll(generateEmptyUserAnswersAndPOSTBody) {
+        case (userAnswers: JsObject, expectedResponse: JsObject) =>
+          val result = userAnswers.validate(API1827.transformToETMPData)
+          val expectedResult = JsSuccess(expectedResponse)
+          result mustBe expectedResult
+      }
+    }
   }
 }
 
