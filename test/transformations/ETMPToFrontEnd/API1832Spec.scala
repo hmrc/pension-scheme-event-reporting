@@ -28,7 +28,6 @@ class API1832Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
   with GeneratorAPI1832 with ScalaCheckPropertyChecks {
 
   "Reads" - {
-    // TODO: This test doesn't test the correct API. It's out of scope for current ticket but should be addressed in future. -NJ
     "transform a valid payload correctly when read from sample file from API 1834" in {
       val json = readJsonFromFile("/api-1832-valid-example.json")
       val result = json.validate(API1832.rds1832Api(Event22)).asOpt
@@ -61,8 +60,8 @@ class API1832Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
         s"transform a randomly generated valid payload from API 1832 correctly (Event ${event.toString})" in {
           forAll(generateUserAnswersAndPOSTBodyByEvent(event)) {
             case (payload: JsObject, expectedResponse: JsObject) =>
-              val result = payload.validate(API1832.rds1832Api(event)).asOpt
-              result mustBe Some(expectedResponse)
+              val result = payload.validate(API1832.rds1832Api(event))
+              result mustBe JsSuccess(expectedResponse)
           }
         }
     )
