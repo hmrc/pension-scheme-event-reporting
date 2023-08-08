@@ -23,17 +23,8 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json._
 import utils.{GeneratorAPI1826, JsonFileReader}
 
-
 class API1826Spec extends AnyFreeSpec with Matchers
   with JsonFileReader with GeneratorAPI1826 with ScalaCheckPropertyChecks {
-
-  private def checkExpectation(eventType: String, actualResult: JsResult[JsObject], expectedResult: JsObject): Unit = {
-
-    val actualResultForNode = actualResult.map(x => (x \ "eventDetails" \ eventType).asOpt[JsObject])
-    val expectedResultForNode = JsSuccess((expectedResult \ "eventDetails" \ eventType).asOpt[JsObject])
-
-    actualResultForNode mustBe expectedResultForNode
-  }
 
   "transformToETMPData" - {
     "must transform a randomly generated valid payload correctly for Event 10" in {
@@ -136,6 +127,4 @@ class API1826Spec extends AnyFreeSpec with Matchers
     }
     result.asOpt mustBe Some(expected)
   }
-
 }
-

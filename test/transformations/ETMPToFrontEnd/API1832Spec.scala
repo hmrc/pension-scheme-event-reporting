@@ -36,8 +36,8 @@ class API1832Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
         s"transform a randomly generated valid payload from API 1832 correctly (Event ${event.toString})" in {
           forAll(generateUserAnswersAndPOSTBodyByEvent(event)) {
             case (payload: JsObject, expectedResponse: JsObject) =>
-              val result = payload.validate(API1832.rds1832Api(event)).asOpt
-              result mustBe Some(expectedResponse)
+              val result = payload.validate(API1832.rds1832Api(event))
+              result mustBe JsSuccess(expectedResponse)
           }
         }
     )
