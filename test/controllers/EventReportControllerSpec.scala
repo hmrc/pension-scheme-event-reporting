@@ -159,8 +159,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
   "submitEventDeclarationReport" must {
     "return NoContent when valid response" in {
-      when(mockEventReportService.submitEventDeclarationReport(any(), any(), any())(any(), any(), any()))
-        .thenReturn(Future.successful(()))
+      when(mockEventReportService.submitEventDeclarationReport(any(), any(), any(), any())(any(), any(), any()))
+        .thenReturn(Future.successful(NoContent))
       when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
         .thenReturn(Success(()))
 
@@ -191,8 +191,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
   "submitEvent20ADeclarationReport" must {
     "return NoContent when valid response" in {
-      when(mockEventReportService.submitEvent20ADeclarationReport(any(), any(), any())(any(), any(), any()))
-        .thenReturn(Future.successful(()))
+      when(mockEventReportService.submitEvent20ADeclarationReport(any(), any(), any(), any())(any(), any(), any()))
+        .thenReturn(Future.successful(NoContent))
       when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
         .thenReturn(Success(()))
 

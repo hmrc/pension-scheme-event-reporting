@@ -442,7 +442,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
           status = OK,
           json = payload,
           headers = Map.empty)))
-      eventReportService.submitEventDeclarationReport(pstr, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map { _ =>
+      eventReportService.submitEventDeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map { _ =>
         verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
           ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
         assert(true)
@@ -456,7 +456,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
           status = OK,
           json = payload,
           headers = Map.empty)))
-      eventReportService.submitEventDeclarationReport(pstr, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map { _ =>
+      eventReportService.submitEventDeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map { _ =>
         verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
           any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
         assert(true)
@@ -468,7 +468,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         ArgumentMatchers.eq(pstr), any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
         .thenReturn(Future.failed(new BadRequestException("Test")))
       recoverToExceptionIf[ExpectationFailedException] {
-        eventReportService.submitEventDeclarationReport(pstr, userAnswers, reportVersion)(implicitly, implicitly, implicitly)
+        eventReportService.submitEventDeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly)
       } map { _ =>
         verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
           ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
@@ -486,7 +486,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
           headers = Map.empty)))
 
       recoverToExceptionIf[Exception] {
-        eventReportService.submitEventDeclarationReport(pstr, userAnswers, reportVersion)(implicitly, implicitly, implicitly)
+        eventReportService.submitEventDeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly)
       } map { _ =>
         verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
           any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
@@ -507,7 +507,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
           status = OK,
           json = payload,
           headers = Map.empty)))
-      eventReportService.submitEvent20ADeclarationReport(pstr, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map { _ =>
+      eventReportService.submitEvent20ADeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map { _ =>
         verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
           ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
         assert(true)
@@ -520,7 +520,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
         .thenReturn(Future.failed(new BadRequestException("Test")))
       recoverToExceptionIf[ExpectationFailedException] {
-        eventReportService.submitEvent20ADeclarationReport(pstr, userAnswers, reportVersion)(implicitly, implicitly, implicitly)
+        eventReportService.submitEvent20ADeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly)
       } map { _ =>
         verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
           ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
@@ -537,7 +537,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
           json = payload,
           headers = Map.empty)))
       recoverToExceptionIf[Exception] {
-        eventReportService.submitEvent20ADeclarationReport(pstr, userAnswers, reportVersion)(implicitly, implicitly, implicitly)
+        eventReportService.submitEvent20ADeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly)
       } map { _ =>
         verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
           any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
@@ -554,7 +554,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
           status = OK,
           json = payload,
           headers = Map.empty)))
-      eventReportService.submitEvent20ADeclarationReport(pstr, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map { _ =>
+      eventReportService.submitEvent20ADeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map { _ =>
         verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
           any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
         assert(true)
