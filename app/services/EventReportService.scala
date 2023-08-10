@@ -31,7 +31,7 @@ import play.api.libs.json.JsResult.toTry
 import play.api.libs.json._
 import play.api.mvc.Results._
 import play.api.mvc.{RequestHeader, Result}
-import repositories.EventReportCacheRepository
+import repositories.{DeclarationLockRepository, EventReportCacheRepository}
 import transformations.ETMPToFrontEnd.{API1831, API1832, API1833, API1834}
 import transformations.UserAnswersToETMP._
 import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, HeaderCarrier, HttpResponse}
@@ -44,10 +44,12 @@ import scala.util.{Failure, Success, Try}
 @Singleton()
 class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    eventReportCacheRepository: EventReportCacheRepository,
+                                   declarationLockRepository: DeclarationLockRepository,
                                    jsonPayloadSchemaValidator: JSONSchemaValidator,
                                    compilePayloadService: CompilePayloadService,
                                    memberChangeInfoService: MemberChangeInfoService
                                   ) extends Logging {
+
   private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.1.0.json"
   private final val SchemaPath1827 = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.4.json"
   private final val SchemaPath1830 = "/resources.schemas/api-1830-create-compiled-member-event-report-request-schema-v1.0.7.json"
@@ -405,8 +407,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     Future.fromTry(jsonPayloadSchemaValidator.validatePayload(payload, schemaPath, eventName)).map(_ => (): Unit)
   }
 
-  def submitEventDeclarationReport(pstr: String, userAnswersJson: JsValue, version: String)
-                                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Unit] = {
+  def submitEventDeclarationReport(pstr: String, psaPspId: String, userAnswersJson: JsValue, version: String)
+                                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
 
     def recoverAndValidatePayload(transformed1828Payload: JsObject): Future[Unit] = {
       val recoveredConnectorCallForAPI1828 = eventReportConnector
@@ -422,17 +424,23 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       }
     }
 
-    for {
-      transformed1828Payload <- Future.fromTry(toTry(userAnswersJson.transform(API1828.transformToETMPData)))
-      _ <- recoverAndValidatePayload(transformed1828Payload)
-    } yield {
-      ()
+    declarationLockRepository.insertLockData(pstr, psaPspId).flatMap { isAvailable => //TODO: Rename refer to AFT
+      if (isAvailable) {
+        for {
+          transformed1828Payload <- Future.fromTry(toTry(userAnswersJson.transform(API1828.transformToETMPData)))
+          _ <- recoverAndValidatePayload(transformed1828Payload)
+        } yield {
+          NoContent
+        }
+      } else {
+        Future.successful(BadRequest)
+      }
     }
   }
 
 
-  def submitEvent20ADeclarationReport(pstr: String, userAnswersJson: JsValue, version: String)
-                                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Unit] = {
+  def submitEvent20ADeclarationReport(pstr: String, psaPspId: String, userAnswersJson: JsValue, version: String)
+                                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
 
 
     def recoverAndValidatePayload(transformed1829Payload: JsObject): Future[Unit] = {
@@ -450,11 +458,17 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       }
     }
 
-    for {
-      transformed1829Payload <- Future.fromTry(toTry(userAnswersJson.transform(API1829.transformToETMPData)))
-      _ <- recoverAndValidatePayload(transformed1829Payload)
-    } yield {
-      ()
+    declarationLockRepository.insertLockData(pstr, psaPspId).flatMap { isAvailable =>
+      if (isAvailable) {
+        for {
+          transformed1829Payload <- Future.fromTry(toTry(userAnswersJson.transform(API1829.transformToETMPData)))
+          _ <- recoverAndValidatePayload(transformed1829Payload)
+        } yield {
+          NoContent
+        }
+      } else {
+        Future.successful(BadRequest)
+      }
     }
   }
 }
