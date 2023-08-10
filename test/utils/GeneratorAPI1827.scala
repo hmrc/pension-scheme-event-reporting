@@ -313,6 +313,30 @@ trait GeneratorAPI1827 extends Matchers with OptionValues with ResponseGenerator
     }
   }
 
+  def generateEmptyUserAnswersAndPOSTBody: Gen[Tuple2[JsObject, JsObject]] = {
+    val result = for {
+      taxYear <- taxYearGenerator
+    } yield {
+        val fullUA = Json.obj(
+          "event1" ->
+            Json.obj(
+              "membersOrEmployers" ->
+                Json.arr()
+            ),
+          "taxYear" -> taxYear
+        )
+        val endTaxYear = (taxYear.toInt + 1).toString
+        val fullExpectedResult = Json.obj(
+          "eventReportDetails" -> Json.obj(
+            "reportStartDate" -> s"$taxYear-04-06",
+            "reportEndDate" -> s"$endTaxYear-04-05"
+          )
+        )
+        Tuple2(fullUA, fullExpectedResult)
+    }
+
+    result.map(identity)
+  }
   def generateUserAnswersAndPOSTBody: Gen[Tuple2[JsObject, JsObject]] = {
     val whoReceivedUnauthorisedPaymentMember = "member"
     val whoReceivedUnauthorisedPaymentEmployer = "employer"
