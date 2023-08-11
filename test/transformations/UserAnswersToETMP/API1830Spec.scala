@@ -117,6 +117,15 @@ class API1830Spec extends AnyFreeSpec with Matchers
           result mustBe expectedResult
       }
     }
+
+    "must correctly handle no member submit" in {
+      forAll(generateEmptyUserAnswersAndPOSTBodyEvent2) {
+        case (userAnswers: JsObject, expectedResponse: JsObject) =>
+          val result = userAnswers.validate(API1830.transformToETMPData(Event2, "87219363YN"))
+          val expectedResult = JsSuccess(expectedResponse, __ \ Symbol("event2") \ Symbol("members"))
+          result mustBe expectedResult
+      }
+    }
   }
 }
 

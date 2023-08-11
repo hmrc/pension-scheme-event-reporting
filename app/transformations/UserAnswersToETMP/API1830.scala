@@ -42,10 +42,15 @@ object API1830 extends Transformer {
       (__ \ Symbol(s"event${eventType.toString}") \ Symbol("members")).readNullable[JsArray](__.read(Reads.seq(
         readsIndividualMemberDetailsByEventType(eventType)))
         .map(JsArray(_))).map { optionJsArray =>
-        val jsonArray = optionJsArray.getOrElse(Json.arr())
-        val eventDetails = Json.obj(
-          "eventDetails" -> jsonArray
+
+        val eventDetails = optionJsArray match {
+          case Some(array) if array.value.isEmpty => Json.obj()
+          case Some(array) => Json.obj(
+            "eventDetails" -> array
           )
+          case None => Json.obj()
+        }
+
         Json.obj("memberEventsDetails" -> (eventDetails ++ fullHdr))
       }
     }

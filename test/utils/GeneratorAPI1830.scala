@@ -28,6 +28,28 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
 
   import GeneratorAPI1830._
 
+  def generateEmptyUserAnswersAndPOSTBodyEvent2: Gen[(JsObject, JsObject)] = {
+    for {
+      map <- randomValues()
+    } yield {
+      val ua = Json.obj(
+        s"event${Event2.toString}" -> Json.obj("members" ->
+          Json.arr()
+        ),
+        "taxYear" -> map("taxYear")
+      )
+
+      val expected = Json.obj("memberEventsDetails" -> Json.obj(
+        "eventReportDetails" -> Json.obj(
+          "pSTR" -> "87219363YN",
+          "eventType" -> s"Event${Event2.toString}",
+          "reportStartDate" -> s"${map("taxYear")}-04-06",
+          "reportEndDate" -> s"${map("endTaxYear")}-04-05"
+        )
+      ))
+      Tuple2(ua, expected)
+    }
+  }
   def generateUserAnswersAndPOSTBodyByEvent(eventType: EventType): Gen[(JsObject, JsObject)] = {
     eventType match {
       case Event2 => generateUserAnswersAndPOSTBodyEvent2

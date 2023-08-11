@@ -41,8 +41,7 @@ object API1826 extends Transformer {
         Reads.pure(None)
     }
   }
-
-  //TODO: The below method is to be used for the refactor ticket PODS-8410
+  
   private def mapReadsToOptionObject(eventTypeNodeName: String)(reads: JsPath => Reads[JsObject]): Reads[Option[JsObject]] = {
     (__ \ eventTypeNodeName).readNullable[JsObject].flatMap {
       case Some(_) =>
@@ -280,7 +279,7 @@ object API1826 extends Transformer {
       ev18 <- deleteEventTransform(EventType.Event18,event18Reads)
       ev19 <- deleteEventTransform(EventType.Event19,event19Reads)
       ev20 <- deleteEventTransform(EventType.Event20,event20Reads)
-      schWindUp <- schemeWindUpReads(false) //(delete && deleteEvent == EventType.WindUp) TODO: Hardcoded to false because regex validation does not pass
+      schWindUp <- schemeWindUpReads(delete && deleteEvent == EventType.WindUp)
       header <- HeaderForAllAPIs.transformToETMPData()
     } yield {
       header ++ eventTypeNodes((ev10 ++ ev11 ++ ev12 ++ ev13 ++ ev14 ++ ev18 ++ ev19 ++ ev20 ++ schWindUp).toSeq)
