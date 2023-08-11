@@ -32,7 +32,7 @@ import play.api.Application
 import play.api.inject.bind
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json._
-import play.api.mvc.Results.NoContent
+import play.api.mvc.Results.{BadRequest, NoContent}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import services.EventReportService
@@ -158,6 +158,18 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   }
 
   "submitEventDeclarationReport" must {
+
+    "return BadRequest when the scheme is already registered  by the user within the TTL" in {
+      when(mockEventReportService.submitEventDeclarationReport(any(), any(), any(), any())(any(), any(), any()))
+        .thenReturn(Future.successful(BadRequest))
+      when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
+        .thenReturn(Success(()))
+
+      val result = controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse).withHeaders(
+        newHeaders = "pstr" -> pstr, "version" -> reportVersion))
+      status(result) mustBe BAD_REQUEST
+    }
+
     "return NoContent when valid response" in {
       when(mockEventReportService.submitEventDeclarationReport(any(), any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(NoContent))
