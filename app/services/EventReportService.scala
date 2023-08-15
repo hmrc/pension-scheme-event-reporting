@@ -388,12 +388,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 //    val erVersions = eventReportConnector.getVersions(pstr, reportType = "ER", startDate)
 //    val er20AVersions = eventReportConnector.getVersions(pstr, reportType = "ER20A", startDate)
 //    erVersions.flatMap{ g =>er20AVersions.map { h =>
-//      println("\n\n\n\nTRANSFORM " + h)
-////      println("\n\n\n\nTRANSFORM " + h.transform(API1537.reads))
 //      (h.transform(API1537.reads), g.transform(API1537.reads)) match {
 //        case (JsSuccess(j, _), JsSuccess(k, _)) =>
-//          println("\n\n\nJ: " + j)
-//          println("\n\n\nK: " + k)
 //          j ++ k
 //        case (JsError(e), _ ) => throw JsResultException(e)
 //        case (_, JsError(e) ) => throw JsResultException(e)
