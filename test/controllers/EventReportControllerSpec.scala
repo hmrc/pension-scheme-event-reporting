@@ -19,7 +19,7 @@ package controllers
 import com.mongodb.client.result.UpdateResult
 import models.enumeration.EventType
 import models.enumeration.EventType._
-import models.{ERVersion, EventReportValidationFailureException}
+import models.EventReportValidationFailureException
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{never, reset, verify, when}
@@ -233,7 +233,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         newHeaders = "pstr" -> pstr, "startDate" -> startDate))
 
       status(result) mustBe OK
-      contentAsJson(result) mustBe erVersionResponseJson
+      contentAsJson(result) mustBe erVersions
     }
 
     "throw a Bad Request Exception when startDate parameter is missing in header" in {
@@ -592,18 +592,14 @@ object EventReportControllerSpec {
   private val submitEvent20ADeclarationReportSuccessResponse: JsObject = Json.obj("processingDate" -> "2023-06-14",
     "formBundleNumber" -> "12345670811")
 
-  private val erVersionResponseJson: JsArray = Json.arr(
-    Json.obj(
-      "reportVersion" -> 1,
-      "reportStatus" -> "Compiled",
-      "date" -> startDate
-    )
-  )
+  private val erVersions = Json.arr(Json.obj(
+    "versionDetails" -> Json.obj(
+      "version"-> 1,
+      "status" -> "compiled",
+      "submittedDate" -> startDate,
+      "submitterName" ->  "ABC Limited"
+    )))
 
-  private val erVersion = ERVersion(1,
-    LocalDate.of(2022, 4, 6),
-    "Compiled")
-  private val erVersions = Seq(erVersion)
 
   private val saveUserAnswersToCacheSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678955")

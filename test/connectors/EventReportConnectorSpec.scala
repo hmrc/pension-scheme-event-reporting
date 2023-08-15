@@ -18,7 +18,7 @@ package connectors
 
 import com.github.tomakehurst.wiremock.client.WireMock._
 import models.enumeration.EventType._
-import models.{EROverview, EROverviewVersion, ERVersion}
+import models.{EROverview, EROverviewVersion}
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.{reset, times, verify, when}
@@ -1088,23 +1088,36 @@ object EventReportConnectorSpec {
       "compilationOrSubmissionDate" -> s"${startDt}T09:30:47Z",
       "reportSubmitterDetails" -> Json.obj(
         "reportSubmittedBy" -> "PSP",
-        "orgOrPartnershipDetails" -> Json.obj(
-          "orgOrPartnershipName" -> "ABC Limited"
+        "organisationOrPartnershipDetails" -> Json.obj(
+          "organisationOrPartnershipName" -> "ABC Limited"
         )
       ),
       "psaDetails" -> Json.obj(
-        "psaOrgOrPartnershipDetails" -> Json.obj(
-          "orgOrPartnershipName" -> "XYZ Limited"
+        "psaOrganisationOrPartnershipDetails" -> Json.obj(
+          "organisationOrPartnershipName" -> "XYZ Limited"
         )
       )
     )
   )
 
-  private val erVersions = {
-    val version = ERVersion(1,
-      LocalDate.of(2022, 4, 1),
-      "Compiled")
-    Seq(version)
+  private val erVersions = Json.parse("""[
+  {
+    "reportFormBundleNumber": "123456789012",
+    "reportVersion": 1,
+    "reportStatus": "Compiled",
+    "compilationOrSubmissionDate": "2022-04-01T09:30:47Z",
+    "reportSubmitterDetails": {
+      "reportSubmittedBy": "PSP",
+      "organisationOrPartnershipDetails": {
+      "organisationOrPartnershipName": "ABC Limited"
+    }
+    },
+    "psaDetails": {
+      "psaOrganisationOrPartnershipDetails": {
+      "organisationOrPartnershipName": "XYZ Limited"
+    }
+    }
   }
+  ]""".stripMargin)
 }
 
