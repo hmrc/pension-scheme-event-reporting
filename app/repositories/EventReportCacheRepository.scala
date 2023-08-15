@@ -144,7 +144,7 @@ class EventReportCacheRepository @Inject()(
   def changeVersion(externalId: String, pstr: String, version: Int, newVersion: Int)(implicit ec: ExecutionContext): Future[Option[result.UpdateResult]] = {
     val modifier = Updates.combine(
       Updates.set(versionKey, newVersion),
-      Updates.set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC"))))
+      Updates.set(lastUpdatedKey, LocalDateTime.now(ZoneId.of("UTC")))
     )
     val selector = Filters.and(
       Filters.equal(pstrKey, pstr),
