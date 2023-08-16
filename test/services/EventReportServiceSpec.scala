@@ -19,7 +19,7 @@ package services
 import connectors.EventReportConnector
 import models.enumeration.EventType
 import models.enumeration.EventType.{Event1, Event20A, Event22, Event3, WindUp}
-import models.{EROverview, EROverviewVersion, ERVersion, EventDataIdentifier}
+import models.{EROverview, EROverviewVersion, EventDataIdentifier}
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
@@ -368,14 +368,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         ArgumentMatchers.eq(startDate))(any(), any()))
         .thenReturn(Future.successful(erVersions))
 
-      when(mockEventReportConnector.getVersions(
-        ArgumentMatchers.eq(pstr),
-        ArgumentMatchers.eq("ER20A"),
-        ArgumentMatchers.eq(startDate))(any(), any()))
-        .thenReturn(Future.successful(erVersionsER20A))
-
       eventReportService.getVersions(pstr, startDate)(implicitly, implicitly).map { result =>
-        result mustBe erVersions ++ erVersionsER20A
+        result mustBe erVersionsAfterTransformation
       }
     }
   }
@@ -649,17 +643,38 @@ object EventReportServiceSpec {
 
   private val endDate = "2023-04-05"
 
-  private val version = ERVersion(1,
-    LocalDate.of(2022, 4, 6),
-    "Compiled")
+  private val erVersions = Json.arr(
+    Json.obj(
+      "reportFormBundleNumber" -> "123456789012",
+      "reportVersion" -> 1,
+      "reportStatus" -> "Compiled",
+      "compilationOrSubmissionDate" -> "2022-04-01T09:30:47Z",
+      "reportSubmitterDetails" -> Json.obj(
+        "reportSubmittedBy" -> "PSP",
+        "organisationOrPartnershipDetails" -> Json.obj(
+          "organisationOrPartnershipName" -> "ABC Limited"
+        )
+      ),
+      "psaDetails" -> Json.obj(
+        "psaOrganisationOrPartnershipDetails" -> Json.obj(
+          "organisationOrPartnershipName" -> "XYZ Limited"
+        )
+      )
+    )
+  )
 
-  private val erVersions = Seq(version)
+  private val erVersionsAfterTransformation = Json.arr(
+    Json.obj(
+      "versionDetails" -> Json.obj(
+        "version"-> 1,
+        "status"-> "compiled"
+      ),
+      "submitterName" -> "ABC Limited",
+      "submittedDate"-> "2022-04-01"
+    )
+  )
 
-  private val versionER20A = ERVersion(2,
-    LocalDate.of(2022, 6, 4),
-    "Compiled")
 
-  private val erVersionsER20A = Seq(versionER20A)
 
   private val getEvent22PayLoadData: Option[JsObject] = Some(Json.parse(
     """

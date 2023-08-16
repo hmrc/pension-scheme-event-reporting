@@ -18,10 +18,10 @@ package connectors
 
 import com.google.inject.Inject
 import config.AppConfig
+import models.EROverview
 import models.enumeration.ApiType.Api1834
 import models.enumeration.EventType.getApiTypeByEventType
 import models.enumeration.{ApiType, EventType}
-import models.{EROverview, ERVersion}
 import play.api.Logging
 import play.api.http.Status._
 import play.api.libs.json._
@@ -205,7 +205,7 @@ class EventReportConnector @Inject()(
   }
 
   def getVersions(pstr: String, reportType: String, startDate: String)
-                 (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[ERVersion]] = {
+                 (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
     val versionUrl: String = config.versionUrl.format(pstr, reportType, startDate)
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = desHeader: _*)
@@ -213,11 +213,7 @@ class EventReportConnector @Inject()(
     http.GET[HttpResponse](versionUrl)(implicitly, hc, implicitly).map {
       response =>
         response.status match {
-          case OK =>
-            Json.parse(response.body).validate[Seq[ERVersion]](Reads.seq(ERVersion.rds)) match {
-              case JsSuccess(versions, _) => versions
-              case JsError(errors) => throw JsResultException(errors)
-            }
+          case OK => response.json.as[JsArray]
           case _ =>
             handleErrorResponse("GET", versionUrl)(response)
         }

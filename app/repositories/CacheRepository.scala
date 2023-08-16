@@ -92,7 +92,6 @@ class CacheRepository @Inject()(collectionName: String,
 
 
 object CacheRepository {
-  private implicit val dateFormat: Format[LocalDateTime] = MongoJavatimeFormats.localDateTimeFormat
   private val idKey = "id"
   private val dataKey = "data"
   private val expireAtKey = "expireAt"
