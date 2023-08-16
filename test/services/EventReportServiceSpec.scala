@@ -18,7 +18,7 @@ package services
 
 import connectors.EventReportConnector
 import models.enumeration.EventType
-import models.enumeration.EventType.{Event1, Event20A, Event22, Event3, WindUp}
+import models.enumeration.EventType.{Event1, Event20A, Event22, Event3, Event5, WindUp}
 import models.{EROverview, EROverviewVersion, EventDataIdentifier}
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
@@ -245,6 +245,84 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       } map {
         _.statusCode mustBe INTERNAL_SERVER_ERROR
       }
+    }
+  }
+
+  "memberChangeInfoTransformation" must {
+    "deal with empty event properly" in {
+
+      val data =
+        """
+          |{
+          |		"event5" : {
+          |			"members" : [
+          |				{
+          |					"membersDetails" : {
+          |						"firstName" : "Member",
+          |						"lastName" : "Three Changed",
+          |						"nino" : "AA123434C"
+          |					},
+          |					"paymentDetails" : {
+          |						"amountPaid" : 1,
+          |						"eventDate" : "2017-01-01"
+          |					}
+          |				},
+          |				{
+          |					"membersDetails" : {
+          |						"firstName" : "Member",
+          |						"lastName" : "Four Changed",
+          |						"nino" : "AA123435D"
+          |					},
+          |					"paymentDetails" : {
+          |						"amountPaid" : 1,
+          |						"eventDate" : "2017-01-01"
+          |					}
+          |				}
+          |			]
+          |		}
+          |}
+          |""".stripMargin
+
+      val originalCache = """{}"""
+
+      val result = eventReportService.memberChangeInfoTransformation(
+        Some(Json.parse(originalCache).as[JsObject]),
+        Json.parse(data).as[JsObject],
+        Event5,
+        "pstr",
+        1,
+        false
+      )
+
+      val expected = Json.parse("""{
+                                  |  "event5" : {
+                                  |    "members" : [ {
+                                  |      "membersDetails" : {
+                                  |        "firstName" : "Member",
+                                  |        "lastName" : "Three Changed",
+                                  |        "nino" : "AA123434C"
+                                  |      },
+                                  |      "paymentDetails" : {
+                                  |        "amountPaid" : 1,
+                                  |        "eventDate" : "2017-01-01"
+                                  |      },
+                                  |      "memberStatus" : "New"
+                                  |    }, {
+                                  |      "membersDetails" : {
+                                  |        "firstName" : "Member",
+                                  |        "lastName" : "Four Changed",
+                                  |        "nino" : "AA123435D"
+                                  |      },
+                                  |      "paymentDetails" : {
+                                  |        "amountPaid" : 1,
+                                  |        "eventDate" : "2017-01-01"
+                                  |      },
+                                  |      "memberStatus" : "New"
+                                  |    } ]
+                                  |  }
+                                  |}""".stripMargin)
+
+      result mustBe expected
     }
   }
 

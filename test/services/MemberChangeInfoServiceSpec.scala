@@ -130,5 +130,11 @@ class MemberChangeInfoServiceSpec extends AsyncWordSpec with Matchers with Mocki
       val expected = Some(MemberChangeInfo(1, New()))
       service.generateMemberChangeInfo(None, n, 1) mustBe expected
     }
+
+    "return new status if original is empty" in {
+      val n = generateJsonNew(None, 1)
+      val expected = Some(MemberChangeInfo(1, New()))
+      service.generateMemberChangeInfo(Some(Json.parse("{}").as[JsObject]), n, 1) mustBe expected
+    }
   }
 }
