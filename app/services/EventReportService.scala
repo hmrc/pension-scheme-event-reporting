@@ -32,7 +32,7 @@ import play.api.libs.json._
 import play.api.mvc.Results._
 import play.api.mvc.{RequestHeader, Result}
 import repositories.{DeclarationLockRepository, EventReportCacheRepository}
-import transformations.ETMPToFrontEnd.{API1831, API1832, API1833, API1834}
+import transformations.ETMPToFrontEnd._
 import transformations.UserAnswersToETMP._
 import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
@@ -278,7 +278,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       members.map(member => member + ("memberStatus", JsString(Deleted().name)))
     }
 
-    def cer = compileEventReport(externalId, psaPspId, pstr, eventType, year, version, currentVersion, true)
+    def cer = compileEventReport(externalId, psaPspId, pstr, eventType, year, version, currentVersion, deleteEvent = true)
 
     def processMemberEvents = getUserAnswers(externalId, pstr, eventType, year, version.toInt).flatMap {
       case Some(ua) => saveUserAnswers(externalId, pstr, eventType, year, version.toInt, deleteMembersTransform(ua, eventType, memberTransform)).flatMap { _ =>
@@ -287,7 +287,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case None => throw new RuntimeException("User answers not available")
     }
 
-    apiProcessingInfo(eventType, pstr, true) match {
+    apiProcessingInfo(eventType, pstr, delete = true) match {
       case Some(APIProcessingInfo(apiType, _, _, _)) =>
         apiType match {
           case ApiType.Api1827 => processMemberEvents
