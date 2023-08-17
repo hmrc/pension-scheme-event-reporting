@@ -5,8 +5,7 @@
     "required": [
           "processingDate",
           "schemeDetails",
-          "eventReportDetails",
-		  "eventDetails"
+          "eventReportDetails"
     ],
     "properties": {
           "processingDate": {
@@ -40,8 +39,7 @@
               "reportEndDate",
 			  "reportStatus",
               "reportVersionNumber",
-              "reportSubmittedDateAndTime",
-			  "eventType"
+              "reportSubmittedDateAndTime"
             ],
             "additionalProperties": false,
             "properties": {
@@ -196,8 +194,7 @@
 										 "required":[
 											"reasonBenefitTaken",
 											"amountBenefit",
-											"eventDate",
-											"freeText"
+											"eventDate"
 										 ]
 									   }                                      
                                      },
@@ -466,11 +463,7 @@
 										}
 									 }, 
 									 "required":[
-										 "reasonBenefitTaken",
-										 "typeOfProtection",
-										 "amountLumpSum",
-										 "eventDate",
-										 "freeText"
+										 "eventDate"
 									  ]
 								  }
 							   },
