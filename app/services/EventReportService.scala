@@ -118,7 +118,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     eventReportCacheRepository.getUserAnswers(externalId, pstr, None)
 
   //scalastyle:off method.length
-  private def memberChangeInfoTransformation(oldUserAnswers: Option[JsObject],
+  def memberChangeInfoTransformation(oldUserAnswers: Option[JsObject],
                                              newUserAnswers: JsObject,
                                              eventType: EventType,
                                              pstr: String,
@@ -126,19 +126,25 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                              delete: Boolean)
                                             (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): JsObject = {
 
-    def newMembersWithChangeInfo(getMemberDetails: JsObject => scala.collection.IndexedSeq[JsObject]) = {
+    def newMembersWithChangeInfo(getMemberDetails: JsObject => Option[scala.collection.IndexedSeq[JsObject]]) = {
       val newMembers = getMemberDetails(newUserAnswers)
 
-      newMembers.zipWithIndex.flatMap { case (newMemberDetail, index) =>
-        val oldMemberDetails = oldUserAnswers.map(getMemberDetails).getOrElse(Seq())
+      newMembers
+        .getOrElse(throw new RuntimeException("new member not available"))
+        .zipWithIndex.flatMap { case (newMemberDetail, index) =>
+        val oldMemberDetails = oldUserAnswers.flatMap(getMemberDetails).getOrElse(Seq())
         val oldMemberDetail = Try(oldMemberDetails(index)).toOption
         memberChangeInfoService.generateMemberChangeInfo(
           oldMemberDetail,
           newMemberDetail,
           currentVersion
         ).map { newMemberChangeInfo =>
-          newMemberDetail - "amendedVersion" +
+          val amendedMemberDetails = newMemberDetail +
+            ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
             ("memberStatus", JsString(newMemberChangeInfo.status.name))
+
+          if(newMemberChangeInfo.amendedVersion == currentVersion) amendedMemberDetails - "amendedVersion"
+          else amendedMemberDetails
         }
       }
     }
@@ -148,7 +154,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         apiType match {
           case ApiType.Api1827 =>
             def getMemberDetails(userAnswers: JsObject) =
-              (userAnswers \ "event1" \ "membersOrEmployers").as[JsArray].value.map(_.as[JsObject])
+              Try((userAnswers \ "event1" \ "membersOrEmployers").as[JsArray].value.map(_.as[JsObject])).toOption
 
             val event1 = {
               Try(
@@ -170,8 +176,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               ) match {
                 case Failure(exception) =>
                   logger.warn("Could not get member details", exception)
-                  IndexedSeq(JsObject(Seq()))
-                case Success(value) => value
+                  None
+                case Success(value) => Some(value)
               }
             }
 

@@ -208,7 +208,7 @@ class EventReportConnector @Inject()(
                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
     val versionUrl: String = config.versionUrl.format(pstr, reportType, startDate)
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = desHeader: _*)
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
 
     http.GET[HttpResponse](versionUrl)(implicitly, hc, implicitly).map {
       response =>
