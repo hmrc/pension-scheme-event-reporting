@@ -137,8 +137,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           newMemberDetail,
           currentVersion
         ).map { newMemberChangeInfo =>
-          newMemberDetail - "amendedVersion" +
+          val amendedMemberDetails = newMemberDetail +
+            ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
             ("memberStatus", JsString(newMemberChangeInfo.status.name))
+
+          if(newMemberChangeInfo.amendedVersion == currentVersion) amendedMemberDetails - "amendedVersion"
+          else amendedMemberDetails
         }
       }
     }

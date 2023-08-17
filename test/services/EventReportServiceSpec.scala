@@ -18,7 +18,7 @@ package services
 
 import connectors.EventReportConnector
 import models.enumeration.EventType
-import models.enumeration.EventType.{Event1, Event20A, Event22, Event3, Event5, WindUp}
+import models.enumeration.EventType.{Event1, Event20A, Event22, Event3, Event5, Event6, WindUp}
 import models.{EROverview, EROverviewVersion, EventDataIdentifier}
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
@@ -321,6 +321,177 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
                                   |    } ]
                                   |  }
                                   |}""".stripMargin)
+
+      result mustBe expected
+    }
+
+    "changed members must not include amendedVersion, unchanged members must include amendedVersion" in {
+
+      val data =
+        """
+          |{
+          |		"event6" : {
+          |			"members" : [
+          |				{
+          |					"inputProtectionType" : "Sample text",
+          |					"membersDetails" : {
+          |						"firstName" : "SarahA",
+          |						"lastName" : "Urqhart",
+          |						"nino" : "AA345678B"
+          |					},
+          |					"typeOfProtection" : "enhancedLifetimeAllowance",
+          |					"memberStatus" : "New",
+          |					"AmountCrystallisedAndDate" : {
+          |						"amountCrystallised" : 600.67,
+          |						"crystallisedDate" : "2021-05-30"
+          |					},
+          |					"amendedVersion" : "001"
+          |				},
+          |				{
+          |					"inputProtectionType" : "Sample text",
+          |					"membersDetails" : {
+          |						"lastName" : "UrqhartChanged",
+          |						"firstName" : "Sarah",
+          |						"nino" : "AA345678C"
+          |					},
+          |					"typeOfProtection" : "enhancedLifetimeAllowance",
+          |					"memberStatus" : "Deleted",
+          |					"AmountCrystallisedAndDate" : {
+          |						"amountCrystallised" : 600.67,
+          |						"crystallisedDate" : "2021-05-30"
+          |					},
+          |					"amendedVersion" : "001"
+          |				},
+          |				{
+          |					"inputProtectionType" : "Sample text",
+          |					"membersDetails" : {
+          |						"lastName" : "UrqhartDeleted",
+          |						"firstName" : "Sarah",
+          |						"nino" : "AA345678C"
+          |					},
+          |					"typeOfProtection" : "enhancedLifetimeAllowance",
+          |					"memberStatus" : "Deleted",
+          |					"AmountCrystallisedAndDate" : {
+          |						"amountCrystallised" : 600.67,
+          |						"crystallisedDate" : "2021-05-30"
+          |					},
+          |					"amendedVersion" : "001"
+          |				}
+          |			]
+          |		}
+          |	}
+          |""".stripMargin
+
+      val originalCache =
+        """
+          |{
+          |		"event6" : {
+          |			"members" : [
+          |				{
+          |					"inputProtectionType" : "Sample text",
+          |					"membersDetails" : {
+          |						"lastName" : "Urqhart",
+          |						"firstName" : "Sarah",
+          |						"nino" : "AA345678C"
+          |					},
+          |					"typeOfProtection" : "enhancedLifetimeAllowance",
+          |					"memberStatus" : "New",
+          |					"AmountCrystallisedAndDate" : {
+          |						"amountCrystallised" : 600.67,
+          |						"crystallisedDate" : "2021-05-30"
+          |					},
+          |					"amendedVersion" : "001"
+          |				},
+          |				{
+          |					"inputProtectionType" : "Sample text",
+          |					"membersDetails" : {
+          |						"lastName" : "UrqhartChanged",
+          |						"firstName" : "Sarah",
+          |						"nino" : "AA345678C"
+          |					},
+          |					"typeOfProtection" : "enhancedLifetimeAllowance",
+          |					"memberStatus" : "Changed",
+          |					"AmountCrystallisedAndDate" : {
+          |						"amountCrystallised" : 600.67,
+          |						"crystallisedDate" : "2021-05-30"
+          |					},
+          |					"amendedVersion" : "001"
+          |				},
+          |				{
+          |					"inputProtectionType" : "Sample text",
+          |					"membersDetails" : {
+          |						"lastName" : "UrqhartDeleted",
+          |						"firstName" : "Sarah",
+          |						"nino" : "AA345678C"
+          |					},
+          |					"typeOfProtection" : "enhancedLifetimeAllowance",
+          |					"memberStatus" : "Deleted",
+          |					"AmountCrystallisedAndDate" : {
+          |						"amountCrystallised" : 600.67,
+          |						"crystallisedDate" : "2021-05-30"
+          |					},
+          |					"amendedVersion" : "001"
+          |				}
+          |			]
+          |		}
+          |	}
+          |""".stripMargin
+
+      val result = eventReportService.memberChangeInfoTransformation(
+        Some(Json.parse(originalCache).as[JsObject]),
+        Json.parse(data).as[JsObject],
+        Event6,
+        "pstr",
+        2,
+        false
+      )
+
+      val expected = Json.parse(
+        """{
+          |  "event6" : {
+          |    "members" : [ {
+          |      "inputProtectionType" : "Sample text",
+          |      "membersDetails" : {
+          |        "firstName" : "SarahA",
+          |        "lastName" : "Urqhart",
+          |        "nino" : "AA345678B"
+          |      },
+          |      "typeOfProtection" : "enhancedLifetimeAllowance",
+          |      "memberStatus" : "Changed",
+          |      "AmountCrystallisedAndDate" : {
+          |        "amountCrystallised" : 600.67,
+          |        "crystallisedDate" : "2021-05-30"
+          |      }
+          |    }, {
+          |      "inputProtectionType" : "Sample text",
+          |      "membersDetails" : {
+          |        "lastName" : "UrqhartChanged",
+          |        "firstName" : "Sarah",
+          |        "nino" : "AA345678C"
+          |      },
+          |      "typeOfProtection" : "enhancedLifetimeAllowance",
+          |      "memberStatus" : "Deleted",
+          |      "AmountCrystallisedAndDate" : {
+          |        "amountCrystallised" : 600.67,
+          |        "crystallisedDate" : "2021-05-30"
+          |      }
+          |    }, {
+          |      "inputProtectionType" : "Sample text",
+          |      "membersDetails" : {
+          |        "lastName" : "UrqhartDeleted",
+          |        "firstName" : "Sarah",
+          |        "nino" : "AA345678C"
+          |      },
+          |      "typeOfProtection" : "enhancedLifetimeAllowance",
+          |      "memberStatus" : "Deleted",
+          |      "AmountCrystallisedAndDate" : {
+          |        "amountCrystallised" : 600.67,
+          |        "crystallisedDate" : "2021-05-30"
+          |      },
+          |      "amendedVersion" : "001"
+          |    } ]
+          |  }
+          |}""".stripMargin)
 
       result mustBe expected
     }
