@@ -573,7 +573,7 @@ object GeneratorAPI1832 {
 
   private def typeOfProtectionUAEvent8A(tOP: String): String = tOP match {
     case "Primary Protection" => "primaryProtection"
-    case "Enhanced" => "enhancedProtection"
+    case "Enhanced protection" => "enhancedProtection"
   }
 
   private def freeTextEvent3(rBT: String): Option[String] = if (rBT != "Other") None else Some("Example brief description")
