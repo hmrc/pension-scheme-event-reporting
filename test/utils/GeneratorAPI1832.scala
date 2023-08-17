@@ -608,7 +608,7 @@ object GeneratorAPI1832 {
       inputProtectionType <- Gen.chooseNum(10000000, 99999999)
       amountCrystallised <- Gen.chooseNum(1, 1000)
       typeOfProtectionEvent8 <- Gen.oneOf(Seq("Primary Protection", "Enhanced protection"))
-      typeOfProtectionEvent8A <- Gen.oneOf(Seq("Primary Protection", "Enhanced", ""))
+      typeOfProtectionEvent8A <- Gen.oneOf(Seq("Primary Protection", "Enhanced protection", ""))
       typeOfProtectionReference <- Gen.chooseNum(10000000, 99999999)
       typeOfProtectionReference8A <- Gen.oneOf("10000000", "99999999", "")
       taxYearEndDate <- Gen.oneOf(2020, 2021, 2022)
