@@ -137,8 +137,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           newMemberDetail,
           currentVersion
         ).map { newMemberChangeInfo =>
-          newMemberDetail - "amendedVersion" +
+          val amendedMemberDetails = newMemberDetail +
+            ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
             ("memberStatus", JsString(newMemberChangeInfo.status.name))
+
+          if(newMemberChangeInfo.amendedVersion == currentVersion) amendedMemberDetails - "amendedVersion"
+          else amendedMemberDetails
         }
       }
     }
@@ -225,6 +229,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                 _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(collatedData, schemaPath, apiType.toString))
                 response <- connectToAPI(psaPspId, pstr, collatedData, version)
               } yield {
+                println(Json.prettyPrint(collatedData))
                 response.status match {
                   case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
                   case _ =>
