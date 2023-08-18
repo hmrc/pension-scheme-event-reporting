@@ -55,7 +55,7 @@ class DeclarationLockRepository @Inject()(
 
   private lazy val documentExistsErrorCode = 11000
 
-  def insertLockData(pstr: String, psaId: String): Future[Boolean] = {
+  def insertDoubleClickLock(pstr: String, psaId: String): Future[Boolean] = {
 
     collection.insertOne(DeclarationLockJson(pstr, psaId, expireInSeconds)
     ).toFuture().map { _ => true }

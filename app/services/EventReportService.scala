@@ -452,7 +452,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       }
     }
 
-    declarationLockRepository.insertLockData(pstr, psaPspId).flatMap { isAvailable => //TODO: Rename refer to AFT
+    declarationLockRepository.insertDoubleClickLock(pstr, psaPspId).flatMap { isAvailable =>
       if (isAvailable) {
         for {
           transformed1828Payload <- Future.fromTry(toTry(userAnswersJson.transform(API1828.transformToETMPData)))
@@ -486,7 +486,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       }
     }
 
-    declarationLockRepository.insertLockData(pstr, psaPspId).flatMap { isAvailable =>
+    declarationLockRepository.insertDoubleClickLock(pstr, psaPspId).flatMap { isAvailable =>
       if (isAvailable) {
         for {
           transformed1829Payload <- Future.fromTry(toTry(userAnswersJson.transform(API1829.transformToETMPData)))

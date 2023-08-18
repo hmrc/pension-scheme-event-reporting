@@ -684,7 +684,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
     "return the result BadRequest when declaration has already done with same psaId and pstr" in {
       val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value
-      when(mockDeclarationLockRepository.insertLockData(any(), any())).
+      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
         thenReturn(Future.successful(false))
       when(mockEventReportConnector.submitEventDeclarationReport(
         ArgumentMatchers.eq(pstr), any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
@@ -697,14 +697,14 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         response =>
           verify(mockEventReportConnector, times(0)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
             ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
-          verify(mockDeclarationLockRepository, times(1)).insertLockData(any(), any())
+          verify(mockDeclarationLockRepository, times(1)).insertDoubleClickLock(any(), any())
           response mustBe BadRequest
       }
     }
 
     "return valid response where there are changes" in {
       val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value
-      when(mockDeclarationLockRepository.insertLockData(any(), any())).
+      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
         thenReturn(Future.successful(true))
       when(mockEventReportConnector.submitEventDeclarationReport(
         ArgumentMatchers.eq(pstr), any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
@@ -715,13 +715,13 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       eventReportService.submitEventDeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map { _ =>
         verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
           ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
-        verify(mockDeclarationLockRepository, times(1)).insertLockData(any(), any())
+        verify(mockDeclarationLockRepository, times(1)).insertDoubleClickLock(any(), any())
         assert(true)
       }
     }
     "return valid an invalid response where an 1829 payload is passed" in {
       val userAnswers = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
-      when(mockDeclarationLockRepository.insertLockData(any(), any())).
+      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
         thenReturn(Future.successful(true))
       when(mockEventReportConnector.submitEventDeclarationReport(
         ArgumentMatchers.eq(pstr), any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
@@ -732,13 +732,13 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       eventReportService.submitEventDeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map { _ =>
         verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
           any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
-        verify(mockDeclarationLockRepository, times(1)).insertLockData(any(), any())
+        verify(mockDeclarationLockRepository, times(1)).insertDoubleClickLock(any(), any())
         assert(true)
       }
     }
     "return a 417 error response when there is nothing to submit" in {
       val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value
-      when(mockDeclarationLockRepository.insertLockData(any(), any())).
+      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
         thenReturn(Future.successful(true))
       when(mockEventReportConnector.submitEventDeclarationReport(
         ArgumentMatchers.eq(pstr), any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
@@ -748,13 +748,13 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       } map { _ =>
         verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
           ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
-        verify(mockDeclarationLockRepository, times(1)).insertLockData(any(), any())
+        verify(mockDeclarationLockRepository, times(1)).insertDoubleClickLock(any(), any())
         assert(true)
       }
     }
     "return a Future failed when validation fails against the schema for API1828" in {
       val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value
-      when(mockDeclarationLockRepository.insertLockData(any(), any())).
+      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
         thenReturn(Future.successful(true))
       when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(SchemaPath1828), any())).thenReturn(Failure(new Exception("Message")))
       when(mockEventReportConnector.submitEventDeclarationReport(
@@ -771,7 +771,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
           any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
         verify(mockJSONPayloadSchemaValidator, times(1)).validatePayload(ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP),
           ArgumentMatchers.eq(SchemaPath1828), ArgumentMatchers.eq("submitEventDeclarationReport"))
-        verify(mockDeclarationLockRepository, times(1)).insertLockData(any(), any())
+        verify(mockDeclarationLockRepository, times(1)).insertDoubleClickLock(any(), any())
         assert(true)
       }
     }
@@ -780,7 +780,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   "submitEvent20ADeclarationReport" must {
     "return the result BadRequest when declaration has already done with same psaId and pstr" in {
       val (userAnswers, submitEvent20ADeclarationReportSuccessResponseETMP) = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value
-      when(mockDeclarationLockRepository.insertLockData(any(), any())).
+      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
         thenReturn(Future.successful(false))
       when(mockEventReportConnector.submitEvent20ADeclarationReport(
         ArgumentMatchers.eq(pstr),
@@ -793,14 +793,14 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         response =>
           verify(mockEventReportConnector, times(0)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
             ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
-          verify(mockDeclarationLockRepository, times(1)).insertLockData(any(), any())
+          verify(mockDeclarationLockRepository, times(1)).insertDoubleClickLock(any(), any())
           response mustBe BadRequest
       }
     }
 
     "return valid response where there are changes" in {
       val (userAnswers, submitEvent20ADeclarationReportSuccessResponseETMP) = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value
-      when(mockDeclarationLockRepository.insertLockData(any(), any())).
+      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
         thenReturn(Future.successful(true))
       when(mockEventReportConnector.submitEvent20ADeclarationReport(
         ArgumentMatchers.eq(pstr),
@@ -812,13 +812,13 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       eventReportService.submitEvent20ADeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map { _ =>
         verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
           ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
-        verify(mockDeclarationLockRepository, times(1)).insertLockData(any(), any())
+        verify(mockDeclarationLockRepository, times(1)).insertDoubleClickLock(any(), any())
         assert(true)
       }
     }
     "return a 417 error response when there is nothing to submit" in {
       val (userAnswers, submitEvent20ADeclarationReportSuccessResponseETMP) = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value
-      when(mockDeclarationLockRepository.insertLockData(any(), any())).
+      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
         thenReturn(Future.successful(true))
       when(mockEventReportConnector.submitEvent20ADeclarationReport(
         ArgumentMatchers.eq(pstr),
@@ -829,13 +829,13 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       } map { _ =>
         verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
           ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
-        verify(mockDeclarationLockRepository, times(1)).insertLockData(any(), any())
+        verify(mockDeclarationLockRepository, times(1)).insertDoubleClickLock(any(), any())
         assert(true)
       }
     }
     "return a Future failed when validation fails against the schema for API1829" in {
       val (userAnswers, submitEvent20ADeclarationReportSuccessResponseETMP) = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value
-      when(mockDeclarationLockRepository.insertLockData(any(), any())).
+      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
         thenReturn(Future.successful(true))
       when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(SchemaPath1829), any())).thenReturn(Failure(new Exception("Message")))
       when(mockEventReportConnector.submitEvent20ADeclarationReport(
@@ -851,13 +851,13 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
           any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
         verify(mockJSONPayloadSchemaValidator, times(1)).validatePayload(ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP),
           ArgumentMatchers.eq(SchemaPath1829), ArgumentMatchers.eq("submitEvent20ADeclarationReport"))
-        verify(mockDeclarationLockRepository, times(1)).insertLockData(any(), any())
+        verify(mockDeclarationLockRepository, times(1)).insertDoubleClickLock(any(), any())
         assert(true)
       }
     }
     "return valid an invalid response where an 1828 payload is passed" in {
       val userAnswers = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value._1
-      when(mockDeclarationLockRepository.insertLockData(any(), any())).
+      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
         thenReturn(Future.successful(true))
       when(mockEventReportConnector.submitEvent20ADeclarationReport(
         ArgumentMatchers.eq(pstr), any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
@@ -868,7 +868,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       eventReportService.submitEvent20ADeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map { _ =>
         verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
           any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
-        verify(mockDeclarationLockRepository, times(1)).insertLockData(any(), any())
+        verify(mockDeclarationLockRepository, times(1)).insertDoubleClickLock(any(), any())
         assert(true)
       }
     }
