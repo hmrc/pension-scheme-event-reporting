@@ -43,7 +43,7 @@ class EventReportController @Inject()(
     with AuthorisedFunctions
     with Logging {
 
-  def removeUserAnswers(): Action[AnyContent] = Action.async {
+  def removeUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.map { case Credentials(externalId, psaPspId) =>
         eventReportService.removeUserAnswers(externalId)
@@ -78,6 +78,7 @@ class EventReportController @Inject()(
       }
   }
 
+
   def changeVersion: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { case Credentials(externalId, _) =>
@@ -107,7 +108,7 @@ class EventReportController @Inject()(
                 eventReportService.getUserAnswers(externalId, pstr, et, year, version)
                   .map {
                     case None => NotFound
-                    case Some(jsObj) => Ok(jsObj)
+                    case Some(jsobj) => Ok(jsobj)
                   }
               case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
             }
@@ -115,7 +116,7 @@ class EventReportController @Inject()(
             eventReportService.getUserAnswers(externalId, pstr)
               .map {
                 case None => NotFound
-                case Some(jsObj) => Ok(jsObj)
+                case Some(jsobj) => Ok(jsobj)
               }
         }
       }

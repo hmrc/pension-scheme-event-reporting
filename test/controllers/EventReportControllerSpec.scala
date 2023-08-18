@@ -77,12 +77,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     ), "Activated", None)
   ))
 
-//  private val pspEnrolments = Enrolments(Set(
-//    Enrolment("HMRC-PODSPP-ORG", Seq(
-//      EnrolmentIdentifier("PSPID", "A0000000")
-//    ), "Activated", None)
-//  ))
-
   before {
     reset(mockAuthConnector)
     reset(mockJSONPayloadSchemaValidator)
@@ -226,6 +220,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       }
     }
   }
+
 
   "getVersions" must {
     "return OK with the Seq of Version" in {
@@ -460,6 +455,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
   }
 
+
   "changeVersion" must {
     "return 204 OK when valid response" in {
       when(mockEventReportService.changeVersion(
@@ -489,6 +485,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       status(result) mustBe NOT_FOUND
     }
   }
+
 
   "compileEvent" must {
     "return 204 No Content when valid response" in {
@@ -555,19 +552,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
   }
 
-//  "where PSP id is present in getPsaPspId method" in {
-//
-//  }
-
-  "where no id is present in getPsaPspId method" in {
-    val result = controller.getUserAnswers(fakeRequest.withHeaders(
-      newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> reportVersion, "eventType" -> eventType, externalId -> externalId))
-
-    status(result) mustBe OK
-
-    when(mockAuthConnector.authorise[Option[String] ~ Enrolments](any(), any())(any(), any())) thenReturn Future.successful(new~(Some(externalId), None))
-  }
-
 }
 
 object EventReportControllerSpec {
@@ -615,6 +599,7 @@ object EventReportControllerSpec {
       "submittedDate" -> startDate,
       "submitterName" ->  "ABC Limited"
     )))
+
 
   private val saveUserAnswersToCacheSuccessResponse: JsObject = Json.obj("processingDate" -> LocalDate.now(),
     "formBundleNumber" -> "12345678955")
