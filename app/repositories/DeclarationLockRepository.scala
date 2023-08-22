@@ -53,7 +53,7 @@ class DeclarationLockRepository @Inject()(
   private def expireInSeconds: DateTime = DateTime.now(DateTimeZone.UTC).
     plusSeconds(configuration.get[Int](path = "mongodb.event-reporting-declaration-lock.timeToLiveInSeconds"))
 
-  private lazy val documentExistsErrorCode = 11000
+  private lazy val documentExistsErrorCode = 110
 
   def insertDoubleClickLock(pstr: String, psaId: String): Future[Boolean] = {
 
