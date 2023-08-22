@@ -50,8 +50,10 @@ class DeclarationLockRepository @Inject()(
     )
   ) with Logging {
 
+  // TODO: revert the following line to the below after checking JTs are passing:
+  // plusSeconds(configuration.get[Int](path = "mongodb.event-reporting-declaration-lock.timeToLiveInSeconds"))
   private def expireInSeconds: DateTime = DateTime.now(DateTimeZone.UTC).
-    plusSeconds(configuration.get[Int](path = "mongodb.event-reporting-declaration-lock.timeToLiveInSeconds"))
+    plusSeconds(5)
 
   private lazy val documentExistsErrorCode = 11000
 
