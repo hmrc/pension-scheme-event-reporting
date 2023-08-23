@@ -18,7 +18,7 @@ package services
 
 import connectors.EventReportConnector
 import models.enumeration.EventType
-import models.enumeration.EventType.{Event1, Event20A, Event22, Event3, Event5, WindUp}
+import models.enumeration.EventType.{Event1, Event20A, Event22, Event3, Event5, Event6, WindUp}
 import models.{EROverview, EROverviewVersion, EventDataIdentifier}
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
@@ -32,10 +32,11 @@ import play.api.http.Status.NO_CONTENT
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json._
 import play.api.mvc.RequestHeader
+import play.api.mvc.Results.BadRequest
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
-import repositories.EventReportCacheRepository
+import repositories.{DeclarationLockRepository, EventReportCacheRepository}
 import uk.gov.hmrc.http._
 import utils.{GeneratorAPI1828, GeneratorAPI1829, JSONSchemaValidator, JsonFileReader}
 
@@ -57,6 +58,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val mockJSONPayloadSchemaValidator = mock[JSONSchemaValidator]
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
   private val mockCompilePayloadService = mock[CompilePayloadService]
+  private val mockDeclarationLockRepository: DeclarationLockRepository = mock[DeclarationLockRepository]
 
   private val externalId = "externalId"
   private val psaId = "psa"
@@ -71,7 +73,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       inject.bind[EventReportConnector].toInstance(mockEventReportConnector),
       inject.bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
       inject.bind[JSONSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
-      inject.bind[CompilePayloadService].toInstance(mockCompilePayloadService)
+      inject.bind[CompilePayloadService].toInstance(mockCompilePayloadService),
+      inject.bind[DeclarationLockRepository].toInstance(mockDeclarationLockRepository)
     )
 
   val application: Application = new GuiceApplicationBuilder()
@@ -85,6 +88,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     reset(mockEventReportCacheRepository)
     reset(mockJSONPayloadSchemaValidator)
     reset(mockCompilePayloadService)
+    reset(mockDeclarationLockRepository)
     when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any())).thenReturn(Success(()))
     when(mockCompilePayloadService.collatePayloadsAndUpdateCache(any(), any(), any(), any(), any(), any(), any())(any(), any()))
       .thenReturn(Future.successful(Json.obj()))
@@ -324,6 +328,177 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
       result mustBe expected
     }
+
+    "changed members must not include amendedVersion, unchanged members must include amendedVersion" in {
+
+      val data =
+        """
+          |{
+          |		"event6" : {
+          |			"members" : [
+          |				{
+          |					"inputProtectionType" : "Sample text",
+          |					"membersDetails" : {
+          |						"firstName" : "SarahA",
+          |						"lastName" : "Urqhart",
+          |						"nino" : "AA345678B"
+          |					},
+          |					"typeOfProtection" : "enhancedLifetimeAllowance",
+          |					"memberStatus" : "New",
+          |					"AmountCrystallisedAndDate" : {
+          |						"amountCrystallised" : 600.67,
+          |						"crystallisedDate" : "2021-05-30"
+          |					},
+          |					"amendedVersion" : "001"
+          |				},
+          |				{
+          |					"inputProtectionType" : "Sample text",
+          |					"membersDetails" : {
+          |						"lastName" : "UrqhartChanged",
+          |						"firstName" : "Sarah",
+          |						"nino" : "AA345678C"
+          |					},
+          |					"typeOfProtection" : "enhancedLifetimeAllowance",
+          |					"memberStatus" : "Deleted",
+          |					"AmountCrystallisedAndDate" : {
+          |						"amountCrystallised" : 600.67,
+          |						"crystallisedDate" : "2021-05-30"
+          |					},
+          |					"amendedVersion" : "001"
+          |				},
+          |				{
+          |					"inputProtectionType" : "Sample text",
+          |					"membersDetails" : {
+          |						"lastName" : "UrqhartDeleted",
+          |						"firstName" : "Sarah",
+          |						"nino" : "AA345678C"
+          |					},
+          |					"typeOfProtection" : "enhancedLifetimeAllowance",
+          |					"memberStatus" : "Deleted",
+          |					"AmountCrystallisedAndDate" : {
+          |						"amountCrystallised" : 600.67,
+          |						"crystallisedDate" : "2021-05-30"
+          |					},
+          |					"amendedVersion" : "001"
+          |				}
+          |			]
+          |		}
+          |	}
+          |""".stripMargin
+
+      val originalCache =
+        """
+          |{
+          |		"event6" : {
+          |			"members" : [
+          |				{
+          |					"inputProtectionType" : "Sample text",
+          |					"membersDetails" : {
+          |						"lastName" : "Urqhart",
+          |						"firstName" : "Sarah",
+          |						"nino" : "AA345678C"
+          |					},
+          |					"typeOfProtection" : "enhancedLifetimeAllowance",
+          |					"memberStatus" : "New",
+          |					"AmountCrystallisedAndDate" : {
+          |						"amountCrystallised" : 600.67,
+          |						"crystallisedDate" : "2021-05-30"
+          |					},
+          |					"amendedVersion" : "001"
+          |				},
+          |				{
+          |					"inputProtectionType" : "Sample text",
+          |					"membersDetails" : {
+          |						"lastName" : "UrqhartChanged",
+          |						"firstName" : "Sarah",
+          |						"nino" : "AA345678C"
+          |					},
+          |					"typeOfProtection" : "enhancedLifetimeAllowance",
+          |					"memberStatus" : "Changed",
+          |					"AmountCrystallisedAndDate" : {
+          |						"amountCrystallised" : 600.67,
+          |						"crystallisedDate" : "2021-05-30"
+          |					},
+          |					"amendedVersion" : "001"
+          |				},
+          |				{
+          |					"inputProtectionType" : "Sample text",
+          |					"membersDetails" : {
+          |						"lastName" : "UrqhartDeleted",
+          |						"firstName" : "Sarah",
+          |						"nino" : "AA345678C"
+          |					},
+          |					"typeOfProtection" : "enhancedLifetimeAllowance",
+          |					"memberStatus" : "Deleted",
+          |					"AmountCrystallisedAndDate" : {
+          |						"amountCrystallised" : 600.67,
+          |						"crystallisedDate" : "2021-05-30"
+          |					},
+          |					"amendedVersion" : "001"
+          |				}
+          |			]
+          |		}
+          |	}
+          |""".stripMargin
+
+      val result = eventReportService.memberChangeInfoTransformation(
+        Some(Json.parse(originalCache).as[JsObject]),
+        Json.parse(data).as[JsObject],
+        Event6,
+        "pstr",
+        2,
+        false
+      )
+
+      val expected = Json.parse(
+        """{
+          |  "event6" : {
+          |    "members" : [ {
+          |      "inputProtectionType" : "Sample text",
+          |      "membersDetails" : {
+          |        "firstName" : "SarahA",
+          |        "lastName" : "Urqhart",
+          |        "nino" : "AA345678B"
+          |      },
+          |      "typeOfProtection" : "enhancedLifetimeAllowance",
+          |      "memberStatus" : "Changed",
+          |      "AmountCrystallisedAndDate" : {
+          |        "amountCrystallised" : 600.67,
+          |        "crystallisedDate" : "2021-05-30"
+          |      }
+          |    }, {
+          |      "inputProtectionType" : "Sample text",
+          |      "membersDetails" : {
+          |        "lastName" : "UrqhartChanged",
+          |        "firstName" : "Sarah",
+          |        "nino" : "AA345678C"
+          |      },
+          |      "typeOfProtection" : "enhancedLifetimeAllowance",
+          |      "memberStatus" : "Deleted",
+          |      "AmountCrystallisedAndDate" : {
+          |        "amountCrystallised" : 600.67,
+          |        "crystallisedDate" : "2021-05-30"
+          |      }
+          |    }, {
+          |      "inputProtectionType" : "Sample text",
+          |      "membersDetails" : {
+          |        "lastName" : "UrqhartDeleted",
+          |        "firstName" : "Sarah",
+          |        "nino" : "AA345678C"
+          |      },
+          |      "typeOfProtection" : "enhancedLifetimeAllowance",
+          |      "memberStatus" : "Deleted",
+          |      "AmountCrystallisedAndDate" : {
+          |        "amountCrystallised" : 600.67,
+          |        "crystallisedDate" : "2021-05-30"
+          |      },
+          |      "amendedVersion" : "001"
+          |    } ]
+          |  }
+          |}""".stripMargin)
+
+      result mustBe expected
+    }
   }
 
   "getEvent" must {
@@ -506,49 +681,81 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   }
 
   "submitEventDeclarationReport" must {
-    "return valid response where there are changes" in {
+
+    "return the result BadRequest when declaration has already done with same psaId and pstr" in {
       val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value
+      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
+        thenReturn(Future.successful(false))
       when(mockEventReportConnector.submitEventDeclarationReport(
         ArgumentMatchers.eq(pstr), any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse.apply(
           status = OK,
           json = payload,
           headers = Map.empty)))
-      eventReportService.submitEventDeclarationReport(pstr, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map { _ =>
+
+      eventReportService.submitEventDeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map {
+        response =>
+          verify(mockEventReportConnector, times(0)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
+            ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
+          verify(mockDeclarationLockRepository, times(1)).insertDoubleClickLock(any(), any())
+          response mustBe BadRequest
+      }
+    }
+
+    "return valid response where there are changes" in {
+      val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value
+      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
+        thenReturn(Future.successful(true))
+      when(mockEventReportConnector.submitEventDeclarationReport(
+        ArgumentMatchers.eq(pstr), any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
+        .thenReturn(Future.successful(HttpResponse.apply(
+          status = OK,
+          json = payload,
+          headers = Map.empty)))
+      eventReportService.submitEventDeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map { _ =>
         verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
           ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
+        verify(mockDeclarationLockRepository, times(1)).insertDoubleClickLock(any(), any())
         assert(true)
       }
     }
     "return valid an invalid response where an 1829 payload is passed" in {
       val userAnswers = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
+      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
+        thenReturn(Future.successful(true))
       when(mockEventReportConnector.submitEventDeclarationReport(
         ArgumentMatchers.eq(pstr), any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse.apply(
           status = OK,
           json = payload,
           headers = Map.empty)))
-      eventReportService.submitEventDeclarationReport(pstr, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map { _ =>
+      eventReportService.submitEventDeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map { _ =>
         verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
           any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
+        verify(mockDeclarationLockRepository, times(1)).insertDoubleClickLock(any(), any())
         assert(true)
       }
     }
     "return a 417 error response when there is nothing to submit" in {
       val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value
+      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
+        thenReturn(Future.successful(true))
       when(mockEventReportConnector.submitEventDeclarationReport(
         ArgumentMatchers.eq(pstr), any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
         .thenReturn(Future.failed(new BadRequestException("Test")))
       recoverToExceptionIf[ExpectationFailedException] {
-        eventReportService.submitEventDeclarationReport(pstr, userAnswers, reportVersion)(implicitly, implicitly, implicitly)
+        eventReportService.submitEventDeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly)
       } map { _ =>
         verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
           ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
+        verify(mockDeclarationLockRepository, times(1)).insertDoubleClickLock(any(), any())
         assert(true)
       }
     }
     "return a Future failed when validation fails against the schema for API1828" in {
       val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value
+      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
+        thenReturn(Future.successful(true))
       when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(SchemaPath1828), any())).thenReturn(Failure(new Exception("Message")))
       when(mockEventReportConnector.submitEventDeclarationReport(
         ArgumentMatchers.eq(pstr), any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
@@ -558,20 +765,23 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
           headers = Map.empty)))
 
       recoverToExceptionIf[Exception] {
-        eventReportService.submitEventDeclarationReport(pstr, userAnswers, reportVersion)(implicitly, implicitly, implicitly)
+        eventReportService.submitEventDeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly)
       } map { _ =>
         verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
           any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
         verify(mockJSONPayloadSchemaValidator, times(1)).validatePayload(ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP),
           ArgumentMatchers.eq(SchemaPath1828), ArgumentMatchers.eq("submitEventDeclarationReport"))
+        verify(mockDeclarationLockRepository, times(1)).insertDoubleClickLock(any(), any())
         assert(true)
       }
     }
   }
 
   "submitEvent20ADeclarationReport" must {
-    "return valid response where there are changes" in {
+    "return the result BadRequest when declaration has already done with same psaId and pstr" in {
       val (userAnswers, submitEvent20ADeclarationReportSuccessResponseETMP) = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value
+      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
+        thenReturn(Future.successful(false))
       when(mockEventReportConnector.submitEvent20ADeclarationReport(
         ArgumentMatchers.eq(pstr),
         any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
@@ -579,28 +789,54 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
           status = OK,
           json = payload,
           headers = Map.empty)))
-      eventReportService.submitEvent20ADeclarationReport(pstr, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map { _ =>
+      eventReportService.submitEvent20ADeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map {
+        response =>
+          verify(mockEventReportConnector, times(0)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
+            ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
+          verify(mockDeclarationLockRepository, times(1)).insertDoubleClickLock(any(), any())
+          response mustBe BadRequest
+      }
+    }
+
+    "return valid response where there are changes" in {
+      val (userAnswers, submitEvent20ADeclarationReportSuccessResponseETMP) = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value
+      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
+        thenReturn(Future.successful(true))
+      when(mockEventReportConnector.submitEvent20ADeclarationReport(
+        ArgumentMatchers.eq(pstr),
+        any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
+        .thenReturn(Future.successful(HttpResponse.apply(
+          status = OK,
+          json = payload,
+          headers = Map.empty)))
+      eventReportService.submitEvent20ADeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map { _ =>
         verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
           ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
+        verify(mockDeclarationLockRepository, times(1)).insertDoubleClickLock(any(), any())
         assert(true)
       }
     }
     "return a 417 error response when there is nothing to submit" in {
       val (userAnswers, submitEvent20ADeclarationReportSuccessResponseETMP) = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value
+      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
+        thenReturn(Future.successful(true))
       when(mockEventReportConnector.submitEvent20ADeclarationReport(
         ArgumentMatchers.eq(pstr),
         any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
         .thenReturn(Future.failed(new BadRequestException("Test")))
       recoverToExceptionIf[ExpectationFailedException] {
-        eventReportService.submitEvent20ADeclarationReport(pstr, userAnswers, reportVersion)(implicitly, implicitly, implicitly)
+        eventReportService.submitEvent20ADeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly)
       } map { _ =>
         verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
           ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
+        verify(mockDeclarationLockRepository, times(1)).insertDoubleClickLock(any(), any())
         assert(true)
       }
     }
     "return a Future failed when validation fails against the schema for API1829" in {
       val (userAnswers, submitEvent20ADeclarationReportSuccessResponseETMP) = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value
+      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
+        thenReturn(Future.successful(true))
       when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(SchemaPath1829), any())).thenReturn(Failure(new Exception("Message")))
       when(mockEventReportConnector.submitEvent20ADeclarationReport(
         ArgumentMatchers.eq(pstr), any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
@@ -609,26 +845,30 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
           json = payload,
           headers = Map.empty)))
       recoverToExceptionIf[Exception] {
-        eventReportService.submitEvent20ADeclarationReport(pstr, userAnswers, reportVersion)(implicitly, implicitly, implicitly)
+        eventReportService.submitEvent20ADeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly)
       } map { _ =>
         verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
           any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
         verify(mockJSONPayloadSchemaValidator, times(1)).validatePayload(ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP),
           ArgumentMatchers.eq(SchemaPath1829), ArgumentMatchers.eq("submitEvent20ADeclarationReport"))
+        verify(mockDeclarationLockRepository, times(1)).insertDoubleClickLock(any(), any())
         assert(true)
       }
     }
     "return valid an invalid response where an 1828 payload is passed" in {
       val userAnswers = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value._1
+      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
+        thenReturn(Future.successful(true))
       when(mockEventReportConnector.submitEvent20ADeclarationReport(
         ArgumentMatchers.eq(pstr), any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse.apply(
           status = OK,
           json = payload,
           headers = Map.empty)))
-      eventReportService.submitEvent20ADeclarationReport(pstr, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map { _ =>
+      eventReportService.submitEvent20ADeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly).map { _ =>
         verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
           any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
+        verify(mockDeclarationLockRepository, times(1)).insertDoubleClickLock(any(), any())
         assert(true)
       }
     }

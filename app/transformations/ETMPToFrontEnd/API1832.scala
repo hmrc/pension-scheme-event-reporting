@@ -225,7 +225,7 @@ private object API1832ReadsUtilities extends Transformer {
 
   private def typeOfProtectionUAEvent8A(tOP: String): String = tOP match {
     case "Primary Protection" => "primaryProtection"
-    case "Enhanced" => "enhancedProtection"
+    case "Enhanced protection" => "enhancedProtection"
   }
 
   private def reasonBenefitTakenUAEvent3(rBT: String): String = rBT match {
