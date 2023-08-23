@@ -453,9 +453,9 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       }
     }
 
-    "throw a RuntimeException when userAnswersJson getOrElse fails" in {
-
-    }
+//    "throw a RuntimeException when requiredBody.validate fails" in {
+//
+//    }
   }
 
   "changeVersion" must {
