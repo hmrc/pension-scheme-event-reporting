@@ -452,10 +452,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
       }
     }
-
-//    "throw a RuntimeException when requiredBody.validate fails" in {
-//
-//    }
   }
 
   "changeVersion" must {
