@@ -50,10 +50,8 @@ class DeclarationLockRepository @Inject()(
     )
   ) with Logging {
 
-  // TODO: change config below to match new value if journey tests pass following this change.
   private def expireInSeconds: DateTime = DateTime.now(DateTimeZone.UTC).
-    plusSeconds(1)
-    // plusSeconds(configuration.get[Int](path = "mongodb.event-reporting-declaration-lock.timeToLiveInSeconds"))
+    plusSeconds(configuration.get[Int](path = "mongodb.event-reporting-declaration-lock.timeToLiveInSeconds"))
 
   private lazy val documentExistsErrorCode = 11000
 
