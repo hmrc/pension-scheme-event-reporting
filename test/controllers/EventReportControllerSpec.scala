@@ -102,7 +102,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       }
     }
 
-
     "throw a Bad Request Exception when endDate parameter is missing in header" in {
       recoverToExceptionIf[BadRequestException] {
         controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "startDate" -> "2022-04-06"))
@@ -181,6 +180,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
       status(result) mustBe NO_CONTENT
     }
+
     "throw a Bad Request Exception when the body is missing" in {
       recoverToExceptionIf[BadRequestException] {
         controller.submitEventDeclarationReport(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "version" -> reportVersion))
@@ -190,6 +190,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         response.message must include("Request does not contain required Json body")
       }
     }
+
     "throw a Bad Request Exception when the pstr is missing from the header" in {
       recoverToExceptionIf[BadRequestException] {
         controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse))
@@ -232,8 +233,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       }
     }
   }
-
-
   "getVersions" must {
     "return OK with the Seq of Version" in {
       when(mockEventReportService.getVersions(
@@ -467,7 +466,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
   }
 
-
   "changeVersion" must {
     "return 204 OK when valid response" in {
       when(mockEventReportService.changeVersion(
@@ -497,7 +495,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       status(result) mustBe NOT_FOUND
     }
   }
-
 
   "compileEvent" must {
     "return 204 No Content when valid response" in {
@@ -563,7 +560,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       }
     }
   }
-
 }
 
 object EventReportControllerSpec {

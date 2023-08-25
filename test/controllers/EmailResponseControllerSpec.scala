@@ -27,6 +27,7 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Application
+import play.api.http.Status.FORBIDDEN
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
@@ -92,6 +93,24 @@ class EmailResponseControllerSpec extends AsyncWordSpec with Matchers with Mocki
 
       verify(mockAuditService, never).sendEvent(any())(any(), any())
       status(result) mustBe BAD_REQUEST
+    }
+
+    "decryptPsaOrPspIdAndEmail" should {
+      "return IllegalArgumentException when email does not match regex" in {
+        val invalidEmail = "test.com"
+        val encryptedInvalidEmail = injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(invalidEmail)).value
+
+        val result = controller.sendAuditEvents(
+          schemeAdministratorTypeAsPsp,
+          requestId,
+          encryptedInvalidEmail,
+          encryptedPsaId,
+          encryptedPstr,
+          reportVersion)(fakeRequest.withBody(Json.toJson(emailEvents)))
+
+        status(result) mustBe FORBIDDEN
+
+      }
     }
   }
 }

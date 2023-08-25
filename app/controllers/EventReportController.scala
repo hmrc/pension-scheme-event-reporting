@@ -78,7 +78,6 @@ class EventReportController @Inject()(
       }
   }
 
-
   def changeVersion: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { case Credentials(externalId, _) =>

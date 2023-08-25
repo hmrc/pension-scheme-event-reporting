@@ -324,7 +324,6 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
     }
   }
 
-
   "compileMemberEventReport" must {
 
     "return successfully when ETMP has returned OK" in {
@@ -916,7 +915,6 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
     }
 
   }
-
 
   "submitEvent20ADeclarationReport" must {
 

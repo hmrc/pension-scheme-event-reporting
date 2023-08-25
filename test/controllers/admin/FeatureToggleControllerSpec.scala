@@ -125,6 +125,21 @@ class FeatureToggleControllerSpec
       verify(mockFeatureToggleService, times(1))
         .getToggle("Test")
     }
+
+    "return NO_CONTENT if toggle service unable to find the toggle" in {
+
+      when(mockToggleDataRepository.upsertFeatureToggle(any()))
+        .thenReturn(Future.successful(()))
+
+      when(mockFeatureToggleService.getToggle(any()))
+        .thenReturn(Future.successful(None))
+
+      val controller = new FeatureToggleController(controllerComponents, mockFeatureToggleService)
+
+      val result = controller.getToggle("")(fakeRequest)
+
+      status(result) mustBe NO_CONTENT
+    }
   }
 
   "FeatureToggleController.getAllFeatureToggles" must {

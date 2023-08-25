@@ -248,9 +248,10 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
 
 
   "CompileEventAuditEvent.details" must {
+
     "render when all optional values are present" in {
       val errorMessage = "error message"
-      CompileEventAuditEvent(
+      val event = CompileEventAuditEvent(
         psaPspIdentifier = psaId,
         pstr = pstr,
         payload = requestData,
@@ -258,7 +259,9 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
         response = Some(responseData),
         errorMessage = Some(errorMessage),
         reportVersion
-      ).details mustBe Json.obj(
+      )
+
+      val expected = Json.obj(
         "pspOrPsaId" -> psaId,
         "PensionSchemeTaxReference" -> "pstr",
         "status" -> 200,
@@ -267,10 +270,13 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
         "errorMessage" -> errorMessage,
         "reportVersion" -> reportVersion
       )
+
+      event.details mustBe expected
+      event.auditType mustBe "EventReportTaxReturnCompiled"
     }
 
     "render when all optional values are absent" in {
-      CompileEventAuditEvent(
+      val event = CompileEventAuditEvent(
         psaPspIdentifier = psaId,
         pstr = pstr,
         payload = requestData,
@@ -278,12 +284,17 @@ class PostToAPIAuditServiceSpec extends SpecBase with BeforeAndAfterEach {
         response = None,
         errorMessage = None,
         reportVersion
-      ).details mustBe Json.obj(
+      )
+
+      val expected = Json.obj(
         "pspOrPsaId" -> psaId,
         "PensionSchemeTaxReference" -> "pstr",
         "payload" -> requestData,
         "reportVersion" -> reportVersion
       )
+
+      event.details mustBe expected
+      event.auditType mustBe "EventReportTaxReturnCompiled"
     }
   }
 }
