@@ -209,37 +209,6 @@ object API1833Spec {
       |}""".stripMargin)
 
 
-  /*
-  {
-                      "event1" : {
-                          "companyDetails" : {
-                              "companyNumber" : "0123456",
-                              "companyName" : "Business 123"
-                          }
-                      },
-                      "employerAddress" : {
-                          "address" : {
-                              "addressLine1" : "Test",
-                              "addressLine2" : "Test 2",
-                              "country" : "GB",
-                              "postcode" : "XX1 1XX"
-                          }
-                      },
-                      "loanDetails" : {
-                          "fundValue" : 0,
-                          "loanAmount" : 0
-                      },
-                      "whoReceivedUnauthPayment" : "employer",
-                      "paymentValueAndDate" : {
-                          "paymentValue" : 300000,
-                          "paymentDate" : "2022-03-02"
-                      },
-                      "paymentNatureEmployer" : "loansExceeding50PercentOfFundValue",
-                      "memberStatus" : "New",
-                      "amendedVersion" : "001"
-                  }
-   */
-
 
 
 }
