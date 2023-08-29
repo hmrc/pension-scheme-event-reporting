@@ -174,36 +174,41 @@ object API1833Spec {
       |""".stripMargin)
 
   val expectedEmployerResponse: JsValue = Json.parse(
-    """
-      |{
-      |  "event1": {
-      |    "membersOrEmployers": [
-      |      {
-      |        "amendedVersion": "001",
-      |        "memberStatus": "New",
-      |        "employerTangibleMoveableProperty": "Sample description",
-      |        "employerAddress": {
-      |          "addressLine1": "123 Fun Lane",
-      |          "addressLine2": "Cool Crescent",
-      |          "addressLine3": "Slough",
-      |          "addressLine4": "Berkshire",
-      |          "postCode": "ZZ11 1ZZ",
-      |          "countryCode": "GB"
-      |        },
-      |        "companyDetails": {
-      |          "companyNumber": "12345679",
-      |          "companyName": "The Biz Ltd"
-      |        },
-      |        "whoWasTheTransferMade": "anEmployerFinanced",
-      |        "whoReceivedUnauthPayment": "employer",
-      |        "paymentValueAndDate": {
-      |          "paymentValue": 723,
-      |          "paymentDate": "2020-06-30"
-      |        },
-      |        "paymentNatureEmployer": "tangibleMoveableProperty"
-      |      }
-      |    ]
-      |  }
-      |}
-      |""".stripMargin)
+    """{
+      |   "event1":{
+      |      "membersOrEmployers":[
+      |         {
+      |            "event1":{
+      |               "companyDetails":{
+      |                  "companyNumber":"12345679",
+      |                  "companyName":"The Biz Ltd"
+      |               }
+      |            },
+      |            "employerTangibleMoveableProperty":"Sample description",
+      |            "employerAddress":{
+      |               "address":{
+      |                  "addressLine1":"123 Fun Lane",
+      |                  "addressLine2":"Cool Crescent",
+      |                  "country":"GB",
+      |                  "addressLine3":"Berkshire",
+      |                  "postcode":"ZZ11 1ZZ"
+      |               }
+      |            },
+      |            "whoWasTheTransferMade":"anEmployerFinanced",
+      |            "whoReceivedUnauthPayment":"employer",
+      |            "paymentValueAndDate":{
+      |               "paymentValue":723,
+      |               "paymentDate":"2020-06-30"
+      |            },
+      |            "paymentNatureEmployer":"tangibleMoveableProperty",
+      |            "memberStatus":"New",
+      |            "amendedVersion":"001"
+      |         }
+      |      ]
+      |   }
+      |}""".stripMargin)
+
+
+
+
 }
