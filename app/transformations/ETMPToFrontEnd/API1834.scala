@@ -121,7 +121,7 @@ object API1834 {
       (recordVersion, dateOfWindUp) => {
         (recordVersion, dateOfWindUp) match {
           case (None, Some(_)) => Reads[JsObject](_ => JsError("record version is missing"))
-          case (Some(rv), Some(data)) => ((__ \ "eventWindUp" \ "schemeWindUpDate").json.put(JsString(data)) and
+          case (Some(rv), Some(dateOfWindUp)) if dateOfWindUp != "9999-12-31" => ((__ \ "eventWindUp" \ "schemeWindUpDate").json.put(JsString(dateOfWindUp)) and
             (__ \ "eventWindUp" \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))).reduce
           case _ => Reads.pure(Json.obj())
         }
