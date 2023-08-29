@@ -100,9 +100,19 @@ object API1834Summary extends Transformer {
         (JsPath \ "eventDetails" \ "event18" \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
         (JsPath \ "eventDetails" \ "event19" \ 0 \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
         (JsPath \ "eventDetails" \ "event20" \ 0 \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
-        (JsPath \ "eventDetails" \ "eventWindUp" \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion)
+        (JsPath \ "eventDetails" \ "eventWindUp" \ FieldNameRecordVersion).readNullable[Int](readsRecordVersion) and
+        (JsPath \ "eventDetails" \ "eventWindUp" \ "dateOfWindUp").readNullable[String](Reads {
+          case JsString(str) => JsSuccess(str)
+          case _ => JsError("Date of wind up is not a string")
+        })
+
       )(
-      (event1, memberReads, event10, event11, event12, event13, event14, event18, event19, event20, eventWindup) => {
+      (event1, memberReads, event10, event11, event12, event13, event14, event18, event19, event20, eventWindup, eventWindUpDate) => {
+
+        val windUp = if (eventWindUpDate.contains("9999-12-31")) Seq() else Seq(
+          createRow(eventWindup, "WindUp")
+        )
+
         val result = Seq(createRow(event1.flatten, "1")) ++ memberReads ++ Seq(
           createRow(event10, "10"),
           createRow(event11, "11"),
@@ -112,9 +122,7 @@ object API1834Summary extends Transformer {
           createRow(event18, "18"),
           createRow(event19, "19"),
           createRow(event20, "20")
-        ) ++ Seq(
-          createRow(eventWindup, "WindUp")
-        )
+        ) ++ windUp
 
         result.filter(_.fields.nonEmpty)
       }
