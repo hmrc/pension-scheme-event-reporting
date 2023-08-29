@@ -53,4 +53,31 @@ trait Transformer {
             Json.obj("postCode" -> postcode)
           }
     )
+
+
+  protected def readsAddressEtmp(jsPathEtmp: JsPath): Reads[JsObject] =
+    (
+      (jsPathEtmp \  Symbol("addressLine1")).read[String] and
+        (jsPathEtmp \  Symbol("addressLine2")).read[String] and
+        (jsPathEtmp \  Symbol("addressLine3")).readNullable[String] and
+        (jsPathEtmp \  Symbol("addressLine4")).readNullable[String] and
+        (jsPathEtmp \  Symbol("postCode")).readNullable[String] and
+        (jsPathEtmp \  Symbol("countryCode")).read[String]
+      )(
+      (addressLine1, addressLine2, addressLine3, addressLine4, postcode, country) =>
+        Json.obj(
+          "addressLine1" -> addressLine1,
+          "addressLine2" -> addressLine2,
+          "country" -> country
+        ) ++ addressLine3.fold(Json.obj()) { addr =>
+          Json.obj("addressLine3" -> addr)
+        } ++
+          addressLine4.fold(Json.obj()) { addr =>
+            Json.obj("addressLine3" -> addr)
+          } ++
+          postcode.fold(Json.obj()) { postcode =>
+            Json.obj("postcode" -> postcode)
+          }
+    )
+
 }

@@ -64,7 +64,9 @@ private object API1833ReadsUtilities extends Transformer {
   val readsEmployerMemberDetails: Reads[JsObject] = (
     reqReads(pathUACompanyName, pathEtmpEmployerMemberDetailsCompOrOrgName) and
       reqReads(pathUACompanyNumber, pathEtmpEmployerMemberDetailsCrnNumber) and
-      reqReads(pathUAEmployerAddress, pathEtmpEmployerMemberDetailsAddressDetails)
+//      reqReads(pathUAEmployerAddress, pathEtmpEmployerMemberDetailsAddressDetails) and
+      pathUAEmployerAddress.json.copyFrom(readsAddressEtmp(pathEtmpEmployerMemberDetailsAddressDetails))
+      //pathUAEmployerAddress.json.copyFrom(pathEtmpEmployerMemberDetailsAddressDetails.json.pick)(readsAddress())
     ).reduce
 
   val readsUnAuthorisedPaymentDetails: Reads[JsObject] = (
@@ -276,9 +278,9 @@ private object EventOneReportPaths {
   val pathUADoYouHoldSignedMandate: JsPath = __ \ Symbol("doYouHoldSignedMandate")
   val pathUAValueOfUnauthorisedPayment: JsPath = __ \ Symbol("valueOfUnauthorisedPayment")
   val pathUASchemeUnAuthPaySurchargeMember: JsPath = __ \ Symbol("schemeUnAuthPaySurchargeMember")
-  val pathUACompanyName: JsPath = __ \ Symbol("companyDetails") \ Symbol("companyName")
-  val pathUACompanyNumber: JsPath = __ \ Symbol("companyDetails") \ Symbol("companyNumber")
-  val pathUAEmployerAddress: JsPath = __ \ Symbol("employerAddress")
+  val pathUACompanyName: JsPath = __ \ Symbol("event1") \ Symbol("companyDetails") \ Symbol("companyName")
+  val pathUACompanyNumber: JsPath = __ \ Symbol("event1") \ Symbol("companyDetails") \ Symbol("companyNumber")
+  val pathUAEmployerAddress: JsPath = __ \ Symbol("employerAddress") \ Symbol("address")
   val pathUAUnAuthorisedPaymentDetails: JsPath = __ \ Symbol("unAuthorisedPaymentDetails")
   val pathUAPaymentNatureMember: JsPath = __ \ Symbol("paymentNatureMember")
   val pathUAPaymentNatureEmployer: JsPath = __ \ Symbol("paymentNatureEmployer")
