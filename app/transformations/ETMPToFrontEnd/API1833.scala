@@ -64,9 +64,7 @@ private object API1833ReadsUtilities extends Transformer {
   val readsEmployerMemberDetails: Reads[JsObject] = (
     reqReads(pathUACompanyName, pathEtmpEmployerMemberDetailsCompOrOrgName) and
       reqReads(pathUACompanyNumber, pathEtmpEmployerMemberDetailsCrnNumber) and
-//      reqReads(pathUAEmployerAddress, pathEtmpEmployerMemberDetailsAddressDetails) and
       pathUAEmployerAddress.json.copyFrom(readsAddressEtmp(pathEtmpEmployerMemberDetailsAddressDetails))
-      //pathUAEmployerAddress.json.copyFrom(pathEtmpEmployerMemberDetailsAddressDetails.json.pick)(readsAddress())
     ).reduce
 
   val readsUnAuthorisedPaymentDetails: Reads[JsObject] = (
