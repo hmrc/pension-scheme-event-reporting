@@ -252,5 +252,31 @@ class API1834SummarySpec extends AnyFreeSpec with Matchers with MockitoSugar wit
       result mustBe expectedResult
     }
 
+    "transform an API 1834 events don't include windup if date is set to 9999-12-31" in {
+      val generatedPayload = Json.obj(
+        "memberEventsSummary" -> Json.obj(
+          "event2" -> Json.obj("recordVersion" -> "001", "numberOfMembers" -> 1),
+        ),
+        "eventDetails" -> Json.obj(
+          "event10" -> Json.arr(Json.obj("recordVersion" -> "002")),
+          "eventWindUp" -> Json.obj(
+            "recordVersion" -> JsString("001"),
+            "dateOfWindUp" -> JsString("9999-12-31")
+          )
+        )
+      )
+
+      val result = generatedPayload.validate(API1834Summary.rdsFor1834)
+      val expectedResult = JsSuccess(
+        JsArray(
+          Seq(
+            Json.obj("eventType" -> "2", "recordVersion" -> 1),
+            Json.obj("eventType" -> "10", "recordVersion" -> 2)
+          )
+        )
+      )
+      result mustBe expectedResult
+    }
+
   }
 }
