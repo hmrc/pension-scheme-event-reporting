@@ -27,7 +27,10 @@ object API1833 {
   import API1833ReadsUtilities._
 
   implicit val rds1833Api: Reads[JsObject] =
-    pathUAEvent1MembersOrEmployers.json.copyFrom(pathEtmpEvent1Details.read(readsEvent1Details))
+    pathEtmpEvent1Details.readNullable(readsEvent1Details).flatMap {
+      case Some(jsArray) => pathUAEvent1MembersOrEmployers.json.put(jsArray)
+      case _ => Reads.pure(Json.obj())
+    }
 
   private lazy val readsEvent1Details: Reads[JsArray] = __.read(
     Reads.seq(
