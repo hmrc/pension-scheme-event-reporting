@@ -85,14 +85,14 @@ private object API1832ReadsUtilities extends Transformer {
   lazy val readsEvent4PaymentDetails: Reads[JsObject] = {
     (
       pathUaAmountPaidNested.json.copyFrom(pathEtmpAmountPaid.json.pick) and
-        pathUaDatePaidNested.json.copyFrom(pathEtmpEventDate.json.pick)
+        pathUaEventDate.json.copyFrom(pathEtmpEventDate.json.pick)
       ).reduce
   }
 
   lazy val readsEvent5PaymentDetails: Reads[JsObject] = {
     (
       pathUaAmountPaidNested.json.copyFrom(pathEtmpAnnualRate.json.pick) and
-        pathUaDatePaidNested.json.copyFrom(pathEtmpEventDate.json.pick)
+        pathUaEventDate.json.copyFrom(pathEtmpEventDate.json.pick)
       ).reduce
   }
 
