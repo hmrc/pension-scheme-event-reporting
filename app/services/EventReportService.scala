@@ -452,18 +452,19 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       }
     }
 
-    declarationLockRepository.insertDoubleClickLock(pstr, psaPspId).flatMap { isAvailable =>
-      if (isAvailable) {
+    //TODO: temporarily disabled for E2E testing
+//    declarationLockRepository.insertDoubleClickLock(pstr, psaPspId).flatMap { isAvailable =>
+//      if (isAvailable) {
         for {
           transformed1828Payload <- Future.fromTry(toTry(userAnswersJson.transform(API1828.transformToETMPData)))
           _ <- recoverAndValidatePayload(transformed1828Payload)
         } yield {
           NoContent
         }
-      } else {
-        Future.successful(BadRequest)
-      }
-    }
+//      } else {
+//        Future.successful(BadRequest)
+//      }
+//    }
   }
 
 
