@@ -684,8 +684,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
     "return the result BadRequest when declaration has already done with same psaId and pstr" in {
       val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value
-      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
-        thenReturn(Future.successful(false))
+//      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
+//        thenReturn(Future.successful(false))
       when(mockEventReportConnector.submitEventDeclarationReport(
         ArgumentMatchers.eq(pstr), any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse.apply(
@@ -704,8 +704,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
 
     "return valid response where there are changes" in {
       val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value
-      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
-        thenReturn(Future.successful(true))
+//      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
+//        thenReturn(Future.successful(true))
       when(mockEventReportConnector.submitEventDeclarationReport(
         ArgumentMatchers.eq(pstr), any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse.apply(
@@ -721,8 +721,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
     "return valid an invalid response where an 1829 payload is passed" in {
       val userAnswers = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
-      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
-        thenReturn(Future.successful(true))
+//      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
+//        thenReturn(Future.successful(true))
       when(mockEventReportConnector.submitEventDeclarationReport(
         ArgumentMatchers.eq(pstr), any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
         .thenReturn(Future.successful(HttpResponse.apply(
@@ -738,8 +738,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
     "return a 417 error response when there is nothing to submit" in {
       val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value
-      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
-        thenReturn(Future.successful(true))
+//      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
+//        thenReturn(Future.successful(true))
       when(mockEventReportConnector.submitEventDeclarationReport(
         ArgumentMatchers.eq(pstr), any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))
         .thenReturn(Future.failed(new BadRequestException("Test")))
@@ -754,8 +754,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
     "return a Future failed when validation fails against the schema for API1828" in {
       val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value
-      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
-        thenReturn(Future.successful(true))
+//      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
+//        thenReturn(Future.successful(true))
       when(mockJSONPayloadSchemaValidator.validatePayload(any(), eqTo(SchemaPath1828), any())).thenReturn(Failure(new Exception("Message")))
       when(mockEventReportConnector.submitEventDeclarationReport(
         ArgumentMatchers.eq(pstr), any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any()))

@@ -452,7 +452,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       }
     }
 
-    //TODO: temporarily disabled for E2E testing
+    //TODO: temporarily disabled for E2E testing PODS-8782
 //    declarationLockRepository.insertDoubleClickLock(pstr, psaPspId).flatMap { isAvailable =>
 //      if (isAvailable) {
         for {
