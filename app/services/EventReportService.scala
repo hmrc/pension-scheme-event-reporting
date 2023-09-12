@@ -487,17 +487,17 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       }
     }
 
-    declarationLockRepository.insertDoubleClickLock(pstr, psaPspId).flatMap { isAvailable =>
-      if (isAvailable) {
+//    declarationLockRepository.insertDoubleClickLock(pstr, psaPspId).flatMap { isAvailable =>
+//      if (isAvailable) {
         for {
           transformed1829Payload <- Future.fromTry(toTry(userAnswersJson.transform(API1829.transformToETMPData)))
           _ <- recoverAndValidatePayload(transformed1829Payload)
         } yield {
           NoContent
         }
-      } else {
-        Future.successful(BadRequest)
-      }
-    }
+//      } else {
+//        Future.successful(BadRequest)
+//      }
+//    }
   }
 }
