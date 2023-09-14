@@ -188,7 +188,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
               "nino" -> map("nino")),
             "paymentDetails" -> Json.obj(
               "amountPaid" -> map("pensionAmt"),
-              "datePaid" -> s"${map("taxYearEndDate")}-04-05"
+              "eventDate" -> s"${map("taxYearEndDate")}-04-05"
             ),
           )
         )
@@ -232,7 +232,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
               "nino" -> map("nino")),
             "paymentDetails" -> Json.obj(
               "amountPaid" -> map("pensionAmt"),
-              "datePaid" -> s"${map("taxYearEndDate")}-04-05"
+              "eventDate" -> s"${map("taxYearEndDate")}-04-05"
             ),
           )
         )
