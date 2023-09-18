@@ -70,8 +70,8 @@ object EventReportCacheEntry {
           (JsPath \ yearKey).read[Int] and
           (JsPath \ versionKey).read[Int] and
           (JsPath \ dataKey).read[JsValue] and
-          (JsPath \ lastUpdatedKey).read(localDateTimeReads).orElse(Reads.pure(LocalDateTime.now())) and
-          (JsPath \ expireAtKey).read(localDateTimeReads).orElse(Reads.pure(LocalDateTime.now())) and
+          (JsPath \ lastUpdatedKey).read(localDateTimeReads).orElse(Reads.pure(LocalDateTime.now())) and //TODO: PODS-8791 remove after data was fixed
+          (JsPath \ expireAtKey).read(localDateTimeReads).orElse(Reads.pure(LocalDateTime.now())) and //TODO: PODS-8791 remove after data was fixed
           (JsPath \ externalIdKey).read[String]
       )(
         (pstr, eventType, year, version, data, lastUpdated, expireAt, externalId) =>
