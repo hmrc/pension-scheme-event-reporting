@@ -16,6 +16,7 @@
 
 package controllers
 
+import models.RequiredJourneyData
 import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json._
@@ -280,5 +281,31 @@ class EventReportController @Inject()(
   }
 
   private def prettyMissingParamError(param: Option[String], error: String) = if (param.isEmpty) s"$error " else ""
+
+  def createNewJourney():Action[AnyContent] = Action.async { implicit request =>
+    def validateBody(requiredJourneyData: RequiredJourneyData => Future[Result]): Future[Result] = {
+      request.body.asJson.map { json =>
+        json.validate[RequiredJourneyData].asOpt.map { rjd =>
+          requiredJourneyData(rjd)
+        }.getOrElse(Future.successful(BadRequest("Missing json field")))
+      }.getOrElse(Future.successful(BadRequest("Body is not json")))
+    }
+
+    withAuth.flatMap { case Credentials(externalId, psaPspId) =>
+      validateBody { rjd =>
+        val result = eventReportService.createNewJourney(externalId, psaPspId, rjd)
+        result.map { journeyId =>
+          Ok(Json.toJson(Map("journeyId" -> journeyId)))
+        }
+      }
+    }
+  }
+
+  def getJourneyData(journeyId: String): Action[AnyContent] = Action.async { implicit request =>
+    withAuth.flatMap { case Credentials(externalId, psaPspId) =>
+      eventReportService.getJourneyData(journeyId, externalId, psaPspId)
+        .map(journeyData => Ok(Json.toJson(journeyData)))
+    }
+  }
 }
 

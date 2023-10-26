@@ -23,15 +23,16 @@ import models.MemberChangeInfo.Deleted
 import models.enumeration.ApiType._
 import models.enumeration.EventType._
 import models.enumeration.{ApiType, EventType}
-import models.{EROverview, EventDataIdentifier}
+import models.{EROverview, EventDataIdentifier, RequiredJourneyData}
 import org.mongodb.scala.result
+import org.mongodb.scala.result.InsertOneResult
 import play.api.Logging
 import play.api.http.Status.NOT_IMPLEMENTED
 import play.api.libs.json.JsResult.toTry
 import play.api.libs.json._
 import play.api.mvc.Results._
 import play.api.mvc.{RequestHeader, Result}
-import repositories.{DeclarationLockRepository, EventReportCacheRepository}
+import repositories.{DeclarationLockRepository, EventReportCacheRepository, JourneyDataEntry, JourneyInsertData, JourneyRepository}
 import transformations.ETMPToFrontEnd._
 import transformations.UserAnswersToETMP._
 import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, HeaderCarrier, HttpResponse}
@@ -45,6 +46,7 @@ import scala.util.{Failure, Success, Try}
 class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    eventReportCacheRepository: EventReportCacheRepository,
                                    declarationLockRepository: DeclarationLockRepository,
+                                   journeyRepository: JourneyRepository,
                                    jsonPayloadSchemaValidator: JSONSchemaValidator,
                                    compilePayloadService: CompilePayloadService,
                                    memberChangeInfoService: MemberChangeInfoService
@@ -498,5 +500,13 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         Future.successful(BadRequest)
       }
     }
+  }
+
+  def createNewJourney(externalId: String, psaPspId: String, requiredJourneyData: RequiredJourneyData): Future[String] = {
+    journeyRepository.upsert(JourneyInsertData(requiredJourneyData.pstr, requiredJourneyData.schemeName, requiredJourneyData.returnUrl, externalId, psaPspId))
+  }
+
+  def getJourneyData(journeyId: String, externalId: String, psaPspId: String): Future[JourneyDataEntry] = {
+    journeyRepository.get(journeyId, externalId, psaPspId)
   }
 }

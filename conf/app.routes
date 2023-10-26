@@ -14,6 +14,8 @@ GET           /user-answers                                                     
 POST          /user-answers                                                                     controllers.EventReportController.saveUserAnswers
 PUT           /user-answers                                                                     controllers.EventReportController.changeVersion
 DELETE        /user-answers                                                                     controllers.EventReportController.removeUserAnswers
+POST          /create-new-journey                                                               controllers.EventReportController.createNewJourney
+GET           /journey                                                                          controllers.EventReportController.getJourneyData(journeyId: String)
 
 POST          /email-response/:submittedBy/:requestId/:email/:psaId/:pstr/:reportVersion        controllers.EmailResponseController.sendAuditEvents(submittedBy: String, requestId: String, email: String, psaId: String, pstr: String, reportVersion: String)
 GET           /file-upload-response/get                                                         controllers.FileUploadOutcomeController.get
@@ -22,3 +24,4 @@ POST          /file-upload-response/save                                        
 GET           /parsing-and-validation-outcome                                                   controllers.ParsingAndValidationOutcomeController.get
 POST          /parsing-and-validation-outcome                                                   controllers.ParsingAndValidationOutcomeController.post
 DELETE        /parsing-and-validation-outcome                                                   controllers.ParsingAndValidationOutcomeController.delete
+
