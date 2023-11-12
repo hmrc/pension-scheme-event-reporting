@@ -65,7 +65,33 @@ class EventLockRepository @Inject()(
 
   private lazy val documentExistsErrorCode = 11000
 
-  def updateEventLockExpire(pstr: String, psaOrPspId: String, edi: EventDataIdentifier): SingleObservable[EventLockJson] = {
+  /**
+   *
+   * @param pstr
+   * @param psaOrPspId
+   * @param edi
+   * @return true if lock updated, false if locked
+   */
+  def upsertIfNotLocked(pstr: String, psaOrPspId: String, edi: EventDataIdentifier): Future[Boolean] = {
+    collection.find(Filters.and(
+      Filters.equal("pstr", pstr),
+      Filters.equal("edi.year", edi.year),
+      Filters.equal("edi.eventType", edi.eventType),
+      Filters.equal("edi.version", edi.version)
+    )).toFuture().flatMap {
+      case Seq() => insertEventLock(pstr, psaOrPspId, edi)
+      case lockSeq if lockSeq.length > 1 => throw new RuntimeException("Multiple locks found")
+      case Seq(lock) =>
+        val lockedBySomeoneElse = lock.psaOrPspId != psaOrPspId && lock.edi.externalId != edi.externalId
+        if(lockedBySomeoneElse) {
+          Future.successful(false)
+        } else {
+          updateEventLockExpire(pstr, psaOrPspId, edi).toFuture().map { _ => true }
+        }
+    }
+  }
+
+  private def updateEventLockExpire(pstr: String, psaOrPspId: String, edi: EventDataIdentifier): SingleObservable[EventLockJson] = {
     collection.findOneAndReplace(
       filter = Filters.and(
         Filters.equal("pstr", pstr),
@@ -73,24 +99,25 @@ class EventLockRepository @Inject()(
         Filters.equal("edi.year", edi.year),
         Filters.equal("edi.eventType", edi.eventType),
         Filters.equal("edi.version", edi.version),
-        Filters.equal("edi.externalId", edi.externalId),
+        Filters.equal("edi.externalId", edi.externalId)
       ),
       replacement = EventLockJson(pstr, psaOrPspId, expireInSeconds, edi),
       options = new FindOneAndReplaceOptions().upsert(true)
     )
   }
 
-  private def getLockedEventTypes(pstr: String, psaOrPspId: String, year:Int, version:Int, externalId: String) = {
+  def getLockedEventTypes(pstr: String, psaOrPspId: String, year:Int, version:Int, externalId: String): Future[Seq[EventType]] = {
     collection.find(Filters.and(
       Filters.equal("pstr", pstr),
+      Filters.notEqual("psaOrPspId", psaOrPspId),
       Filters.equal("edi.year", year),
       Filters.gte("edi.version", version),
+      Filters.notEqual("edi.externalId", externalId)
     )).toFuture().map { result =>
       val maxVersion = result.maxBy(_.edi.version).edi.version
       val currentVersionIsMaxVersion = version == maxVersion
       if(currentVersionIsMaxVersion) {
-        val resultExcludingCurrentUser = result.filterNot(lock => lock.psaOrPspId == psaOrPspId && lock.edi.externalId == externalId)
-        val lockedEventTypes = resultExcludingCurrentUser.map(_.edi.eventType)
+        val lockedEventTypes = result.map(_.edi.eventType)
         lockedEventTypes
       } else {
         EventType.values
@@ -98,7 +125,11 @@ class EventLockRepository @Inject()(
     }
   }
 
-  def insertEventLock(pstr: String, psaOrPspId: String, edi: EventDataIdentifier): Future[Boolean] = {
+  def remove(externalId: String): Future[EventLockJson] = {
+    collection.findOneAndDelete(Filters.equal("edi.externalId", externalId)).toFuture()
+  }
+
+  private def insertEventLock(pstr: String, psaOrPspId: String, edi: EventDataIdentifier): Future[Boolean] = {
 
     collection.insertOne(EventLockJson(pstr, psaOrPspId, expireInSeconds, edi)
     ).toFuture().map { _ => true }
@@ -106,5 +137,16 @@ class EventLockRepository @Inject()(
         case e: MongoWriteException if e.getCode == documentExistsErrorCode =>
           Future.successful(false)
       }
+  }
+
+  def eventIsLocked(pstr: String, psaOrPspId: String, edi: EventDataIdentifier): Future[Boolean] = {
+    collection.find(Filters.and(
+      Filters.equal("pstr", pstr),
+      Filters.notEqual("psaOrPspId", psaOrPspId),
+      Filters.equal("edi.year", edi.year),
+      Filters.equal("edi.eventType", edi.eventType),
+      Filters.equal("edi.version", edi.version),
+      Filters.notEqual("edi.externalId", edi.externalId)
+    )).toFuture().map(_.nonEmpty)
   }
 }

@@ -54,7 +54,7 @@ class EventReportController @Inject()(
   def saveUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
 
-      withAuth.flatMap { case Credentials(externalId, _) =>
+      withAuth.flatMap { case Credentials(externalId, psaOrPspId) =>
         val userAnswersJson = requiredBody.validate[JsObject].getOrElse(throw new RuntimeException("Expected JsObject body"))
         val pstr = requiredHeaders("pstr").head
         val etVersionYear = (request.headers.get("eventType"), request.headers.get("version"), request.headers.get("year")) match {
@@ -66,7 +66,7 @@ class EventReportController @Inject()(
           case Some((eventType, version, year)) =>
             EventType.getEventType(eventType) match {
               case Some(et) =>
-                eventReportService.saveUserAnswers(externalId, pstr, et, year, version, userAnswersJson).map(_ => Ok)
+                eventReportService.saveUserAnswers(externalId, pstr, et, year, version, userAnswersJson, psaOrPspId).map(_ => Ok)
               case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
             }
           case _ =>
@@ -98,13 +98,13 @@ class EventReportController @Inject()(
   def getUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
 
-      def process(externalId: String, pstr: String, optEtVersionYear: Option[(String, Int, Int)]): Future[Result] = {
+      def process(externalId: String, psaOrPspId: String, pstr: String, optEtVersionYear: Option[(String, Int, Int)]): Future[Result] = {
 
         optEtVersionYear match {
           case Some((eventType, version, year)) =>
             EventType.getEventType(eventType) match {
               case Some(et) =>
-                eventReportService.getUserAnswers(externalId, pstr, et, year, version)
+                eventReportService.getUserAnswers(externalId, pstr, et, year, version, psaOrPspId)
                   .map {
                     case None => NotFound
                     case Some(jsobj) => Ok(jsobj)
@@ -120,13 +120,13 @@ class EventReportController @Inject()(
         }
       }
 
-      withAuth.flatMap { case Credentials(externalId, _) =>
+      withAuth.flatMap { case Credentials(externalId, psaOrPspId) =>
         val pstr = requiredHeaders("pstr").head
         val etVersionYear = (request.headers.get("eventType"), request.headers.get("version"), request.headers.get("year")) match {
           case (Some(et), Some(version), Some(year)) => Some((et, version.toInt, year.toInt))
           case _ => None
         }
-        process(externalId, pstr, etVersionYear)
+        process(externalId, psaOrPspId, pstr, etVersionYear)
       }
   }
 
@@ -148,9 +148,9 @@ class EventReportController @Inject()(
 
   def getEventSummary: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuth.flatMap { _ =>
+      withAuth.flatMap { case Credentials(externalId, psaPspId)  =>
         val Seq(pstr, version, startDate) = requiredHeaders("pstr", "reportVersionNumber", "reportStartDate")
-        eventReportService.getEventSummary(pstr, ("00" + version).takeRight(3), startDate).map(Ok(_))
+        eventReportService.getEventSummary(pstr, ("00" + version).takeRight(3), startDate, psaPspId, externalId).map(Ok(_))
       }
   }
 

@@ -31,7 +31,7 @@ import play.api.libs.json.JsResult.toTry
 import play.api.libs.json._
 import play.api.mvc.Results._
 import play.api.mvc.{RequestHeader, Result}
-import repositories.{DeclarationLockRepository, EventReportCacheRepository}
+import repositories.{DeclarationLockRepository, EventLockRepository, EventReportCacheRepository}
 import transformations.ETMPToFrontEnd._
 import transformations.UserAnswersToETMP._
 import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, HeaderCarrier, HttpResponse}
@@ -47,7 +47,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    declarationLockRepository: DeclarationLockRepository,
                                    jsonPayloadSchemaValidator: JSONSchemaValidator,
                                    compilePayloadService: CompilePayloadService,
-                                   memberChangeInfoService: MemberChangeInfoService
+                                   memberChangeInfoService: MemberChangeInfoService,
+                                   eventLockRepository: EventLockRepository
                                   ) extends Logging {
 
   private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.1.0.json"
@@ -81,37 +82,69 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def saveUserAnswers(externalId: String, pstr: String, eventType: EventType, year: Int, version: Int, userAnswersJson: JsObject)
-                     (implicit ec: ExecutionContext): Future[Unit] =
-    eventReportCacheRepository.upsert(pstr, EventDataIdentifier(eventType, year, version, externalId), userAnswersJson)
+  def saveUserAnswers(externalId: String,
+                      pstr: String,
+                      eventType: EventType,
+                      year: Int,
+                      version: Int,
+                      userAnswersJson: JsObject,
+                      psaOrPspId: String)
+                     (implicit ec: ExecutionContext): Future[Boolean] = {
+    eventLockRepository.upsertIfNotLocked(pstr, psaOrPspId, EventDataIdentifier(eventType, year, version, externalId)).map {
+      case true =>
+        eventReportCacheRepository.upsert(pstr, EventDataIdentifier(eventType, year, version, externalId), userAnswersJson)
+        true
+      case false => false
+    }
+  }
 
-  def saveUserAnswers(externalId: String, pstr: String, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] =
+  def saveUserAnswers(externalId: String, pstr: String, userAnswersJson: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     eventReportCacheRepository.upsert(externalId, pstr, userAnswersJson)
+  }
 
   def changeVersion(externalId: String, pstr: String, currentVersion: Int, newVersion: Int)
                    (implicit ec: ExecutionContext): Future[Option[result.UpdateResult]] =
     eventReportCacheRepository.changeVersion(externalId, pstr, currentVersion, newVersion)
 
-  def removeUserAnswers(externalId: String)(implicit ec: ExecutionContext): Future[Unit] =
-    eventReportCacheRepository.removeAllOnSignOut(externalId)
+  def removeUserAnswers(externalId: String)(implicit ec: ExecutionContext): Future[Unit] = {
+    for {
+      _ <- eventLockRepository.remove(externalId)
+      _ <- eventReportCacheRepository.removeAllOnSignOut(externalId)
+    } yield true
+  }
 
-  def getUserAnswers(externalId: String, pstr: String, eventType: EventType, year: Int, version: Int)
-                    (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] =
-    eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(eventType, year, version, externalId))).flatMap {
-      case x@Some(_) =>
-        Future.successful(x)
-      case None =>
-        val startDate = year.toString + "-04-06"
-        getEvent(pstr, startDate, version, eventType).flatMap {
+  def getUserAnswers(externalId: String,
+                     pstr: String,
+                     eventType: EventType,
+                     year: Int,
+                     version: Int,
+                     psaOrPspId: String)
+                    (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] = {
+    val edi = EventDataIdentifier(eventType, year, version, externalId)
+    eventLockRepository.eventIsLocked(pstr, psaOrPspId, edi).flatMap { eventIsLocked =>
+        eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(edi)).flatMap {
+          case x@Some(_) =>
+            Future.successful(x)
           case None =>
-            Future.successful(None)
-          case optUAData@Some(userAnswersDataToStore) =>
-            for {
-              _ <- saveUserAnswers(externalId, pstr + "_original_cache", eventType, year, version, userAnswersDataToStore)
-              resp <- saveUserAnswers(externalId, pstr, eventType, year, version, userAnswersDataToStore).map(_ => optUAData)
-            } yield resp
+            val startDate = year.toString + "-04-06"
+            getEvent(pstr, startDate, version, eventType).flatMap {
+              case None =>
+                Future.successful(None)
+              case optUAData@Some(userAnswersDataToStore) =>
+                if(!eventIsLocked) {
+                  for {
+                    _ <- saveUserAnswers(externalId, pstr + "_original_cache", eventType, year, version, userAnswersDataToStore, psaOrPspId)
+                    _ <- saveUserAnswers(externalId, pstr, eventType, year, version, userAnswersDataToStore, psaOrPspId)
+                  } yield optUAData
+                } else {
+                  Future.successful(optUAData.map(_ + ("locked" -> JsBoolean(true))))
+                }
         }
+      }
     }
+
+
+  }
 
 
   def getUserAnswers(externalId: String, pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
@@ -263,8 +296,13 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       members.updated(memberIdToDelete, member)
     }
 
-    getUserAnswers(externalId, pstr, eventType, year, version.toInt).flatMap {
-      case Some(ua) => saveUserAnswers(externalId, pstr, eventType, year, version.toInt, deleteMembersTransform(ua, eventType, memberTransform)).flatMap { _ =>
+    getUserAnswers(externalId, pstr, eventType, year, version.toInt, psaPspId).flatMap {
+      case Some(ua) => saveUserAnswers(externalId,
+        pstr,
+        eventType,
+        year,
+        version.toInt,
+        deleteMembersTransform(ua, eventType, memberTransform), psaPspId).flatMap { _ =>
         compileEventReport(externalId, psaPspId, pstr, eventType, year, version, currentVersion)
       }
       case None => throw new RuntimeException("User answers not available")
@@ -286,9 +324,17 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
     def cer = compileEventReport(externalId, psaPspId, pstr, eventType, year, version, currentVersion, deleteEvent = true)
 
-    def processMemberEvents = getUserAnswers(externalId, pstr, eventType, year, version.toInt).flatMap {
-      case Some(ua) => saveUserAnswers(externalId, pstr, eventType, year, version.toInt, deleteMembersTransform(ua, eventType, memberTransform)).flatMap { _ =>
-        cer
+    def processMemberEvents = getUserAnswers(externalId, pstr, eventType, year, version.toInt, psaPspId).flatMap {
+      case Some(ua) => saveUserAnswers(
+        externalId,
+        pstr,
+        eventType,
+        year,
+        version.toInt,
+        deleteMembersTransform(ua, eventType, memberTransform),
+        psaPspId
+      ).flatMap { _ =>
+          cer
       }
       case None => throw new RuntimeException("User answers not available")
     }
@@ -356,37 +402,51 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def getEventSummary(pstr: String, version: String, startDate: String)
+  def getEventSummary(pstr: String, version: String, startDate: String, psaOrPspId: String, externalId: String)
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
-    val resp1834Seq = eventReportConnector.getEvent(pstr, startDate, version, None).map { etmpJsonOpt =>
-      etmpJsonOpt.map { etmpJson =>
-        etmpJson.transform(transformations.ETMPToFrontEnd.API1834Summary.rdsFor1834) match {
-          case JsSuccess(seqOfEventTypes, _) =>
-            seqOfEventTypes
-          case JsError(errors) => throw JsResultException(errors)
+    eventLockRepository.getLockedEventTypes(pstr, psaOrPspId, startDate.split("-").head.toInt, version.toInt, externalId)
+      .map(_.map(_.toString).toSet)
+      .flatMap { lockedEvents =>
+
+        def setEventsToLocked(availableEvents: Seq[String]) = {
+          availableEvents.map(event => JsObject(Map(
+            event -> JsObject(Map("locked" -> JsBoolean(lockedEvents(event))))
+          )))
         }
-      }.getOrElse(JsArray())
-    }.recover { error =>
-      logger.error(error.getMessage, error)
-      JsArray()
+
+        val resp1834Seq = eventReportConnector.getEvent(pstr, startDate, version, None).map { etmpJsonOpt =>
+          etmpJsonOpt.map { etmpJson =>
+            etmpJson.transform(transformations.ETMPToFrontEnd.API1834Summary.rdsFor1834) match {
+              case JsSuccess(seqOfEventTypes, _) =>
+                JsArray(setEventsToLocked(seqOfEventTypes.value.map(_.toString()).toSeq))
+              case JsError(errors) => throw JsResultException(errors)
+            }
+          }.getOrElse(JsArray())
+        }.recover { error =>
+          logger.error(error.getMessage, error)
+          JsArray()
+        }
+
+        val resp1831Seq = eventReportConnector.getEvent(pstr, startDate, version, Some(Event20A)).map { etmpJsonOpt =>
+          etmpJsonOpt.map { etmpJson =>
+            etmpJson.transform(transformations.ETMPToFrontEnd.API1834Summary.rdsFor1831) match {
+              case JsSuccess(seqOfEventTypes, _) =>
+                JsArray(setEventsToLocked(seqOfEventTypes.value.map(_.toString()).toSeq))
+              case JsError(errors) => throw JsResultException(errors)
+            }
+          }.getOrElse(JsArray())
+        } recover { error =>
+          logger.error(error.getMessage, error)
+          JsArray()
+        }
+
+        Future.sequence(Set(resp1834Seq, resp1831Seq)) map { x =>
+          x reduce (_ ++ _)
+        }
     }
 
-    val resp1831Seq = eventReportConnector.getEvent(pstr, startDate, version, Some(Event20A)).map { etmpJsonOpt =>
-      etmpJsonOpt.map { etmpJson =>
-        etmpJson.transform(transformations.ETMPToFrontEnd.API1834Summary.rdsFor1831) match {
-          case JsSuccess(seqOfEventTypes, _) => seqOfEventTypes
-          case JsError(errors) => throw JsResultException(errors)
-        }
-      }.getOrElse(JsArray())
-    } recover { error =>
-      logger.error(error.getMessage, error)
-      JsArray()
-    }
 
-    Future.sequence(Set(resp1834Seq, resp1831Seq)) map { x =>
-      x reduce (_ ++ _)
-    }
   }
 
 
