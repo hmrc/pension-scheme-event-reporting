@@ -22,7 +22,7 @@ import play.api.libs.json._
 import play.api.mvc._
 import services.EventReportService
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
-import uk.gov.hmrc.auth.core.retrieve.~
+import uk.gov.hmrc.auth.core.retrieve.{Name, ~}
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, Enrolment, Enrolments}
 import uk.gov.hmrc.http.{UnauthorizedException, Request => _, _}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -45,7 +45,7 @@ class EventReportController @Inject()(
 
   def removeUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuth.map { case Credentials(externalId, psaPspId) =>
+      withAuth.map { case Credentials(externalId, psaPspId, _) =>
         eventReportService.removeUserAnswers(externalId)
         Ok
       }
@@ -54,7 +54,7 @@ class EventReportController @Inject()(
   def saveUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
 
-      withAuth.flatMap { case Credentials(externalId, psaOrPspId) =>
+      withAuth.flatMap { case Credentials(externalId, psaOrPspId, _) =>
         val userAnswersJson = requiredBody.validate[JsObject].getOrElse(throw new RuntimeException("Expected JsObject body"))
         val pstr = requiredHeaders("pstr").head
         val etVersionYear = (request.headers.get("eventType"), request.headers.get("version"), request.headers.get("year")) match {
@@ -80,7 +80,7 @@ class EventReportController @Inject()(
 
   def changeVersion: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuth.flatMap { case Credentials(externalId, _) =>
+      withAuth.flatMap { case Credentials(externalId, _, _) =>
         val Seq(pstr, version, newVersion) = requiredHeaders("pstr", "version", "newVersion")
         for {
           x <- eventReportService.changeVersion(externalId, pstr, version.toInt, newVersion.toInt)
@@ -120,7 +120,7 @@ class EventReportController @Inject()(
         }
       }
 
-      withAuth.flatMap { case Credentials(externalId, psaOrPspId) =>
+      withAuth.flatMap { case Credentials(externalId, psaOrPspId, _) =>
         val pstr = requiredHeaders("pstr").head
         val etVersionYear = (request.headers.get("eventType"), request.headers.get("version"), request.headers.get("year")) match {
           case (Some(et), Some(version), Some(year)) => Some((et, version.toInt, year.toInt))
@@ -148,7 +148,7 @@ class EventReportController @Inject()(
 
   def getEventSummary: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuth.flatMap { case Credentials(externalId, psaPspId)  =>
+      withAuth.flatMap { case Credentials(externalId, psaPspId, _)  =>
         val Seq(pstr, version, startDate) = requiredHeaders("pstr", "reportVersionNumber", "reportStartDate")
         eventReportService.getEventSummary(pstr, ("00" + version).takeRight(3), startDate, psaPspId, externalId).map(Ok(_))
       }
@@ -175,7 +175,7 @@ class EventReportController @Inject()(
   }
 
   def compileEvent: Action[AnyContent] = Action.async { implicit request =>
-    withAuth.flatMap { case Credentials(externalId, psaPspId) =>
+    withAuth.flatMap { case Credentials(externalId, psaPspId, _) =>
       val Seq(pstr, et, version, currentVersion, year) = requiredHeaders("pstr", "eventType", "version", "currentVersion", "year")
 
       val delete = request.headers.get("delete").contains("true")
@@ -206,7 +206,7 @@ class EventReportController @Inject()(
   }
 
   def deleteMember(): Action[AnyContent] = Action.async { implicit request =>
-    withAuth.flatMap { case Credentials(externalId, psaPspId) =>
+    withAuth.flatMap { case Credentials(externalId, psaPspId, _) =>
       val Seq(pstr, et, version, year, memberIdToDelete, currentVersion) =
         requiredHeaders("pstr", "eventType", "version", "year", "memberIdToDelete", "currentVersion")
       EventType.getEventType(et) match {
@@ -227,7 +227,7 @@ class EventReportController @Inject()(
 
   def submitEventDeclarationReport: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuth.flatMap { case Credentials(_, psaPspId) =>
+      withAuth.flatMap { case Credentials(_, psaPspId, _) =>
         val Seq(pstr, version) = requiredHeaders("pstr", "version")
         val userAnswersJson = requiredBody
         eventReportService.submitEventDeclarationReport(pstr, psaPspId, userAnswersJson, version)
@@ -236,7 +236,7 @@ class EventReportController @Inject()(
 
   def submitEvent20ADeclarationReport: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuth.flatMap { case Credentials(_, psaPspId) =>
+      withAuth.flatMap { case Credentials(_, psaPspId, _) =>
         val Seq(pstr, version) = requiredHeaders("pstr", "version")
         val userAnswersJson = requiredBody
         eventReportService.submitEvent20ADeclarationReport(pstr, psaPspId, userAnswersJson, version)
@@ -265,13 +265,13 @@ class EventReportController @Inject()(
         }
     }
 
-  private case class Credentials(externalId: String, psaPspId: String)
+  private case class Credentials(externalId: String, psaPspId: String, name: Option[Name])
 
   private def withAuth(implicit hc: HeaderCarrier) = {
-    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId and Retrievals.allEnrolments) {
-      case Some(externalId) ~ enrolments =>
+    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId and Retrievals.allEnrolments and Retrievals.name) {
+      case Some(externalId) ~ enrolments ~ name =>
         getPsaPspId(enrolments) match {
-          case Some(psaPspId) => Future.successful(Credentials(externalId, psaPspId))
+          case Some(psaPspId) => Future.successful(Credentials(externalId, psaPspId, name))
           case psa => Future.failed(new BadRequestException(s"Bad Request without psaPspId $psa"))
         }
       case _ =>

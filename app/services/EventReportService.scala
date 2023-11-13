@@ -34,6 +34,7 @@ import play.api.mvc.{RequestHeader, Result}
 import repositories.{DeclarationLockRepository, EventLockRepository, EventReportCacheRepository}
 import transformations.ETMPToFrontEnd._
 import transformations.UserAnswersToETMP._
+import uk.gov.hmrc.auth.core.retrieve.Name
 import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
 
@@ -402,24 +403,32 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def getEventSummary(pstr: String, version: String, startDate: String, psaOrPspId: String, externalId: String)
+  def getEventSummary(pstr: String, version: String, startDate: String, psaOrPspId: String, externalId: String, nameOfUser: Option[Name])
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
     eventLockRepository.getLockedEventTypes(pstr, psaOrPspId, startDate.split("-").head.toInt, version.toInt, externalId)
       .map(_.map(_.toString).toSet)
       .flatMap { lockedEvents =>
 
-        def setEventsToLocked(availableEvents: Seq[String]) = {
-          availableEvents.map(event => JsObject(Map(
-            event -> JsObject(Map("locked" -> JsBoolean(lockedEvents(event))))
-          )))
+        def setEventsToLocked(availableEvents: Seq[JsObject]) = {
+          availableEvents.map(event => {
+            val eventType = (event \ "eventType").as[String]
+            val eventIsLocked = lockedEvents.contains(eventType)
+            if(eventIsLocked) {
+              event + ("lockedBy" -> JsString(
+                nameOfUser.map(name => name.name + " " + name.lastName).getOrElse("Unknown")
+              ))
+            } else {
+              event
+            }
+          })
         }
 
         val resp1834Seq = eventReportConnector.getEvent(pstr, startDate, version, None).map { etmpJsonOpt =>
           etmpJsonOpt.map { etmpJson =>
             etmpJson.transform(transformations.ETMPToFrontEnd.API1834Summary.rdsFor1834) match {
               case JsSuccess(seqOfEventTypes, _) =>
-                JsArray(setEventsToLocked(seqOfEventTypes.value.map(_.toString()).toSeq))
+                JsArray(setEventsToLocked(seqOfEventTypes.value.map(_.as[JsObject]).toSeq))
               case JsError(errors) => throw JsResultException(errors)
             }
           }.getOrElse(JsArray())
@@ -432,7 +441,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           etmpJsonOpt.map { etmpJson =>
             etmpJson.transform(transformations.ETMPToFrontEnd.API1834Summary.rdsFor1831) match {
               case JsSuccess(seqOfEventTypes, _) =>
-                JsArray(setEventsToLocked(seqOfEventTypes.value.map(_.toString()).toSeq))
+                JsArray(setEventsToLocked(seqOfEventTypes.value.map(_.as[JsObject]).toSeq))
               case JsError(errors) => throw JsResultException(errors)
             }
           }.getOrElse(JsArray())
