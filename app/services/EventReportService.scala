@@ -510,7 +510,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     Future.fromTry(jsonPayloadSchemaValidator.validatePayload(payload, schemaPath, eventName)).map(_ => (): Unit)
   }
 
-  def submitEventDeclarationReport(pstr: String, psaPspId: String, userAnswersJson: JsValue, version: String)
+  def submitEventDeclarationReport(pstr: String, psaPspId: String, userAnswersJson: JsValue, version: String, externalId: String)
                                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
 
     def recoverAndValidatePayload(transformed1828Payload: JsObject): Future[Unit] = {
@@ -527,8 +527,19 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       }
     }
 
-    declarationLockRepository.insertDoubleClickLock(pstr, psaPspId).flatMap { isAvailable =>
-      if (isAvailable) {
+    val result = for {
+      lockedEvents <- eventLockRepository.getLockedEventTypes(
+        pstr,
+        psaPspId,
+        (userAnswersJson \ "reportStartDate").as[String].split("-").head.toInt,
+        version.toInt,
+        externalId)
+      isAvailable <- declarationLockRepository.insertDoubleClickLock(pstr, psaPspId)
+    } yield {
+      val oneOfTheEventsIsLocked = lockedEvents.nonEmpty
+      if(oneOfTheEventsIsLocked) {
+        Future.successful(BadRequest)
+      } else if (isAvailable) {
         for {
           transformed1828Payload <- Future.fromTry(toTry(userAnswersJson.transform(API1828.transformToETMPData)))
           _ <- recoverAndValidatePayload(transformed1828Payload)
@@ -539,6 +550,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         Future.successful(BadRequest)
       }
     }
+
+    result.flatten
   }
 
 

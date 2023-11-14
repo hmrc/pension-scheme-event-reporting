@@ -227,10 +227,10 @@ class EventReportController @Inject()(
 
   def submitEventDeclarationReport: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuth.flatMap { case Credentials(_, psaPspId, _) =>
+      withAuth.flatMap { case Credentials(externalId, psaPspId, _) =>
         val Seq(pstr, version) = requiredHeaders("pstr", "version")
         val userAnswersJson = requiredBody
-        eventReportService.submitEventDeclarationReport(pstr, psaPspId, userAnswersJson, version)
+        eventReportService.submitEventDeclarationReport(pstr, psaPspId, userAnswersJson, version, externalId)
       }
   }
 
