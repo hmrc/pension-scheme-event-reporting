@@ -52,9 +52,10 @@ class EventLockRepository @Inject()(
       )
     ),
     extraCodecs = Seq(
-      Codecs.playFormatCodec(EventDataIdentifier.formats),
       Codecs.playFormatCodec(EventType.formats),
-      Codecs.playFormatCodec(MongoJavatimeFormats.instantFormat)
+      Codecs.playFormatCodec(MongoJavatimeFormats.instantFormat),
+      Codecs.playFormatCodec(EventDataIdentifier.formats)
+
     )
   ) with Logging {
 
@@ -76,7 +77,7 @@ class EventLockRepository @Inject()(
     collection.find(Filters.and(
       Filters.equal("pstr", pstr),
       Filters.equal("edi.year", edi.year),
-      Filters.equal("edi.eventType", edi.eventType),
+      Filters.equal("edi.eventType", edi.eventType.toString),
       Filters.equal("edi.version", edi.version)
     )).toFuture().flatMap {
       case Seq() => insertEventLock(pstr, psaOrPspId, edi)
@@ -97,7 +98,7 @@ class EventLockRepository @Inject()(
         Filters.equal("pstr", pstr),
         Filters.equal("psaOrPspId", psaOrPspId),
         Filters.equal("edi.year", edi.year),
-        Filters.equal("edi.eventType", edi.eventType),
+        Filters.equal("edi.eventType", edi.eventType.toString),
         Filters.equal("edi.version", edi.version),
         Filters.equal("edi.externalId", edi.externalId)
       ),
@@ -109,18 +110,24 @@ class EventLockRepository @Inject()(
   def getLockedEventTypes(pstr: String, psaOrPspId: String, year:Int, version:Int, externalId: String): Future[Seq[EventType]] = {
     collection.find(Filters.and(
       Filters.equal("pstr", pstr),
-      Filters.notEqual("psaOrPspId", psaOrPspId),
       Filters.equal("edi.year", year),
       Filters.gte("edi.version", version),
-      Filters.notEqual("edi.externalId", externalId)
+      Filters.or(
+        Filters.notEqual("psaOrPspId", psaOrPspId),
+        Filters.notEqual("edi.externalId", externalId)
+      )
     )).toFuture().map { result =>
-      val maxVersion = result.maxBy(_.edi.version).edi.version
-      val currentVersionIsMaxVersion = version == maxVersion
-      if(currentVersionIsMaxVersion) {
-        val lockedEventTypes = result.map(_.edi.eventType)
-        lockedEventTypes
+      if(result.nonEmpty) {
+        val maxVersion = result.map(_.edi.version).max
+        val currentVersionIsMaxVersion = version == maxVersion
+        if (currentVersionIsMaxVersion) {
+          val lockedEventTypes = result.map(_.edi.eventType)
+          lockedEventTypes
+        } else {
+          Seq()
+        }
       } else {
-        EventType.values
+        Seq()
       }
     }
   }
@@ -142,11 +149,13 @@ class EventLockRepository @Inject()(
   def eventIsLocked(pstr: String, psaOrPspId: String, edi: EventDataIdentifier): Future[Boolean] = {
     collection.find(Filters.and(
       Filters.equal("pstr", pstr),
-      Filters.notEqual("psaOrPspId", psaOrPspId),
       Filters.equal("edi.year", edi.year),
-      Filters.equal("edi.eventType", edi.eventType),
+      Filters.equal("edi.eventType", edi.eventType.toString),
       Filters.equal("edi.version", edi.version),
-      Filters.notEqual("edi.externalId", edi.externalId)
+      Filters.or(
+        Filters.notEqual("psaOrPspId", psaOrPspId),
+        Filters.notEqual("edi.externalId", edi.externalId)
+      )
     )).toFuture().map(_.nonEmpty)
   }
 }

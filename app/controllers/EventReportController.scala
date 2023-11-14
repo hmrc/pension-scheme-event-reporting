@@ -148,9 +148,9 @@ class EventReportController @Inject()(
 
   def getEventSummary: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuth.flatMap { case Credentials(externalId, psaPspId, _)  =>
+      withAuth.flatMap { case Credentials(externalId, psaPspId, name)  =>
         val Seq(pstr, version, startDate) = requiredHeaders("pstr", "reportVersionNumber", "reportStartDate")
-        eventReportService.getEventSummary(pstr, ("00" + version).takeRight(3), startDate, psaPspId, externalId).map(Ok(_))
+        eventReportService.getEventSummary(pstr, ("00" + version).takeRight(3), startDate, psaPspId, externalId, name).map(Ok(_))
       }
   }
 

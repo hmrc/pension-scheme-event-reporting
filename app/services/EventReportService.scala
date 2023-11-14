@@ -89,9 +89,16 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                       year: Int,
                       version: Int,
                       userAnswersJson: JsObject,
-                      psaOrPspId: String)
+                      psaOrPspId: String,
+                      saveLock: Boolean = true)
                      (implicit ec: ExecutionContext): Future[Boolean] = {
-    eventLockRepository.upsertIfNotLocked(pstr, psaOrPspId, EventDataIdentifier(eventType, year, version, externalId)).map {
+    val ftr = if(saveLock) {
+      eventLockRepository.upsertIfNotLocked(pstr, psaOrPspId, EventDataIdentifier(eventType, year, version, externalId))
+    } else {
+      Future.successful(true)
+    }
+
+    ftr.map {
       case true =>
         eventReportCacheRepository.upsert(pstr, EventDataIdentifier(eventType, year, version, externalId), userAnswersJson)
         true
@@ -134,7 +141,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               case optUAData@Some(userAnswersDataToStore) =>
                 if(!eventIsLocked) {
                   for {
-                    _ <- saveUserAnswers(externalId, pstr + "_original_cache", eventType, year, version, userAnswersDataToStore, psaOrPspId)
+                    _ <- saveUserAnswers(externalId, pstr + "_original_cache", eventType, year, version, userAnswersDataToStore, psaOrPspId, saveLock = false)
                     _ <- saveUserAnswers(externalId, pstr, eventType, year, version, userAnswersDataToStore, psaOrPspId)
                   } yield optUAData
                 } else {
@@ -409,14 +416,13 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     eventLockRepository.getLockedEventTypes(pstr, psaOrPspId, startDate.split("-").head.toInt, version.toInt, externalId)
       .map(_.map(_.toString).toSet)
       .flatMap { lockedEvents =>
-
         def setEventsToLocked(availableEvents: Seq[JsObject]) = {
           availableEvents.map(event => {
             val eventType = (event \ "eventType").as[String]
             val eventIsLocked = lockedEvents.contains(eventType)
             if(eventIsLocked) {
               event + ("lockedBy" -> JsString(
-                nameOfUser.map(name => name.name + " " + name.lastName).getOrElse("Unknown")
+                nameOfUser.map(name => name.name.getOrElse("") + " " + name.lastName.getOrElse("")).getOrElse("Unknown")
               ))
             } else {
               event

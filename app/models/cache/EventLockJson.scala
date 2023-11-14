@@ -19,13 +19,13 @@ package models.cache
 import models.EventDataIdentifier
 import org.joda.time.DateTime
 import play.api.libs.json.{Format, Json, OFormat}
-import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
+import uk.gov.hmrc.mongo.play.json.formats.{MongoJavatimeFormats, MongoJodaFormats}
 
 import java.time.Instant
 
 case class EventLockJson(pstr: String, psaOrPspId: String, expireAt: Instant, edi: EventDataIdentifier)
 
 object EventLockJson {
-  implicit val dateFormats: Format[DateTime] = MongoJodaFormats.dateTimeFormat
+  implicit val instantFormat: Format[Instant] = MongoJavatimeFormats.instantFormat
   implicit val format: OFormat[EventLockJson] = Json.format[EventLockJson]
 }
