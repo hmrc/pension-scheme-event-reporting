@@ -36,7 +36,7 @@ import play.api.mvc.Results.{BadRequest, NoContent}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import services.EventReportService
-import uk.gov.hmrc.auth.core.retrieve.~
+import uk.gov.hmrc.auth.core.retrieve.{Name, ~}
 import uk.gov.hmrc.auth.core.{AuthConnector, Enrolment, EnrolmentIdentifier, Enrolments}
 import uk.gov.hmrc.http._
 import utils.JSONSchemaValidator
@@ -69,19 +69,23 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
   private val emptyEnrolments = Enrolments(Set(): Set[Enrolment])
 
-  private val emptyCredentials = new~(None, emptyEnrolments)
-
   private val enrolments = Enrolments(Set(
     Enrolment("HMRC-PODS-ORG", Seq(
       EnrolmentIdentifier("PSAID", "A0000000")
     ), "Activated", None)
   ))
 
+  private val emptyCredentials = new~(new~(None, emptyEnrolments), None)
+  private val testCredentials = new~(new~(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"), enrolments), Some(Name(Some("firstName"), Some("lastName"))))
+
+
+
   before {
     reset(mockAuthConnector)
     reset(mockJSONPayloadSchemaValidator)
     reset(mockEventReportService)
-    when(mockAuthConnector.authorise[Option[String] ~ Enrolments](any(), any())(any(), any())) thenReturn Future.successful(new~(Some(externalId), enrolments))
+    when(mockAuthConnector.authorise[Option[String] ~ Enrolments ~ Option[Name]](any(), any())(any(), any())) thenReturn
+      Future.successful(new~(new~(Some(externalId), enrolments), Some(Name(Some("FirstName"), Some("lastName")))))
     when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any())).thenReturn(Failure(EventReportValidationFailureException("Test")))
   }
 
@@ -145,7 +149,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw a Unauthorised Exception if auth fails" in {
-      when(mockAuthConnector.authorise[Option[String] ~ Enrolments](any(), any())(any(), any())) thenReturn Future.successful(emptyCredentials)
+      when(mockAuthConnector.authorise[Option[String] ~ Enrolments ~ Option[Name]](any(), any())(any(), any())) thenReturn Future.successful(emptyCredentials)
 
       recoverToExceptionIf[UnauthorizedException] {
         controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "fromDate" -> "2021-04-06", "toDate" -> "2022-04-05"))
@@ -256,7 +260,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       }
     }
     "throw a Unauthorised Exception if auth fails" in {
-      when(mockAuthConnector.authorise[Option[String] ~ Enrolments](any(), any())(any(), any())) thenReturn Future.successful(emptyCredentials)
+      when(mockAuthConnector.authorise[Option[String] ~ Enrolments ~ Option[Name]](any(), any())(any(), any())) thenReturn Future.successful(emptyCredentials)
 
       recoverToExceptionIf[UnauthorizedException] {
         controller.getVersions()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "startDate" -> "2021-04-06"))
@@ -272,7 +276,10 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       when(mockEventReportService.getEventSummary(
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq("001"),
-        ArgumentMatchers.eq(startDate)
+        ArgumentMatchers.eq(startDate),
+        any(),
+        any(),
+        any()
       )(any(), any()))
         .thenReturn(Future.successful(dummyJsValue))
 
@@ -298,7 +305,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw a Unauthorised Exception if auth fails" in {
-      when(mockAuthConnector.authorise[Option[String] ~ Enrolments](any(), any())(any(), any())) thenReturn Future.successful(emptyCredentials)
+      when(mockAuthConnector.authorise[Option[String] ~ Enrolments ~ Option[Name]](any(), any())(any(), any())) thenReturn Future.successful(emptyCredentials)
 
       recoverToExceptionIf[UnauthorizedException] {
         controller.getEventSummary(fakeRequest)
@@ -317,7 +324,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(Event1: EventType),
         ArgumentMatchers.eq(2020),
-        ArgumentMatchers.eq(1)
+        ArgumentMatchers.eq(1),
+        any()
       )(any(), any()))
         .thenReturn(Future.successful(Some(json)))
 
@@ -333,7 +341,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         controller.getUserAnswers(fakeRequest.withHeaders(
           newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> reportVersion, "eventType" -> "test", externalId -> externalId))
       } map { response =>
-        verify(mockEventReportService, never).getUserAnswers(any(), any(), any(), any(), any())(any(), any())
+        verify(mockEventReportService, never).getUserAnswers(any(), any(), any(), any(), any(), any())(any(), any())
         response.responseCode mustBe NOT_FOUND
         response.message must include("Bad Request: eventType (test) not found")
       }
@@ -346,7 +354,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq(Event1),
         ArgumentMatchers.eq(2020),
-        ArgumentMatchers.eq(1)
+        ArgumentMatchers.eq(1),
+        any()
       )(any(), any()))
         .thenReturn(Future.successful(None))
 
@@ -372,7 +381,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw a 401 Unauthorised Exception if auth fails" in {
-      when(mockAuthConnector.authorise[Option[String] ~ Enrolments](any(), any())(any(), any())) thenReturn Future.successful(emptyCredentials)
+      when(mockAuthConnector.authorise[Option[String] ~ Enrolments ~ Option[Name]](any(), any())(any(), any())) thenReturn Future.successful(emptyCredentials)
 
       recoverToExceptionIf[UnauthorizedException] {
         controller.getUserAnswers(fakeRequest.withHeaders(
@@ -399,7 +408,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw a UnauthorizedException when not authorized" in {
-      when(mockAuthConnector.authorise[Option[String] ~ Enrolments](any(), any())(any(), any())) thenReturn Future.successful(emptyCredentials)
+      when(mockAuthConnector.authorise[Option[String] ~ Enrolments ~ Option[Name]](any(), any())(any(), any())) thenReturn Future.successful(emptyCredentials)
       recoverToExceptionIf[UnauthorizedException] {
         controller.removeUserAnswers(fakeRequest)
       } map { response =>
@@ -417,9 +426,11 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         ArgumentMatchers.eq(Event1),
         ArgumentMatchers.eq(2020),
         ArgumentMatchers.eq(1),
+        any(),
+        any(),
         any()
       )(any()))
-        .thenReturn(Future.successful(()))
+        .thenReturn(Future.successful(true))
 
       val result = controller.saveUserAnswers(fakeRequest.withJsonBody(saveUserAnswersToCacheSuccessResponse).withHeaders(
         newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> reportVersion, "eventType" -> eventType, externalId -> externalId))
@@ -433,7 +444,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         controller.saveUserAnswers(fakeRequest.withJsonBody(saveUserAnswersToCacheSuccessResponse).withHeaders(
           newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> reportVersion, "eventType" -> "test"))
       } map { response =>
-        verify(mockEventReportService, never).saveUserAnswers(any(), any(), any(), any(), any(), any())(any())
+        verify(mockEventReportService, never).saveUserAnswers(any(), any(), any(), any(), any(), any(), any(), any())(any())
         response.responseCode mustBe NOT_FOUND
         response.message must include("Bad Request: eventType (test) not found")
       }
@@ -454,7 +465,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw a 401 Unauthorised Exception if auth fails" in {
-      when(mockAuthConnector.authorise[Option[String] ~ Enrolments](any(), any())(any(), any())) thenReturn Future.successful(emptyCredentials)
+      when(mockAuthConnector.authorise[Option[String] ~ Enrolments ~ Option[Name]](any(), any())(any(), any())) thenReturn Future.successful(emptyCredentials)
 
       recoverToExceptionIf[UnauthorizedException] {
         controller.saveUserAnswers()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "eventType" -> eventType)
@@ -498,8 +509,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
   "compileEvent" must {
     "return 204 No Content when valid response" in {
-      when(mockAuthConnector.authorise[Option[String] ~ Enrolments](any(), any())(any(), any())) thenReturn
-        Future.successful(new~(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"), enrolments))
+      when(mockAuthConnector.authorise[Option[String] ~ Enrolments ~ Option[Name]](any(), any())(any(), any())) thenReturn
+        Future.successful(testCredentials)
       when(mockEventReportService.compileEventReport(any(), any(), any(), any(), any(), any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(NoContent))
 
@@ -510,8 +521,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw a 401 Unauthorised Exception if auth fails" in {
-      when(mockAuthConnector.authorise[Option[String] ~ Enrolments](any(), any())(any(), any())) thenReturn
-        Future.successful(new~(None, enrolments))
+      when(mockAuthConnector.authorise[Option[String] ~ Enrolments ~ Option[Name]](any(), any())(any(), any())) thenReturn
+        Future.successful(emptyCredentials)
       recoverToExceptionIf[UnauthorizedException] {
         controller.compileEvent()(fakeRequest.withJsonBody(compileEventSuccessResponse)
           .withHeaders(newHeaders = "pstr" -> pstr, "eventType" -> "1", externalId -> externalId, "version" -> reportVersion))
@@ -524,8 +535,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
   "deleteMember" must {
     "return 204 No Content when valid response" in {
-      when(mockAuthConnector.authorise[Option[String] ~ Enrolments](any(), any())(any(), any())) thenReturn
-        Future.successful(new~(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"), enrolments))
+      when(mockAuthConnector.authorise[Option[String] ~ Enrolments ~ Option[Name]](any(), any())(any(), any())) thenReturn
+        Future.successful(testCredentials)
       when(mockEventReportService.deleteMember(any(), any(), any(), any(), any(), any(), any(), any())(any(), any(), any()))
         .thenReturn(Future.successful(NoContent))
 
@@ -544,8 +555,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw a 401 Unauthorised Exception if auth fails" in {
-      when(mockAuthConnector.authorise[Option[String] ~ Enrolments](any(), any())(any(), any())) thenReturn
-        Future.successful(new~(None, enrolments))
+      when(mockAuthConnector.authorise[Option[String] ~ Enrolments ~ Option[Name]](any(), any())(any(), any())) thenReturn
+        Future.successful(emptyCredentials)
       recoverToExceptionIf[UnauthorizedException] {
         controller.deleteMember()(fakeRequest.withJsonBody(compileEventSuccessResponse)
           .withHeaders(newHeaders =

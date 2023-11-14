@@ -61,8 +61,6 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
   private val pstr2 = "pstr-2"
   private val pstr3 = "pstr-3"
   private val edi = EventDataIdentifier(EventType.Event22, 2020, 1, externalId)
-  private val edi2 = EventDataIdentifier(EventType.Event22, 2020, 2, externalId)
-  private val edi3 = EventDataIdentifier(EventType.Event22, 2020, 3, externalId + "other")
   private val filters = searchFilter(pstr1, edi)
   private val data1 = Json.parse("""{"data":"1"}""")
   private val data2 = Json.parse("""{"data":"2"}""")

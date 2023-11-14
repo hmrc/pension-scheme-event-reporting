@@ -32,7 +32,6 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.Application
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json._
-import play.inject.guice.Guiceable.modules
 import repositories.GetDetailsCacheRepository
 import uk.gov.hmrc.http.HeaderCarrier
 import utils.{GeneratorAPI1826, GeneratorAPI1834, JSONSchemaValidator, JsonFileReader}

@@ -37,6 +37,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
 import repositories.{DeclarationLockRepository, EventReportCacheRepository}
+import uk.gov.hmrc.auth.core.retrieve.Name
 import uk.gov.hmrc.http._
 import utils.{GeneratorAPI1828, GeneratorAPI1829, JSONSchemaValidator, JsonFileReader}
 
@@ -64,9 +65,11 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val psaId = "psa"
   private val pstr = "pstr"
   private val reportVersion = "1"
-  private val startDate = "startDate"
+  private val startDate = "2021-01-01"
   private val payload = Json.obj("test" -> "test")
   private val year = 2020
+  private val testValue = "test"
+  private val testName = Name(Some("firstName"), Some("lastName"))
 
   val modules: Seq[GuiceableModule] =
     Seq(
@@ -523,7 +526,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Future.successful(responseJsonForAPI1834))
       when(mockEventReportConnector.getEvent(pstr, startDate, reportVersion, Some(Event20A))(implicitly, implicitly))
         .thenReturn(Future.successful(responseJsonForAPI1831))
-      eventReportService.getEventSummary(pstr, reportVersion, startDate).map { result =>
+      eventReportService.getEventSummary(pstr, reportVersion, startDate, testValue, testValue, Some(testName)).map { result =>
         verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, reportVersion, None)(implicitly, implicitly)
         verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, reportVersion, Some(Event20A))(implicitly, implicitly)
 
@@ -563,11 +566,11 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       )(any()))
         .thenReturn(Future.successful((): Unit))
 
-      eventReportService.saveUserAnswers(externalId, pstr, EventType.Event3, year, reportVersion.toInt, payload)(implicitly).map { result =>
+      eventReportService.saveUserAnswers(externalId, pstr, EventType.Event3, year, reportVersion.toInt, payload, testValue)(implicitly).map { result =>
         verify(mockEventReportCacheRepository, times(1)).upsert(
           ArgumentMatchers.eq(pstr),
           ArgumentMatchers.eq(EventDataIdentifier(Event3, year, reportVersion.toInt, externalId)), any())(any())
-        result mustBe()
+        result mustBe(true)
       }
     }
   }
@@ -591,7 +594,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(Event3, 2020, 1, externalId))))(any()))
         .thenReturn(Future.successful(Some(json)))
 
-      eventReportService.getUserAnswers(externalId, pstr, EventType.Event3, year, reportVersion.toInt)(implicitly, implicitly).map { result =>
+      eventReportService.getUserAnswers(externalId, pstr, EventType.Event3, year, reportVersion.toInt, testValue)(implicitly, implicitly).map { result =>
         result mustBe Some(json)
       }
     }
