@@ -45,10 +45,11 @@
 
     <logger name="com.google.inject" level="WARN"/>
 
-    <logger name="uk.gov" level="WARN"/>
+    <logger name="uk.gov" level="OFF"/>
 
-    <logger name="application" level="WARN"/>
-
+    <logger name="application" level="OFF"/>
+    <logger name="services" level="OFF"/>
+    <logger name="play" level="OFF"/>
     <logger name="connector" level="WARN"/>
 
     <logger name="org.mongodb" level="WARN">

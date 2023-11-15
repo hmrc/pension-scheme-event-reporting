@@ -22,6 +22,7 @@ import models.cache.EventLockJson
 import models.enumeration.EventType
 import org.mongodb.scala.{MongoWriteException, SingleObservable}
 import org.mongodb.scala.model._
+import org.mongodb.scala.result.DeleteResult
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
@@ -83,7 +84,7 @@ class EventLockRepository @Inject()(
       case Seq() => insertEventLock(pstr, psaOrPspId, edi)
       case lockSeq if lockSeq.length > 1 => throw new RuntimeException("Multiple locks found")
       case Seq(lock) =>
-        val lockedBySomeoneElse = lock.psaOrPspId != psaOrPspId && lock.edi.externalId != edi.externalId
+        val lockedBySomeoneElse = lock.psaOrPspId != psaOrPspId || lock.edi.externalId != edi.externalId
         if(lockedBySomeoneElse) {
           Future.successful(false)
         } else {
@@ -132,8 +133,8 @@ class EventLockRepository @Inject()(
     }
   }
 
-  def remove(externalId: String): Future[EventLockJson] = {
-    collection.findOneAndDelete(Filters.equal("edi.externalId", externalId)).toFuture()
+  def remove(externalId: String): Future[DeleteResult] = {
+    collection.deleteMany(Filters.equal("edi.externalId", externalId)).toFuture()
   }
 
   private def insertEventLock(pstr: String, psaOrPspId: String, edi: EventDataIdentifier): Future[Boolean] = {
