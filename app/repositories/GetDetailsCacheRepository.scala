@@ -20,7 +20,7 @@ import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.GetDetailsCacheDataIdentifier
 import models.enumeration.EventType
-import org.joda.time.DateTime
+import org.joda.time.{DateTimeZone, LocalDateTime}
 import org.mongodb.scala.model._
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
@@ -30,7 +30,6 @@ import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
-import java.time.{LocalDateTime, ZoneId}
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -48,7 +47,16 @@ object GetDetailsCacheEntry {
   val lastUpdatedKey = "lastUpdated"
   val dataKey = "data"
 
-  implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
+  implicit val dateFormat: Format[LocalDateTime] = MongoJodaFormats.localDateTimeFormat
+
+  private val dateReads = new Reads[LocalDateTime] { //TODO: Remove after expireAt migration fix
+    def reads(json: JsValue): JsResult[LocalDateTime] = {
+      val result = json.asOpt[String].map {
+        LocalDateTime.parse
+      }.getOrElse(json.as[LocalDateTime](MongoJodaFormats.dateTimeReads.map(_.toLocalDateTime)))
+      JsSuccess(result)
+    }
+  }
 
   implicit val formats: Format[GetDetailsCacheEntry] = new Format[GetDetailsCacheEntry] {
     override def writes(o: GetDetailsCacheEntry): JsValue = {
@@ -64,8 +72,8 @@ object GetDetailsCacheEntry {
           (JsPath \ yearKey).read[Int] and
           (JsPath \ versionKey).read[Int] and
           (JsPath \ dataKey).read[JsValue] and
-          (JsPath \ lastUpdatedKey).read[LocalDateTime] and
-          (JsPath \ expireAtKey).read[LocalDateTime]
+          (JsPath \ lastUpdatedKey).read[LocalDateTime](dateReads) and
+          (JsPath \ expireAtKey).read[LocalDateTime](dateReads)
         )(
         (pstr, eventType, year, version, data, lastUpdated, expireAt) =>
           GetDetailsCacheEntry(pstr, GetDetailsCacheDataIdentifier(eventType, year, version), data, lastUpdated, expireAt)
@@ -95,7 +103,8 @@ class GetDetailsCacheRepository @Inject()(
     ),
     extraCodecs = Seq(
       Codecs.playFormatCodec(GetDetailsCacheDataIdentifier.formats),
-      Codecs.playFormatCodec(EventType.formats)
+      Codecs.playFormatCodec(EventType.formats),
+      Codecs.playFormatCodec(MongoJodaFormats.localDateTimeFormat)
     )
   ) with Logging {
 
@@ -104,7 +113,7 @@ class GetDetailsCacheRepository @Inject()(
   private val expireInSeconds = config.get[Int](path = "mongodb.get-details-cache-data.timeToLiveInSeconds")
 
   private def evaluatedExpireAt: LocalDateTime = {
-    LocalDateTime.now(ZoneId.of("UTC")).plusSeconds(expireInSeconds)
+    LocalDateTime.now(DateTimeZone.UTC).plusSeconds(expireInSeconds)
   }
 
   def upsert(pstr: String, gdcdi: GetDetailsCacheDataIdentifier, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
@@ -114,8 +123,8 @@ class GetDetailsCacheRepository @Inject()(
       Updates.set(yearKey, gdcdi.year),
       Updates.set(versionKey, gdcdi.version),
       Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
-      Updates.set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC")))),
-      Updates.set(expireAtKey, Codecs.toBson(evaluatedExpireAt))
+      Updates.set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(DateTimeZone.UTC))),
+      Updates.set(expireAtKey, evaluatedExpireAt)
     )
     val selector = Filters.and(
       Filters.equal(pstrKey, pstr),

@@ -24,7 +24,7 @@ import play.api.Logging
 import play.api.libs.json._
 import repositories.CacheRepository.collectionIndexes
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
+import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import java.time.{LocalDateTime, ZoneId}
@@ -42,7 +42,10 @@ class CacheRepository @Inject()(collectionName: String,
     collectionName = collectionName,
     mongoComponent = mongoComponent,
     domainFormat = implicitly,
-    indexes = collectionIndexes
+    indexes = collectionIndexes,
+    extraCodecs = Seq(
+      Codecs.playFormatCodec(MongoJodaFormats.dateTimeFormat)
+    )
   ) with Logging {
 
   import CacheRepository._
@@ -67,7 +70,7 @@ class CacheRepository @Inject()(collectionName: String,
         set(idKey, id),
         set(dataKey, Codecs.toBson(userData)),
         set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC")))),
-        set(expireAtKey, Codecs.toBson(getExpireAt))
+        set(expireAtKey, getExpireAt)
       ),
       upsertOptions
     ).toFuture().map(_ => (): Unit)
