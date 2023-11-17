@@ -16,6 +16,7 @@
 
 package services
 
+import com.mongodb.client.result.DeleteResult
 import connectors.EventReportConnector
 import models.enumeration.EventType
 import models.enumeration.EventType.{Event1, Event20A, Event22, Event3, Event5, Event6, WindUp}
@@ -36,7 +37,8 @@ import play.api.mvc.Results.BadRequest
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
-import repositories.{DeclarationLockRepository, EventReportCacheRepository}
+import repositories.{DeclarationLockRepository, EventLockRepository, EventReportCacheRepository}
+import uk.gov.hmrc.auth.core.retrieve.Name
 import uk.gov.hmrc.http._
 import utils.{GeneratorAPI1828, GeneratorAPI1829, JSONSchemaValidator, JsonFileReader}
 
@@ -59,14 +61,17 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
   private val mockCompilePayloadService = mock[CompilePayloadService]
   private val mockDeclarationLockRepository: DeclarationLockRepository = mock[DeclarationLockRepository]
+  private val mockEventLockRepository = mock[EventLockRepository]
 
   private val externalId = "externalId"
   private val psaId = "psa"
   private val pstr = "pstr"
   private val reportVersion = "1"
-  private val startDate = "startDate"
+  private val startDate = "2021-01-01"
   private val payload = Json.obj("test" -> "test")
   private val year = 2020
+  private val testValue = "test"
+  private val testName = Name(Some("firstName"), Some("lastName"))
 
   val modules: Seq[GuiceableModule] =
     Seq(
@@ -74,7 +79,8 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       inject.bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
       inject.bind[JSONSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
       inject.bind[CompilePayloadService].toInstance(mockCompilePayloadService),
-      inject.bind[DeclarationLockRepository].toInstance(mockDeclarationLockRepository)
+      inject.bind[DeclarationLockRepository].toInstance(mockDeclarationLockRepository),
+      inject.bind[EventLockRepository].toInstance(mockEventLockRepository)
     )
 
   val application: Application = new GuiceApplicationBuilder()
@@ -89,6 +95,11 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     reset(mockJSONPayloadSchemaValidator)
     reset(mockCompilePayloadService)
     reset(mockDeclarationLockRepository)
+    reset(mockEventLockRepository)
+    when(mockEventLockRepository.upsertIfNotLocked(any(),any(), any())).thenReturn(Future.successful(true))
+    when(mockEventLockRepository.remove(any())).thenReturn(Future.successful(mock[DeleteResult]))
+    when(mockEventLockRepository.eventIsLocked(any(), any(), any())).thenReturn(Future.successful(false))
+    when(mockEventLockRepository.getLockedEventTypes(any(), any(), any(), any(), any())).thenReturn(Future.successful(Seq()))
     when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any())).thenReturn(Success(()))
     when(mockCompilePayloadService.collatePayloadsAndUpdateCache(any(), any(), any(), any(), any(), any(), any())(any(), any()))
       .thenReturn(Future.successful(Json.obj()))
@@ -523,7 +534,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Future.successful(responseJsonForAPI1834))
       when(mockEventReportConnector.getEvent(pstr, startDate, reportVersion, Some(Event20A))(implicitly, implicitly))
         .thenReturn(Future.successful(responseJsonForAPI1831))
-      eventReportService.getEventSummary(pstr, reportVersion, startDate).map { result =>
+      eventReportService.getEventSummary(pstr, reportVersion, startDate, testValue, testValue, Some(testName)).map { result =>
         verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, reportVersion, None)(implicitly, implicitly)
         verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, reportVersion, Some(Event20A))(implicitly, implicitly)
 
@@ -552,6 +563,43 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         result mustBe expected
       }
     }
+
+    "return locked event with locked parameter that includes name of the user who locked the event" in {
+      when(mockEventReportConnector.getEvent(pstr, startDate, reportVersion, None)(implicitly, implicitly))
+        .thenReturn(Future.successful(responseJsonForAPI1834))
+      when(mockEventReportConnector.getEvent(pstr, startDate, reportVersion, Some(Event20A))(implicitly, implicitly))
+        .thenReturn(Future.successful(responseJsonForAPI1831))
+      when(mockEventLockRepository.getLockedEventTypes(any(), any(), any(), any(), any()))
+        .thenReturn(Future.successful(Seq(EventType.Event8)))
+      eventReportService.getEventSummary(pstr, reportVersion, startDate, testValue, testValue, Some(testName)).map { result =>
+        verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, reportVersion, None)(implicitly, implicitly)
+        verify(mockEventReportConnector, times(1)).getEvent(pstr, startDate, reportVersion, Some(Event20A))(implicitly, implicitly)
+
+        val expected = Json.parse(
+          s""" [{"eventType":"1","recordVersion":2},
+            |{"eventType":"2","recordVersion":1},
+            |{"eventType":"3","recordVersion":2},
+            |{"eventType":"4","recordVersion":1},
+            |{"eventType":"5","recordVersion":4},
+            |{"eventType":"6","recordVersion":7},
+            |{"eventType":"7","recordVersion":2},
+            |{"eventType":"8","recordVersion":4,"lockedBy":"${testName.name.get} ${testName.lastName.get}"},
+            |{"eventType":"8A","recordVersion":3},
+            |{"eventType":"22","recordVersion":4},
+            |{"eventType":"23","recordVersion":3},
+            |{"eventType":"10","recordVersion":1},
+            |{"eventType":"11","recordVersion":1},
+            |{"eventType":"12","recordVersion":1},
+            |{"eventType":"13","recordVersion":1},
+            |{"eventType":"14","recordVersion":1},
+            |{"eventType":"18","recordVersion":1},
+            |{"eventType":"19","recordVersion":1},
+            |{"eventType":"20","recordVersion":1},
+            |{"eventType":"WindUp","recordVersion":1},
+            |{"eventType":"20A","recordVersion":1}]""".stripMargin).as[JsArray]
+        result mustBe expected
+      }
+    }
   }
 
   "saveEventToMongo" must {
@@ -563,11 +611,31 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       )(any()))
         .thenReturn(Future.successful((): Unit))
 
-      eventReportService.saveUserAnswers(externalId, pstr, EventType.Event3, year, reportVersion.toInt, payload)(implicitly).map { result =>
+      eventReportService.saveUserAnswers(externalId, pstr, EventType.Event3, year, reportVersion.toInt, payload, testValue)(implicitly).map { result =>
         verify(mockEventReportCacheRepository, times(1)).upsert(
           ArgumentMatchers.eq(pstr),
           ArgumentMatchers.eq(EventDataIdentifier(Event3, year, reportVersion.toInt, externalId)), any())(any())
-        result mustBe()
+        result mustBe(true)
+      }
+    }
+
+    "return false when event is locked" in {
+      when(mockEventReportCacheRepository.upsert(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(EventDataIdentifier(Event3, year, reportVersion.toInt, externalId)),
+        any()
+      )(any()))
+        .thenReturn(Future.successful((): Unit))
+      when(mockEventLockRepository.upsertIfNotLocked(any(),any(), any())).thenReturn(Future.successful(false))
+
+
+      eventReportService.saveUserAnswers(externalId, pstr, EventType.Event3, year, reportVersion.toInt, payload, testValue)(implicitly).map { result =>
+        verify(mockEventLockRepository, times(1)).upsertIfNotLocked(
+          any(),
+          any(),
+          any()
+        )
+        result mustBe (false)
       }
     }
   }
@@ -591,10 +659,22 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(Event3, 2020, 1, externalId))))(any()))
         .thenReturn(Future.successful(Some(json)))
 
-      eventReportService.getUserAnswers(externalId, pstr, EventType.Event3, year, reportVersion.toInt)(implicitly, implicitly).map { result =>
+      eventReportService.getUserAnswers(externalId, pstr, EventType.Event3, year, reportVersion.toInt, testValue)(implicitly, implicitly).map { result =>
         result mustBe Some(json)
       }
     }
+
+    "contain locked boolean in response if event is locked" in {
+      val json = Json.obj("test" -> "test", "locked" -> true)
+      when(mockEventReportCacheRepository.getUserAnswers(eqTo(externalId), eqTo(pstr), eqTo(Some(EventDataIdentifier(Event3, 2020, 1, externalId))))(any()))
+        .thenReturn(Future.successful(Some(json)))
+      when(mockEventLockRepository.eventIsLocked(any(), any(), any())).thenReturn(Future.successful(true))
+      eventReportService.getUserAnswers(externalId, pstr, EventType.Event3, year, reportVersion.toInt, testValue)(implicitly, implicitly).map { result =>
+        result mustBe Some(json)
+      }
+    }
+
+
   }
 
   "getUserAnswers with NO event type" must {
