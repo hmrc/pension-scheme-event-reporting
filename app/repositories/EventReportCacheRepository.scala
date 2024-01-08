@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,8 @@ import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.EventDataIdentifier
 import models.enumeration.EventType
 import org.joda.time.DateTime
+import org.mongodb.scala.bson.{BsonDocument, BsonString}
+import org.mongodb.scala.bson.collection.immutable.Document.fromSpecific
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
 import org.mongodb.scala.result
@@ -29,11 +31,13 @@ import play.api.libs.json._
 import play.api.{Configuration, Logging}
 import repositories.EventReportCacheEntry.{eventTypeKey, expireAtKey, externalIdKey, pstrKey, versionKey, yearKey}
 import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.lock.{LockService, MongoLockRepository}
 import uk.gov.hmrc.mongo.play.json.formats.{MongoJavatimeFormats, MongoJodaFormats}
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import java.time.{Instant, LocalDateTime, ZoneId}
 import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.Duration
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
@@ -84,7 +88,8 @@ object EventReportCacheEntry {
 @Singleton
 class EventReportCacheRepository @Inject()(
                                             mongoComponent: MongoComponent,
-                                            config: Configuration
+                                            config: Configuration,
+                                            mongoLockRepository: MongoLockRepository
                                           )(implicit val ec: ExecutionContext)
   extends PlayMongoRepository[EventReportCacheEntry](
     collectionName = config.underlying.getString("mongodb.event-reporting-data.name"),
@@ -140,6 +145,39 @@ class EventReportCacheRepository @Inject()(
     collection.findOneAndUpdate(
       filter = selector,
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
+  }
+
+  private val lock = LockService(mongoLockRepository, "event_reporting_data_expireAtLock", Duration(1, TimeUnit.HOURS))
+
+  if (config.get[Boolean]("mongo.migration.enable.migration")) migrateExpireAt()
+  private def migrateExpireAt() = {
+    lock withLock {
+      logger.warn("[PODS-8922] Started event reporting data migration")
+      collection.find(BsonDocument("expireAt" -> BsonDocument("$type" -> BsonString("string")))).toFuture().flatMap { seq =>
+        Future.sequence(
+          seq.map { x =>
+            val modifier = Updates.set(expireAtKey, x.expireAt)
+            val selector = Filters.and(
+              Filters.equal(pstrKey, x.pstr),
+              Filters.equal(eventTypeKey, x.edi.eventType.toString),
+              Filters.equal(yearKey, x.edi.year),
+              Filters.equal(versionKey, x.edi.version),
+              Filters.equal(externalIdKey, x.edi.externalId)
+            )
+            collection.findOneAndUpdate(
+              selector,
+              modifier
+            ).toFuture()
+          }
+        )
+      }
+    } map {
+      case Some(result) =>
+        logger.warn(s"[PODS-8922] data migration completed, ${result.size} rows were migrated successfully")
+      case None => logger.warn(s"[PODS-8922] data migration locked by other instance")
+    } recover {
+      case e => logger.error("Locking finished with error", e)
+    }
   }
 
   def changeVersion(externalId: String, pstr: String, version: Int, newVersion: Int)(implicit ec: ExecutionContext): Future[Option[result.UpdateResult]] = {
