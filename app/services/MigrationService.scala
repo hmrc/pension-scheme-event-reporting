@@ -39,7 +39,7 @@ class MigrationService @Inject()(mongoLockRepository: MongoLockRepository,
     collection.find(BsonDocument("expireAt" -> BsonDocument("$type" -> BsonString("string")))).toFuture().flatMap { seq =>
        val ftr = Future.sequence(seq.map(item => {
          val id = item.getObjectId("_id")
-         val modifier = Updates.set(expireAtKey, BsonDateTime(java.util.Date.from(Instant.now())))
+         val modifier = Updates.set(expireAtKey, BsonDateTime(java.util.Date.from(Instant.now().plusMillis(1000 * 60 * 5))))
          val selector = Filters.equal("_id", id)
          collection.findOneAndUpdate(selector, modifier).toFuture()
        }))
