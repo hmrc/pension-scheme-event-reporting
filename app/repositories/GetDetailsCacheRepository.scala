@@ -20,7 +20,6 @@ import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.GetDetailsCacheDataIdentifier
 import models.enumeration.EventType
-import org.joda.time.{DateTimeZone, LocalDateTime}
 import org.mongodb.scala.model._
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
@@ -113,8 +112,8 @@ class GetDetailsCacheRepository @Inject()(
 
   private val expireInSeconds = config.get[Int](path = "mongodb.get-details-cache-data.timeToLiveInSeconds")
 
-  private def evaluatedExpireAt: LocalDateTime = {
-    LocalDateTime.now(DateTimeZone.UTC).plusSeconds(expireInSeconds)
+  private def evaluatedExpireAt: Instant = {
+    Instant.now().plusSeconds(expireInSeconds)
   }
 
   def upsert(pstr: String, gdcdi: GetDetailsCacheDataIdentifier, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {

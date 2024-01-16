@@ -16,9 +16,9 @@
 
 package controllers
 
-import akka.util.ByteString
 import ParsingAndValidationOutcomeController.IdNotFoundFromAuth
 import org.apache.commons.lang3.RandomUtils
+import org.apache.pekko.util.ByteString
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
