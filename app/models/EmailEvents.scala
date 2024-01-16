@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package models
 
 import models.enumeration.{Enumerable, WithName}
 import org.joda.time.DateTime
+import org.joda.time.format.ISODateTimeFormat
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
@@ -46,7 +47,10 @@ case class EmailEvent(event: Event, detected: DateTime)
 
 object EmailEvent {
 
-  import uk.gov.hmrc.http.controllers.RestFormats.dateTimeWrite
+  private val dateTimeFormat = ISODateTimeFormat.dateTime.withZoneUTC
+  implicit val dateTimeWrite: Writes[DateTime] = new Writes[DateTime] {
+    def writes(dateTime: DateTime): JsValue = JsString(dateTimeFormat.print(dateTime))
+  }
 
   implicit val read: Reads[EmailEvent] = {
     ((JsPath \ "event").read[Event] and ((JsPath \ "detected").read[String] map DateTime.parse))(EmailEvent.apply _)

@@ -2,19 +2,19 @@ import sbt._
 
 object AppDependencies {
 
-  private val mongoVersion = "1.3.0"
-
+  private val mongoVersion = "1.7.0"
+  private val bootstrapVersion = "8.4.0"
   val compile = Seq(
-    "uk.gov.hmrc"                   %% "bootstrap-backend-play-28"  % "7.13.0",
-    "uk.gov.hmrc.mongo"             %% "hmrc-mongo-play-28"         % mongoVersion,
+    "uk.gov.hmrc"                   %% "bootstrap-backend-play-30"  % bootstrapVersion,
+    "uk.gov.hmrc.mongo"             %% "hmrc-mongo-play-30"         % mongoVersion,
     "com.github.java-json-tools"    %  "json-schema-validator"      % "2.2.14",
     "com.fasterxml.jackson.module"  %% "jackson-module-scala"       % "2.14.2"
   )
 
   val test = Seq(
-    "uk.gov.hmrc"             %% "bootstrap-test-play-28"     % "7.13.0"                 % "test, it",
+    "uk.gov.hmrc"             %% "bootstrap-test-play-30"     % bootstrapVersion                 % "test, it",
     "de.flapdoodle.embed"     %  "de.flapdoodle.embed.mongo"  % "3.5.3"                 % Test,
-    "uk.gov.hmrc.mongo"       %% "hmrc-mongo-test-play-28"    % mongoVersion           % Test,
+    "uk.gov.hmrc.mongo"       %% "hmrc-mongo-test-play-30"    % mongoVersion           % Test,
     "com.vladsch.flexmark"    %  "flexmark-all"               % "0.64.0"                % "test, it",
     "com.github.tomakehurst"  %  "wiremock-jre8"              % "2.35.0"                % Test,
     "org.scalatest"           %% "scalatest"                  % "3.2.15"                % Test,

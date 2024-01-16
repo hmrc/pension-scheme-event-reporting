@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.EventDataIdentifier
 import models.enumeration.EventType
-import org.joda.time.DateTime
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
 import org.mongodb.scala.result
@@ -29,7 +28,7 @@ import play.api.libs.json._
 import play.api.{Configuration, Logging}
 import repositories.EventReportCacheEntry.{eventTypeKey, expireAtKey, externalIdKey, pstrKey, versionKey, yearKey}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.formats.{MongoJavatimeFormats, MongoJodaFormats}
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import java.time.{Instant, LocalDateTime, ZoneId}
@@ -51,8 +50,6 @@ object EventReportCacheEntry {
   val expireAtKey = "expireAt"
   val lastUpdatedKey = "lastUpdated"
   val dataKey = "data"
-
-  implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
 
   implicit val formats: Format[EventReportCacheEntry] = new Format[EventReportCacheEntry] {
     override def writes(o: EventReportCacheEntry): JsValue = {

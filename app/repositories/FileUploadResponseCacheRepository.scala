@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,33 +19,33 @@ package repositories
 import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.enumeration.ApiType
-import org.joda.time.{DateTime, DateTimeZone}
 import org.mongodb.scala.model._
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
 import repositories.FileUploadResponseCacheEntry.{apiTypesKey, expireAtKey, referenceKey}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
 
-case class FileUploadResponseCacheEntry(pstr: String, apiTypes: String, data: JsValue, lastUpdated: DateTime, expireAt: DateTime)
+case class FileUploadResponseCacheEntry(pstr: String, apiTypes: String, data: JsValue, lastUpdated: Instant, expireAt: Instant)
 
 object FileUploadResponseCacheEntry {
 
   def applyFileUploadResponseCacheEntry(pstr: String,
                                  apiTypes: ApiType,
                                  data: JsValue,
-                                 lastUpdated: DateTime = DateTime.now(DateTimeZone.UTC),
-                                 expireAt: DateTime): FileUploadResponseCacheEntry = {
+                                 lastUpdated: Instant = Instant.now(),
+                                 expireAt: Instant): FileUploadResponseCacheEntry = {
 
     FileUploadResponseCacheEntry(pstr, apiTypes.toString, data, lastUpdated, expireAt)
   }
 
-  implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
+  implicit val dateFormat: Format[Instant] = MongoJavatimeFormats.instantFormat
   implicit val format: Format[FileUploadResponseCacheEntry] = Json.format[FileUploadResponseCacheEntry]
 
   val referenceKey = "reference"
@@ -80,12 +80,12 @@ class FileUploadResponseCacheRepository @Inject()(
 
   private val expireInSeconds = config.get[Int](path = "mongodb.file-upload-response.timeToLiveInSeconds")
 
-  private def evaluatedExpireAt: DateTime = DateTime.now(DateTimeZone.UTC).plusSeconds(expireInSeconds + 1).toLocalDateTime.toDateTime()
+  private def evaluatedExpireAt: Instant = Instant.now().plusSeconds(expireInSeconds + 1)
 
   private def selector(reference: String) = Filters.equal(referenceKey, reference)
 
   def upsert(reference: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
-    val lastUpdated = DateTime.now(DateTimeZone.UTC)
+    val lastUpdated = Instant.now()
     val modifier = Updates.combine(
       Updates.set(referenceKey, Codecs.toBson(reference)),
       Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),

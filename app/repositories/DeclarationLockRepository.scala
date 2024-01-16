@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,13 +18,13 @@ package repositories
 
 import com.google.inject.Inject
 import models.cache.DeclarationLockJson
-import org.joda.time.{DateTime, DateTimeZone}
 import org.mongodb.scala.MongoWriteException
 import org.mongodb.scala.model._
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 import scala.concurrent.{ExecutionContext, Future}
@@ -50,7 +50,7 @@ class DeclarationLockRepository @Inject()(
     )
   ) with Logging {
 
-  private def expireInSeconds: DateTime = DateTime.now(DateTimeZone.UTC).
+  private def expireInSeconds: Instant = Instant.now().
     plusSeconds(configuration.get[Int](path = "mongodb.event-reporting-declaration-lock.timeToLiveInSeconds"))
 
   private lazy val documentExistsErrorCode = 11000

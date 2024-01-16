@@ -2,5 +2,3 @@
 ->         /pension-scheme-event-reporting              app.Routes
 ->         /                                            health.Routes
 ->         /admin                                       admin.Routes
-
-GET        /admin/metrics             com.kenshoo.play.metrics.MetricsController.metrics

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import play.api.Logging
 import play.api.libs.json._
 import repositories.CacheRepository.collectionIndexes
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import java.time.{LocalDateTime, ZoneId}
@@ -44,7 +44,7 @@ class CacheRepository @Inject()(collectionName: String,
     domainFormat = implicitly,
     indexes = collectionIndexes,
     extraCodecs = Seq(
-      Codecs.playFormatCodec(MongoJodaFormats.dateTimeFormat)
+      Codecs.playFormatCodec(MongoJavatimeFormats.instantFormat)
     )
   ) with Logging {
 
