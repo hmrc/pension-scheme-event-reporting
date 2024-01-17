@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package audit
+import com.google.inject.AbstractModule
+import play.api.{Configuration, Environment}
+import services.MigrationService
 
-import play.api.libs.json.JsObject
-
-trait AuditEvent {
-  def auditType: String
-
-  def details: JsObject
+class StartupModule(environment: Environment, configuration: Configuration) extends AbstractModule {
+  override def configure() = {
+    if (configuration.get[Boolean]("mongo.migration.enable.migration")) bind(classOf[MigrationService]).asEagerSingleton()
+  }
 }
