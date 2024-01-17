@@ -34,8 +34,6 @@ import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import java.time.{Instant, LocalDateTime, ZoneId}
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.Try
-
 
 case class EventReportCacheEntry(pstr: String, edi: EventDataIdentifier, data: JsValue, lastUpdated: LocalDateTime, expireAt: LocalDateTime)
 

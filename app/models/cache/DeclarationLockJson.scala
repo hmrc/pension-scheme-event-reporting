@@ -16,7 +16,6 @@
 
 package models.cache
 
-import org.joda.time.DateTime
 import play.api.libs.json.{Format, Json, OFormat}
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
