@@ -16,7 +16,6 @@ object AppDependencies {
     "de.flapdoodle.embed"     %  "de.flapdoodle.embed.mongo"  % "3.5.3"                 % Test,
     "uk.gov.hmrc.mongo"       %% "hmrc-mongo-test-play-30"    % mongoVersion           % Test,
     "com.vladsch.flexmark"    %  "flexmark-all"               % "0.64.0"                % "test, it",
-    "com.github.tomakehurst"  %  "wiremock-jre8"              % "3.0.1"                % Test,
     "org.scalatest"           %% "scalatest"                  % "3.2.15"                % Test,
     "org.scalatestplus.play"  %% "scalatestplus-play"         % "5.1.0"                 % Test,
     "org.scalatestplus"       %% "mockito-4-6"                % "3.2.15.0"              % Test,
