@@ -20,21 +20,21 @@ import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.GetDetailsCacheDataIdentifier
 import models.enumeration.EventType
-import org.joda.time.{DateTimeZone, LocalDateTime}
 import org.mongodb.scala.model._
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
 import repositories.GetDetailsCacheEntry.{eventTypeKey, expireAtKey, pstrKey, versionKey, yearKey}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
 
-case class GetDetailsCacheEntry(pstr: String, gdcdi: GetDetailsCacheDataIdentifier, data: JsValue, lastUpdated: LocalDateTime, expireAt: LocalDateTime)
+case class GetDetailsCacheEntry(pstr: String, gdcdi: GetDetailsCacheDataIdentifier, data: JsValue, lastUpdated: Instant, expireAt: Instant)
 
 object GetDetailsCacheEntry {
   implicit val format: Format[GetDetailsCacheEntry] = Json.format[GetDetailsCacheEntry]
@@ -47,13 +47,13 @@ object GetDetailsCacheEntry {
   val lastUpdatedKey = "lastUpdated"
   val dataKey = "data"
 
-  implicit val dateFormat: Format[LocalDateTime] = MongoJodaFormats.localDateTimeFormat
+  implicit val dateFormat: Format[Instant] = MongoJavatimeFormats.instantFormat
 
-  private val dateReads = new Reads[LocalDateTime] { //TODO: Remove after expireAt migration fix
-    def reads(json: JsValue): JsResult[LocalDateTime] = {
+  private val dateReads = new Reads[Instant] { //TODO: Remove after expireAt migration fix
+    def reads(json: JsValue): JsResult[Instant] = {
       val result = json.asOpt[String].map {
-        LocalDateTime.parse
-      }.getOrElse(json.as[LocalDateTime](MongoJodaFormats.dateTimeReads.map(_.toLocalDateTime)))
+        Instant.parse
+      }.getOrElse(json.as[Instant](MongoJavatimeFormats.instantReads))
       JsSuccess(result)
     }
   }
@@ -72,8 +72,8 @@ object GetDetailsCacheEntry {
           (JsPath \ yearKey).read[Int] and
           (JsPath \ versionKey).read[Int] and
           (JsPath \ dataKey).read[JsValue] and
-          (JsPath \ lastUpdatedKey).read[LocalDateTime](dateReads) and
-          (JsPath \ expireAtKey).read[LocalDateTime](dateReads)
+          (JsPath \ lastUpdatedKey).read[Instant](dateReads) and
+          (JsPath \ expireAtKey).read[Instant](dateReads)
         )(
         (pstr, eventType, year, version, data, lastUpdated, expireAt) =>
           GetDetailsCacheEntry(pstr, GetDetailsCacheDataIdentifier(eventType, year, version), data, lastUpdated, expireAt)
@@ -104,7 +104,7 @@ class GetDetailsCacheRepository @Inject()(
     extraCodecs = Seq(
       Codecs.playFormatCodec(GetDetailsCacheDataIdentifier.formats),
       Codecs.playFormatCodec(EventType.formats),
-      Codecs.playFormatCodec(MongoJodaFormats.localDateTimeFormat)
+      Codecs.playFormatCodec(MongoJavatimeFormats.instantFormat)
     )
   ) with Logging {
 
@@ -112,8 +112,8 @@ class GetDetailsCacheRepository @Inject()(
 
   private val expireInSeconds = config.get[Int](path = "mongodb.get-details-cache-data.timeToLiveInSeconds")
 
-  private def evaluatedExpireAt: LocalDateTime = {
-    LocalDateTime.now(DateTimeZone.UTC).plusSeconds(expireInSeconds)
+  private def evaluatedExpireAt: Instant = {
+    Instant.now().plusSeconds(expireInSeconds)
   }
 
   def upsert(pstr: String, gdcdi: GetDetailsCacheDataIdentifier, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
@@ -123,7 +123,7 @@ class GetDetailsCacheRepository @Inject()(
       Updates.set(yearKey, gdcdi.year),
       Updates.set(versionKey, gdcdi.version),
       Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
-      Updates.set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(DateTimeZone.UTC))),
+      Updates.set(lastUpdatedKey, Codecs.toBson(Instant.now())),
       Updates.set(expireAtKey, evaluatedExpireAt)
     )
     val selector = Filters.and(

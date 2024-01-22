@@ -16,7 +16,7 @@
 
 package utils
 
-import akka.util.ByteString
+import org.apache.pekko.util.ByteString
 import play.api.http.HttpEntity
 import play.api.http.Status.{CONFLICT, FORBIDDEN}
 import play.api.libs.json.JsResultException

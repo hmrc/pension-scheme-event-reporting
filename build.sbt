@@ -16,7 +16,6 @@
 
 import uk.gov.hmrc.DefaultBuildSettings
 import uk.gov.hmrc.DefaultBuildSettings.integrationTestSettings
-import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
 
 val appName: String = "pension-scheme-event-reporting"
 
@@ -25,8 +24,7 @@ lazy val root = (project in file("."))
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
   .settings(DefaultBuildSettings.scalaSettings: _*)
   .settings(DefaultBuildSettings.defaultSettings(): _*)
-  .settings(SbtDistributablesPlugin.publishingSettings: _*)
-  .settings(scalaVersion := "2.13.8")
+  .settings(scalaVersion := "2.13.12")
   .settings(inConfig(Test)(testSettings): _*)
   .settings(majorVersion := 0)
   .settings(
@@ -40,7 +38,6 @@ lazy val root = (project in file("."))
       Resolver.jcenterRepo
     )
   )
-  .settings(publishingSettings: _*)
   .configs(IntegrationTest)
   .settings(integrationTestSettings(): _*)
   .settings(resolvers += Resolver.jcenterRepo)
