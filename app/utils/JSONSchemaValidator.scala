@@ -40,6 +40,11 @@ class JSONSchemaValidator {
     val jsonDataAsString = JsonLoader.fromString(data.toString())
     val doValidation = schema.validate(jsonDataAsString, deepValidationCheck)
     val isSuccess = doValidation.isSuccess
+//    println(s"doValidation: $doValidation")
+
+    println(s"jsonData: $jsonDataAsString")
+//    println(s"jsonData: $jsonDataAsString")
+//    println(s"jsonData: $jsonDataAsString")
     if (!isSuccess) {
       val jsArray = Json.parse(doValidation.asInstanceOf[ListProcessingReport].asJson().toString).asInstanceOf[JsArray].value
       val jsArrayErrors = jsArray.map {
