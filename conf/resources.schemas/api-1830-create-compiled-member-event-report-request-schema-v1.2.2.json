@@ -589,9 +589,6 @@
 															},
 															{
 																"type": "object",
-																"required": [
-																	"taxedAtMarginalRate"
-																],
 																"additionalProperties": false,
 																"properties": {
 																	"memberHoldProtection": {
@@ -730,12 +727,10 @@
 		"paymentDetailsType": {
 			"type": "object",
 			"required": [
-				"monetaryAmount",
+				"amountCrystalised",
 				"taxYearEndingDate",
 				"memberHoldProtection",
-				"availableLumpSumExceeded",
-				"availableLumpSumDBAExceeded",
-				"amountCrystalised"
+				"availableLumpSumExceeded"
 			],
 			"properties": {
 				"memberHoldProtection": {

@@ -17,11 +17,11 @@
 package utils
 
 import models.enumeration.EventType
-import models.enumeration.EventType.{Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
+import models.enumeration.EventType.{Event2, Event24, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
-import play.api.libs.json.{JsObject, JsString, Json}
+import play.api.libs.json.{JsBoolean, JsObject, JsString, Json}
 
 //noinspection ScalaStyle
 trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerators {
@@ -60,6 +60,7 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
       case Event7 => generateUserAnswersAndPOSTBodyEvent7
       case Event8 => generateUserAnswersAndPOSTBodyEvent8
       case Event8A => generateUserAnswersAndPOSTBodyEvent8A
+      case Event24 => generateUserAnswersAndPOSTBodyEvent24
       case _ => generateUserAnswersAndPOSTBodyEvent22And23(eventType)
     }
   }
@@ -608,6 +609,163 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
       Tuple2(ua, expected)
     }
   }
+
+  def generateUserAnswersAndPOSTBodyEvent24: Gen[(JsObject, JsObject)] = for {
+    map <- randomValues()
+    booleans <- randomBooleans()
+  } yield {
+    val optionalOverAllowanceAndDeathBenefit: Option[JsObject] = if (!booleans("overAllowance")) {
+      val keyAndValue = Json.obj(
+        "overAllowanceAndDeathBenefit" -> JsBoolean(booleans("overAllowanceAndDeathBenefit")),
+      )
+      Some(keyAndValue)
+    } else {
+      Some(JsObject.empty)
+    }
+
+    val optionalMarginalRate: Option[JsObject] = if (
+      booleans("overAllowance") || booleans("overAllowanceAndDeathBenefit")
+    ) {
+      val keyAndValue = Json.obj(
+        "marginalRate" ->  JsBoolean(booleans("marginalRate")),
+      )
+      Some(keyAndValue)
+    } else {
+      Some(JsObject.empty)
+    }
+
+    val optionalPayeRef: Option[JsObject] = if (
+      booleans("overAllowance") && booleans("marginalRate") ||
+        booleans("overAllowanceAndDeathBenefit") && booleans("marginalRate")
+    ) {
+      val keyAndValue = Json.obj(
+        "employerPayeReference" -> JsString("123/AB123"),
+      )
+      Some(keyAndValue)
+    } else {
+      Some(JsObject.empty)
+    }
+
+    val ua = Json.obj(
+      s"event${Event24.toString}" -> Json.obj("members" ->
+        Json.arr(
+          Json.obj(
+            "memberStatus" -> "New",
+            "membersDetails" -> Json.obj(
+              "firstName" -> map("firstName"),
+              "lastName" -> map("lastName"),
+              "nino" -> map("nino")),
+            "crystallisedDate" -> Json.obj(
+              "date" -> "2023-09-22"
+            ),
+            "bceTypeSelection" -> map("reasonBenefitTakenEvent24"),
+            "totalAmountBenefitCrystallisation" -> map("lumpSumAmount"),
+            "validProtection" -> booleans("validProtection"),
+            "typeOfProtectionGroup1" -> Json.arr(
+              map("typeOfProtectionGroup1")
+            ),
+            "typeOfProtectionGroup1Reference" -> Json.obj(
+              "nonResidenceEnhancement" -> map("typeOfProtectionReference"),
+              "pensionCreditsPreCRE" -> map("typeOfProtectionReference"),
+              "preCommencement" -> map("typeOfProtectionReference"),
+              "recognisedOverseasPSTE" -> map("typeOfProtectionReference"),
+            ),
+            "typeOfProtectionGroup2" -> map("typeOfProtectionGroup2"),
+            "typeOfProtectionGroup2Reference" -> map("typeOfProtectionReference"),
+            "overAllowance" -> booleans("overAllowance")
+          ) ++ optionalOverAllowanceAndDeathBenefit.get ++
+            optionalMarginalRate.get ++
+            optionalPayeRef.get
+        ),
+      ),
+      "taxYear" -> map("taxYear")
+    )
+
+    val overAllowanceAndDeathBenefitETMP: JsObject = if (!booleans("overAllowance")) {
+      Json.obj(
+        "availableLumpSumDBAExceeded" -> convertBoolean(booleans("overAllowanceAndDeathBenefit")),
+      )
+    } else {
+      Json.obj()
+    }
+
+    val marginalRateETMP: JsObject = if (booleans("overAllowance") || booleans("overAllowanceAndDeathBenefit")) {
+      Json.obj(
+        "taxedAtMarginalRate" -> convertBoolean(booleans("marginalRate")),
+      )
+    } else {
+      Json.obj()
+    }
+
+    val payeRefETMP: JsObject = if (booleans("overAllowance") && booleans("marginalRate") ||
+      booleans("overAllowanceAndDeathBenefit") && booleans("marginalRate")) {
+      Json.obj(
+        "payeReference" -> JsString("123/AB123"),
+      )
+    } else {
+      Json.obj()
+    }
+
+    val schemeSpecificETMP: JsObject = if (map("typeOfProtectionGroup1") == "schemeSpecific") {
+      Json.obj(
+        "schemeSpecificLumpSum" -> JsString("Yes"),
+      )
+    } else {
+      Json.obj()
+    }
+
+    val expected = Json.obj("memberEventsDetails" -> Json.obj(
+      "eventDetails" -> Json.arr(
+        Json.obj(
+          "memberDetail" ->
+            Json.obj(
+              "memberStatus" -> "New",
+              "event" -> Json.obj(
+                "eventType" -> s"Event${Event24.toString}",
+                "individualDetails" -> Json.obj(
+                  "firstName" -> map("firstName"),
+                  "lastName" -> map("lastName"),
+                  "nino" -> map("nino")
+                ),
+                "paymentDetails" -> Json.obj(
+                  "memberHoldProtection" -> convertBoolean(booleans("validProtection")),
+                  "preCommenceReference" -> map("typeOfProtectionReference"),
+                  "pensionCreditReference" -> map("typeOfProtectionReference"),
+                  "nonResidenceReference" -> map("typeOfProtectionReference"),
+                  "overseasReference" -> map("typeOfProtectionReference"),
+                  "availableLumpSumExceeded" -> convertBoolean(booleans("overAllowance")),
+                  "amountCrystalised" -> map("lumpSumAmount"),
+                  "typeOfProtection" -> typeOfProtectionEvent24(map("typeOfProtectionGroup2")),
+                  "reasonBenefitTaken" -> reasonBenefitTakenEvent24(map("reasonBenefitTakenEvent24")),
+//                  "monetaryAmount" -> map("monetaryAmount"),
+                  "taxYearEndingDate" -> "2023-09-22",
+                  "freeText" -> map("typeOfProtectionReference")
+                ).++(overAllowanceAndDeathBenefitETMP)
+                  .++(marginalRateETMP)
+                  .++(payeRefETMP)
+                  .++(schemeSpecificETMP)
+              )
+            )
+        )
+      ),
+      "eventReportDetails" -> Json.obj(
+      "pSTR" -> "87219363YN",
+      "eventType" -> s"Event${Event24.toString}",
+      "reportStartDate" -> s"${map("taxYear")}-04-06",
+      "reportEndDate" -> s"${map("endTaxYear")}-04-05"
+    ),
+    )
+    )
+    Tuple2(ua, expected)
+  }
+
+  def convertBoolean(ua: Boolean): String = {
+    if (ua) {
+      "Yes"
+    } else {
+      "No"
+    }
+  }
 }
 
 //noinspection ScalaStyle
@@ -630,6 +788,43 @@ object GeneratorAPI1830 {
   private val paymentTypesUAEvent8A = Seq(
     "paymentOfAStandAloneLumpSum",
     "paymentOfASchemeSpecificLumpSum"
+  )
+
+  private val reasonBenefitTakenTypesEvent24 = Seq(
+    "annuityProtection",
+     "definedBenefit",
+     "drawdown",
+     "flexiAccess",
+     "commencement",
+     "pensionProtection",
+     "small",
+     "standAlone",
+     "trivialCommutation",
+     "trivialCommutationDeathBenefit",
+     "seriousHealthLumpSum",
+     "uncrystallisedFunds",
+     "uncrystallisedFundsDeathBenefit",
+     "windingUp"
+  )
+
+  private val protectionTypesGroup1Event24 = Seq(
+    "nonResidenceEnhancement",
+    "pensionCreditsPreCRE",
+    "preCommencement",
+    "recognisedOverseasPSTE",
+    "schemeSpecific"
+  )
+
+  private val protectionTypesGroup2Event24 = Seq(
+    "enhancedProtection",
+    "enhancedProtectionWithProtectedSum",
+    "fixedProtection",
+    "fixedProtection2014",
+    "fixedProtection2016",
+    "individualProtection2014",
+    "individualProtection2016",
+    "primary",
+    "primaryWithProtectedSum"
   )
 
   private def typeOfProtectionETMPEvent6(tOP: String): String = tOP match {
@@ -667,6 +862,35 @@ object GeneratorAPI1830 {
     case "other" => "Other"
   }
 
+  private def reasonBenefitTakenEvent24(tOB: String): String = tOB match {
+    case "annuityProtection" => "An annuity protection lump sum death benefit"
+    case "definedBenefit" => "A defined benefit lump sum death benefit"
+    case "drawdown" => "A drawdown pension fund lump sum death benefit"
+    case "flexiAccess" => "A flexi-access drawdown lump sum death benefit"
+    case "commencement" => "Pension commencement lump sum"
+    case "pensionProtection" => "A pension protection lump sum death benefit"
+    case "small" => "A small lump sum"
+    case "standAlone" => "A stand-alone lump sum"
+    case "trivialCommutation" => "A trivial commutation lump sum"
+    case "trivialCommutationDeathBenefit" => "Trivial commutation lump sum death benefit"
+    case "seriousHealthLumpSum" => "Serious ill health lump sum"
+    case "uncrystallisedFunds" => "An uncrystalised funds pension lump sum"
+    case "uncrystallisedFundsDeathBenefit" => "A uncrystallised funds lump sum death benefit"
+    case "windingUp" => "A winding-up lump sum"
+  }
+
+  private def typeOfProtectionEvent24(tOP: String): String = tOP match {
+    case "enhancedProtection" => "Enhanced protection"
+    case "enhancedProtectionWithProtectedSum" => "Enhanced protection with protected lump sum rights of more than £375,000"
+    case "fixedProtection" => "Fixed protection"
+    case "fixedProtection2014" => "Fixed protection 2014"
+    case "fixedProtection2016" => "Fixed protection 2016"
+    case "individualProtection2014" => "Individual protection 2014"
+    case "individualProtection2016" => "Individual protection 2016"
+    case "primary" => "Primary protection"
+    case "primaryWithProtectedSum" => "Primary protection with protected lump sum rights of more than £375,000"
+  }
+
   private def randomValues(): Gen[Map[String, String]] = {
     for {
       firstName <- Gen.oneOf(Seq("Alice", "Bob", "Charlie"))
@@ -687,6 +911,9 @@ object GeneratorAPI1830 {
       deceasedLastName <- Gen.oneOf(Seq("Urqhart", "Vanderbilt", "Wilson"))
       deceasedNino <- Gen.oneOf(Seq("AB654321C", "CD654321E"))
       reasonBenefitTakenEvent3 <- Gen.oneOf(Seq("illHealth", "protectedPensionAge", "other"))
+      reasonBenefitTakenEvent24 <- Gen.oneOf(reasonBenefitTakenTypesEvent24)
+      typeOfProtectionGroup1 <- Gen.oneOf(protectionTypesGroup1Event24)
+      typeOfProtectionGroup2 <- Gen.oneOf(protectionTypesGroup2Event24)
     } yield {
       Map(
         "firstName" -> firstName,
@@ -706,7 +933,26 @@ object GeneratorAPI1830 {
         "deceasedFirstName" -> deceasedFirstName,
         "deceasedLastName" -> deceasedLastName,
         "deceasedNino" -> deceasedNino,
-        "reasonBenefitTakenEvent3" -> reasonBenefitTakenEvent3
+        "reasonBenefitTakenEvent3" -> reasonBenefitTakenEvent3,
+        "reasonBenefitTakenEvent24" -> reasonBenefitTakenEvent24,
+        "typeOfProtectionGroup1" -> typeOfProtectionGroup1,
+        "typeOfProtectionGroup2" -> typeOfProtectionGroup2,
+      )
+    }
+  }
+
+  private def randomBooleans(): Gen[Map[String, Boolean]] = {
+    for {
+      validProtection <- Gen.oneOf(Seq(true, false))
+      overAllowance <- Gen.oneOf(Seq(true, false))
+      overAllowanceAndDeathBenefit <- Gen.oneOf(Seq(true, false))
+      marginalRate <- Gen.oneOf(Seq(true, false))
+    } yield {
+      Map(
+        "validProtection" -> validProtection,
+        "overAllowance" -> overAllowance,
+        "overAllowanceAndDeathBenefit" -> overAllowanceAndDeathBenefit,
+        "marginalRate" -> marginalRate
       )
     }
   }

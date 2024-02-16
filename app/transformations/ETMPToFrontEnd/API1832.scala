@@ -126,22 +126,21 @@ private object API1832ReadsUtilities extends Transformer {
 
   lazy val readsEvent24PaymentDetails: Reads[JsObject] = {
     (
-      pathUaTypeOfProtectionEvent24.json.copyFrom(readsTypeOfProtectionEvent24) and
-      pathUaMemberHoldProtection.json.copyFrom(pathEtmpMemberHoldProtection.json.pick) and
-        pathUaPreCommenceReference.json.copyFrom(pathEtmpPreCommenceReference.json.pick) and
-        pathUaPensionCreditReference.json.copyFrom(pathEtmpPensionCreditReference.json.pick) and
-        pathUaNonResidenceReference.json.copyFrom(pathEtmpNonResidenceReference.json.pick) and
-        pathUaOverseasReference.json.copyFrom(pathEtmpOverseasReference.json.pick) and
+      pathUaMemberHoldProtection.json.copyFrom(pathEtmpMemberHoldProtectionEvent24.json.pick) and
+        (pathUaTypeOfProtectionEvent24.json.copyFrom(readsTypeOfProtectionEvent24) orElse doNothing) and
+        (pathUaPreCommenceReference.json.copyFrom(pathEtmpPreCommenceReference.json.pick) orElse doNothing) and
+        (pathUaPensionCreditReference.json.copyFrom(pathEtmpPensionCreditReference.json.pick) orElse doNothing) and
+        (pathUaNonResidenceReference.json.copyFrom(pathEtmpNonResidenceReference.json.pick) orElse doNothing) and
+        (pathUaOverseasReference.json.copyFrom(pathEtmpOverseasReference.json.pick) orElse doNothing) and
         pathUaAvailableLumpSumExceeded.json.copyFrom(pathEtmpAvailableLumpSumExceeded.json.pick) and
-        pathUaAvailableLumpSumDBAExceeded.json.copyFrom(pathEtmpAvailableLumpSumDBAExceeded.json.pick) and
-        pathUaSchemeSpecificLumpSum.json.copyFrom(pathEtmpSchemeSpecificLumpSum.json.pick) and
-        pathUaAmountCrystalised.json.copyFrom(pathEtmpCrystallisedAmountEvent24.json.pick) and
+        (pathUaAvailableLumpSumDBAExceeded.json.copyFrom(pathEtmpAvailableLumpSumDBAExceeded.json.pick) orElse doNothing) and
+        (pathUaSchemeSpecificLumpSum.json.copyFrom(pathEtmpSchemeSpecificLumpSum.json.pick) orElse doNothing) and
+        pathUaAmountCrystalised.json.copyFrom(pathEtmpAmountCrystalised.json.pick) and
         pathUaBCEType.json.copyFrom(readsBCETypeEvent24) and
-        pathUaTaxYearEndingDate.json.copyFrom(pathEtmpTaxYearEndingDateEvent24.json.pick) and
-        pathUaFreeText.json.copyFrom(pathEtmpFreeTextEvent24.json.pick) and
-        pathUaMarginalRate.json.copyFrom(pathEtmpMarginalRate.json.pick) and
-        pathUaPayeReference.json.copyFrom(pathEtmpPayeReference.json.pick) and
-        pathUaMonetaryAmount.json.copyFrom(pathEtmpMonetaryAmount.json.pick)
+        pathUaCrystallisedDateEvent24.json.copyFrom(pathEtmpTaxYearEndingDate.json.pick) and
+        (pathUaFreeTextEvent24.json.copyFrom(pathEtmpFreeText.json.pick) orElse doNothing) and
+        (pathUaMarginalRate.json.copyFrom(pathEtmpMarginalRate.json.pick) orElse doNothing) and
+        (pathUaPayeReference.json.copyFrom(pathEtmpPayeReference.json.pick) orElse doNothing)
     ).reduce
   }
 
@@ -225,7 +224,7 @@ private object API1832ReadsUtilities extends Transformer {
   }
 
   private lazy val readsTypeOfProtectionEvent24: Reads[JsString] = {
-    pathEtmpTypeOfProtectionEvent24.json.pick.flatMap {
+    pathEtmpTypeOfProtection.json.pick.flatMap {
       case JsString(str) => Reads.pure(JsString(typeOfProtectionUAEvent24(str)))
       case _ => fail[JsString]
     }
@@ -279,7 +278,7 @@ private object API1832ReadsUtilities extends Transformer {
     case "Fixed protection 2016" => "fixedProtection2016"
     case "Individual protection 2014" => "individualProtection2014"
     case "Individual protection 2016" => "individualProtection2016"
-    case "Primary Protection" => "primaryProtection"
+    case "Primary protection" => "primaryProtection"
     case "Primary protection with protected lump sum rights of more than £375,000" => "primaryWithProtectedSum"
   }
 
@@ -310,30 +309,30 @@ private object MemberEventReportPaths {
   val pathUaAmountPaid: JsPath = __ \ Symbol("amountPaid")
   val pathUaMemberStatus: JsPath = __ \ Symbol("memberStatus")
   val pathUaAmendedVersion: JsPath = __ \ Symbol("amendedVersion")
+  val pathUaAmountCrystalised: JsPath = __ \ Symbol("totalAmountBenefitCrystallisation")
+  val pathUaAvailableLumpSumExceeded: JsPath = __ \ Symbol("overAllowance")
+  val pathUaAvailableLumpSumDBAExceeded: JsPath = __ \ Symbol("overAllowanceAndDeathBenefit")
+  val pathUaBCEType: JsPath = __ \ Symbol("bceTypeSelection")
   val pathUaBeneficiaryDetails: JsPath = __ \ Symbol("beneficiaryDetails")
   val pathUaChooseTaxYearEvent: JsPath = __ \ Symbol("chooseTaxYear")
   val pathUaCrystallisedAmount: JsPath = __ \ Symbol("crystallisedAmount")
   val pathUaDatePaid: JsPath = __ \ Symbol("datePaid")
   val pathUaDeceasedMembersDetails: JsPath = __ \ Symbol("deceasedMembersDetails")
+  val pathUaFreeTextEvent24: JsPath = __ \ Symbol("typeOfProtectionGroup2Reference")
   val pathUaInputProtectionType: JsPath = __ \ Symbol("inputProtectionType")
   val pathUaLumpSumAmount: JsPath = __ \ Symbol("lumpSumAmount")
+  val pathUaMarginalRate: JsPath = __ \ Symbol("marginalRate")
+  val pathUaMemberHoldProtection: JsPath = __ \ Symbol("validProtection")
   val pathUaMembersDetails: JsPath = __ \ Symbol("membersDetails")
+  val pathUaPayeReference: JsPath = __ \ Symbol("employerPayeReference")
   val pathUaPaymentType: JsPath = __ \ Symbol("paymentType")
+  val pathUaProtectionRefGroup1: JsPath = __ \ Symbol("typeOfProtectionGroup1Reference")
+  val pathUaSchemeSpecificLumpSum: JsPath = __ \ Symbol("schemeSpecificLumpSum")
+  val pathUaTaxYearEndingDate: JsPath = __ \ Symbol("crystallisedDate")
   val pathUaTotalPensionAmounts: JsPath = __ \ Symbol("totalPensionAmounts")
   val pathUaTypeOfProtection: JsPath = __ \ Symbol("typeOfProtection")
   val pathUaTypeOfProtectionEvent24: JsPath = __ \ Symbol("typeOfProtectionGroup2")
   val pathUaTypeOfProtectionReference: JsPath = __ \ Symbol("typeOfProtectionReference")
-  val pathUaMemberHoldProtection: JsPath = __ \ Symbol("validProtection")
-  val pathUaProtectionRefGroup1: JsPath = __ \ Symbol("typeOfProtectionGroup1Reference")
-  val pathUaAvailableLumpSumExceeded: JsPath = __ \ Symbol("overAllowance")
-  val pathUaAvailableLumpSumDBAExceeded: JsPath = __ \ Symbol("overAllowanceAndDeathBenefit")
-  val pathUaSchemeSpecificLumpSum: JsPath = __ \ Symbol("schemeSpecificLumpSum")
-  val pathUaBCEType: JsPath = __ \ Symbol("reasonBenefitTaken")
-  val pathUaTaxYearEndingDate: JsPath = __ \ Symbol("crystallisedDate")
-  val pathUaMarginalRate: JsPath = __ \ Symbol("marginalRate")
-  val pathUaPayeReference: JsPath = __ \ Symbol("employerPayeReference")
-  val pathUaAmountCrystalised: JsPath = __ \ Symbol("amountCrystalised")
-  val pathUaMonetaryAmount: JsPath = __ \ Symbol("monetaryAmount")
 
   // UA - nested twice
   val pathUaPreCommenceReference: JsPath = pathUaProtectionRefGroup1 \ Symbol("preCommencement")
@@ -348,30 +347,15 @@ private object MemberEventReportPaths {
   val pathUaLumpSumDateNested: JsPath = __ \ Symbol("lumpSumAmountAndDate") \ Symbol("lumpSumDate")
   val pathUaPaymentDate: JsPath = __ \ Symbol("paymentDate") \ Symbol("date")
   val pathUaAmountPaidNested: JsPath = __ \ Symbol("paymentDetails") \ Symbol("amountPaid")
-  val pathUaDatePaidNested: JsPath = __ \ Symbol("paymentDetails") \ Symbol("datePaid")
   val pathUaEventDate: JsPath = __ \ Symbol("paymentDetails") \ Symbol("eventDate")
+  val pathUaCrystallisedDateEvent24: JsPath = __ \ Symbol("crystallisedDate") \ Symbol("date")
 
   /* ETMP paths in alphabetical order */
 
   // ETMP - nested once or utils
   val pathEtmlAmendedVersion: JsPath = __ \ Symbol("memberDetail") \ Symbol("amendedVersion")
-  val pathEtmpAvailableLumpSumExceeded: JsPath = __ \ Symbol("availableLumpSumExceeded")
-  val pathEtmpAvailableLumpSumDBAExceeded: JsPath = __ \ Symbol("availableLumpSumDBAExceeded")
-  val pathEtmpBCEType: JsPath = __ \ Symbol("reasonBenefitTaken")
-  val pathEtmpCrystallisedAmountEvent24: JsPath = __ \ Symbol("amountCrystalised")
   val pathEtmpEventDetails: JsPath = __ \ Symbol("eventDetails")
-  val pathEtmpFreeTextEvent24: JsPath = __ \ Symbol("freeText")
-  val pathEtmpMarginalRate: JsPath = __ \ Symbol("taxedAtMarginalRate")
-  val pathEtmpMemberHoldProtection: JsPath = __ \ Symbol("memberHoldProtection")
   val pathEtmlMemberStatus: JsPath = __ \ Symbol("memberDetail") \ Symbol("memberStatus")
-  val pathEtmpNonResidenceReference: JsPath = __ \ Symbol("nonResidenceReference")
-  val pathEtmpOverseasReference: JsPath = __ \ Symbol("overseasReference")
-  val pathEtmpPayeReference: JsPath = __ \ Symbol("payeReference")
-  val pathEtmpPensionCreditReference: JsPath = __ \ Symbol("pensionCreditReference")
-  val pathEtmpPreCommenceReference: JsPath = __ \ Symbol("preCommenceReference")
-  val pathEtmpSchemeSpecificLumpSum: JsPath = __ \ Symbol("schemeSpecificLumpSum")
-  val pathEtmpTaxYearEndingDateEvent24: JsPath = __ \ Symbol("taxYearEndingDate")
-  val pathEtmpTypeOfProtectionEvent24: JsPath = __ \ Symbol("typeOfProtection")
 
   private val pathEtmpMemberDetailEvent: JsPath = __ \ Symbol("memberDetail") \ Symbol("event")
   private val pathEtmpMemberDetailEventPaymentDetails: JsPath = __ \ Symbol("memberDetail") \ Symbol("event") \ Symbol("paymentDetails")
@@ -386,10 +370,21 @@ private object MemberEventReportPaths {
   val pathEtmpAmountLumpSum: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("amountLumpSum")
   val pathEtmpAmountPaid: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("amountPaid")
   val pathEtmpAnnualRate: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("annualRate")
+  val pathEtmpAvailableLumpSumExceeded: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("availableLumpSumExceeded")
+  val pathEtmpAvailableLumpSumDBAExceeded: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("availableLumpSumDBAExceeded")
+  val pathEtmpBCEType: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("reasonBenefitTaken")
   val pathEtmpEventDate: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("eventDate")
   val pathEtmpFreeText: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("freeText")
+  val pathEtmpMarginalRate: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("taxedAtMarginalRate")
+  val pathEtmpMemberHoldProtectionEvent24: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("memberHoldProtection")
   val pathEtmpMonetaryAmount: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("monetaryAmount")
+  val pathEtmpNonResidenceReference: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("nonResidenceReference")
+  val pathEtmpOverseasReference: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("overseasReference")
+  val pathEtmpPayeReference: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("payeReference")
+  val pathEtmpPensionCreditReference: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("pensionCreditReference")
+  val pathEtmpPreCommenceReference: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("preCommenceReference")
   val pathEtmpReasonBenefitTaken: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("reasonBenefitTaken")
+  val pathEtmpSchemeSpecificLumpSum: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("schemeSpecificLumpSum")
   val pathEtmpTaxYearEndingDate: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("taxYearEndingDate")
   val pathEtmpTypeOfProtection: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("typeOfProtection")
 }

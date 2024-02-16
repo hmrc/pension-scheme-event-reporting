@@ -181,20 +181,15 @@ object API1830 extends Transformer {
         ((pathPaymentDetails \ Symbol("overseasReference"))
           .json.copyFrom(readsOverseasReference) orElse doNothing) and
         (pathPaymentDetails \ Symbol("availableLumpSumExceeded")).json.copyFrom(readsAvailableLumpSumExceeded) and
-        // TODO - PODS-8993 - When IF have updated their API to make availableLumpSumDBAExceeded optional,
-        //  we can replace 'Reads.pure(JsString("No"))' with 'doNothing'
-        (pathPaymentDetails \ Symbol("availableLumpSumDBAExceeded")).json.copyFrom(readsAvailableLumpSumDBAExceeded orElse Reads.pure(JsString("No"))) and
+        ((pathPaymentDetails \ Symbol("availableLumpSumDBAExceeded")).json.copyFrom(readsAvailableLumpSumDBAExceeded) orElse doNothing) and
         ((pathPaymentDetails \ Symbol("schemeSpecificLumpSum")).json.copyFrom(readsSchemeSpecificLumpSum) orElse doNothing) and
         (pathPaymentDetails \ Symbol("amountCrystalised")).json.copyFrom((__ \ Symbol("totalAmountBenefitCrystallisation")).json.pick) and
         ((pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionGroup2Event24) orElse doNothing) and
         (pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.copyFrom(readsReasonBenefitTakenEvent24) and
         (pathPaymentDetails \ Symbol("taxYearEndingDate")).json.copyFrom(pathTaxYearEndingDateEvent24.json.pick) and
         ((pathPaymentDetails \ Symbol("freeText")).json.copyFrom((__ \ Symbol("typeOfProtectionGroup2Reference")).json.pick) orElse doNothing) and
-        // TODO - PODS-8993 - When IF have updated their API to make taxedAtMarginalRate optional, we can replace 'Reads.pure(JsString("No"))' with 'doNothing'
-        (pathPaymentDetails \ Symbol("taxedAtMarginalRate")).json.copyFrom(readsTaxedAtMarginalRate orElse Reads.pure(JsString("No"))) and
-        ((pathPaymentDetails \ Symbol("payeReference")).json.copyFrom((__ \ Symbol("employerPayeReference")).json.pick) orElse doNothing) and
-        // TODO - PODS-8993 - When IF have updated their API, we can remove the 'monetaryAmount' value
-        (pathPaymentDetails \ Symbol("monetaryAmount")).json.copyFrom(Reads.pure(JsNumber(0)))
+        ((pathPaymentDetails \ Symbol("taxedAtMarginalRate")).json.copyFrom(readsTaxedAtMarginalRate) orElse doNothing) and
+        ((pathPaymentDetails \ Symbol("payeReference")).json.copyFrom((__ \ Symbol("employerPayeReference")).json.pick) orElse doNothing)
       ).reduce
   }
 
@@ -404,7 +399,7 @@ object API1830 extends Transformer {
   }
 
   //noinspection ScalaStyle
-  private def event24ReasonBenefitTakenConversion(tOP: String): String = tOP match {
+  private def event24ReasonBenefitTakenConversion(tOB: String): String = tOB match {
     case "annuityProtection" => "An annuity protection lump sum death benefit"
     case "definedBenefit" => "A defined benefit lump sum death benefit"
     case "drawdown" => "A drawdown pension fund lump sum death benefit"
