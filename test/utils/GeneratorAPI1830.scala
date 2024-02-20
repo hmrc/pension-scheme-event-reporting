@@ -800,7 +800,6 @@ object GeneratorAPI1830 {
      "small",
      "standAlone",
      "trivialCommutation",
-     "trivialCommutationDeathBenefit",
      "seriousHealthLumpSum",
      "uncrystallisedFunds",
      "uncrystallisedFundsDeathBenefit",
@@ -872,7 +871,6 @@ object GeneratorAPI1830 {
     case "small" => "A small lump sum"
     case "standAlone" => "A stand-alone lump sum"
     case "trivialCommutation" => "A trivial commutation lump sum"
-    case "trivialCommutationDeathBenefit" => "Trivial commutation lump sum death benefit"
     case "seriousHealthLumpSum" => "Serious ill health lump sum"
     case "uncrystallisedFunds" => "An uncrystalised funds pension lump sum"
     case "uncrystallisedFundsDeathBenefit" => "A uncrystallised funds lump sum death benefit"

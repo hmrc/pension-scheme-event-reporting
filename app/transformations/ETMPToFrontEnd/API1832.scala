@@ -291,7 +291,6 @@ private object API1832ReadsUtilities extends Transformer {
     case "A small lump sum" => "small"
     case "A stand-alone lump sum" => "standAlone"
     case "A trivial commutation lump sum" => "trivialCommutation"
-    case "Trivial commutation lump sum death benefit" => "trivialCommutationDeathBenefit"
     case "Serious ill health lump sum" => "seriousHealthLumpSum"
     case "An uncrystalised funds pension lump sum" => "uncrystallisedFunds"
     case "A uncrystallised funds lump sum death benefit" => "uncrystallisedFundsDeathBenefit"

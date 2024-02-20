@@ -21,7 +21,7 @@ import models.enumeration.EventType.{Event2, Event24, Event3, Event4, Event5, Ev
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
-import play.api.libs.json.{JsBoolean, JsObject, JsString, JsValue, Json}
+import play.api.libs.json.{JsObject, JsString, Json}
 
 
 //noinspection ScalaStyle
@@ -704,7 +704,6 @@ object GeneratorAPI1832 {
     case "A small lump sum" => "small"
     case "A stand-alone lump sum" => "standAlone"
     case "A trivial commutation lump sum" => "trivialCommutation"
-    case "Trivial commutation lump sum death benefit" => "trivialCommutationDeathBenefit"
     case "Serious ill health lump sum" => "seriousHealthLumpSum"
     case "An uncrystalised funds pension lump sum" => "uncrystallisedFunds"
     case "A uncrystallised funds lump sum death benefit" => "uncrystallisedFundsDeathBenefit"
@@ -735,7 +734,6 @@ object GeneratorAPI1832 {
    "A small lump sum",
    "A stand-alone lump sum",
    "A trivial commutation lump sum",
-   "Trivial commutation lump sum death benefit",
    "Serious ill health lump sum",
    "An uncrystalised funds pension lump sum",
    "A uncrystallised funds lump sum death benefit",
