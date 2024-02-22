@@ -87,11 +87,12 @@
 			"type": "array",
 			"minItems": 1,
 			"title": "eventDetails",
-			"required": [
-				"memberDetail"
-			],
 			"items": {
 				"type": "object",
+				"required": [
+					"memberDetail"
+				],
+				"additionalProperties": false,
 				"properties": {
 					"memberDetail": {
 						"type": "object",
@@ -591,6 +592,8 @@
 															},
 															"reasonBenefitTaken": {
 															},
+															"freeText": {
+															},
 															"monetaryAmount": {
 															},
 															"taxYearEndingDate": {
@@ -610,9 +613,6 @@
 													},
 													{
 														"type": "object",
-														"required": [
-															"taxedAtMarginalRate"
-														],
 														"additionalProperties": false,
 														"properties": {
 															"memberHoldProtection": {
@@ -636,6 +636,8 @@
 															"typeOfProtection": {
 															},
 															"reasonBenefitTaken": {
+															},
+															"freeText": {
 															},
 															"monetaryAmount": {
 															},
@@ -753,11 +755,9 @@
 			"type": "object",
 			"required": [
 				"amountCrystalised",
+				"taxYearEndingDate",				
 				"memberHoldProtection",
-				"availableLumpSumExceeded",
-				"availableLumpSumDBAExceeded",
-				"monetaryAmount",
-				"taxYearEndingDate"
+				"availableLumpSumExceeded"
 			],
 			"properties": {
 				"amountCrystalised": {
@@ -819,6 +819,9 @@
 						"A flexi-access drawdown lump sum death benefit",
 						"Serious ill health lump sum"
 					]
+				},
+				"freeText": {
+					"$ref": "#/definitions/freeTextType"
 				},
 				"monetaryAmount": {
 					"$ref": "#/definitions/amountType"
