@@ -127,20 +127,20 @@ private object API1832ReadsUtilities extends Transformer {
   lazy val readsEvent24PaymentDetails: Reads[JsObject] = {
     (
       pathUaMemberHoldProtection.json.copyFrom(pathEtmpMemberHoldProtectionEvent24.json.pick) and
-        (pathUaTypeOfProtectionEvent24.json.copyFrom(readsTypeOfProtectionEvent24) orElse doNothing) and
-        (pathUaPreCommenceReference.json.copyFrom(pathEtmpPreCommenceReference.json.pick) orElse doNothing) and
-        (pathUaPensionCreditReference.json.copyFrom(pathEtmpPensionCreditReference.json.pick) orElse doNothing) and
-        (pathUaNonResidenceReference.json.copyFrom(pathEtmpNonResidenceReference.json.pick) orElse doNothing) and
-        (pathUaOverseasReference.json.copyFrom(pathEtmpOverseasReference.json.pick) orElse doNothing) and
+        pathUaTypeOfProtectionEvent24.json.copyFrom(readsTypeOfProtectionEvent24).orElse(doNothing) and
+        pathUaPreCommenceReference.json.copyFrom(pathEtmpPreCommenceReference.json.pick).orElse(doNothing) and
+        pathUaPensionCreditReference.json.copyFrom(pathEtmpPensionCreditReference.json.pick).orElse(doNothing) and
+        pathUaNonResidenceReference.json.copyFrom(pathEtmpNonResidenceReference.json.pick).orElse(doNothing) and
+        pathUaOverseasReference.json.copyFrom(pathEtmpOverseasReference.json.pick).orElse(doNothing) and
         pathUaAvailableLumpSumExceeded.json.copyFrom(pathEtmpAvailableLumpSumExceeded.json.pick) and
-        (pathUaAvailableLumpSumDBAExceeded.json.copyFrom(pathEtmpAvailableLumpSumDBAExceeded.json.pick) orElse doNothing) and
-        (pathUaSchemeSpecificLumpSum.json.copyFrom(pathEtmpSchemeSpecificLumpSum.json.pick) orElse doNothing) and
+        pathUaAvailableLumpSumDBAExceeded.json.copyFrom(pathEtmpAvailableLumpSumDBAExceeded.json.pick).orElse(doNothing) and
+        pathUaSchemeSpecificLumpSum.json.copyFrom(pathEtmpSchemeSpecificLumpSum.json.pick).orElse(doNothing) and
         pathUaAmountCrystalised.json.copyFrom(pathEtmpAmountCrystalised.json.pick) and
         pathUaBCEType.json.copyFrom(readsBCETypeEvent24) and
         pathUaCrystallisedDateEvent24.json.copyFrom(pathEtmpTaxYearEndingDate.json.pick) and
-        (pathUaFreeTextEvent24.json.copyFrom(pathEtmpFreeText.json.pick) orElse doNothing) and
-        (pathUaMarginalRate.json.copyFrom(pathEtmpMarginalRate.json.pick) orElse doNothing) and
-        (pathUaPayeReference.json.copyFrom(pathEtmpPayeReference.json.pick) orElse doNothing)
+        pathUaFreeTextEvent24.json.copyFrom(pathEtmpFreeText.json.pick).orElse(doNothing) and
+        pathUaMarginalRate.json.copyFrom(pathEtmpMarginalRate.json.pick).orElse(doNothing) and
+        pathUaPayeReference.json.copyFrom(pathEtmpPayeReference.json.pick).orElse(doNothing)
     ).reduce
   }
 

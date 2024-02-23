@@ -737,7 +737,6 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
                   "amountCrystalised" -> map("lumpSumAmount"),
                   "typeOfProtection" -> typeOfProtectionEvent24(map("typeOfProtectionGroup2")),
                   "reasonBenefitTaken" -> reasonBenefitTakenEvent24(map("reasonBenefitTakenEvent24")),
-//                  "monetaryAmount" -> map("monetaryAmount"),
                   "taxYearEndingDate" -> "2023-09-22",
                   "freeText" -> map("typeOfProtectionReference")
                 ).++(overAllowanceAndDeathBenefitETMP)

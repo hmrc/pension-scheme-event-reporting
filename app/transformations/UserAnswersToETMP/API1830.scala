@@ -172,24 +172,24 @@ object API1830 extends Transformer {
       (pathToEvent \ Symbol("eventType")).json.put(JsString(s"Event$Event24")) and
         readsIndividualMemberDetails and
         (pathPaymentDetails \ Symbol("memberHoldProtection")).json.copyFrom(readsMemberHoldProtection) and
-        ((pathPaymentDetails \ Symbol("preCommenceReference"))
-          .json.copyFrom(readsPreCommenceReference) orElse doNothing) and
-        ((pathPaymentDetails \ Symbol("pensionCreditReference"))
-          .json.copyFrom(readsPensionCreditReference) orElse doNothing) and
-        ((pathPaymentDetails \ Symbol("nonResidenceReference"))
-          .json.copyFrom(readsNonResidenceEnhancement) orElse doNothing) and
-        ((pathPaymentDetails \ Symbol("overseasReference"))
-          .json.copyFrom(readsOverseasReference) orElse doNothing) and
+        (pathPaymentDetails \ Symbol("preCommenceReference"))
+          .json.copyFrom(readsPreCommenceReference).orElse(doNothing) and
+        (pathPaymentDetails \ Symbol("pensionCreditReference"))
+          .json.copyFrom(readsPensionCreditReference).orElse(doNothing) and
+        (pathPaymentDetails \ Symbol("nonResidenceReference"))
+          .json.copyFrom(readsNonResidenceEnhancement).orElse(doNothing) and
+        (pathPaymentDetails \ Symbol("overseasReference"))
+          .json.copyFrom(readsOverseasReference).orElse(doNothing) and
         (pathPaymentDetails \ Symbol("availableLumpSumExceeded")).json.copyFrom(readsAvailableLumpSumExceeded) and
-        ((pathPaymentDetails \ Symbol("availableLumpSumDBAExceeded")).json.copyFrom(readsAvailableLumpSumDBAExceeded) orElse doNothing) and
-        ((pathPaymentDetails \ Symbol("schemeSpecificLumpSum")).json.copyFrom(readsSchemeSpecificLumpSum) orElse doNothing) and
+        (pathPaymentDetails \ Symbol("availableLumpSumDBAExceeded")).json.copyFrom(readsAvailableLumpSumDBAExceeded).orElse(doNothing) and
+        (pathPaymentDetails \ Symbol("schemeSpecificLumpSum")).json.copyFrom(readsSchemeSpecificLumpSum).orElse(doNothing) and
         (pathPaymentDetails \ Symbol("amountCrystalised")).json.copyFrom((__ \ Symbol("totalAmountBenefitCrystallisation")).json.pick) and
-        ((pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionGroup2Event24) orElse doNothing) and
+        (pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionGroup2Event24).orElse(doNothing) and
         (pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.copyFrom(readsReasonBenefitTakenEvent24) and
         (pathPaymentDetails \ Symbol("taxYearEndingDate")).json.copyFrom(pathTaxYearEndingDateEvent24.json.pick) and
-        ((pathPaymentDetails \ Symbol("freeText")).json.copyFrom((__ \ Symbol("typeOfProtectionGroup2Reference")).json.pick) orElse doNothing) and
-        ((pathPaymentDetails \ Symbol("taxedAtMarginalRate")).json.copyFrom(readsTaxedAtMarginalRate) orElse doNothing) and
-        ((pathPaymentDetails \ Symbol("payeReference")).json.copyFrom((__ \ Symbol("employerPayeReference")).json.pick) orElse doNothing)
+        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom((__ \ Symbol("typeOfProtectionGroup2Reference")).json.pick).orElse(doNothing) and
+        (pathPaymentDetails \ Symbol("taxedAtMarginalRate")).json.copyFrom(readsTaxedAtMarginalRate).orElse(doNothing) and
+        (pathPaymentDetails \ Symbol("payeReference")).json.copyFrom((__ \ Symbol("employerPayeReference")).json.pick).orElse(doNothing)
       ).reduce
   }
 
@@ -254,22 +254,15 @@ object API1830 extends Transformer {
   }
 
   private val readsAvailableLumpSumDBAExceeded: Reads[JsString] = (__ \ Symbol("overAllowanceAndDeathBenefit")).json.pick.flatMap {
-    case JsBoolean(value) => {
+    case JsBoolean(value) =>
       Reads.pure(toYesNo(JsBoolean(value)))
-    }
     case _ => {
       fail[JsString]
     }
   }
 
   private val readsSchemeSpecificLumpSum: Reads[JsString] = (__ \ Symbol("typeOfProtectionGroup1")).json.pick.flatMap {
-    case JsArray(value) => {
-      if (value.contains(JsString("schemeSpecific"))) {
-        Reads.pure(JsString("Yes"))
-      } else {
-        fail[JsString]
-      }
-    }
+    case JsArray(value) if value.contains(JsString("schemeSpecific")) => Reads.pure(JsString("Yes"))
     case _ => fail[JsString]
   }
 
@@ -300,42 +293,22 @@ object API1830 extends Transformer {
   private val pathToPensionCreditReference = pathToTypeOfProtectionReferenceGroup1 \ Symbol("pensionCreditsPreCRE")
 
   private val readsNonResidenceEnhancement: Reads[JsString] = pathToNonResidenceEnhancement.json.pick.flatMap {
-    case JsString(value) =>
-      if (value.isEmpty) {
-        fail[JsString]
-      } else {
-        Reads.pure(JsString(value))
-      }
+    case JsString(value) if value.nonEmpty => Reads.pure(JsString(value))
     case _ => fail[JsString]
   }
 
   private val readsPreCommenceReference: Reads[JsString] = pathToPreCommenceReference.json.pick.flatMap {
-    case JsString(value) =>
-      if (value.isEmpty) {
-        fail[JsString]
-      } else {
-        Reads.pure(JsString(value))
-      }
+    case JsString(value) if value.nonEmpty => Reads.pure(JsString(value))
     case _ => fail[JsString]
   }
 
   private val readsOverseasReference: Reads[JsString] = pathToOverseasReference.json.pick.flatMap {
-    case JsString(value) =>
-      if (value.isEmpty) {
-        fail[JsString]
-      } else {
-        Reads.pure(JsString(value))
-      }
+    case JsString(value) if value.nonEmpty => Reads.pure(JsString(value))
     case _ => fail[JsString]
   }
 
   private val readsPensionCreditReference: Reads[JsString] = pathToPensionCreditReference.json.pick.flatMap {
-    case JsString(value) =>
-      if (value.isEmpty) {
-        fail[JsString]
-      } else {
-        Reads.pure(JsString(value))
-      }
+    case JsString(value) if value.nonEmpty => Reads.pure(JsString(value))
     case _ => fail[JsString]
   }
 
