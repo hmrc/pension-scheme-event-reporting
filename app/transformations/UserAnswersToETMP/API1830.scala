@@ -17,7 +17,7 @@
 package transformations.UserAnswersToETMP
 
 import models.enumeration.EventType
-import models.enumeration.EventType.{Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
+import models.enumeration.EventType.{Event2, Event24, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
@@ -66,6 +66,7 @@ object API1830 extends Transformer {
       case Event7 => readsIndividualMemberDetailsEvent7
       case Event8 => readsIndividualMemberDetailsEvent8
       case Event8A => readsIndividualMemberDetailsEvent8A
+      case Event24 => readsIndividualMemberDetailsEvent24
       case _ => readsIndividualMemberDetailsEvent22And23(eventType)
     }
     (memberChangeStatusReads and details).reduce
@@ -166,6 +167,32 @@ object API1830 extends Transformer {
      ).reduce
   }
 
+  private def readsIndividualMemberDetailsEvent24: Reads[JsObject] = {
+    (
+      (pathToEvent \ Symbol("eventType")).json.put(JsString(s"Event$Event24")) and
+        readsIndividualMemberDetails and
+        (pathPaymentDetails \ Symbol("memberHoldProtection")).json.copyFrom(readsMemberHoldProtection) and
+        (pathPaymentDetails \ Symbol("preCommenceReference"))
+          .json.copyFrom(readsPreCommenceReference).orElse(doNothing) and
+        (pathPaymentDetails \ Symbol("pensionCreditReference"))
+          .json.copyFrom(readsPensionCreditReference).orElse(doNothing) and
+        (pathPaymentDetails \ Symbol("nonResidenceReference"))
+          .json.copyFrom(readsNonResidenceEnhancement).orElse(doNothing) and
+        (pathPaymentDetails \ Symbol("overseasReference"))
+          .json.copyFrom(readsOverseasReference).orElse(doNothing) and
+        (pathPaymentDetails \ Symbol("availableLumpSumExceeded")).json.copyFrom(readsAvailableLumpSumExceeded) and
+        (pathPaymentDetails \ Symbol("availableLumpSumDBAExceeded")).json.copyFrom(readsAvailableLumpSumDBAExceeded).orElse(doNothing) and
+        (pathPaymentDetails \ Symbol("schemeSpecificLumpSum")).json.copyFrom(readsSchemeSpecificLumpSum).orElse(doNothing) and
+        (pathPaymentDetails \ Symbol("amountCrystalised")).json.copyFrom((__ \ Symbol("totalAmountBenefitCrystallisation")).json.pick) and
+        (pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionGroup2Event24).orElse(doNothing) and
+        (pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.copyFrom(readsReasonBenefitTakenEvent24) and
+        (pathPaymentDetails \ Symbol("taxYearEndingDate")).json.copyFrom(pathTaxYearEndingDateEvent24.json.pick) and
+        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom((__ \ Symbol("typeOfProtectionGroup2Reference")).json.pick).orElse(doNothing) and
+        (pathPaymentDetails \ Symbol("taxedAtMarginalRate")).json.copyFrom(readsTaxedAtMarginalRate).orElse(doNothing) and
+        (pathPaymentDetails \ Symbol("payeReference")).json.copyFrom((__ \ Symbol("employerPayeReference")).json.pick).orElse(doNothing)
+      ).reduce
+  }
+
   private def readsIndividualMemberDetailsEvent22And23(eventType: EventType): Reads[JsObject] = {
 
     (
@@ -182,6 +209,9 @@ object API1830 extends Transformer {
 
   private val pathDeceasedMemberDetails = __ \ Symbol("deceasedMembersDetails")
   private val pathBeneficiaryMemberDetails = __ \ Symbol("beneficiaryDetails")
+
+  private val pathCrystallisedDateEvent24 = __ \ Symbol("crystallisedDate")
+  private val pathTaxYearEndingDateEvent24 = pathCrystallisedDateEvent24 \ Symbol("date")
 
   private val readsTaxYearEndDate: Reads[JsString] = (__ \ Symbol("chooseTaxYear")).json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString(s"${str.toInt + 1}-04-05"))
@@ -213,11 +243,74 @@ object API1830 extends Transformer {
     case _ => fail[JsString]
   }
 
+  private val readsMemberHoldProtection: Reads[JsString] = (__ \ Symbol("validProtection")).json.pick.flatMap {
+    case JsBoolean(value) => Reads.pure(toYesNo(JsBoolean(value)))
+    case _ => fail[JsString]
+  }
+
+  private val readsAvailableLumpSumExceeded: Reads[JsString] = (__ \ Symbol("overAllowance")).json.pick.flatMap {
+    case JsBoolean(value) => Reads.pure(toYesNo(JsBoolean(value)))
+    case _ => fail[JsString]
+  }
+
+  private val readsAvailableLumpSumDBAExceeded: Reads[JsString] = (__ \ Symbol("overAllowanceAndDeathBenefit")).json.pick.flatMap {
+    case JsBoolean(value) =>
+      Reads.pure(toYesNo(JsBoolean(value)))
+    case _ => {
+      fail[JsString]
+    }
+  }
+
+  private val readsSchemeSpecificLumpSum: Reads[JsString] = (__ \ Symbol("typeOfProtectionGroup1")).json.pick.flatMap {
+    case JsArray(value) if value.contains(JsString("schemeSpecific")) => Reads.pure(JsString("Yes"))
+    case _ => fail[JsString]
+  }
+
+  private val readsTypeOfProtectionGroup2Event24: Reads[JsString] = (__ \ Symbol("typeOfProtectionGroup2")).json.pick.flatMap {
+    case JsString(str) => Reads.pure(JsString(event24TypeOfProtectionGroup2Conversion(str)))
+    case _ => fail[JsString]
+  }
+
+  private val readsReasonBenefitTakenEvent24: Reads[JsString] = (__ \ Symbol("bceTypeSelection")).json.pick.flatMap {
+    case JsString(str) => Reads.pure(JsString(event24ReasonBenefitTakenConversion(str)))
+    case _ => fail[JsString]
+  }
+
+  private val readsTaxedAtMarginalRate: Reads[JsString] = (__ \ Symbol("marginalRate")).json.pick.flatMap {
+    case JsBoolean(value) => Reads.pure(toYesNo(JsBoolean(value)))
+    case _ => fail[JsString]
+  }
+
   private val pathToEvent: JsPath = __ \ Symbol("memberDetail") \ Symbol("event")
   private val pathIndividualMemberDetails: JsPath = pathToEvent \ Symbol("individualDetails")
   private val pathMemberStatus: JsPath = __ \ Symbol("memberDetail") \ Symbol("memberStatus")
   private val pathAmendedVersion: JsPath = __ \ Symbol("memberDetail") \ Symbol("amendedVersion")
   private val pathPaymentDetails = pathToEvent \ Symbol("paymentDetails")
+  private val pathToTypeOfProtectionReferenceGroup1 = __ \ Symbol("typeOfProtectionGroup1Reference")
+  private val pathToNonResidenceEnhancement = pathToTypeOfProtectionReferenceGroup1 \ Symbol("nonResidenceEnhancement")
+  private val pathToPreCommenceReference = pathToTypeOfProtectionReferenceGroup1 \ Symbol("preCommencement")
+  private val pathToOverseasReference = pathToTypeOfProtectionReferenceGroup1 \ Symbol("recognisedOverseasPSTE")
+  private val pathToPensionCreditReference = pathToTypeOfProtectionReferenceGroup1 \ Symbol("pensionCreditsPreCRE")
+
+  private val readsNonResidenceEnhancement: Reads[JsString] = pathToNonResidenceEnhancement.json.pick.flatMap {
+    case JsString(value) if value.nonEmpty => Reads.pure(JsString(value))
+    case _ => fail[JsString]
+  }
+
+  private val readsPreCommenceReference: Reads[JsString] = pathToPreCommenceReference.json.pick.flatMap {
+    case JsString(value) if value.nonEmpty => Reads.pure(JsString(value))
+    case _ => fail[JsString]
+  }
+
+  private val readsOverseasReference: Reads[JsString] = pathToOverseasReference.json.pick.flatMap {
+    case JsString(value) if value.nonEmpty => Reads.pure(JsString(value))
+    case _ => fail[JsString]
+  }
+
+  private val readsPensionCreditReference: Reads[JsString] = pathToPensionCreditReference.json.pick.flatMap {
+    case JsString(value) if value.nonEmpty => Reads.pure(JsString(value))
+    case _ => fail[JsString]
+  }
 
   private val memberChangeStatusReads = (
     pathMemberStatus.json.copyFrom((__ \ Symbol("memberStatus")).json.pick).orElse(doNothing) and
@@ -264,6 +357,35 @@ object API1830 extends Transformer {
       "Member where payment of a stand-alone lump sum (100 per lump sum) and the member had protected lump sum rights of more than £375,000 with either primary protection or enhanced protection"
     case "paymentOfASchemeSpecificLumpSum" =>
       "Member where payment of a scheme specific lump sum protection and the lump sum is more than 7.5 per of the lifetime allowance"
+  }
+
+  private def event24TypeOfProtectionGroup2Conversion(tOP: String): String = tOP match {
+      case "enhancedProtection" => "Enhanced protection"
+      case "enhancedProtectionWithProtectedSum" => "Enhanced protection with protected lump sum rights of more than £375,000"
+      case "fixedProtection" => "Fixed protection"
+      case "fixedProtection2014" => "Fixed protection 2014"
+      case "fixedProtection2016" => "Fixed protection 2016"
+      case "individualProtection2014" => "Individual protection 2014"
+      case "individualProtection2016" => "Individual protection 2016"
+      case "primary" => "Primary protection"
+      case "primaryWithProtectedSum" => "Primary protection with protected lump sum rights of more than £375,000"
+  }
+
+  //noinspection ScalaStyle
+  private def event24ReasonBenefitTakenConversion(tOB: String): String = tOB match {
+    case "annuityProtection" => "An annuity protection lump sum death benefit"
+    case "definedBenefit" => "A defined benefit lump sum death benefit"
+    case "drawdown" => "A drawdown pension fund lump sum death benefit"
+    case "flexiAccess" => "A flexi-access drawdown lump sum death benefit"
+    case "commencement" => "Pension commencement lump sum"
+    case "pensionProtection" => "A pension protection lump sum death benefit"
+    case "small" => "A small lump sum"
+    case "standAlone" => "A stand-alone lump sum"
+    case "trivialCommutation" => "A trivial commutation lump sum"
+    case "seriousHealthLumpSum" => "Serious ill health lump sum"
+    case "uncrystallisedFunds" => "An uncrystalised funds pension lump sum"
+    case "uncrystallisedFundsDeathBenefit" => "A uncrystallised funds lump sum death benefit"
+    case "windingUp" => "A winding-up lump sum"
   }
 }
 
