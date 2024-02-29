@@ -267,7 +267,7 @@ object API1830 extends Transformer {
   }
 
   private val readsTypeOfProtectionGroup2Event24: Reads[JsString] = (__ \ Symbol("typeOfProtectionGroup2")).json.pick.flatMap {
-    case JsString(str) => Reads.pure(JsString(event24TypeOfProtectionGroup2Conversion(str)))
+    case JsString(str) if !str.contains(JsString("noOtherProtections")) => Reads.pure(JsString(event24TypeOfProtectionGroup2Conversion(str)))
     case _ => fail[JsString]
   }
 
