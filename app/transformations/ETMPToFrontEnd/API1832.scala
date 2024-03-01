@@ -124,22 +124,33 @@ private object API1832ReadsUtilities extends Transformer {
       ).reduce
   }
 
+  def yesNoTransform(js: JsValue, err: String):Reads[JsBoolean] = {
+    js match {
+      case JsString(value) => value match {
+        case "Yes" => Reads.pure(JsBoolean(true))
+        case "No" => Reads.pure(JsBoolean(false))
+        case _ => Reads.failed(err)
+      }
+      case _ => Reads.failed(err)
+    }
+  }
+
   lazy val readsEvent24PaymentDetails: Reads[JsObject] = {
     (
-      pathUaMemberHoldProtection.json.copyFrom(pathEtmpMemberHoldProtectionEvent24.json.pick) and
+      pathUaMemberHoldProtection.json.copyFrom(pathEtmpMemberHoldProtectionEvent24.json.pick.flatMap(yesNoTransform(_, "hold protection failed"))) and
         pathUaTypeOfProtectionEvent24.json.copyFrom(readsTypeOfProtectionEvent24).orElse(doNothing) and
         pathUaPreCommenceReference.json.copyFrom(pathEtmpPreCommenceReference.json.pick).orElse(doNothing) and
         pathUaPensionCreditReference.json.copyFrom(pathEtmpPensionCreditReference.json.pick).orElse(doNothing) and
         pathUaNonResidenceReference.json.copyFrom(pathEtmpNonResidenceReference.json.pick).orElse(doNothing) and
         pathUaOverseasReference.json.copyFrom(pathEtmpOverseasReference.json.pick).orElse(doNothing) and
-        pathUaAvailableLumpSumExceeded.json.copyFrom(pathEtmpAvailableLumpSumExceeded.json.pick) and
+        pathUaAvailableLumpSumExceeded.json.copyFrom(pathEtmpAvailableLumpSumExceeded.json.pick.flatMap(yesNoTransform(_, "available lump sum exceeded failed"))) and
         pathUaAvailableLumpSumDBAExceeded.json.copyFrom(pathEtmpAvailableLumpSumDBAExceeded.json.pick).orElse(doNothing) and
-        pathUaSchemeSpecificLumpSum.json.copyFrom(pathEtmpSchemeSpecificLumpSum.json.pick).orElse(doNothing) and
+        pathUaSchemeSpecificLumpSum.json.copyFrom(pathEtmpSchemeSpecificLumpSum.json.pick.flatMap(yesNoTransform(_, "scheme specific lump sum failed"))).orElse(doNothing) and
         pathUaAmountCrystalised.json.copyFrom(pathEtmpAmountCrystalised.json.pick) and
         pathUaBCEType.json.copyFrom(readsBCETypeEvent24) and
         pathUaCrystallisedDateEvent24.json.copyFrom(pathEtmpTaxYearEndingDate.json.pick) and
         pathUaFreeTextEvent24.json.copyFrom(pathEtmpFreeText.json.pick).orElse(doNothing) and
-        pathUaMarginalRate.json.copyFrom(pathEtmpMarginalRate.json.pick).orElse(doNothing) and
+        pathUaMarginalRate.json.copyFrom(pathEtmpMarginalRate.json.pick.flatMap(yesNoTransform(_, "taxed at marginal rate failed"))).orElse(doNothing) and
         pathUaPayeReference.json.copyFrom(pathEtmpPayeReference.json.pick).orElse(doNothing)
     ).reduce
   }

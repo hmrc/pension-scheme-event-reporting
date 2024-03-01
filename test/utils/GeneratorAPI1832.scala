@@ -21,7 +21,7 @@ import models.enumeration.EventType.{Event2, Event24, Event3, Event4, Event5, Ev
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
-import play.api.libs.json.{JsObject, JsString, Json}
+import play.api.libs.json.{JsBoolean, JsObject, JsString, Json}
 
 
 //noinspection ScalaStyle
@@ -527,6 +527,8 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
       val typeOfProtectionJson = toJsonObject(map("typeOfProtectionGroup2"), "typeOfProtection")
       val reasonBenefitTakenJson = toJsonObject(map("reasonBenefitTakenEvent24"), "reasonBenefitTaken")
 
+      def yesNoToBool(str: String): Boolean = str == "Yes"
+
       val etmpPayload = etmpData(Event24) ++
         Json.obj("eventDetails" -> Json.arr(
           Json.obj("memberDetail" -> Json.obj(
@@ -573,7 +575,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
         map("overAllowance") == "Yes" || map("overAllowanceAndDeathBenefit") == "Yes"
       ) {
         val keyAndValue = Json.obj(
-          "marginalRate" ->  JsString((map("marginalRate"))),
+          "marginalRate" ->  JsBoolean(yesNoToBool(map("marginalRate"))),
         )
         Some(keyAndValue)
       } else {
@@ -596,7 +598,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
         map("typeOfProtectionGroup1").contains("schemeSpecific")
       ) {
         val keyAndValue = Json.obj(
-          "schemeSpecificLumpSum" -> JsString("Yes"),
+          "schemeSpecificLumpSum" -> JsBoolean(true),
         )
         Some(keyAndValue)
       } else {
@@ -615,7 +617,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
               "nino" -> map("nino")
             ),
             "memberStatus" -> "New",
-            "validProtection" -> map("validProtection")) ++
+            "validProtection" -> yesNoToBool(map("validProtection"))) ++
             typeOfProtectionUAJson ++
             Json.obj("typeOfProtectionGroup1Reference" -> Json.obj(
               "preCommencement" -> map("typeOfProtectionReference"),
@@ -623,7 +625,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
               "nonResidenceEnhancement" -> map("typeOfProtectionReference"),
               "recognisedOverseasPSTE" -> map("typeOfProtectionReference"),
             ),
-            "overAllowance" -> map("overAllowance")
+            "overAllowance" -> yesNoToBool(map("overAllowance"))
           )++ optionalOverAllowanceAndDeathBenefit.get
             ++ optionalSchemeSpecificLumpSum.get ++
           Json.obj(
