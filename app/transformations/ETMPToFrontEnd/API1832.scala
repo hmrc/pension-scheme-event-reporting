@@ -198,42 +198,42 @@ private object API1832ReadsUtilities extends Transformer {
   private lazy val readsTypeOfProtectionEvent6: Reads[JsString] = {
     pathEtmpTypeOfProtection.json.pick.flatMap {
       case JsString(str) => Reads.pure(JsString(typeOfProtectionUAEvent6(str)))
-      case _ => fail(JsString("typeOfProtectionEvent6"))[JsString]
+      case _ => fail(JsString("typeOfProtectionEvent6"))
     }
   }
 
   private lazy val readsTypeOfProtectionEvent8: Reads[JsString] = {
     pathEtmpTypeOfProtection.json.pick.flatMap {
       case JsString(str) => Reads.pure(JsString(typeOfProtectionUAEvent8(str)))
-      case _ => fail(JsString("typeOfProtectionEvent8"))[JsString]
+      case _ => fail(JsString("typeOfProtectionEvent8"))
     }
   }
 
   private lazy val readsReasonBenefitTakenEvent3: Reads[JsString] = {
     pathEtmpReasonBenefitTaken.json.pick.flatMap {
       case JsString(str) => Reads.pure(JsString(reasonBenefitTakenUAEvent3(str)))
-      case _ => fail(JsString("reasonBenefitTakenEvent3"))[JsString]
+      case _ => fail(JsString("reasonBenefitTakenEvent3"))
     }
   }
 
   private lazy val readsTaxYearEndDateEvent22And23: Reads[JsString] = {
     pathEtmpTaxYearEndingDate.json.pick.flatMap {
       case JsString(str) => Reads.pure(JsString((str.substring(0, 4).toInt - 1).toString))
-      case _ => fail(JsString("taxYearEndDateEvent22And23"))[JsString]
+      case _ => fail(JsString("taxYearEndDateEvent22And23"))
     }
   }
 
   private lazy val readsTypeOfProtectionEvent24: Reads[JsString] = {
     pathEtmpTypeOfProtection.json.pick.flatMap {
       case JsString(str) => Reads.pure(JsString(typeOfProtectionUAEvent24(str)))
-      case _ => fail(JsString("typeOfProtectionEvent24"))[JsString]
+      case _ => fail(JsString("typeOfProtectionEvent24"))
     }
   }
 
   private lazy val readsBCETypeEvent24: Reads[JsString] = {
     pathEtmpBCEType.json.pick.flatMap {
       case JsString(str) => Reads.pure(JsString(bceTypeUAEvent24(str)))
-      case _ => fail(JsString("bceTypeEvent24"))[JsString]
+      case _ => fail(JsString("bceTypeEvent24"))
     }
   }
 

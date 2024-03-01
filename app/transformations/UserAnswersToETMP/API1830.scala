@@ -215,70 +215,70 @@ object API1830 extends Transformer {
 
   private val readsTaxYearEndDate: Reads[JsString] = (__ \ Symbol("chooseTaxYear")).json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString(s"${str.toInt + 1}-04-05"))
-    case _ => fail(JsString("taxYearEndDate"))[JsString]
+    case _ => fail(JsString("taxYearEndDate"))
   }
 
   private val readsTypeOfBenefitEvent3: Reads[JsString] = (pathBenefitType \ Symbol("reasonBenefitTaken")).json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString(event3TypeOfBenefitConversion(str)))
-    case _ => fail(JsString("typeOfBenefitEvent3"))[JsString]
+    case _ => fail(JsString("typeOfBenefitEvent3"))
   }
 
   private val readsTypeOfProtectionEvent6: Reads[JsString] = (__ \ Symbol("typeOfProtection")).json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString(event6TypeOfProtectionConversion(str)))
-    case _ => fail(JsString("typeOfProtectionEvent6"))[JsString]
+    case _ => fail(JsString("typeOfProtectionEvent6"))
   }
 
   private val readsTypeOfProtectionEvent8: Reads[JsString] = (__ \ Symbol("typeOfProtection")).json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString(event8TypeOfProtectionConversion(str)))
-    case _ => fail(JsString("typeOfProtectionEvent8"))[JsString]
+    case _ => fail(JsString("typeOfProtectionEvent8"))
   }
 
   private val readsTypeOfProtectionEvent8A: Reads[JsString] = (__ \ Symbol("typeOfProtection")).json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString(event8ATypeOfProtectionConversion(str)))
-    case _ => fail(JsString("typeOfProtectionEvent8A"))[JsString]
+    case _ => fail(JsString("typeOfProtectionEvent8A"))
   }
 
   private val readsPaymentTypeEvent8A: Reads[JsString] = (__ \ Symbol("paymentType")).json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString(event8APaymentTypeConversion(str)))
-    case _ => fail(JsString("paymentTypeEvent8A"))[JsString]
+    case _ => fail(JsString("paymentTypeEvent8A"))
   }
 
   private val readsMemberHoldProtection: Reads[JsString] = (__ \ Symbol("validProtection")).json.pick.flatMap {
     case JsBoolean(value) => Reads.pure(toYesNo(JsBoolean(value)))
-    case _ => fail(JsString("memberHoldProtection"))[JsString]
+    case _ => fail(JsString("memberHoldProtection"))
   }
 
   private val readsAvailableLumpSumExceeded: Reads[JsString] = (__ \ Symbol("overAllowance")).json.pick.flatMap {
     case JsBoolean(value) => Reads.pure(toYesNo(JsBoolean(value)))
-    case _ => fail(JsString("availableLumpSumExceeded"))[JsString]
+    case _ => fail(JsString("availableLumpSumExceeded"))
   }
 
   private val readsAvailableLumpSumDBAExceeded: Reads[JsString] = (__ \ Symbol("overAllowanceAndDeathBenefit")).json.pick.flatMap {
     case JsBoolean(value) =>
       Reads.pure(toYesNo(JsBoolean(value)))
     case _ => {
-      fail(JsString("availableLumpSumDBAExceeded"))[JsString]
+      fail(JsString("availableLumpSumDBAExceeded"))
     }
   }
 
   private val readsSchemeSpecificLumpSum: Reads[JsString] = (__ \ Symbol("typeOfProtectionGroup1")).json.pick.flatMap {
     case JsArray(value) if value.contains(JsString("schemeSpecific")) => Reads.pure(JsString("Yes"))
-    case _ => fail(JsString("schemeSpecificLumpSum"))[JsString]
+    case _ => fail(JsString("schemeSpecificLumpSum"))
   }
 
   private val readsTypeOfProtectionGroup2Event24: Reads[JsString] = (__ \ Symbol("typeOfProtectionGroup2")).json.pick.flatMap {
     case JsString(str) if str != "noOtherProtections" => Reads.pure(JsString(event24TypeOfProtectionGroup2Conversion(str)))
-    case _ => fail(JsString("typeOfProtectionGroup2Event24"))[JsString]
+    case _ => fail(JsString("typeOfProtectionGroup2Event24"))
   }
 
   private val readsReasonBenefitTakenEvent24: Reads[JsString] = (__ \ Symbol("bceTypeSelection")).json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString(event24ReasonBenefitTakenConversion(str)))
-    case _ => fail(JsString("reasonBenefitTakenEvent24"))[JsString]
+    case _ => fail(JsString("reasonBenefitTakenEvent24"))
   }
 
   private val readsTaxedAtMarginalRate: Reads[JsString] = (__ \ Symbol("marginalRate")).json.pick.flatMap {
     case JsBoolean(value) => Reads.pure(toYesNo(JsBoolean(value)))
-    case _ => fail(JsString("taxedAtMarginalRate"))[JsString]
+    case _ => fail(JsString("taxedAtMarginalRate"))
   }
 
   private val pathToEvent: JsPath = __ \ Symbol("memberDetail") \ Symbol("event")
@@ -294,22 +294,22 @@ object API1830 extends Transformer {
 
   private val readsNonResidenceEnhancement: Reads[JsString] = pathToNonResidenceEnhancement.json.pick.flatMap {
     case JsString(value) if value.nonEmpty => Reads.pure(JsString(value))
-    case _ => fail(JsString("nonResidenceEnhancement"))[JsString]
+    case _ => fail(JsString("nonResidenceEnhancement"))
   }
 
   private val readsPreCommenceReference: Reads[JsString] = pathToPreCommenceReference.json.pick.flatMap {
     case JsString(value) if value.nonEmpty => Reads.pure(JsString(value))
-    case _ => fail(JsString("preCommenceReference"))[JsString]
+    case _ => fail(JsString("preCommenceReference"))
   }
 
   private val readsOverseasReference: Reads[JsString] = pathToOverseasReference.json.pick.flatMap {
     case JsString(value) if value.nonEmpty => Reads.pure(JsString(value))
-    case _ => fail(JsString("overseasReference"))[JsString]
+    case _ => fail(JsString("overseasReference"))
   }
 
   private val readsPensionCreditReference: Reads[JsString] = pathToPensionCreditReference.json.pick.flatMap {
     case JsString(value) if value.nonEmpty => Reads.pure(JsString(value))
-    case _ => fail(JsString("pensionCreditReference"))[JsString]
+    case _ => fail(JsString("pensionCreditReference"))
   }
 
   private val memberChangeStatusReads = (
