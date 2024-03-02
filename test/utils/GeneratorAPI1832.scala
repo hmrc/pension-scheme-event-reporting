@@ -564,7 +564,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
 
       val optionalOverAllowanceAndDeathBenefit: Option[JsObject] = if (map("overAllowance") == "No") {
         val keyAndValue = Json.obj(
-          "overAllowanceAndDeathBenefit" -> JsString(map("overAllowanceAndDeathBenefit")),
+          "overAllowanceAndDeathBenefit" -> JsBoolean(yesNoToBool(map("overAllowanceAndDeathBenefit"))),
         )
         Some(keyAndValue)
       } else {
