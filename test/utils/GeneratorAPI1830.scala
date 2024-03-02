@@ -878,14 +878,14 @@ object GeneratorAPI1830 {
 
   private def typeOfProtectionEvent24(tOP: String): String = tOP match {
     case "enhancedProtection" => "Enhanced protection"
-    case "enhancedProtectionWithProtectedSum" => "Enhanced protection with protected lump sum rights of more than £375,000"
+    case "enhancedProtectionWithProtectedSum" => "Enhanced protection with protected lump sum rights of more than 375,000"
     case "fixedProtection" => "Fixed protection"
     case "fixedProtection2014" => "Fixed protection 2014"
     case "fixedProtection2016" => "Fixed protection 2016"
     case "individualProtection2014" => "Individual protection 2014"
     case "individualProtection2016" => "Individual protection 2016"
     case "primary" => "Primary protection"
-    case "primaryWithProtectedSum" => "Primary protection with protected lump sum rights of more than £375,000"
+    case "primaryWithProtectedSum" => "Primary protection with protected lump sum rights of more than 375,000"
   }
 
   private def randomValues(): Gen[Map[String, String]] = {
