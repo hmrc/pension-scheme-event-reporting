@@ -283,14 +283,14 @@ private object API1832ReadsUtilities extends Transformer {
 
   private def typeOfProtectionUAEvent24(tOP: String): String = tOP match {
     case "Enhanced protection" => "enhancedProtection"
-    case "Enhanced protection with protected lump sum rights of more than £375,000" => "enhancedProtectionWithProtectedSum"
+    case "Enhanced protection with protected lump sum rights of more than 375,000" => "enhancedProtectionWithProtectedSum"
     case "Fixed protection" => "fixedProtection"
     case "Fixed protection 2014" => "fixedProtection2014"
     case "Fixed protection 2016" => "fixedProtection2016"
     case "Individual protection 2014" => "individualProtection2014"
     case "Individual protection 2016" => "individualProtection2016"
     case "Primary protection" => "primaryProtection"
-    case "Primary protection with protected lump sum rights of more than £375,000" => "primaryWithProtectedSum"
+    case "Primary protection with protected lump sum rights of more than 375,000" => "primaryWithProtectedSum"
   }
 
   private def bceTypeUAEvent24(tOP: String): String = tOP match {

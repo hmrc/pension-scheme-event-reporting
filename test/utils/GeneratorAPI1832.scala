@@ -686,14 +686,14 @@ object GeneratorAPI1832 {
 
   private def typeOfProtectionEvent24(tOP: String): String = tOP match {
     case "Enhanced protection" => "enhancedProtection"
-    case "Enhanced protection with protected lump sum rights of more than £375,000" => "enhancedProtectionWithProtectedSum"
+    case "Enhanced protection with protected lump sum rights of more than 375,000" => "enhancedProtectionWithProtectedSum"
     case "Fixed protection" => "fixedProtection"
     case "Fixed protection 2014" => "fixedProtection2014"
     case "Fixed protection 2016" => "fixedProtection2016"
     case "Individual protection 2014" => "individualProtection2014"
     case "Individual protection 2016" => "individualProtection2016"
     case "Primary protection" => "primaryProtection"
-    case "Primary protection with protected lump sum rights of more than £375,000" => "primaryWithProtectedSum"
+    case "Primary protection with protected lump sum rights of more than 375,000" => "primaryWithProtectedSum"
   }
 
   //noinspection ScalaStyle
@@ -752,14 +752,14 @@ object GeneratorAPI1832 {
 
   private val protectionTypesGroup2Event24 = Seq(
    "Enhanced protection",
-   "Enhanced protection with protected lump sum rights of more than £375,000",
+   "Enhanced protection with protected lump sum rights of more than 375,000",
    "Fixed protection",
    "Fixed protection 2014",
    "Fixed protection 2016",
    "Individual protection 2014",
    "Individual protection 2016",
    "Primary protection",
-   "Primary protection with protected lump sum rights of more than £375,000"
+   "Primary protection with protected lump sum rights of more than 375,000"
   )
 
   //noinspection ScalaStyle
