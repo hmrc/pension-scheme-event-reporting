@@ -21,7 +21,7 @@ import models.enumeration.EventType.{Event2, Event24, Event3, Event4, Event5, Ev
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
-import play.api.libs.json.{JsBoolean, JsObject, JsString, Json}
+import play.api.libs.json.{JsArray, JsBoolean, JsObject, JsString, Json}
 
 
 //noinspection ScalaStyle
@@ -594,19 +594,14 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
         Some(JsObject.empty)
       }
 
-      val optionalSchemeSpecificLumpSum: Option[JsObject] = if (
-        map("typeOfProtectionGroup1").contains("schemeSpecific")
-      ) {
-        val keyAndValue = Json.obj(
-          "schemeSpecificLumpSum" -> JsBoolean(true),
-        )
-        Some(keyAndValue)
-      } else {
-        Some(JsObject.empty)
-      }
-
       val typeOfProtectionUAJson = toJsonObject(map("typeOfProtectionGroup2"), "typeOfProtectionGroup2", typeOfProtectionEvent24)
       val reasonBenefitTakenUAJson = toJsonObject(map("reasonBenefitTakenEvent24"), "bceTypeSelection", reasonBenefitTakenEvent24)
+
+      val typeOfProtectionGroup1 = {
+
+        if(map("typeOfProtectionGroup1").contains("schemeSpecific")) Json.obj("typeOfProtectionGroup1" -> JsArray(Seq(JsString("schemeSpecific"))))
+        else Json.obj()
+      }
 
       val userAnswers = Json.obj(
         s"event${Event24.toString}" -> Json.obj("members" -> Json.arr(
@@ -619,6 +614,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
             "memberStatus" -> "New",
             "validProtection" -> yesNoToBool(map("validProtection"))) ++
             typeOfProtectionUAJson ++
+            typeOfProtectionGroup1 ++
             Json.obj("typeOfProtectionGroup1Reference" -> Json.obj(
               "preCommencement" -> map("typeOfProtectionReference"),
               "pensionCreditsPreCRE" -> map("typeOfProtectionReference"),
@@ -626,8 +622,7 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
               "recognisedOverseasPSTE" -> map("typeOfProtectionReference"),
             ),
             "overAllowance" -> yesNoToBool(map("overAllowance"))
-          )++ optionalOverAllowanceAndDeathBenefit.get
-            ++ optionalSchemeSpecificLumpSum.get ++
+          )++ optionalOverAllowanceAndDeathBenefit.get ++
           Json.obj(
             "totalAmountBenefitCrystallisation" -> map("lumpSumAmount")
           ) ++
