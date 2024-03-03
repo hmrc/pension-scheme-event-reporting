@@ -842,7 +842,7 @@ object GeneratorAPI1830 {
 
   private def typeOfProtectionETMPEvent8A(tOP: String): String = tOP match {
     case "primaryProtection" => "Primary Protection"
-    case "enhancedProtection" => "Enhanced"
+    case "enhancedProtection" => "Enhanced protection"
   }
 
   private def paymentTypeETMPEvent8A(pT: String): String = pT match {
