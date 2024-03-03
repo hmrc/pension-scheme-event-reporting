@@ -348,7 +348,7 @@ object API1830 extends Transformer {
 
   private def event8ATypeOfProtectionConversion(tOP: String): String = tOP match {
     case "primaryProtection" => "Primary Protection"
-    case "enhancedProtection" => "Enhanced"
+    case "enhancedProtection" => "Enhanced protection"
   }
 
   //noinspection ScalaStyle
