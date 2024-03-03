@@ -139,13 +139,13 @@ private object API1832ReadsUtilities extends Transformer {
     (
       pathUaMemberHoldProtection.json.copyFrom(pathEtmpMemberHoldProtectionEvent24.json.pick.flatMap(yesNoTransform(_, "hold protection failed"))) and
         pathUaTypeOfProtectionEvent24.json.copyFrom(readsTypeOfProtectionEvent24).orElse(doNothing) and
+        pathUaProtectionGroup1Event24.json.copyFrom(readsTypeOfProtectionGroup1Event24).orElse(doNothing) and
         pathUaPreCommenceReference.json.copyFrom(pathEtmpPreCommenceReference.json.pick).orElse(doNothing) and
         pathUaPensionCreditReference.json.copyFrom(pathEtmpPensionCreditReference.json.pick).orElse(doNothing) and
         pathUaNonResidenceReference.json.copyFrom(pathEtmpNonResidenceReference.json.pick).orElse(doNothing) and
         pathUaOverseasReference.json.copyFrom(pathEtmpOverseasReference.json.pick).orElse(doNothing) and
         pathUaAvailableLumpSumExceeded.json.copyFrom(pathEtmpAvailableLumpSumExceeded.json.pick.flatMap(yesNoTransform(_, "available lump sum exceeded failed"))) and
         pathUaAvailableLumpSumDBAExceeded.json.copyFrom(pathEtmpAvailableLumpSumDBAExceeded.json.pick.flatMap(yesNoTransform(_, "available lump sum DBA exceeded failed"))).orElse(doNothing) and
-        pathUaSchemeSpecificLumpSum.json.copyFrom(pathEtmpSchemeSpecificLumpSum.json.pick.flatMap(yesNoTransform(_, "scheme specific lump sum failed"))).orElse(doNothing) and
         pathUaAmountCrystalised.json.copyFrom(pathEtmpAmountCrystalised.json.pick) and
         pathUaBCEType.json.copyFrom(readsBCETypeEvent24) and
         pathUaCrystallisedDateEvent24.json.copyFrom(pathEtmpTaxYearEndingDate.json.pick) and
@@ -238,6 +238,15 @@ private object API1832ReadsUtilities extends Transformer {
     pathEtmpTypeOfProtection.json.pick.flatMap {
       case JsString(str) => Reads.pure(JsString(typeOfProtectionUAEvent24(str)))
       case _ => fail(JsString("typeOfProtectionEvent24"))
+    }
+  }
+
+  private lazy val readsTypeOfProtectionGroup1Event24: Reads[JsArray] = {
+    pathEtmpSchemeSpecificLumpSum.json.pick.flatMap {
+      case JsString(str) if str == "Yes" =>
+        Reads.pure(JsArray(Seq(JsString("schemeSpecific"))))
+      case x =>
+        fail(JsArray(Seq(JsString("typeOfProtectionGroup1Event24"))))
     }
   }
 
@@ -336,9 +345,8 @@ private object MemberEventReportPaths {
   val pathUaMembersDetails: JsPath = __ \ Symbol("membersDetails")
   val pathUaPayeReference: JsPath = __ \ Symbol("employerPayeReference")
   val pathUaPaymentType: JsPath = __ \ Symbol("paymentType")
+  val pathUaProtectionGroup1Event24: JsPath = __ \ Symbol("typeOfProtectionGroup1")
   val pathUaProtectionRefGroup1: JsPath = __ \ Symbol("typeOfProtectionGroup1Reference")
-  val pathUaSchemeSpecificLumpSum: JsPath = __ \ Symbol("schemeSpecificLumpSum")
-  val pathUaTaxYearEndingDate: JsPath = __ \ Symbol("crystallisedDate")
   val pathUaTotalPensionAmounts: JsPath = __ \ Symbol("totalPensionAmounts")
   val pathUaTypeOfProtection: JsPath = __ \ Symbol("typeOfProtection")
   val pathUaTypeOfProtectionEvent24: JsPath = __ \ Symbol("typeOfProtectionGroup2")
