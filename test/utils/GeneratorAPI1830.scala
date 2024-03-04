@@ -884,7 +884,7 @@ object GeneratorAPI1830 {
     case "fixedProtection2016" => "Fixed protection 2016"
     case "individualProtection2014" => "Individual protection 2014"
     case "individualProtection2016" => "Individual protection 2016"
-    case "primary" => "Primary protection"
+    case "primary" => "Primary Protection"
     case "primaryWithProtectedSum" => "Primary protection with protected lump sum rights of more than 375,000"
   }
 
