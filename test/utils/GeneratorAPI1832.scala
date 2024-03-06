@@ -689,7 +689,7 @@ object GeneratorAPI1832 {
     case "Fixed protection 2016" => "fixedProtection2016"
     case "Individual protection 2014" => "individualProtection2014"
     case "Individual protection 2016" => "individualProtection2016"
-    case "Primary Protection" => "primaryProtection"
+    case "Primary Protection" => "primary"
     case "Primary protection with protected lump sum rights of more than 375,000" => "primaryWithProtectedSum"
   }
 
