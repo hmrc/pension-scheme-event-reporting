@@ -597,11 +597,13 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
       val typeOfProtectionUAJson = toJsonObject(map("typeOfProtectionGroup2"), "typeOfProtectionGroup2", typeOfProtectionEvent24)
       val reasonBenefitTakenUAJson = toJsonObject(map("reasonBenefitTakenEvent24"), "bceTypeSelection", reasonBenefitTakenEvent24)
 
-      val typeOfProtectionGroup1 = {
-
-        if(map("typeOfProtectionGroup1").contains("schemeSpecific")) Json.obj("typeOfProtectionGroup1" -> JsArray(Seq(JsString("schemeSpecific"))))
-        else Json.obj()
+      val group1Array = if (schemeSpecificETMP == Json.obj("schemeSpecificLumpSum" -> JsString("Yes"))) {
+        Json.arr("preCommencement", "pensionCreditsPreCRE", "nonResidenceEnhancement", "recognisedOverseasPSTE", "schemeSpecific")
+      } else {
+        Json.arr("preCommencement", "pensionCreditsPreCRE", "nonResidenceEnhancement", "recognisedOverseasPSTE")
       }
+
+      val typeOfProtectionGroup1 = Json.obj("typeOfProtectionGroup1" -> group1Array)
 
       val userAnswers = Json.obj(
         s"event${Event24.toString}" -> Json.obj("members" -> Json.arr(
@@ -687,7 +689,7 @@ object GeneratorAPI1832 {
     case "Fixed protection 2016" => "fixedProtection2016"
     case "Individual protection 2014" => "individualProtection2014"
     case "Individual protection 2016" => "individualProtection2016"
-    case "Primary Protection" => "primaryProtection"
+    case "Primary Protection" => "primary"
     case "Primary protection with protected lump sum rights of more than 375,000" => "primaryWithProtectedSum"
   }
 

@@ -20,7 +20,7 @@ import models.enumeration.EventType
 import models.enumeration.EventType.{Event2, Event24, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
-import play.api.libs.json._
+import play.api.libs.json.{Reads, _}
 import transformations.Transformer
 
 
@@ -242,11 +242,37 @@ private object API1832ReadsUtilities extends Transformer {
   }
 
   private lazy val readsTypeOfProtectionGroup1Event24: Reads[JsArray] = {
-    pathEtmpSchemeSpecificLumpSum.json.pick.flatMap {
-      case JsString(str) if str == "Yes" =>
-        Reads.pure(JsArray(Seq(JsString("schemeSpecific"))))
-      case x =>
-        fail(JsArray(Seq(JsString("typeOfProtectionGroup1Event24"))))
+    for {
+      preCommencement <- pathEtmpPreCommenceReference.readNullable[String].map {
+        case Some(_) => "preCommencement"
+        case None => ""
+      }
+      pensionCreditsPreCRE <- pathEtmpPensionCreditReference.readNullable[String].map {
+        case Some(_) => "pensionCreditsPreCRE"
+        case None => ""
+      }
+      nonResidenceEnhancement <- pathEtmpNonResidenceReference.readNullable[String].map {
+        case Some(_) => "nonResidenceEnhancement"
+        case None => ""
+      }
+      recognisedOverseasPSTE <- pathEtmpOverseasReference.readNullable[String].map {
+        case Some(_) => "recognisedOverseasPSTE"
+        case None => ""
+      }
+      schemeSpecific <- pathEtmpSchemeSpecificLumpSum.readNullable[String].map {
+        case Some(str) if str == "Yes" => "schemeSpecific"
+        case _ => ""
+      }
+    } yield {
+      val filteredStrings = Seq(
+        JsString(preCommencement),
+        JsString(pensionCreditsPreCRE),
+        JsString(nonResidenceEnhancement),
+        JsString(recognisedOverseasPSTE),
+        JsString(schemeSpecific)
+      ).filter(_ != JsString(""))
+
+      JsArray(filteredStrings)
     }
   }
 
@@ -298,7 +324,7 @@ private object API1832ReadsUtilities extends Transformer {
     case "Fixed protection 2016" => "fixedProtection2016"
     case "Individual protection 2014" => "individualProtection2014"
     case "Individual protection 2016" => "individualProtection2016"
-    case "Primary Protection" => "primaryProtection"
+    case "Primary Protection" => "primary"
     case "Primary protection with protected lump sum rights of more than 375,000" => "primaryWithProtectedSum"
   }
 
