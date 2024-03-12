@@ -140,10 +140,10 @@ private object API1832ReadsUtilities extends Transformer {
       pathUaMemberHoldProtection.json.copyFrom(pathEtmpMemberHoldProtectionEvent24.json.pick.flatMap(yesNoTransform(_, "hold protection failed"))) and
         pathUaTypeOfProtectionEvent24.json.copyFrom(readsTypeOfProtectionEvent24).orElse(doNothing) and
         pathUaProtectionGroup1Event24.json.copyFrom(readsTypeOfProtectionGroup1Event24).orElse(doNothing) and
-        pathUaPreCommenceReference.json.copyFrom(pathEtmpPreCommenceReference.json.pick).orElse(doNothing) and
-        pathUaPensionCreditReference.json.copyFrom(pathEtmpPensionCreditReference.json.pick).orElse(doNothing) and
-        pathUaNonResidenceReference.json.copyFrom(pathEtmpNonResidenceReference.json.pick).orElse(doNothing) and
-        pathUaOverseasReference.json.copyFrom(pathEtmpOverseasReference.json.pick).orElse(doNothing) and
+        pathUaPreCommenceReference.json.copyFrom(readsPreCommenceReference).orElse(doNothing) and
+        pathUaPensionCreditReference.json.copyFrom(readsPensionCreditReference).orElse(doNothing) and
+        pathUaNonResidenceReference.json.copyFrom(readsNonResidenceReference).orElse(doNothing) and
+        pathUaOverseasReference.json.copyFrom(readsOverseasReference).orElse(doNothing) and
         pathUaAvailableLumpSumExceeded.json.copyFrom(pathEtmpAvailableLumpSumExceeded.json.pick.flatMap(yesNoTransform(_, "available lump sum exceeded failed"))) and
         pathUaAvailableLumpSumDBAExceeded.json.copyFrom(pathEtmpAvailableLumpSumDBAExceeded.json.pick.flatMap(yesNoTransform(_, "available lump sum DBA exceeded failed"))).orElse(doNothing) and
         pathUaAmountCrystalised.json.copyFrom(pathEtmpAmountCrystalised.json.pick) and
@@ -238,6 +238,34 @@ private object API1832ReadsUtilities extends Transformer {
     pathEtmpTypeOfProtection.json.pick.flatMap {
       case JsString(str) => Reads.pure(JsString(typeOfProtectionUAEvent24(str)))
       case _ => fail(JsString("typeOfProtectionEvent24"))
+    }
+  }
+
+  private lazy val readsPreCommenceReference: Reads[JsString] = {
+    pathEtmpPreCommenceReference.readNullable[String].map {
+      case Some(str) => JsString(str)
+      case _ => JsString("")
+    }
+  }
+
+  private lazy val readsPensionCreditReference: Reads[JsString] = {
+    pathEtmpPensionCreditReference.readNullable[String].map {
+      case Some(str) => JsString(str)
+      case _ => JsString("")
+    }
+  }
+
+  private lazy val readsNonResidenceReference: Reads[JsString] = {
+    pathEtmpNonResidenceReference.readNullable[String].map {
+      case Some(str) => JsString(str)
+      case _ => JsString("")
+    }
+  }
+
+  private lazy val readsOverseasReference: Reads[JsString] = {
+    pathEtmpOverseasReference.readNullable[String].map {
+      case Some(str) => JsString(str)
+      case _ => JsString("")
     }
   }
 
