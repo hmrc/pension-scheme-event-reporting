@@ -180,8 +180,8 @@ object API1830 extends Transformer {
           .json.copyFrom(readsNonResidenceEnhancement).orElse(doNothing) and
         (pathPaymentDetails \ Symbol("overseasReference"))
           .json.copyFrom(readsOverseasReference).orElse(doNothing) and
+        (pathPaymentDetails \ Symbol("availableLumpSumDBAExceeded")).json.copyFrom(readsAvailableLumpSumDBAExceeded) and
         (pathPaymentDetails \ Symbol("availableLumpSumExceeded")).json.copyFrom(readsAvailableLumpSumExceeded) and
-        (pathPaymentDetails \ Symbol("availableLumpSumDBAExceeded")).json.copyFrom(readsAvailableLumpSumDBAExceeded).orElse(doNothing) and
         (pathPaymentDetails \ Symbol("schemeSpecificLumpSum")).json.copyFrom(readsSchemeSpecificLumpSum).orElse(doNothing) and
         (pathPaymentDetails \ Symbol("amountCrystalised")).json.copyFrom((__ \ Symbol("totalAmountBenefitCrystallisation")).json.pick) and
         (pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionGroup2Event24).orElse(doNothing) and
@@ -248,17 +248,20 @@ object API1830 extends Transformer {
     case _ => fail(JsString("memberHoldProtection"))
   }
 
-  private val readsAvailableLumpSumExceeded: Reads[JsString] = (__ \ Symbol("overAllowance")).json.pick.flatMap {
-    case JsBoolean(value) => Reads.pure(toYesNo(JsBoolean(value)))
-    case _ => fail(JsString("availableLumpSumExceeded"))
+  private val readsAvailableLumpSumExceeded: Reads[JsString] = (__ \ Symbol("overAllowanceAndDeathBenefit")).json.pick.flatMap {
+    case JsBoolean(value) => value match {
+      case true => Reads.pure(toYesNo(JsBoolean(false)))
+      case false => (__ \ Symbol("overAllowance")).json.pick.flatMap {
+        case JsBoolean(value) => Reads.pure(toYesNo(JsBoolean(value)))
+        case _ => fail(JsString("availableLumpSumExceeded"))
+      }
+    }
+    case _ => fail(JsString("availableLumpSumDBAExceeded"))
   }
 
   private val readsAvailableLumpSumDBAExceeded: Reads[JsString] = (__ \ Symbol("overAllowanceAndDeathBenefit")).json.pick.flatMap {
-    case JsBoolean(value) =>
-      Reads.pure(toYesNo(JsBoolean(value)))
-    case _ => {
-      fail(JsString("availableLumpSumDBAExceeded"))
-    }
+    case JsBoolean(value) => Reads.pure(toYesNo(JsBoolean(value)))
+    case _ => fail(JsString("availableLumpSumDBAExceeded"))
   }
 
   private val readsSchemeSpecificLumpSum: Reads[JsString] = (__ \ Symbol("typeOfProtectionGroup1")).json.pick.flatMap {
