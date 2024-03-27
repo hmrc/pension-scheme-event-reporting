@@ -21,7 +21,7 @@ import com.mongodb.client.model.FindOneAndUpdateOptions
 import org.mongodb.scala.model.Updates.set
 import org.mongodb.scala.model._
 import play.api.Logging
-import play.api.libs.json._
+import play.api.libs.json.JsValue
 import repositories.CacheRepository.collectionIndexes
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
@@ -77,11 +77,19 @@ class CacheRepository @Inject()(collectionName: String,
   }
 
   def get(id: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
-    collection.find(
-      filter = Filters.eq(idKey, id)
-    ).toFuture().map {
-      _.headOption.map { jsValue =>
-        (jsValue \ dataKey).as[JsValue]
+
+    val updatedCollection = collection.updateMany(
+      filter = Filters.eq(idKey, id),
+      update = set(expireAtKey, getExpireAt)
+    ).toFuture()
+
+    updatedCollection.flatMap { _ =>
+      collection.find(
+        filter = Filters.eq(idKey, id)
+      ).toFuture().map {
+        _.headOption.map { jsValue =>
+          (jsValue \ dataKey).as[JsValue]
+        }
       }
     }
   }
