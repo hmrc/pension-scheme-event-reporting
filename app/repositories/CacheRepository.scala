@@ -50,18 +50,6 @@ class CacheRepository @Inject()(collectionName: String,
 
   import CacheRepository._
 
-  private def getExpireAt: LocalDateTime =
-    (expireInSeconds, expireInDays) match {
-      case (Some(seconds), None) =>
-        LocalDateTime.now(ZoneId.of("UTC"))
-          .plusSeconds(seconds)
-      case (None, Some(days)) =>
-        LocalDateTime.now(ZoneId.of("UTC"))
-          .toLocalDate
-          .plusDays(days).atStartOfDay
-      case _ => throw new RuntimeException("Missing config item for expire in days/ seconds: one and only one should be present")
-    }
-
   def save(id: String, userData: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val upsertOptions = new FindOneAndUpdateOptions().upsert(true)
     collection.findOneAndUpdate(
@@ -76,20 +64,25 @@ class CacheRepository @Inject()(collectionName: String,
     ).toFuture().map(_ => (): Unit)
   }
 
+  private def getExpireAt: LocalDateTime =
+    (expireInSeconds, expireInDays) match {
+      case (Some(seconds), None) =>
+        LocalDateTime.now(ZoneId.of("UTC"))
+          .plusSeconds(seconds)
+      case (None, Some(days)) =>
+        LocalDateTime.now(ZoneId.of("UTC"))
+          .toLocalDate
+          .plusDays(days).atStartOfDay
+      case _ => throw new RuntimeException("Missing config item for expire in days/ seconds: one and only one should be present")
+    }
+
   def get(id: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
 
-    val updatedCollection = collection.updateMany(
-      filter = Filters.eq(idKey, id),
-      update = set(expireAtKey, getExpireAt)
-    ).toFuture()
-
-    updatedCollection.flatMap { _ =>
-      collection.find(
-        filter = Filters.eq(idKey, id)
-      ).toFuture().map {
-        _.headOption.map { jsValue =>
-          (jsValue \ dataKey).as[JsValue]
-        }
+    collection.find(
+      filter = Filters.eq(idKey, id)
+    ).toFuture().map {
+      _.headOption.map { jsValue =>
+        (jsValue \ dataKey).as[JsValue]
       }
     }
   }

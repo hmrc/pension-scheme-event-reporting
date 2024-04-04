@@ -21,6 +21,7 @@ import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.EventDataIdentifier
 import models.enumeration.EventType
 import org.mongodb.scala.bson.conversions.Bson
+import org.mongodb.scala.model.Updates.set
 import org.mongodb.scala.model._
 import org.mongodb.scala.result
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
@@ -196,20 +197,33 @@ class EventReportCacheRepository @Inject()(
   }
 
   private def getByEDI(pstr: String, edi: EventDataIdentifier)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
-    collection.find[EventReportCacheEntry](
-      Filters.and(
-        Filters.equal(pstrKey, pstr),
-        Filters.equal(eventTypeKey, edi.eventType.toString),
-        Filters.equal(yearKey, edi.year),
-        Filters.equal(versionKey, edi.version),
-        Filters.equal(externalIdKey, edi.externalId)
-      )
-    ).headOption().map {
-      _.map {
-        dataEntry =>
-          dataEntry.data
+
+    val updatedCollection = collection.updateMany(
+      filter = Filters.eq(externalIdKey, edi.externalId),
+      update = set(
+        expireAtKey,
+        LocalDateTime.now(ZoneId.of("UTC")).plusSeconds(expireInSeconds))
+    ).toFuture()
+
+    updatedCollection.flatMap { _ =>
+
+      collection.find[EventReportCacheEntry](
+        Filters.and(
+          Filters.equal(pstrKey, pstr),
+          Filters.equal(eventTypeKey, edi.eventType.toString),
+          Filters.equal(yearKey, edi.year),
+          Filters.equal(versionKey, edi.version),
+          Filters.equal(externalIdKey, edi.externalId)
+        )
+      ).headOption().map {
+        _.map {
+          dataEntry =>
+            dataEntry.data
+        }
       }
+
     }
+
   }
 
   def removeAllOnSignOut(externalId: String)(implicit ec: ExecutionContext): Future[Unit] = {
