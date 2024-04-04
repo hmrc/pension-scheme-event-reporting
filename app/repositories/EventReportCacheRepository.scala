@@ -70,9 +70,9 @@ object EventReportCacheEntry {
           (JsPath \ lastUpdatedKey).read(localDateTimeReads).orElse(Reads.pure(LocalDateTime.now())) and //TODO: PODS-8791 remove after data was fixed
           (JsPath \ expireAtKey).read(localDateTimeReads).orElse(Reads.pure(LocalDateTime.now())) and //TODO: PODS-8791 remove after data was fixed
           (JsPath \ externalIdKey).read[String]
-      )(
+        )(
         (pstr, eventType, year, version, data, lastUpdated, expireAt, externalId) =>
-            EventReportCacheEntry(pstr, EventDataIdentifier(eventType, year, version, externalId), data, lastUpdated, expireAt)
+          EventReportCacheEntry(pstr, EventDataIdentifier(eventType, year, version, externalId), data, lastUpdated, expireAt)
       ).reads(json)
     }
   }
@@ -109,14 +109,6 @@ class EventReportCacheRepository @Inject()(
   private val expireInSeconds = config.get[Int](path = "mongodb.event-reporting-data.timeToLiveInSeconds")
   private val nonEventTypeExpireInSeconds = config.get[Int](path = "mongodb.event-reporting-data.nonEventTypeTimeToLiveInSeconds")
 
-  private def evaluatedExpireAt: Instant = {
-    Instant.now().plusSeconds(expireInSeconds)
-  }
-
-  private def nonEventTypeEvaluatedExpireAt: Instant = {
-    Instant.now().plusSeconds(nonEventTypeExpireInSeconds)
-  }
-
   def upsert(pstr: String, edi: EventDataIdentifier, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val modifier = Updates.combine(
       Updates.set(pstrKey, pstr),
@@ -139,6 +131,10 @@ class EventReportCacheRepository @Inject()(
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
   }
 
+  private def evaluatedExpireAt: Instant = {
+    Instant.now().plusSeconds(expireInSeconds)
+  }
+
   def changeVersion(externalId: String, pstr: String, version: Int, newVersion: Int)(implicit ec: ExecutionContext): Future[Option[result.UpdateResult]] = {
     val modifier = Updates.combine(
       Updates.set(versionKey, newVersion),
@@ -154,7 +150,7 @@ class EventReportCacheRepository @Inject()(
       if (foundItem.isDefined) {
         collection.updateMany(
           filter = selector,
-          update = modifier).toFuture() .map(Some(_))
+          update = modifier).toFuture().map(Some(_))
       } else {
         Future.successful(None)
       }
@@ -162,7 +158,7 @@ class EventReportCacheRepository @Inject()(
     }
   }
 
-  def upsert(externalId:String, pstr: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
+  def upsert(externalId: String, pstr: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val modifier = Updates.combine(
       Updates.set(externalIdKey, externalId),
       Updates.set(pstrKey, pstr),
@@ -186,7 +182,11 @@ class EventReportCacheRepository @Inject()(
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
   }
 
-  def getUserAnswers(externalId:String, pstr: String, optEventDataIdentifier: Option[EventDataIdentifier])
+  private def nonEventTypeEvaluatedExpireAt: Instant = {
+    Instant.now().plusSeconds(nonEventTypeExpireInSeconds)
+  }
+
+  def getUserAnswers(externalId: String, pstr: String, optEventDataIdentifier: Option[EventDataIdentifier])
                     (implicit ec: ExecutionContext): Future[Option[JsObject]] = {
     optEventDataIdentifier match {
       case Some(edi) =>
@@ -198,32 +198,29 @@ class EventReportCacheRepository @Inject()(
 
   private def getByEDI(pstr: String, edi: EventDataIdentifier)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
 
+    val filters = Filters.and(
+      Filters.equal(pstrKey, pstr),
+      Filters.equal(eventTypeKey, edi.eventType.toString),
+      Filters.equal(yearKey, edi.year),
+      Filters.equal(versionKey, edi.version),
+      Filters.equal(externalIdKey, edi.externalId)
+    )
+
     val updatedCollection = collection.updateMany(
-      filter = Filters.eq(externalIdKey, edi.externalId),
+      filter = filters,
       update = set(
         expireAtKey,
         LocalDateTime.now(ZoneId.of("UTC")).plusSeconds(expireInSeconds))
     ).toFuture()
 
     updatedCollection.flatMap { _ =>
-
-      collection.find[EventReportCacheEntry](
-        Filters.and(
-          Filters.equal(pstrKey, pstr),
-          Filters.equal(eventTypeKey, edi.eventType.toString),
-          Filters.equal(yearKey, edi.year),
-          Filters.equal(versionKey, edi.version),
-          Filters.equal(externalIdKey, edi.externalId)
-        )
-      ).headOption().map {
+      collection.find[EventReportCacheEntry](filters).headOption().map {
         _.map {
           dataEntry =>
             dataEntry.data
         }
       }
-
     }
-
   }
 
   def removeAllOnSignOut(externalId: String)(implicit ec: ExecutionContext): Future[Unit] = {
