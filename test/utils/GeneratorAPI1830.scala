@@ -614,17 +614,20 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
     map <- randomValues()
     booleans <- randomBooleans()
   } yield {
-    val optionalOverAllowanceAndDeathBenefit: Option[JsObject] = if (!booleans("overAllowance")) {
+    val optionaloverAllowance: Option[JsObject] = if (booleans("overAllowanceAndDeathBenefit")) {
       val keyAndValue = Json.obj(
-        "overAllowanceAndDeathBenefit" -> JsBoolean(booleans("overAllowanceAndDeathBenefit")),
+        "overAllowance" -> false,
       )
       Some(keyAndValue)
     } else {
-      Some(JsObject.empty)
+      val keyAndValue = Json.obj(
+        "overAllowance" -> JsBoolean(booleans("overAllowance")),
+      )
+      Some(keyAndValue)
     }
 
     val optionalMarginalRate: Option[JsObject] = if (
-      booleans("overAllowance") || booleans("overAllowanceAndDeathBenefit")
+      booleans("overAllowanceAndDeathBenefit") || booleans("overAllowance")
     ) {
       val keyAndValue = Json.obj(
         "marginalRate" ->  JsBoolean(booleans("marginalRate")),
@@ -635,8 +638,8 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
     }
 
     val optionalPayeRef: Option[JsObject] = if (
-      booleans("overAllowance") && booleans("marginalRate") ||
-        booleans("overAllowanceAndDeathBenefit") && booleans("marginalRate")
+      booleans("overAllowanceAndDeathBenefit") && booleans("marginalRate") ||
+        booleans("overAllowance") && booleans("marginalRate")
     ) {
       val keyAndValue = Json.obj(
         "employerPayeReference" -> JsString("123/AB123"),
@@ -672,8 +675,8 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
             ),
             "typeOfProtectionGroup2" -> map("typeOfProtectionGroup2"),
             "typeOfProtectionGroup2Reference" -> map("typeOfProtectionReference"),
-            "overAllowance" -> booleans("overAllowance")
-          ) ++ optionalOverAllowanceAndDeathBenefit.get ++
+            "overAllowanceAndDeathBenefit" -> booleans("overAllowanceAndDeathBenefit")
+          ) ++ optionaloverAllowance.get ++
             optionalMarginalRate.get ++
             optionalPayeRef.get
         ),
@@ -681,15 +684,17 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
       "taxYear" -> map("taxYear")
     )
 
-    val overAllowanceAndDeathBenefitETMP: JsObject = if (!booleans("overAllowance")) {
+    val overAllowanceETMP: JsObject = if (booleans("overAllowanceAndDeathBenefit")) {
       Json.obj(
-        "availableLumpSumDBAExceeded" -> convertBoolean(booleans("overAllowanceAndDeathBenefit")),
+        "availableLumpSumExceeded" -> "No",
       )
     } else {
-      Json.obj()
+      Json.obj(
+        "availableLumpSumExceeded" -> convertBoolean(booleans("overAllowance")),
+      )
     }
 
-    val marginalRateETMP: JsObject = if (booleans("overAllowance") || booleans("overAllowanceAndDeathBenefit")) {
+    val marginalRateETMP: JsObject = if (booleans("overAllowanceAndDeathBenefit") || booleans("overAllowance")) {
       Json.obj(
         "taxedAtMarginalRate" -> convertBoolean(booleans("marginalRate")),
       )
@@ -697,8 +702,8 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
       Json.obj()
     }
 
-    val payeRefETMP: JsObject = if (booleans("overAllowance") && booleans("marginalRate") ||
-      booleans("overAllowanceAndDeathBenefit") && booleans("marginalRate")) {
+    val payeRefETMP: JsObject = if (booleans("overAllowanceAndDeathBenefit") && booleans("marginalRate") ||
+      booleans("overAllowance") && booleans("marginalRate")) {
       Json.obj(
         "payeReference" -> JsString("123/AB123"),
       )
@@ -733,13 +738,13 @@ trait GeneratorAPI1830 extends Matchers with OptionValues with ResponseGenerator
                   "pensionCreditReference" -> map("typeOfProtectionReference"),
                   "nonResidenceReference" -> map("typeOfProtectionReference"),
                   "overseasReference" -> map("typeOfProtectionReference"),
-                  "availableLumpSumExceeded" -> convertBoolean(booleans("overAllowance")),
+                  "availableLumpSumDBAExceeded" -> convertBoolean(booleans("overAllowanceAndDeathBenefit")),
                   "amountCrystalised" -> map("lumpSumAmount"),
                   "typeOfProtection" -> typeOfProtectionEvent24(map("typeOfProtectionGroup2")),
                   "reasonBenefitTaken" -> reasonBenefitTakenEvent24(map("reasonBenefitTakenEvent24")),
                   "taxYearEndingDate" -> "2023-09-22",
                   "freeText" -> map("typeOfProtectionReference")
-                ).++(overAllowanceAndDeathBenefitETMP)
+                ).++(overAllowanceETMP)
                   .++(marginalRateETMP)
                   .++(payeRefETMP)
                   .++(schemeSpecificETMP)
@@ -941,14 +946,14 @@ object GeneratorAPI1830 {
   private def randomBooleans(): Gen[Map[String, Boolean]] = {
     for {
       validProtection <- Gen.oneOf(Seq(true, false))
-      overAllowance <- Gen.oneOf(Seq(true, false))
       overAllowanceAndDeathBenefit <- Gen.oneOf(Seq(true, false))
+      overAllowance <- Gen.oneOf(Seq(true, false))
       marginalRate <- Gen.oneOf(Seq(true, false))
     } yield {
       Map(
         "validProtection" -> validProtection,
-        "overAllowance" -> overAllowance,
         "overAllowanceAndDeathBenefit" -> overAllowanceAndDeathBenefit,
+        "overAllowance" -> overAllowance,
         "marginalRate" -> marginalRate
       )
     }

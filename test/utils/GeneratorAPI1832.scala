@@ -491,15 +491,17 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
     for {
       map <- randomValues()
     } yield {
-      val overAllowanceAndDeathBenefitETMP: JsObject = if (map("overAllowance") == "No") {
+      val overAllowanceETMP: JsObject = if (map("overAllowanceAndDeathBenefit") == "Yes") {
         Json.obj(
-          "availableLumpSumDBAExceeded" -> map("overAllowanceAndDeathBenefit"),
+          "availableLumpSumExceeded" -> "No",
         )
       } else {
-        Json.obj()
+        Json.obj(
+          "availableLumpSumExceeded" -> map("overAllowance"),
+        )
       }
 
-      val marginalRateETMP: JsObject = if (map("overAllowance") == "Yes" || map("overAllowanceAndDeathBenefit") == "Yes") {
+      val marginalRateETMP: JsObject = if (map("overAllowanceAndDeathBenefit") == "Yes" || map("overAllowance") == "Yes") {
         Json.obj(
           "taxedAtMarginalRate" -> map("marginalRate"),
         )
@@ -507,8 +509,8 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
         Json.obj()
       }
 
-      val payeRefETMP: JsObject = if (map("overAllowance") == "Yes" && map("marginalRate") == "Yes" ||
-        map("overAllowanceAndDeathBenefit") == "Yes" && map("marginalRate") == "Yes") {
+      val payeRefETMP: JsObject = if (map("overAllowanceAndDeathBenefit") == "Yes" && map("marginalRate") == "Yes" ||
+        map("overAllowance") == "Yes" && map("marginalRate") == "Yes") {
         Json.obj(
           "payeReference" -> JsString("123/AB123"),
         )
@@ -546,14 +548,14 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
                 "pensionCreditReference" -> map("typeOfProtectionReference"),
                 "nonResidenceReference" -> map("typeOfProtectionReference"),
                 "overseasReference" -> map("typeOfProtectionReference"),
-                "availableLumpSumExceeded" -> map("overAllowance"),
+                "availableLumpSumDBAExceeded" -> map("overAllowanceAndDeathBenefit"),
                 "amountCrystalised" -> map("lumpSumAmount")) ++
                 typeOfProtectionJson ++
                 reasonBenefitTakenJson ++
                 Json.obj(
                 "taxYearEndingDate" -> "2023-09-22",
                 "freeText" -> map("typeOfProtectionReference")
-              ).++(overAllowanceAndDeathBenefitETMP)
+              ).++(overAllowanceETMP)
                 .++(marginalRateETMP)
                 .++(payeRefETMP)
                 .++(schemeSpecificETMP)
@@ -562,17 +564,20 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
           ))
         ))
 
-      val optionalOverAllowanceAndDeathBenefit: Option[JsObject] = if (map("overAllowance") == "No") {
+      val optionaloverAllowance: Option[JsObject] = if (map("overAllowanceAndDeathBenefit") == "Yes") {
         val keyAndValue = Json.obj(
-          "overAllowanceAndDeathBenefit" -> JsBoolean(yesNoToBool(map("overAllowanceAndDeathBenefit"))),
+          "overAllowance" -> JsBoolean(yesNoToBool("No")),
         )
         Some(keyAndValue)
       } else {
-        Some(JsObject.empty)
+        val keyAndValue = Json.obj(
+          "overAllowance" -> JsBoolean(yesNoToBool(map("overAllowance"))),
+        )
+        Some(keyAndValue)
       }
 
       val optionalMarginalRate: Option[JsObject] = if (
-        map("overAllowance") == "Yes" || map("overAllowanceAndDeathBenefit") == "Yes"
+        map("overAllowanceAndDeathBenefit") == "Yes" || map("overAllowance") == "Yes"
       ) {
         val keyAndValue = Json.obj(
           "marginalRate" ->  JsBoolean(yesNoToBool(map("marginalRate"))),
@@ -583,8 +588,8 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
       }
 
       val optionalPayeRef: Option[JsObject] = if (
-        map("overAllowance") == "Yes" && map("marginalRate") == "Yes" ||
-          map("overAllowanceAndDeathBenefit") == "Yes" && map("marginalRate") == "Yes"
+        map("overAllowanceAndDeathBenefit") == "Yes" && map("marginalRate") == "Yes" ||
+          map("overAllowance") == "Yes" && map("marginalRate") == "Yes"
       ) {
         val keyAndValue = Json.obj(
           "employerPayeReference" -> JsString("123/AB123"),
@@ -623,8 +628,8 @@ trait GeneratorAPI1832 extends Matchers with OptionValues with ResponseGenerator
               "nonResidenceEnhancement" -> map("typeOfProtectionReference"),
               "recognisedOverseasPSTE" -> map("typeOfProtectionReference"),
             ),
-            "overAllowance" -> yesNoToBool(map("overAllowance"))
-          )++ optionalOverAllowanceAndDeathBenefit.get ++
+            "overAllowanceAndDeathBenefit" -> yesNoToBool(map("overAllowanceAndDeathBenefit"))
+          )++ optionaloverAllowance.get ++
           Json.obj(
             "totalAmountBenefitCrystallisation" -> map("lumpSumAmount")
           ) ++
@@ -788,8 +793,8 @@ object GeneratorAPI1832 {
         ""
       )
       validProtection <- Gen.oneOf(Seq("Yes", "No"))
-      overAllowance <- Gen.oneOf(Seq("Yes", "No"))
       overAllowanceAndDeathBenefit <- Gen.oneOf(Seq("Yes", "No"))
+      overAllowance <- Gen.oneOf(Seq("Yes", "No"))
       marginalRate <- Gen.oneOf(Seq("Yes", "No"))
       reasonBenefitTakenEvent24 <- Gen.oneOf(reasonBenefitTakenTypesEvent24)
       typeOfProtectionGroup1 <- Gen.oneOf(protectionTypesGroup1Event24)
@@ -816,8 +821,8 @@ object GeneratorAPI1832 {
         "typeOfProtectionReference8A" -> typeOfProtectionReference8A,
         "reasonBenefitTakenEvent8A" -> reasonBenefitTakenEvent8A,
         "validProtection" -> validProtection,
-        "overAllowance" -> overAllowance,
         "overAllowanceAndDeathBenefit" -> overAllowanceAndDeathBenefit,
+        "overAllowance" -> overAllowance,
         "marginalRate" -> marginalRate,
         "reasonBenefitTakenEvent24" -> reasonBenefitTakenEvent24,
         "typeOfProtectionGroup1" -> typeOfProtectionGroup1,

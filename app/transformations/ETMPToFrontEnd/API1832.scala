@@ -144,8 +144,8 @@ private object API1832ReadsUtilities extends Transformer {
         pathUaPensionCreditReference.json.copyFrom(readsPensionCreditReference).orElse(doNothing) and
         pathUaNonResidenceReference.json.copyFrom(readsNonResidenceReference).orElse(doNothing) and
         pathUaOverseasReference.json.copyFrom(readsOverseasReference).orElse(doNothing) and
-        pathUaAvailableLumpSumExceeded.json.copyFrom(pathEtmpAvailableLumpSumExceeded.json.pick.flatMap(yesNoTransform(_, "available lump sum exceeded failed"))) and
-        pathUaAvailableLumpSumDBAExceeded.json.copyFrom(pathEtmpAvailableLumpSumDBAExceeded.json.pick.flatMap(yesNoTransform(_, "available lump sum DBA exceeded failed"))).orElse(doNothing) and
+        pathUaAvailableLumpSumDBAExceeded.json.copyFrom(pathEtmpAvailableLumpSumDBAExceeded.json.pick.flatMap(yesNoTransform(_, "available lump sum DBA exceeded failed"))) and
+        pathUaAvailableLumpSumExceeded.json.copyFrom(pathEtmpAvailableLumpSumExceeded.json.pick.flatMap(yesNoTransform(_, "available lump sum exceeded failed"))).orElse(doNothing) and
         pathUaAmountCrystalised.json.copyFrom(pathEtmpAmountCrystalised.json.pick) and
         pathUaBCEType.json.copyFrom(readsBCETypeEvent24) and
         pathUaCrystallisedDateEvent24.json.copyFrom(pathEtmpTaxYearEndingDate.json.pick) and
