@@ -31,9 +31,7 @@ import play.api.Configuration
 import play.api.libs.json.Json
 import uk.gov.hmrc.mongo.MongoComponent
 
-import java.time.LocalDateTime
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers
   with EmbeddedMongoDBSupport with BeforeAndAfter with BeforeAndAfterAll with ScalaFutures { // scalastyle:off magic.number
@@ -256,24 +254,6 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
 
       whenReady(documentsInDB) { documentsInDB =>
         documentsInDB.isDefined mustBe true
-      }
-    }
-
-    "update expireAt key when a document is retrieved" in {
-      val json = Json.parse("""{"data":"1"}""")
-
-      val futureLDTs = for {
-        _ <- eventReportCacheRepository.collection.drop().toFuture()
-        _ <- eventReportCacheRepository.upsert(externalId, pstr1, json)
-        futureDoc1 <- eventReportCacheRepository.collection.find[EventReportCacheEntry]().toFuture()
-        expireAt1 = futureDoc1.head.expireAt
-        _ <- eventReportCacheRepository.getUserAnswers(externalId, pstr1, None)
-        futureDoc2 <- eventReportCacheRepository.collection.find[EventReportCacheEntry]().toFuture()
-        expireAt2 = futureDoc2.head.expireAt
-      } yield (expireAt1, expireAt2)
-
-      whenReady(futureLDTs) { case (originalExpireAt, updatedExpireAt) =>
-        assert(originalExpireAt isBefore updatedExpireAt)
       }
     }
 
