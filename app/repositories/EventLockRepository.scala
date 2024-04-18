@@ -138,14 +138,11 @@ class EventLockRepository @Inject()(
   }
 
   private def insertEventLock(pstr: String, psaOrPspId: String, edi: EventDataIdentifier): Future[Boolean] = {
-  println(s"\n\n\n edi ==== ${edi}")
     collection.insertOne(EventLockJson(pstr, psaOrPspId, expireInSeconds, edi)
     ).toFuture().map { _ => true }
       .recoverWith {
-        case e: MongoWriteException if e.getCode == documentExistsErrorCode => {
-          println(s"\n MongoWriteException ==== ${e}")
+        case e: MongoWriteException if e.getCode == documentExistsErrorCode =>
           Future.successful(false)
-        }
       }
   }
 
