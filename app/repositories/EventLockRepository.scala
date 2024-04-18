@@ -44,8 +44,8 @@ class EventLockRepository @Inject()(
     domainFormat = implicitly,
     indexes = Seq(
       IndexModel(
-        Indexes.ascending("psaId", "pstr", "eventType", "version", "year"),
-        IndexOptions().name("PsaId_Pstr_eventType_version_year_idx").unique(true).background(true)
+        Indexes.ascending("psaOrPspId", "pstr", "edi.eventType", "edi.version", "edi.year"),
+        IndexOptions().name("PsaOrPspId_Pstr_eventType_version_year_idx").unique(true).background(true)
       ),
       IndexModel(
         keys = Indexes.ascending("expireAt"),
@@ -138,12 +138,14 @@ class EventLockRepository @Inject()(
   }
 
   private def insertEventLock(pstr: String, psaOrPspId: String, edi: EventDataIdentifier): Future[Boolean] = {
-
+  println(s"\n\n\n edi ==== ${edi}")
     collection.insertOne(EventLockJson(pstr, psaOrPspId, expireInSeconds, edi)
     ).toFuture().map { _ => true }
       .recoverWith {
-        case e: MongoWriteException if e.getCode == documentExistsErrorCode =>
+        case e: MongoWriteException if e.getCode == documentExistsErrorCode => {
+          println(s"\n MongoWriteException ==== ${e}")
           Future.successful(false)
+        }
       }
   }
 
