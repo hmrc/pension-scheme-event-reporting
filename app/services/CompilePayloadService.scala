@@ -108,9 +108,8 @@ class CompilePayloadService @Inject()(
           eventReportConnector.getEvent(pstr, year.toString + "-04-06", currentVersion, None)
         val seqEventTypesToRetrieve = EventType.getEventTypesForAPI(apiType).filter(_ != eventTypeForEventBeingCompiled)
         val versionAsInt = version.toInt
-        val currentVersionAsInt = currentVersion.toInt
         val transformedPayloads = seqEventTypesToRetrieve.map { et =>
-          val gdcdi = GetDetailsCacheDataIdentifier(et, year, currentVersionAsInt)
+          val gdcdi = GetDetailsCacheDataIdentifier(et, year, versionAsInt)
 
           getDetailsCacheRepository.get(pstr, gdcdi).flatMap {
             case Some(json) => Future.successful(json.as[JsObject])
