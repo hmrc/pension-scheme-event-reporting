@@ -305,14 +305,22 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
 
     getUserAnswers(externalId, pstr, eventType, year, version.toInt, psaPspId).flatMap {
-      case Some(ua) => saveUserAnswers(externalId,
-        pstr,
-        eventType,
-        year,
-        version.toInt,
-        deleteMembersTransform(ua, eventType, memberTransform), psaPspId).flatMap { _ =>
-        compileEventReport(externalId, psaPspId, pstr, eventType, year, version, currentVersion)
-      }
+      case Some(ua) =>
+        val (membersPath, _, event) = getEventValues(eventType, ua)
+        val members = getMembers(event, membersPath, memberTransform)
+
+        if (members.size == 1) {
+          deleteEvent(externalId, psaPspId, pstr, eventType, year, version, currentVersion)
+        } else {
+          saveUserAnswers(externalId,
+            pstr,
+            eventType,
+            year,
+            version.toInt,
+            deleteMembersTransform(ua, eventType, memberTransform), psaPspId).flatMap { _ =>
+            compileEventReport(externalId, psaPspId, pstr, eventType, year, version, currentVersion)
+          }
+        }
       case None => throw new RuntimeException("User answers not available")
     }
 
@@ -359,6 +367,16 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   }
 
   private def deleteMembersTransform(ua: JsObject, eventType: EventType, membersTransform: Seq[JsObject] => Seq[JsObject]): JsObject = {
+    val (membersPath, eventPath, event) = getEventValues(eventType, ua)
+
+    val newMembers = getMembers(event, membersPath, membersTransform)
+
+    val newEvent = Json.toJson(event).as[JsObject] + (membersPath, Json.toJson(newMembers))
+
+    ua + (eventPath, newEvent)
+  }
+
+  private def getEventValues(eventType: EventType, ua: JsObject): (String, String, scala.collection.Map[String, JsValue]) = {
     def membersPath = eventType match {
       case EventType.Event1 => "membersOrEmployers"
       case _ => "members"
@@ -367,16 +385,17 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     val eventPath = "event" + eventType
 
     val event = ua.value.getOrElse(eventPath, throw new RuntimeException("Event not available")).as[JsObject].value
+
+    (membersPath, eventPath, event)
+  }
+
+  private def getMembers(event: scala.collection.Map[String, JsValue], membersPath: String, membersTransform: Seq[JsObject] => Seq[JsObject]): Seq[JsObject] = {
     val members = event
       .getOrElse(membersPath, throw new RuntimeException("Members not available"))
       .as[JsArray].value
       .map(_.as[JsObject])
 
-    val newMembers = membersTransform(members.toSeq)
-
-    val newEvent = Json.toJson(event).as[JsObject] + (membersPath, Json.toJson(newMembers))
-
-    ua + (eventPath, newEvent)
+    membersTransform(members.toSeq)
   }
 
   private val api1832Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
