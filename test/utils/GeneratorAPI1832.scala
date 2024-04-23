@@ -21,7 +21,7 @@ import models.enumeration.EventType.{Event2, Event24, Event3, Event4, Event5, Ev
 import org.scalacheck.Gen
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
-import play.api.libs.json.{JsArray, JsBoolean, JsObject, JsString, Json}
+import play.api.libs.json.{JsBoolean, JsObject, JsString, Json}
 
 
 //noinspection ScalaStyle
