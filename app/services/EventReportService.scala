@@ -309,7 +309,14 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         val (membersPath, _, event) = getEventValues(eventType, ua)
         val members = getMembers(event, membersPath, memberTransform)
 
-        if (members.size == 1) {
+        val nonDeletedMembers = members.map (member => {
+         ( member \ "memberStatus").asOpt[String] match {
+           case Some("Deleted") => Json.obj()
+           case _ => member
+         }
+        }).filter(_ != Json.obj())
+
+        if (nonDeletedMembers.size == 1) {
           deleteEvent(externalId, psaPspId, pstr, eventType, year, version, currentVersion)
         } else {
           saveUserAnswers(externalId,
