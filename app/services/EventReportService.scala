@@ -278,9 +278,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                     NoContent
                 }
               }
-            case x =>
-              println(s"^^^^^^^^^^^^^^^^NotFound patter match is $x")
-              Future.successful(NotFound)
+            case x => Future.successful(NotFound)
           }
         }
         resp.flatten
