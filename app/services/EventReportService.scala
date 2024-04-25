@@ -244,9 +244,9 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     apiProcessingInfo(eventType, pstr, deleteEvent) match {
       case Some(APIProcessingInfo(apiType, reads, schemaPath, connectToAPI)) =>
         val resp = for {
-          newUserAnswers <- eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(eventType, year, version.toInt, externalId)))
+          newUserAnswers <- eventReportCacheRepository.getUserAnswers(externalId, pstr, None)
           oldUserAnswers <- eventReportCacheRepository.getUserAnswers(
-            externalId, pstr + "_original_cache", Some(EventDataIdentifier(eventType, year, version.toInt, externalId))
+            externalId, pstr + "_original_cache", None
           )
         } yield {
           (newUserAnswers, oldUserAnswers) match {
@@ -278,7 +278,9 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                     NoContent
                 }
               }
-            case _ => Future.successful(NotFound)
+            case x =>
+              println(s"^^^^^^^^^^^^^^^^NotFound patter match is $x")
+              Future.successful(NotFound)
           }
         }
         resp.flatten
