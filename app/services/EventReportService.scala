@@ -278,7 +278,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                     NoContent
                 }
               }
-            case x => Future.successful(NotFound)
+            case _ => Future.successful(NotFound)
           }
         }
         resp.flatten

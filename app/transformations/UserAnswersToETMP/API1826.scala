@@ -24,13 +24,6 @@ import transformations.Transformer
 
 object API1826 extends Transformer {
 
-  private def optField(fieldName: String, value: Option[String]) = {
-    value.map(fieldName -> JsString(_))
-  }
-
-  private def optObj[T](objName: String, wrapper: String => T, value: Option[String]) = {
-    value.map(objName -> wrapper(_))
-  }
 
   private def mapReadsToOptionArray(eventTypeNodeName: String)(reads: JsPath => Reads[JsObject]): Reads[Option[JsObject]] = {
     (__ \ eventTypeNodeName).readNullable[JsObject].flatMap {
@@ -42,16 +35,6 @@ object API1826 extends Transformer {
     }
   }
   
-  private def mapReadsToOptionObject(eventTypeNodeName: String)(reads: JsPath => Reads[JsObject]): Reads[Option[JsObject]] = {
-    (__ \ eventTypeNodeName).readNullable[JsObject].flatMap {
-      case Some(_) =>
-        val uaBaseForEventType = __ \ eventTypeNodeName
-        reads(uaBaseForEventType).flatMap(jsObject => (__ \ eventTypeNodeName).json.put(jsObject)).map(Option(_))
-      case _ =>
-        Reads.pure(None)
-    }
-  }
-
   private val padLeftVersion: JsValue => JsString = {
     case JsNumber(s) => JsString(("00" + s).takeRight(3))
     case e => throw new RuntimeException("Quick fix" + e)

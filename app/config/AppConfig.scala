@@ -31,7 +31,6 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig,
   val graphiteHost: String = config.get[String](path = "microservice.metrics.graphite.host")
 
   private val ifURL: String = servicesConfig.baseUrl(serviceName = "if-hod")
-  private val desURL: String = servicesConfig.baseUrl(serviceName = "des-hod")
 
   lazy val desEnvironment: String = runModeConfiguration.getOptional[String]("microservice.services.des-hod.env").getOrElse("local")
   lazy val authorization: String = "Bearer " + runModeConfiguration.getOptional[String]("microservice.services.des-hod.authorizationToken").getOrElse("local")

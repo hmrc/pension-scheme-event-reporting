@@ -81,7 +81,11 @@ class EventReportController @Inject()(
   def changeVersion: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { case Credentials(externalId, _, _) =>
-        val Seq(pstr, version, newVersion) = requiredHeaders("pstr", "version", "newVersion")
+        val headers = requiredHeaders("pstr", "version", "newVersion")
+        val (pstr, version, newVersion) = headers match {
+          case Seq(pstr, version, newVersion) => (pstr, version, newVersion)
+          case _ => throw new RuntimeException("Expected headers 'pstr', 'version', 'newVersion'")
+        }
         for {
           x <- eventReportService.changeVersion(externalId, pstr, version.toInt, newVersion.toInt)
           y <- eventReportService.changeVersion(externalId, pstr + "_original_cache", version.toInt, newVersion.toInt)
@@ -148,36 +152,60 @@ class EventReportController @Inject()(
 
   def getEventSummary: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuth.flatMap { case Credentials(externalId, psaPspId, name)  =>
-        val Seq(pstr, version, startDate) = requiredHeaders("pstr", "reportVersionNumber", "reportStartDate")
+      withAuth.flatMap {
+        case Credentials(externalId, psaPspId, name)  =>
+          val headers = requiredHeaders("pstr", "reportVersionNumber", "reportStartDate")
+          val (pstr, version, startDate) = headers match {
+            case Seq(pstr, version, startDate) => (pstr, version, startDate)
+            case _ => throw new RuntimeException("Expected headers 'pstr', 'reportVersionNumber', 'reportStartDate'")
+          }
         eventReportService.getEventSummary(pstr, ("00" + version).takeRight(3), startDate, psaPspId, externalId, name).map(Ok(_))
+
+        case _ => Future.successful(BadRequest("Invalid credentials"))
       }
   }
 
   def getVersions: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuth.flatMap { _ =>
-        val Seq(pstr, startDate) = requiredHeaders("pstr", "startDate")
-        eventReportService.getVersions(pstr, startDate).map {
-          data => Ok(Json.toJson(data))
-        }
+      withAuth.flatMap {
+        case Credentials(_, _, _) =>
+          val headers = requiredHeaders("pstr", "startDate")
+          val (pstr, startDate) = headers match {
+            case Seq(pstr, startDate) => (pstr, startDate)
+            case _ => throw new RuntimeException("Expected headers 'pstr' and 'startDate'")
+          }
+          eventReportService.getVersions(pstr, startDate).map {
+            data => Ok(Json.toJson(data))
+          }
+        case _ =>
+          Future.successful(BadRequest("Invalid request"))
       }
   }
 
   def getOverview: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuth.flatMap { _ =>
-        val Seq(pstr, startDate, endDate) = requiredHeaders("pstr", "startDate", "endDate")
-        eventReportService.getOverview(pstr, startDate, endDate).map {
-          data => Ok(data)
-        }
+      withAuth.flatMap {
+        case Credentials(_, _, _) =>
+          val headers = requiredHeaders("pstr", "startDate", "endDate")
+          val (pstr, startDate, endDate) = headers match {
+            case Seq(pstr, startDate, endDate) => (pstr, startDate, endDate)
+            case _ => throw new RuntimeException("Expected headers 'pstr', 'startDate', 'endDate'")
+          }
+          eventReportService.getOverview(pstr, startDate, endDate).map {
+            data => Ok(data)
+          }
+        case _ =>
+          Future.successful(BadRequest("Invalid request"))
       }
   }
 
   def compileEvent: Action[AnyContent] = Action.async { implicit request =>
     withAuth.flatMap { case Credentials(externalId, psaPspId, _) =>
-      val Seq(pstr, et, version, currentVersion, year) = requiredHeaders("pstr", "eventType", "version", "currentVersion", "year")
-
+      val headers = requiredHeaders("pstr", "eventType", "version", "currentVersion", "year")
+      val (pstr, et, version, currentVersion, year) = headers match {
+        case Seq(pstr, et, version, currentVersion, year) => (pstr, et, version, currentVersion, year)
+        case _ => throw new RuntimeException("Expected headers 'pstr', 'eventType', 'version', 'currentVersion', 'year'")
+      }
       val delete = request.headers.get("delete").contains("true")
       EventType.getEventType(et) match {
         case Some(eventType) => if(delete)
@@ -207,8 +235,11 @@ class EventReportController @Inject()(
 
   def deleteMember(): Action[AnyContent] = Action.async { implicit request =>
     withAuth.flatMap { case Credentials(externalId, psaPspId, _) =>
-      val Seq(pstr, et, version, year, memberIdToDelete, currentVersion) =
-        requiredHeaders("pstr", "eventType", "version", "year", "memberIdToDelete", "currentVersion")
+      val headers = requiredHeaders("pstr", "eventType", "version", "year", "memberIdToDelete", "currentVersion")
+      val (pstr, et, version, year, memberIdToDelete, currentVersion) = headers match {
+        case Seq(pstr, et, version, year, memberIdToDelete, currentVersion) => (pstr, et, version, year, memberIdToDelete, currentVersion)
+        case _ => throw new RuntimeException("Expected headers 'pstr', 'eventType', 'version', 'year', 'memberIdToDelete', 'currentVersion'")
+      }
       EventType.getEventType(et) match {
         case Some(eventType) => eventReportService.deleteMember(
           externalId,
@@ -227,19 +258,33 @@ class EventReportController @Inject()(
 
   def submitEventDeclarationReport: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuth.flatMap { case Credentials(_, psaPspId, _) =>
-        val Seq(pstr, version) = requiredHeaders("pstr", "version")
-        val userAnswersJson = requiredBody
-        eventReportService.submitEventDeclarationReport(pstr, psaPspId, userAnswersJson, version)
+      withAuth.flatMap {
+        case Credentials(_, psaPspId, _) =>
+          val headers = requiredHeaders("pstr", "version")
+          val (pstr, version) = headers match {
+            case Seq(pstr, version) => (pstr, version)
+            case _ => throw new RuntimeException("Expected headers 'pstr' and 'version'")
+          }
+          val userAnswersJson = requiredBody
+          eventReportService.submitEventDeclarationReport(pstr, psaPspId, userAnswersJson, version)
+        case _ =>
+          Future.successful(BadRequest("Invalid credentials"))
       }
   }
 
   def submitEvent20ADeclarationReport: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuth.flatMap { case Credentials(_, psaPspId, _) =>
-        val Seq(pstr, version) = requiredHeaders("pstr", "version")
-        val userAnswersJson = requiredBody
-        eventReportService.submitEvent20ADeclarationReport(pstr, psaPspId, userAnswersJson, version)
+      withAuth.flatMap {
+        case Credentials(_, psaPspId, _) =>
+          val headers = requiredHeaders("pstr", "version")
+          val (pstr, version) = headers match {
+            case Seq(pstr, version) => (pstr, version)
+            case _ => throw new RuntimeException("Expected headers 'pstr' and 'version'")
+          }
+          val userAnswersJson = requiredBody
+          eventReportService.submitEvent20ADeclarationReport(pstr, psaPspId, userAnswersJson, version)
+        case _ =>
+          Future.successful(BadRequest("Invalid credentials"))
       }
   }
 

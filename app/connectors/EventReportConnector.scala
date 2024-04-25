@@ -20,7 +20,7 @@ import com.google.inject.Inject
 import config.AppConfig
 import models.EROverview
 import models.enumeration.ApiType.Api1834
-import models.enumeration.EventType.getApiTypeByEventType
+import models.enumeration.EventType.{EventTypeNone, getApiTypeByEventType}
 import models.enumeration.{ApiType, EventType}
 import play.api.Logging
 import play.api.http.Status._
@@ -93,7 +93,7 @@ class EventReportConnector @Inject()(
     def getForApi(headers: Seq[(String, String)], pstr: String, api: ApiType, eventType: Option[EventType])
                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] = {
 
-      val etAsString = eventType.getOrElse("none")
+      val etAsString = eventType.getOrElse(EventTypeNone)
 
       val apiUrl: String = s"${config.getApiUrlByApiNum(api.toString).format(pstr)}"
       implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = headers: _*)
@@ -225,14 +225,5 @@ class EventReportConnector @Inject()(
     Seq("Environment" -> config.integrationFrameworkEnvironment,
       "Authorization" -> config.integrationFrameworkAuthorization,
       "Content-Type" -> "application/json", "CorrelationId" -> headerUtils.getCorrelationId)
-  }
-
-  private def desHeader: Seq[(String, String)] = {
-    Seq(
-      "Environment" -> config.desEnvironment,
-      "Authorization" -> config.authorization,
-      "Content-Type" -> "application/json",
-      "CorrelationId" -> headerUtils.getCorrelationId
-    )
   }
 }

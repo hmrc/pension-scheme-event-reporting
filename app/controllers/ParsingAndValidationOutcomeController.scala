@@ -17,7 +17,6 @@
 package controllers
 
 import com.google.inject.Inject
-import play.api.Logger
 import play.api.mvc._
 import repositories.ParsingAndValidationOutcomeRepository
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
@@ -34,8 +33,6 @@ class ParsingAndValidationOutcomeController @Inject()(
                                            )(implicit ec: ExecutionContext) extends BackendController(cc) with AuthorisedFunctions {
 
   import ParsingAndValidationOutcomeController._
-
-  private val logger = Logger(classOf[ParsingAndValidationOutcomeController])
 
   def get: Action[AnyContent] = Action.async {
     implicit request =>
