@@ -309,6 +309,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         val (membersPath, _, event) = getEventValues(eventType, ua)
         val members = getMembers(event, membersPath, memberTransform)
 
+        logger.info(s"members are: $members")
         val nonDeletedMembers = members.map (member => {
          ( member \ "memberStatus").asOpt[String] match {
            case Some("Deleted") => Json.obj()
@@ -316,9 +317,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
          }
         }).filter(_ != Json.obj())
 
+        logger.info(s"nonDeletedMembers are: $nonDeletedMembers")
         if (nonDeletedMembers.size == 1) {
+          logger.info(s"deleteEvent fired")
           deleteEvent(externalId, psaPspId, pstr, eventType, year, version, currentVersion)
         } else {
+          logger.info(s"deleteMember fired")
           saveUserAnswers(externalId,
             pstr,
             eventType,
