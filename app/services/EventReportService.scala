@@ -169,6 +169,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
     def newMembersWithChangeInfo(getMemberDetails: JsObject => Option[scala.collection.IndexedSeq[JsObject]]) = {
       val newMembers = getMemberDetails(newUserAnswers)
+      logger.info(s"newMembers are: $newMembers")
 
       newMembers
         .getOrElse(throw new RuntimeException("new member not available"))
@@ -224,6 +225,9 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
             val event = ((newUserAnswers \ ("event" + eventType.toString)).as[JsObject] - "members") +
               ("members", Json.toJson(newMembersWithChangeInfo(getMemberDetails)))
+            logger.info(s"newMembersWithChangeInfo are: ${Json.toJson(newMembersWithChangeInfo(getMemberDetails))}")
+
+            logger.info(s"event in apiProcessingInfo is: $event")
             newUserAnswers - ("event" + eventType.toString) + ("event" + eventType.toString, event)
 
           case _ => newUserAnswers
@@ -394,8 +398,9 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
 
     val eventPath = "event" + eventType
-
+    logger.info(s"eventPath is: $eventPath")
     val event = ua.value.getOrElse(eventPath, throw new RuntimeException("Event not available")).as[JsObject].value
+    logger.info(s"event is: $event")
 
     (membersPath, eventPath, event)
   }
@@ -405,7 +410,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       .getOrElse(membersPath, throw new RuntimeException("Members not available"))
       .as[JsArray].value
       .map(_.as[JsObject])
-
+    logger.info(s"members in getMembers are: $members")
     membersTransform(members.toSeq)
   }
 
