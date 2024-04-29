@@ -188,7 +188,8 @@ class EventReportController @Inject()(
             eventType,
             year.toInt,
             version,
-            currentVersion
+            currentVersion,
+            None
           )
         else
           eventReportService.compileEventReport(

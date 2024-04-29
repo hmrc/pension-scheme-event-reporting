@@ -324,7 +324,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         logger.info(s"nonDeletedMembers are: $nonDeletedMembers")
         if (nonDeletedMembers.size == 1) {
           logger.info(s"deleteEvent fired")
-          deleteEvent(externalId, psaPspId, pstr, eventType, year, version, currentVersion)
+          deleteEvent(externalId, psaPspId, pstr, eventType, year, version, currentVersion, Some(memberIdToDelete))
         } else {
           logger.info(s"deleteMember fired")
           saveUserAnswers(externalId,
@@ -347,10 +347,22 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                   eventType: EventType,
                   year: Int,
                   version: String,
-                  currentVersion: String)
+                  currentVersion: String,
+                  memberIdToDelete: Option[Int])
                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
+
+
     def memberTransform(members: Seq[JsObject]): Seq[JsObject] = {
-      members.map(member => member + ("memberStatus", JsString(Deleted().name)))
+      memberIdToDelete match {
+        case Some(memberId) => {
+          val member = Try(members(memberId)) match {
+            case Failure(exception) => throw new RuntimeException("Member does not exist", exception)
+            case Success(member) => member + ("memberStatus", JsString(Deleted().name))
+          }
+          members.updated(memberId, member)
+        }
+        case _ => members.map(member => member + ("memberStatus", JsString(Deleted().name)))
+      }
     }
 
     def cer = compileEventReport(externalId, psaPspId, pstr, eventType, year, version, currentVersion, deleteEvent = true)
