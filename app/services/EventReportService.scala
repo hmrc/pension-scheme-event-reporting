@@ -322,7 +322,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         }).filter(_ != Json.obj())
 
         logger.info(s"nonDeletedMembers are: $nonDeletedMembers")
-        if (nonDeletedMembers.size == 1) {
+        if (nonDeletedMembers.isEmpty) {
           logger.info(s"deleteEvent fired")
           deleteEvent(externalId, psaPspId, pstr, eventType, year, version, currentVersion, Some(memberIdToDelete))
         } else {
@@ -423,7 +423,9 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       .as[JsArray].value
       .map(_.as[JsObject])
     logger.info(s"members in getMembers are: $members")
-    membersTransform(members.toSeq)
+    val transformedMembers = membersTransform(members.toSeq)
+    logger.info(s"transformedMembers in getMembers are: $transformedMembers")
+    transformedMembers
   }
 
   private val api1832Events: List[EventType] = List(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
