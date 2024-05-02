@@ -169,7 +169,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
     def newMembersWithChangeInfo(getMemberDetails: JsObject => Option[scala.collection.IndexedSeq[JsObject]]) = {
       val newMembers = getMemberDetails(newUserAnswers)
-      logger.info(s"newMembers are: $newMembers")
 
       newMembers
         .getOrElse(throw new RuntimeException("new member not available"))
@@ -225,9 +224,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
             val event = ((newUserAnswers \ ("event" + eventType.toString)).as[JsObject] - "members") +
               ("members", Json.toJson(newMembersWithChangeInfo(getMemberDetails)))
-            logger.info(s"newMembersWithChangeInfo are: ${Json.toJson(newMembersWithChangeInfo(getMemberDetails))}")
 
-            logger.info(s"event in apiProcessingInfo is: $event")
             newUserAnswers - ("event" + eventType.toString) + ("event" + eventType.toString, event)
 
           case _ => newUserAnswers
@@ -313,7 +310,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         val (membersPath, _, event) = getEventValues(eventType, ua)
         val members = getMembers(event, membersPath, memberTransform)
 
-        logger.info(s"members are: $members")
         val nonDeletedMembers = members.map (member => {
          ( member \ "memberStatus").asOpt[String] match {
            case Some("Deleted") => Json.obj()
@@ -321,12 +317,9 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
          }
         }).filter(_ != Json.obj())
 
-        logger.info(s"nonDeletedMembers are: $nonDeletedMembers")
         if (nonDeletedMembers.isEmpty) {
-          logger.info(s"deleteEvent fired")
           deleteEvent(externalId, psaPspId, pstr, eventType, year, version, currentVersion, Some(memberIdToDelete))
         } else {
-          logger.info(s"deleteMember fired")
           saveUserAnswers(externalId,
             pstr,
             eventType,
@@ -410,9 +403,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
 
     val eventPath = "event" + eventType
-    logger.info(s"eventPath is: $eventPath")
     val event = ua.value.getOrElse(eventPath, throw new RuntimeException("Event not available")).as[JsObject].value
-    logger.info(s"event is: $event")
 
     (membersPath, eventPath, event)
   }
@@ -422,9 +413,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       .getOrElse(membersPath, throw new RuntimeException("Members not available"))
       .as[JsArray].value
       .map(_.as[JsObject])
-    logger.info(s"members in getMembers are: $members")
     val transformedMembers = membersTransform(members.toSeq)
-    logger.info(s"transformedMembers in getMembers are: $transformedMembers")
     transformedMembers
   }
 
