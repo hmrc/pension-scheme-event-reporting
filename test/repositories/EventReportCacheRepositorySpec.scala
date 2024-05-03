@@ -34,9 +34,12 @@ import uk.gov.hmrc.mongo.MongoComponent
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers
-  with EmbeddedMongoDBSupport with BeforeAndAfter with BeforeAndAfterAll with ScalaFutures { // scalastyle:off magic.number
+  with BeforeAndAfter with BeforeAndAfterAll with ScalaFutures { // scalastyle:off magic.number
 
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(1, Millis))
+
+  val mongoHost = "localhost"
+  var mongoPort: Int = 27017
 
   import EventReportCacheRepositorySpec._
 
@@ -48,8 +51,6 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
     when(mockConfig.getString("mongodb.event-reporting-data.name")).thenReturn("event-reporting-data")
     when(mockAppConfig.get[Int]("mongodb.event-reporting-data.timeToLiveInDays")).thenReturn(ttlValue)
 
-    initMongoDExecutable()
-    startMongoD()
     eventReportCacheRepository = buildFormRepository(mongoHost, mongoPort)
   }
 
@@ -75,9 +76,6 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
       Filters.equal(versionKey, edi.version)
     )
   }
-
-  override def afterAll(): Unit =
-    stopMongoD()
 
   "upsert with event type" must {
     "save a new event report cache in Mongo collection when collection is empty" in {
