@@ -31,8 +31,11 @@ import uk.gov.hmrc.mongo.MongoComponent
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class FileUploadResponseCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with EmbeddedMongoDBSupport
+class FileUploadResponseCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers
   with BeforeAndAfter with BeforeAndAfterAll with ScalaFutures { // scalastyle:off magic.number
+
+  val mongoHost = "localhost"
+  var mongoPort: Int = 27017
 
   import FileUploadResponseCacheRepositorySpec._
 
@@ -45,8 +48,6 @@ class FileUploadResponseCacheRepositorySpec extends AnyWordSpec with MockitoSuga
     when(mockConfig.getString("mongodb.file-upload-response.name")).thenReturn("file-upload-response")
     when(mockConfig.getInt("mongodb.file-upload-response.timeToLiveInSeconds")).thenReturn(ttlValue)
 
-    initMongoDExecutable()
-    startMongoD()
     fileUploadResponseCacheRepository = buildFromRepository(mongoHost, mongoPort)
   }
 

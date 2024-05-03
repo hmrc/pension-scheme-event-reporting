@@ -33,7 +33,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class EventLockRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers
-  with EmbeddedMongoDBSupport with BeforeAndAfter with BeforeAndAfterAll with ScalaFutures { // scalastyle:off magic.number
+  with BeforeAndAfter with BeforeAndAfterAll with ScalaFutures { // scalastyle:off magic.number
+
+  val mongoHost = "localhost"
+  var mongoPort: Int = 27017
 
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(1, Millis))
 
@@ -52,13 +55,8 @@ class EventLockRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
     when(mockAppConfig.get[String]("mongodb.event-reporting-event-lock.name")).thenReturn("event-reporting-lock-data")
     when(mockAppConfig.get[Int]("mongodb.event-reporting-event-lock.timeToLiveInSeconds")).thenReturn(ttlValue)
 
-    initMongoDExecutable()
-    startMongoD()
     eventLockRepository = buildFormRepository(mongoHost, mongoPort)
   }
-
-  override def afterAll(): Unit =
-    stopMongoD()
 
   "upsertIfNotLocked" must {
     "create a lock if lock does not exist, creator should not see the lock" in {

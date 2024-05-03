@@ -34,7 +34,10 @@ import uk.gov.hmrc.mongo.MongoComponent
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class GetDetailsCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers
-  with EmbeddedMongoDBSupport with BeforeAndAfter with BeforeAndAfterAll with ScalaFutures { // scalastyle:off magic.number
+  with BeforeAndAfter with BeforeAndAfterAll with ScalaFutures { // scalastyle:off magic.number
+
+  val mongoHost = "localhost"
+  var mongoPort: Int = 27017
 
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(1, Millis))
 
@@ -47,8 +50,6 @@ class GetDetailsCacheRepositorySpec extends AnyWordSpec with MockitoSugar with M
     when(mockConfig.getString("mongodb.get-details-cache-data.name")).thenReturn("get-details-cache-data")
     when(mockAppConfig.get[Int]("mongodb.get-details-cache-data.timeToLiveInDays")).thenReturn(ttlValue)
 
-    initMongoDExecutable()
-    startMongoD()
     getDetailsCacheRepository = buildFormRepository(mongoHost, mongoPort)
   }
 
@@ -75,9 +76,6 @@ class GetDetailsCacheRepositorySpec extends AnyWordSpec with MockitoSugar with M
       Filters.equal(versionKey, gdcdi.version)
     )
   }
-
-  override def afterAll(): Unit =
-    stopMongoD()
 
   "upsert" must {
     "save a new item in Mongo collection when collection is empty" in {
