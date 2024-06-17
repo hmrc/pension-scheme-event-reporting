@@ -112,7 +112,10 @@ class CompilePayloadService @Inject()(
           val gdcdi = GetDetailsCacheDataIdentifier(et, year, versionAsInt)
 
           getDetailsCacheRepository.get(pstr, gdcdi).flatMap {
-            case Some(json) => Future.successful(json.as[JsObject])
+            case Some(json) => {
+              logger.info(s"json for Api1826 is: $json")
+              Future.successful(json.as[JsObject])
+            }
             case None =>
               getPayloadFromAPIForEventType(futureGetEventResponse, et)
                 .flatMap(payload => getDetailsCacheRepository.upsert(pstr, gdcdi, payload).map(_ => payload))
@@ -133,7 +136,10 @@ class CompilePayloadService @Inject()(
             .remove(pstr, GetDetailsCacheDataIdentifier(eventTypeForEventBeingCompiled, year, versionAsInt))
             .map(_ => jsObject)
         }
-      case _ => Future.successful(jsonForEventBeingCompiled)
+      case _ => {
+        logger.info(s"jsonForEventBeingCompiled is: $jsonForEventBeingCompiled")
+        Future.successful(jsonForEventBeingCompiled)
+      }
     }
   }
 }
