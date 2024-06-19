@@ -552,17 +552,14 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
 
     def recoverAndValidatePayload(transformed1828Payload: JsObject): Future[Unit] = {
-      val recoveredConnectorCallForAPI1828 = eventReportConnector
-        .submitEventDeclarationReport(pstr, transformed1828Payload, version).map(_.json.as[JsObject]).recover {
-        case _: BadRequestException =>
-          throw new ExpectationFailedException("Nothing to submit")
-      }
       for {
-        _ <- recoveredConnectorCallForAPI1828
         _ <- validatePayloadAgainstSchema(transformed1828Payload, SchemaPath1828, "submitEventDeclarationReport")
-      } yield {
-        ()
-      }
+        _ <- eventReportConnector
+          .submitEventDeclarationReport(pstr, transformed1828Payload, version).map(_.json.as[JsObject]).recover {
+          case _: BadRequestException =>
+            throw new ExpectationFailedException("Nothing to submit")
+          }
+      } yield ()
     }
 
     declarationLockRepository.insertDoubleClickLock(pstr, psaPspId).flatMap { isAvailable =>
@@ -585,18 +582,13 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
 
     def recoverAndValidatePayload(transformed1829Payload: JsObject): Future[Unit] = {
-
-      val recoveredConnectorCallForAPI1829 =
-        eventReportConnector.submitEvent20ADeclarationReport(pstr, transformed1829Payload, version).map(_.json.as[JsObject]).recover {
+      for {
+        _ <- validatePayloadAgainstSchema(transformed1829Payload, SchemaPath1829, "submitEvent20ADeclarationReport")
+        _ <-  eventReportConnector.submitEvent20ADeclarationReport(pstr, transformed1829Payload, version).map(_.json.as[JsObject]).recover {
           case _: BadRequestException =>
             throw new ExpectationFailedException("Nothing to submit")
-        }
-      for {
-        _ <- recoveredConnectorCallForAPI1829
-        _ <- validatePayloadAgainstSchema(transformed1829Payload, SchemaPath1829, "submitEvent20ADeclarationReport")
-      } yield {
-        ()
-      }
+          }
+      } yield ()
     }
 
     declarationLockRepository.insertDoubleClickLock(pstr, psaPspId).flatMap { isAvailable =>
