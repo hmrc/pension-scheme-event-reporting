@@ -92,7 +92,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                       psaOrPspId: String,
                       saveLock: Boolean = true)
                      (implicit ec: ExecutionContext): Future[Boolean] = {
-    val ftr = if(saveLock) {
+    val ftr = if (saveLock) {
       eventLockRepository.upsertIfNotLocked(pstr, psaOrPspId, EventDataIdentifier(eventType, year, version, externalId))
     } else {
       Future.successful(true)
@@ -130,30 +130,94 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                     (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] = {
     val edi = EventDataIdentifier(eventType, year, version, externalId)
     eventLockRepository.eventIsLocked(pstr, psaOrPspId, edi).flatMap { eventIsLocked =>
-        eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(edi)).flatMap {
-          case x@Some(_) =>
-            Future.successful(x)
-          case None =>
-            val startDate = year.toString + "-04-06"
-            getEvent(pstr, startDate, version, eventType).flatMap {
-              case None =>
-                Future.successful(None)
-              case optUAData@Some(userAnswersDataToStore) =>
-                if(!eventIsLocked) {
-                  for {
-                    _ <- saveUserAnswers(externalId, pstr + "_original_cache", eventType, year, version, userAnswersDataToStore, psaOrPspId, saveLock = false)
-                    _ <- saveUserAnswers(externalId, pstr, eventType, year, version, userAnswersDataToStore, psaOrPspId)
-                  } yield optUAData
-                } else {
-                  Future.successful(optUAData.map(_ + ("locked" -> JsBoolean(true))))
-                }
-        }
+      eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(edi)).flatMap {
+        case x@Some(_) =>
+          Future.successful(x)
+        case None =>
+          val startDate = year.toString + "-04-06"
+          getEvent(pstr, startDate, version, eventType).flatMap {
+            case None =>
+              Future.successful(None)
+            case optUAData@Some(userAnswersDataToStore) =>
+              if (!eventIsLocked) {
+                for {
+                  _ <- saveUserAnswers(externalId, pstr + "_original_cache", eventType, year, version, userAnswersDataToStore, psaOrPspId, saveLock = false)
+                  _ <- saveUserAnswers(externalId, pstr, eventType, year, version, userAnswersDataToStore, psaOrPspId)
+                } yield optUAData
+              } else {
+                Future.successful(optUAData.map(_ + ("locked" -> JsBoolean(true))))
+              }
+          }
       }
     }
-
-
   }
 
+  //noinspection ScalaStyle
+  def doUserAnswersDifferFromCache(externalId: String,
+                                   pstr: String,
+                                   year: Int,
+                                   version: Int,
+                                   psaOrPspId: String)
+                                  (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[JsBoolean] = {
+
+    def comparison(eventType: EventType) = {
+      getUserAnswers(externalId, pstr + "_original_cache", eventType, year, version, psaOrPspId).map { maybeOriginal =>
+        val original = maybeOriginal.getOrElse(Json.obj())
+        getUserAnswers(externalId, pstr, eventType, year, version, psaOrPspId).map { maybeCurrent =>
+          val current = maybeCurrent.getOrElse(Json.obj())
+
+          val isDifferent = if (original != current) {
+            //          println(s"\n\n\n original is: $original")
+            //          println(s"\n\n\n current is: $current")
+            println(s"\n\n\n result for $eventType is: true")
+            JsBoolean(true)
+          } else {
+            //          println(s"\n\n\n original is: $original")
+            //          println(s"\n\n\n current is: $current")
+                      println(s"\n\n\n result for $eventType is: false")
+            JsBoolean(false)
+          }
+          isDifferent
+        }
+      }
+//      for {
+//        // TODO - make sure in sequence
+//        maybeOriginal <- getUserAnswers(externalId, pstr + "_original_cache", eventType, year, version, psaOrPspId)
+//        maybeCurrent <- getUserAnswers(externalId, pstr, eventType, year, version, psaOrPspId)
+//      } yield {
+//        val original = maybeOriginal.getOrElse(Json.obj())
+//        val current = maybeCurrent.getOrElse(Json.obj())
+//
+//
+//        val isDifferent = if (original != current) {
+////          println(s"\n\n\n original is: $original")
+////          println(s"\n\n\n current is: $current")
+//          println(s"\n\n\n result for $eventType is: true")
+//          JsBoolean(true)
+//        } else {
+////          println(s"\n\n\n original is: $original")
+////          println(s"\n\n\n current is: $current")
+////          println(s"\n\n\n result for $eventType is: false")
+//          JsBoolean(false)
+//        }
+//        isDifferent
+//      }
+    }
+
+    val compareAllEvents = for {
+      eventType <- EventType.values.filter(event => event != EventTypeNone)
+    } yield {
+      comparison(eventType)
+    }
+
+    Future.sequence(compareAllEvents).map { comparisonResult =>
+      if (comparisonResult.contains(JsBoolean(true))) {
+        JsBoolean(true)
+      } else {
+        JsBoolean(false)
+      }
+    }
+  }
 
   def getUserAnswers(externalId: String, pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     eventReportCacheRepository.getUserAnswers(externalId, pstr, None)
