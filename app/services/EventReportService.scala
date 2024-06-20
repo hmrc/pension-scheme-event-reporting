@@ -152,70 +152,58 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  //noinspection ScalaStyle
-  def doUserAnswersDifferFromCache(externalId: String,
-                                   pstr: String,
-                                   year: Int,
-                                   version: Int,
-                                   psaOrPspId: String)
-                                  (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[JsBoolean] = {
+  // TODO: remove excessive log statements after happy with implementation
+  // TODO: remove scalastyle:off comment
+  //scalastyle:off
+  def isNewReportDifferentToPrevious(externalId: String,
+                                     pstr: String,
+                                     year: Int,
+                                     reportVersion: Int,
+                                     psaOrPspId: String)
+                                    (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Boolean] = {
 
-    def comparison(eventType: EventType) = {
-      getUserAnswers(externalId, pstr + "_original_cache", eventType, year, version, psaOrPspId).map { maybeOriginal =>
-        val original = maybeOriginal.getOrElse(Json.obj())
-        getUserAnswers(externalId, pstr, eventType, year, version, psaOrPspId).map { maybeCurrent =>
-          val current = maybeCurrent.getOrElse(Json.obj())
+    val listOfFutureBooleans: List[Future[Boolean]] = for {
+      eventType <- EventType.valuesExcludingNone
+    } yield {
 
-          val isDifferent = if (original != current) {
-            //          println(s"\n\n\n original is: $original")
-            //          println(s"\n\n\n current is: $current")
-            println(s"\n\n\n result for $eventType is: true")
-            JsBoolean(true)
-          } else {
-            //          println(s"\n\n\n original is: $original")
-            //          println(s"\n\n\n current is: $current")
-                      println(s"\n\n\n result for $eventType is: false")
-            JsBoolean(false)
+      // TODO: potentially change getUA method to use cache repository instead
+      // eventReportCacheRepository.getUserAnswers(externalId, pstr + "_original_cache", Some(EventDataIdentifier(eventType, year, eventVersion.toInt, externalId))
+      getUserAnswers(externalId, pstr + "_original_cache", eventType, year, reportVersion, psaOrPspId).map { maybeOriginalData =>
+
+        val originalData = maybeOriginalData match {
+          case Some(json) =>
+            logger.info(s"Data found in original cache for Event$eventType")
+            json
+          case _ =>
+            logger.info(s"No data found in original cache for Event$eventType")
+            Json.obj()
+        }
+
+        // TODO: potentially change getUA method to use cache repository instead
+        // eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(eventType, year, eventVersion.toInt, externalId)))
+        getUserAnswers(externalId, pstr, eventType, year, reportVersion, psaOrPspId).map { maybeCurrentData =>
+          val currentData = maybeCurrentData match {
+            case Some(json) =>
+              logger.info(s"Data found in current UA for Event$eventType")
+              json
+            case _ =>
+              logger.info(s"No data found in current UA for Event$eventType")
+              Json.obj()
           }
-          isDifferent
+
+          if (currentData != originalData) {
+            logger.info(s"Change in data for Event$eventType on between reportVersion $reportVersion and ${reportVersion + 1}")
+            true
+          } else {
+            logger.info(s"No change in data for Event$eventType on between reportVersion $reportVersion and ${reportVersion + 1}")
+            false
+          }
         }
       }
-//      for {
-//        // TODO - make sure in sequence
-//        maybeOriginal <- getUserAnswers(externalId, pstr + "_original_cache", eventType, year, version, psaOrPspId)
-//        maybeCurrent <- getUserAnswers(externalId, pstr, eventType, year, version, psaOrPspId)
-//      } yield {
-//        val original = maybeOriginal.getOrElse(Json.obj())
-//        val current = maybeCurrent.getOrElse(Json.obj())
-//
-//
-//        val isDifferent = if (original != current) {
-////          println(s"\n\n\n original is: $original")
-////          println(s"\n\n\n current is: $current")
-//          println(s"\n\n\n result for $eventType is: true")
-//          JsBoolean(true)
-//        } else {
-////          println(s"\n\n\n original is: $original")
-////          println(s"\n\n\n current is: $current")
-////          println(s"\n\n\n result for $eventType is: false")
-//          JsBoolean(false)
-//        }
-//        isDifferent
-//      }
-    }
+    }.flatten
 
-    val compareAllEvents = for {
-      eventType <- EventType.values.filter(event => event != EventTypeNone)
-    } yield {
-      comparison(eventType)
-    }
-
-    Future.sequence(compareAllEvents).map { comparisonResult =>
-      if (comparisonResult.contains(JsBoolean(true))) {
-        JsBoolean(true)
-      } else {
-        JsBoolean(false)
-      }
+    Future.sequence(listOfFutureBooleans).map { listOfBooleans =>
+      listOfBooleans.contains(true)
     }
   }
 

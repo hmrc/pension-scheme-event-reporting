@@ -158,7 +158,7 @@ class EventReportController @Inject()(
     implicit request =>
       withAuth.flatMap { case Credentials(externalId, psaPspId, _)  =>
         val Seq(pstr, version, startDate) = requiredHeaders("pstr", "reportVersionNumber", "reportStartDate")
-        eventReportService.doUserAnswersDifferFromCache(externalId, pstr, startDate.toInt, version.toInt, psaPspId).map(Ok(_))
+        eventReportService.isNewReportDifferentToPrevious(externalId, pstr, startDate.toInt, version.toInt, psaPspId).map(bool => Ok(JsBoolean(bool)))
       }
   }
 
