@@ -38,7 +38,8 @@ import uk.gov.hmrc.auth.core.retrieve.Name
 import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 
@@ -163,11 +164,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                     (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Boolean] = {
 
     val listOfFutureBooleans: List[Future[Boolean]] = for {
+      // (eventType, recordVersion) <- getEventWithRecordVersionFromSummary(...)
       eventType <- EventType.valuesExcludingNone
     } yield {
 
-      // TODO: potentially change getUA method to use cache repository instead
-      // eventReportCacheRepository.getUserAnswers(externalId, pstr + "_original_cache", Some(EventDataIdentifier(eventType, year, eventVersion.toInt, externalId))
+      // TODO: change getUA method to use cache repository instead
+      // eventReportCacheRepository.getUserAnswers(externalId, pstr + "_original_cache", Some(EventDataIdentifier(eventType, year, recordVersion, externalId))
       getUserAnswers(externalId, pstr + "_original_cache", eventType, year, reportVersion, psaOrPspId).map { maybeOriginalData =>
 
         val originalData = maybeOriginalData match {
@@ -179,7 +181,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
             Json.obj()
         }
 
-        // TODO: potentially change getUA method to use cache repository instead
+        // TODO: change getUA method to use cache repository instead
         // eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(eventType, year, eventVersion.toInt, externalId)))
         getUserAnswers(externalId, pstr, eventType, year, reportVersion, psaOrPspId).map { maybeCurrentData =>
           val currentData = maybeCurrentData match {
@@ -546,12 +548,29 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           JsArray()
         }
 
+        // TODO: move this call to isNewReportDifferentToPrevious
+        Await.ready(getEventWithRecordVersionFromSummary(pstr = pstr, ("00" + version).takeRight(3), startDate, psaOrPspId, externalId, nameOfUser), Duration.Inf)
+
         Future.sequence(Set(resp1834Seq, resp1831Seq)) map { x =>
           x reduce (_ ++ _)
         }
     }
+  }
 
-
+  private def getEventWithRecordVersionFromSummary(pstr: String,
+                                            reportVersion: String,
+                                            startDate: String,
+                                            psaOrPspId: String,
+                                            externalId: String,
+                                            nameOfUser: Option[Name]
+                                          )(implicit headerCarrier: HeaderCarrier,
+                                            ec: ExecutionContext): Future[Unit] = {
+    getEventSummary(pstr, reportVersion, startDate, psaOrPspId, externalId, nameOfUser).map { jsArray =>
+      jsArray.value.map { arrayValue =>
+        // TODO: extract EventType and RecordVersion from JsValue
+        println(s"\n\n\n\n\n Array value is: $arrayValue")
+      }
+    }
   }
 
 
