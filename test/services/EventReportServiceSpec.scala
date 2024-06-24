@@ -847,7 +847,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       recoverToExceptionIf[Exception] {
         eventReportService.submitEventDeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly)
       } map { _ =>
-        verify(mockEventReportConnector, times(1)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
+        verify(mockEventReportConnector, times(0)).submitEventDeclarationReport(ArgumentMatchers.eq(pstr),
           any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
         verify(mockJSONPayloadSchemaValidator, times(1)).validatePayload(ArgumentMatchers.eq(submitEventDeclarationReportSuccessResponseETMP),
           ArgumentMatchers.eq(SchemaPath1828), ArgumentMatchers.eq("submitEventDeclarationReport"))
@@ -927,7 +927,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       recoverToExceptionIf[Exception] {
         eventReportService.submitEvent20ADeclarationReport(pstr, psaId, userAnswers, reportVersion)(implicitly, implicitly, implicitly)
       } map { _ =>
-        verify(mockEventReportConnector, times(1)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
+        verify(mockEventReportConnector, times(0)).submitEvent20ADeclarationReport(ArgumentMatchers.eq(pstr),
           any(), ArgumentMatchers.eq(reportVersion))(any(), any(), any())
         verify(mockJSONPayloadSchemaValidator, times(1)).validatePayload(ArgumentMatchers.eq(submitEvent20ADeclarationReportSuccessResponseETMP),
           ArgumentMatchers.eq(SchemaPath1829), ArgumentMatchers.eq("submitEvent20ADeclarationReport"))
