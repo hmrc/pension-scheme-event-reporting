@@ -80,4 +80,200 @@ trait Transformer {
           }
     )
 
+  // TODO - Yes no transforms clean up
+  def yesNoTransform(js: JsValue, err: String):Reads[JsBoolean] = {
+    js match {
+      case JsString(value) => value match {
+        case "Yes" => Reads.pure(JsBoolean(true))
+        case "No" => Reads.pure(JsBoolean(false))
+        case _ => Reads.failed(err)
+      }
+      case _ => Reads.failed(err)
+    }
+  }
+
+  def readAdditiveIfPresent(etmpPath: JsPath, uaPath: JsPath, f: String => String = identity): JsObject => Reads[JsObject] = jsObj =>
+    etmpPath.readNullable[String].flatMap {
+      case None => Reads.pure(jsObj)
+      case Some(str) => uaPath.json.put(JsString(f(str))).map(_ ++ jsObj)
+    }
+
+  def typeOfProtectionUAEvent6(tOP: String): String = tOP match {
+    case "Enhanced life time allowance" => "enhancedLifetimeAllowance"
+    case "Enhanced protection" => "enhancedProtection"
+    case "Fixed protection" => "fixedProtection"
+    case "Fixed protection 2014" => "fixedProtection2014"
+    case "Fixed protection 2016" => "fixedProtection2016"
+    case "Individual protection 2014" => "individualProtection2014"
+    case "Individual protection 2016" => "individualProtection2016"
+  }
+
+  def paymentTypeUAEvent8A(rBT: String): String = rBT match {
+    case "Member where payment of a stand-alone lump sum (100 per lump sum) and the member had protected lump sum rights of more than £375,000 with either primary protection or enhanced protection"
+    => "paymentOfAStandAloneLumpSum"
+    case "Member where payment of a scheme specific lump sum protection and the lump sum is more than 7.5 per of the lifetime allowance"
+    => "paymentOfASchemeSpecificLumpSum"
+  }
+
+  def typeOfProtectionUAEvent8(tOP: String): String = tOP match {
+    case "Primary Protection" => "primaryProtection"
+    case "Enhanced protection" => "enhancedProtection"
+  }
+
+  def typeOfProtectionUAEvent8A(tOP: String): String = tOP match {
+    case "Primary Protection" => "primaryProtection"
+    case "Enhanced protection" => "enhancedProtection"
+  }
+
+  def reasonBenefitTakenUAEvent3(rBT: String): String = rBT match {
+    case "Ill Health" => "illHealth"
+    case "Protected Pension Age" => "protectedPensionAge"
+    case "Other" => "other"
+  }
+
+  def typeOfProtectionUAEvent24(tOP: String): String = tOP match {
+    case "Enhanced protection" => "enhancedProtection"
+    case "Enhanced protection with protected lump sum rights of more than 375,000" => "enhancedProtectionWithProtectedSum"
+    case "Fixed protection" => "fixedProtection"
+    case "Fixed protection 2014" => "fixedProtection2014"
+    case "Fixed protection 2016" => "fixedProtection2016"
+    case "Individual protection 2014" => "individualProtection2014"
+    case "Individual protection 2016" => "individualProtection2016"
+    case "Primary Protection" => "primary"
+    case "Primary protection with protected lump sum rights of more than 375,000" => "primaryWithProtectedSum"
+  }
+
+  def bceTypeUAEvent24(tOP: String): String = tOP match {
+    case "An annuity protection lump sum death benefit" => "annuityProtection"
+    case "A defined benefit lump sum death benefit" => "definedBenefit"
+    case "A drawdown pension fund lump sum death benefit" => "drawdown"
+    case "A flexi-access drawdown lump sum death benefit" => "flexiAccess"
+    case "A pension protection lump sum death benefit" => "pensionProtection"
+    case "A small lump sum" => "small"
+    case "A stand-alone lump sum" => "standAlone"
+    case "A trivial commutation lump sum" => "trivialCommutation"
+    case "Serious ill health lump sum" => "seriousHealthLumpSum"
+    case "An uncrystalised funds pension lump sum" => "uncrystallisedFunds"
+    case "A uncrystallised funds lump sum death benefit" => "uncrystallisedFundsDeathBenefit"
+    case "A winding-up lump sum" => "windingUp"
+  }
+
+  lazy val memberTypeTransform: String => String = {
+    case "Individual" => "member"
+    case "Employer" => "employer"
+  }
+
+  lazy val yesNoTransform: String => Boolean = {
+    case "Yes" => true
+    case "No" => false
+  }
+
+  lazy val yesNoTransformToJsBoolean: String => JsBoolean = {
+    case "Yes" => JsBoolean(true)
+    case "No" => JsBoolean(false)
+    case _ => JsBoolean(false)
+  }
+
+  val unAuthorisedPmtType1IndividualTransform: String => String = {
+    case "Benefit in kind" => "benefitInKind"
+    case "Transfer to non-registered pensions scheme" => "transferToNonRegPensionScheme"
+    case "Error in calculating tax free lump sums" => "errorCalcTaxFreeLumpSums"
+    case "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum" => "benefitsPaidEarly"
+    case "Refund of contributions" => "refundOfContributions"
+    case "Overpayment of pension/written off" => "overpaymentOrWriteOff"
+    case "Loans to or in respect of the employer exceeding 50% of the value of the fund" => "loansExceeding50PercentOfFundValue"
+    case "Residential property held directly or indirectly by an investment-regulated pension scheme" => "residentialPropertyHeld"
+    case "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme" => "tangibleMoveablePropertyHeld"
+    case "Court Order Payment/Confiscation Order" => "courtOrConfiscationOrder"
+    case "Other" => "memberOther"
+  }
+
+  val unAuthorisedPmtType1EmployerTransform: String => String = {
+    case "Benefit in kind" => "benefitInKind"
+    case "Transfer to non-registered pensions scheme" => "transferToNonRegPensionScheme"
+    case "Error in calculating tax free lump sums" => "errorCalcTaxFreeLumpSums"
+    case "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum" => "benefitsPaidEarly"
+    case "Refund of contributions" => "refundOfContributions"
+    case "Overpayment of pension/written off" => "overpaymentOrWriteOff"
+    case "Loans to or in respect of the employer exceeding 50% of the value of the fund" => "loansExceeding50PercentOfFundValue"
+    case "Residential property held directly or indirectly by an investment-regulated pension scheme" => "residentialProperty"
+    case "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme" => "tangibleMoveableProperty"
+    case "Court Order Payment/Confiscation Order" => "courtOrder"
+    case "Other" => "employerOther"
+  }
+
+  lazy val unAuthorisedPmtType2Transform: String => String = {
+    case "Transfer to an Employer Financed retirement Benefit scheme (EFRB)" => "anEmployerFinanced"
+    case "Transfer to a non-recognised pension scheme which is not a qualifying overseas pension scheme" => "nonRecognisedScheme"
+    case "Widow and/or orphan" => "widowOrOrphan"
+    case "Refund of contributions other" => "other"
+    case "Death of member" => "deathOfMember"
+    case "Death of dependent" => "deathOfDependent"
+    case "Dependent no longer qualified for pension" => "dependentNoLongerQualifiedForPension"
+    case "Overpayment of pension/written off other" => "other"
+    case _ => ""
+  }
+
+  def event3TypeOfBenefitConversion(tOB: String): String = tOB match {
+    case "illHealth" => "Ill Health"
+    case "protectedPensionAge" => "Protected Pension Age"
+    case "other" => "Other"
+  }
+
+  def event6TypeOfProtectionConversion(tOP: String): String = tOP match {
+    case "enhancedLifetimeAllowance" => "Enhanced life time allowance"
+    case "enhancedProtection" => "Enhanced protection"
+    case "fixedProtection" => "Fixed protection"
+    case "fixedProtection2014" => "Fixed protection 2014"
+    case "fixedProtection2016" => "Fixed protection 2016"
+    case "individualProtection2014" => "Individual protection 2014"
+    case "individualProtection2016" => "Individual protection 2016"
+  }
+
+  def event8TypeOfProtectionConversion(tOP: String): String = tOP match {
+    case "primaryProtection" => "Primary Protection"
+    case "enhancedProtection" => "Enhanced protection"
+  }
+
+  def event8ATypeOfProtectionConversion(tOP: String): String = tOP match {
+    case "primaryProtection" => "Primary Protection"
+    case "enhancedProtection" => "Enhanced protection"
+  }
+
+  //noinspection ScalaStyle
+  def event8APaymentTypeConversion(pT: String): String = pT match {
+    case "paymentOfAStandAloneLumpSum" =>
+      "Member where payment of a stand-alone lump sum (100 per lump sum) and the member had protected lump sum rights of more than £375,000 with either primary protection or enhanced protection"
+    case "paymentOfASchemeSpecificLumpSum" =>
+      "Member where payment of a scheme specific lump sum protection and the lump sum is more than 7.5 per of the lifetime allowance"
+  }
+
+  def event24TypeOfProtectionGroup2Conversion(tOP: String): String = tOP match {
+    case "enhancedProtection" => "Enhanced protection"
+    case "enhancedProtectionWithProtectedSum" => "Enhanced protection with protected lump sum rights of more than 375,000"
+    case "fixedProtection" => "Fixed protection"
+    case "fixedProtection2014" => "Fixed protection 2014"
+    case "fixedProtection2016" => "Fixed protection 2016"
+    case "individualProtection2014" => "Individual protection 2014"
+    case "individualProtection2016" => "Individual protection 2016"
+    case "primary" => "Primary Protection"
+    case "primaryWithProtectedSum" => "Primary protection with protected lump sum rights of more than 375,000"
+  }
+
+  //noinspection ScalaStyle
+  def event24ReasonBenefitTakenConversion(tOB: String): String = tOB match {
+    case "annuityProtection" => "An annuity protection lump sum death benefit"
+    case "definedBenefit" => "A defined benefit lump sum death benefit"
+    case "drawdown" => "A drawdown pension fund lump sum death benefit"
+    case "flexiAccess" => "A flexi-access drawdown lump sum death benefit"
+    case "commencement" => "Pension commencement lump sum"
+    case "pensionProtection" => "A pension protection lump sum death benefit"
+    case "small" => "A small lump sum"
+    case "standAlone" => "A stand-alone lump sum"
+    case "trivialCommutation" => "A trivial commutation lump sum"
+    case "seriousHealthLumpSum" => "Serious ill health lump sum"
+    case "uncrystallisedFunds" => "An uncrystalised funds pension lump sum"
+    case "uncrystallisedFundsDeathBenefit" => "A uncrystallised funds lump sum death benefit"
+    case "windingUp" => "A winding-up lump sum"
+  }
 }

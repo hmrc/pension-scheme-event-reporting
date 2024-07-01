@@ -21,11 +21,12 @@ import models.enumeration.EventType.{Event10, Event11, Event12, Event13, Event14
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
-
+import transformations.Transformer
 import scala.language.implicitConversions
 
 
 object API1834 {
+  import API1834ReadsUtilities._
 
   implicit def reads(eventType: EventType): Reads[JsObject] = {
     eventType match {
@@ -42,40 +43,47 @@ object API1834 {
     }
   }
 
-  private val event18Reads = {
-    ((__ \ "eventDetails" \ "event18" \ "chargeablePmt").readNullable[String] and
-    (__ \ "eventDetails" \ "event18" \ "recordVersion").readNullable[String])(
+
+
+}
+
+private object API1834ReadsUtilities extends Transformer {
+  import transformations.ETMPToFrontEnd.API1834Paths._
+
+  val event18Reads: Reads[JsObject] = {
+    (uaEvent18DetailsChargeablePmt.readNullable[String] and
+      uaEvent18DetailsRecordVersion.readNullable[String])(
       (chargeablePmt, recordVersion) => {
         (chargeablePmt, recordVersion) match {
           case (Some(_), None) => Reads[JsObject](_ => JsError("record version is missing"))
           case (Some("Yes"), Some(rv)) =>
-            ((__ \ "event18" \ "event18Confirmation").json.put(JsBoolean(true)) and
-              (__ \ "event18" \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))).reduce
+            (uaEvent18Confirmation.json.put(JsBoolean(true)) and
+              uaEvent18RecordVersion.json.put(JsNumber(rv.takeRight(3).toInt))).reduce
           case _ => Reads.pure(Json.obj())
         }
       }
     ).flatMap(identity)
   }
 
-  private val event19Reads = {
-    val event19Node = ((__ \ "countryCode").readNullable[String] and
-      (__ \ "dateOfChange").readNullable[String] and
-      (__ \ "recordVersion").readNullable[String]
+  val event19Reads: Reads[JsObject] = {
+    val event19Node = (uaCountryCode.readNullable[String] and
+      uaDateOfChange.readNullable[String] and
+      uaRecordVersion.readNullable[String]
       )(
       (countryCode, dateOfChange, recordVersion) => {
         (countryCode, dateOfChange, recordVersion) match {
           case (_, _, None) => Reads[JsObject](_ => JsError("record version is missing"))
           case (Some(code), Some(date), Some(rv)) => (
-            (__ \ "dateChangeMade").json.put(JsString(date)) and
-              (__ \ "CountryOrTerritory").json.put(JsString(code)) and
-              (__ \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))
+            uaDateChangeMade.json.put(JsString(date)) and
+              uaCountryOrTerritory.json.put(JsString(code)) and
+              uaRecordVersion.json.put(JsNumber(rv.takeRight(3).toInt))
             ).reduce
           case _ => Reads.pure(Json.obj())
         }
       }
     ).flatMap(identity)
 
-    (__ \ "eventDetails" \ "event19").readNullable(Reads.seq(event19Node)).map {
+    uaEvent19Details.readNullable(Reads.seq(event19Node)).map {
       case None => Json.obj()
       case Some(dataOpt) =>
         dataOpt.headOption match {
@@ -85,26 +93,26 @@ object API1834 {
     }
   }
 
-  private val event20Reads: Reads[JsObject] = {
-    val event20Node = ((__ \ "occSchemeDetails" \ "startDateOfOccScheme").readNullable[String] and
-      (__ \ "occSchemeDetails" \ "stopDateOfOccScheme").readNullable[String] and
-      (__ \ "recordVersion").readNullable[String]
+  val event20Reads: Reads[JsObject] = {
+    val event20Node = (uaStartDateOfOccScheme.readNullable[String] and
+      uaStopDateOfOccScheme.readNullable[String] and
+      uaRecordVersion.readNullable[String]
       )((optStartDate, optStopDate, recordVersion) => {
       (optStartDate, optStopDate, recordVersion) match {
         case (_, _, None) => Reads[JsObject](_ => JsError("record version is missing"))
-        case (Some(startDate), None, Some(rv)) => ((__ \ "becameDate" \ "date").json.put(JsString(startDate)) and
-          (__ \ "whatChange").json.put(JsString("becameOccupationalScheme")) and
-          (__ \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))
+        case (Some(startDate), None, Some(rv)) => (uaBecameDate.json.put(JsString(startDate)) and
+          uaWhatChange.json.put(JsString("becameOccupationalScheme")) and
+          uaRecordVersion.json.put(JsNumber(rv.takeRight(3).toInt))
           ).reduce
-        case (None, Some(stopDate), Some(rv)) => ((__ \ "ceasedDate" \ "date").json.put(JsString(stopDate)) and
-          (__ \ "whatChange").json.put(JsString("ceasedOccupationalScheme")) and
-          (__ \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))
+        case (None, Some(stopDate), Some(rv)) => (uaCeasedDate.json.put(JsString(stopDate)) and
+          uaWhatChange.json.put(JsString("ceasedOccupationalScheme")) and
+          uaRecordVersion.json.put(JsNumber(rv.takeRight(3).toInt))
           ).reduce
         case _ => Reads.pure(Json.obj())
       }
     }
     ).flatMap(identity)
-    (__ \ "eventDetails" \ "event20").readNullable(Reads.seq(event20Node)).map {
+    uaEvent20Details.readNullable(Reads.seq(event20Node)).map {
       case None => Json.obj()
       case Some(dataOpt) =>
         dataOpt.headOption match {
@@ -115,35 +123,35 @@ object API1834 {
 
   }
 
-  private val eventWindUpReads: Reads[JsObject] = {
-    ((__ \ "eventDetails" \ "eventWindUp" \ "recordVersion").readNullable[String] and
-      (__ \ "eventDetails" \ "eventWindUp" \ "dateOfWindUp").readNullable[String]) (
+  val eventWindUpReads: Reads[JsObject] = {
+    (uaWindUpDetailsRecordVersion.readNullable[String] and
+      uaDateOfWindUp.readNullable[String]) (
       (recordVersion, dateOfWindUp) => {
         (recordVersion, dateOfWindUp) match {
           case (None, Some(_)) => Reads[JsObject](_ => JsError("record version is missing"))
           case (Some(rv), Some(dateOfWindUp)) if dateOfWindUp != "9999-12-31" => ((__ \ "eventWindUp" \ "schemeWindUpDate").json.put(JsString(dateOfWindUp)) and
-            (__ \ "eventWindUp" \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))).reduce
+            uaWindUpRecordVersion.json.put(JsNumber(rv.takeRight(3).toInt))).reduce
           case _ => Reads.pure(Json.obj())
         }
       }
     ).flatMap(identity)
   }
 
-  private val event12Reads: Reads[JsObject] = {
-    ((__ \ "eventDetails" \ "event12" \ "recordVersion").readNullable[String] and
-      (__ \ "eventDetails" \ "event12" \ "twoOrMoreSchemesDate").readNullable[String])(
+  val event12Reads: Reads[JsObject] = {
+    (uaEvent12DetailsRecordVersion.readNullable[String] and
+      uaEvent12DetailsTwoOrMoreSchemesDate.readNullable[String])(
       (recordVersion, date) => (recordVersion, date) match {
         case (None, Some(_)) => Reads[JsObject](_ => JsError("record version is missing"))
         case (Some(rv), Some(d)) =>
-          ((__ \ "event12" \ "hasSchemeChangedRules").json.put(JsBoolean(true)) and
-            (__ \ "event12" \ "dateOfChange" \ "dateOfChange").json.put(JsString(d)) and
-            (__ \ "event12" \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))).reduce
+          (uaEvent12HasSchemeChangedRules.json.put(JsBoolean(true)) and
+            uaEvent12DateOfChange.json.put(JsString(d)) and
+            uaEvent12RecordVersion.json.put(JsNumber(rv.takeRight(3).toInt))).reduce
         case _ => Reads.pure(Json.obj())
       }
     ).flatMap(identity)
   }
 
-  private val event13Reads: Reads[JsObject] = {
+  val event13Reads: Reads[JsObject] = {
 
     def mapStructure(s: String) = s match {
       case "A single trust under which all of the assets are held for the benefit of all members of the scheme" => "single"
@@ -153,25 +161,25 @@ object API1834 {
     }
 
     val event13Node = (
-      (__ \ "recordVersion").readNullable[String] and
-      (__ \ "dateOfChange").readNullable[String] and
-        (__ \ "schemeStructure").readNullable[String]
+      uaRecordVersion.readNullable[String] and
+        uaDateOfChange.readNullable[String] and
+        uaSchemeStructure.readNullable[String]
       )(
       (recordVersion, date, structure) => {
         (recordVersion, date, structure) match {
           case (None, _, _) => Reads[JsObject](_ => JsError("record version is missing"))
           case (Some(rv), Some(d), Some(s)) =>
             (
-              (__ \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt)) and
-              (__ \ "schemeStructure").json.put(JsString(mapStructure(s))) and
-                (__ \ "changeDate").json.put(JsString(d))
+              uaRecordVersion.json.put(JsNumber(rv.takeRight(3).toInt)) and
+                uaSchemeStructure.json.put(JsString(mapStructure(s))) and
+                uaChangeDate.json.put(JsString(d))
               ).reduce
           case _ => Reads.pure(Json.obj())
         }
       }
     ).flatMap(identity)
 
-    (__ \ "eventDetails" \ "event13").readNullable(Reads.seq(event13Node)).map {
+    uaEvent13.readNullable(Reads.seq(event13Node)).map {
       case None => Json.obj()
       case Some(dataOpt) =>
         dataOpt.headOption match {
@@ -181,51 +189,51 @@ object API1834 {
     }
   }
 
-  private val event14Reads = {
-    ((__ \ "eventDetails" \ "event14" \ "schemeMembers").readNullable[String] and
-      (__ \ "eventDetails" \ "event14" \ "recordVersion").readNullable[String])(
+  val event14Reads: Reads[JsObject] = {
+    (uaEvent14DetailsSchemeMembers.readNullable[String] and
+      uaEvent14DetailsRecordVersion.readNullable[String])(
       (schemeMembers, recordVersion) => {
         (schemeMembers, recordVersion) match {
           case (Some(_), None) => Reads[JsObject](_ => JsError("record version is missing"))
           case (Some(data), Some(rv)) =>
-            ((__ \ "event14" \ "schemeMembers").json.put(JsString(data)) and
-              (__ \ "event14" \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))).reduce
+            (uaEvent14SchemeMembers.json.put(JsString(data)) and
+              uaEvent14RecordVersion.json.put(JsNumber(rv.takeRight(3).toInt))).reduce
           case _ => Reads.pure(Json.obj())
         }
       }
     ).flatMap(identity)
   }
 
-  private val event11Reads: Reads[JsObject] = {
+  val event11Reads: Reads[JsObject] = {
     (
-      (__ \ "eventDetails" \ "event11" \ "recordVersion").readNullable[String] and
-        (__ \ "eventDetails" \ "event11" \ "unauthorisedPmtsDate").readNullable[String] and
-        (__ \ "eventDetails" \ "event11" \ "contractsOrPoliciesDate").readNullable[String]
+      uaEvent11DetailsRecordVersion.readNullable[String] and
+        uaEvent11DetailsUnauthorisedPmtsDate.readNullable[String] and
+        uaEvent11DetailsContractsOrPoliciesDate.readNullable[String]
       )(
       (recordVersion, unAuthDate, contractsDate) => {
         (recordVersion, unAuthDate, contractsDate) match {
           case (None, a, b) if a.isDefined || b.isDefined => Reads[JsObject](_ => JsError("record version is missing"))
           case (Some(rv), Some(date1), Some(date2)) =>
             (
-              (__ \ "event11" \ "hasSchemeChangedRulesUnAuthPayments").json.put(JsBoolean(true)) and
-                (__ \ "event11" \ "unAuthPaymentsRuleChangeDate" \ "date").json.put(JsString(date1)) and
-                (__ \ "event11" \ "hasSchemeChangedRulesInvestmentsInAssets").json.put(JsBoolean(true)) and
-                (__ \ "event11" \ "investmentsInAssetsRuleChangeDate" \ "date").json.put(JsString(date2)) and
-                (__ \ "event11" \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))
+              uaEvent11HasSchemeChangedRulesUnAuthPayments.json.put(JsBoolean(true)) and
+                uaEvent11UnAuthPaymentsRuleChangeDateValue.json.put(JsString(date1)) and
+                uaEvent11HasSchemeChangedRulesInvestmentsInAssets.json.put(JsBoolean(true)) and
+                uaEvent11InvestmentsInAssetsRuleChangeDateValue.json.put(JsString(date2)) and
+                uaEvent11RecordVersion.json.put(JsNumber(rv.takeRight(3).toInt))
               ).reduce
           case (Some(rv), Some(date1), _) =>
             (
-              (__ \ "event11" \ "hasSchemeChangedRulesUnAuthPayments").json.put(JsBoolean(true)) and
-                (__ \ "event11" \ "unAuthPaymentsRuleChangeDate").json.put(JsString(date1)) and
-                (__ \ "event11" \ "hasSchemeChangedRulesInvestmentsInAssets").json.put(JsBoolean(false)) and
-                (__ \ "event11" \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))
+              uaEvent11HasSchemeChangedRulesUnAuthPayments.json.put(JsBoolean(true)) and
+                uaEvent11UnAuthPaymentsRuleChangeDate.json.put(JsString(date1)) and
+                uaEvent11HasSchemeChangedRulesInvestmentsInAssets.json.put(JsBoolean(false)) and
+                uaEvent11RecordVersion.json.put(JsNumber(rv.takeRight(3).toInt))
               ).reduce
           case (Some(rv), _, Some(date2)) =>
             (
-              (__ \ "event11" \ "hasSchemeChangedRulesUnAuthPayments").json.put(JsBoolean(false)) and
-                (__ \ "event11" \ "hasSchemeChangedRulesInvestmentsInAssets").json.put(JsBoolean(true)) and
-                (__ \ "event11" \ "investmentsInAssetsRuleChangeDate").json.put(JsString(date2)) and
-                (__ \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))
+              uaEvent11HasSchemeChangedRulesUnAuthPayments.json.put(JsBoolean(false)) and
+                uaEvent11HasSchemeChangedRulesInvestmentsInAssets.json.put(JsBoolean(true)) and
+                uaEvent11InvestmentsInAssetsRuleChangeDate.json.put(JsString(date2)) and
+                uaRecordVersion.json.put(JsNumber(rv.takeRight(3).toInt))
               ).reduce
           case _ => Reads.pure(Json.obj())
         }
@@ -234,36 +242,36 @@ object API1834 {
   }
 
 
-  private val event10Reads: Reads[JsObject] = {
+  val event10Reads: Reads[JsObject] = {
     val event10ItemReads: Reads[JsObject] = {
       (
-        (__ \ "recordVersion").readNullable[String] and
-          (__ \ "invRegScheme" \ "startDateDetails" \ "startDateOfInvReg").readNullable[String] and
-          (__ \ "invRegScheme" \ "startDateDetails" \ "contractsOrPolicies").readNullable[String] and
-          (__ \ "invRegScheme" \ "ceaseDateDetails" \ "ceaseDateOfInvReg").readNullable[String]
+        uaRecordVersion.readNullable[String] and
+          uaStartDateOfInv.readNullable[String] and
+          uaInvRegSchemeContractsOrPolicies.readNullable[String] and
+          uaCeaseDateOfInvReg.readNullable[String]
         )(
         (recordVersion, startDate, contractsOrPolicies, ceaseDate) => {
           (recordVersion, startDate, contractsOrPolicies, ceaseDate) match {
             case (None, _, _, _) => Reads[JsObject](_ => JsError("record version is missing"))
             case (Some(rv), Some(sd), Some(cop), None) =>
               (
-                (__ \ "becomeOrCeaseScheme").json.put(JsString("itBecameAnInvestmentRegulatedPensionScheme")) and
-                  (__ \ "schemeChangeDate" \ "schemeChangeDate").json.put(JsString(sd)) and
-                  (__ \ "contractsOrPolicies").json.put(yesNoTransform(cop)) and
-                  (__ \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))
+                uaBecomeOrCeaseScheme.json.put(JsString("itBecameAnInvestmentRegulatedPensionScheme")) and
+                  uaSchemeChangeDate.json.put(JsString(sd)) and
+                  uaContractsOrPolicies.json.put(yesNoTransformToJsBoolean(cop)) and
+                  uaRecordVersion.json.put(JsNumber(rv.takeRight(3).toInt))
                 ).reduce
             case (Some(rv), None, None, Some(cd)) =>
               (
-                (__ \ "becomeOrCeaseScheme").json.put(JsString("itHasCeasedToBeAnInvestmentRegulatedPensionScheme")) and
-                  (__ \ "schemeChangeDate" \ "schemeChangeDate").json.put(JsString(cd)) and
-                  (__ \ "recordVersion").json.put(JsNumber(rv.takeRight(3).toInt))
+                uaBecomeOrCeaseScheme.json.put(JsString("itHasCeasedToBeAnInvestmentRegulatedPensionScheme")) and
+                  uaSchemeChangeDate.json.put(JsString(cd)) and
+                  uaRecordVersion.json.put(JsNumber(rv.takeRight(3).toInt))
                 ).reduce
             case (_, a, b, c) => Reads.failed[JsObject](s"Invalid $a $b $c")
           }
         }
       ).flatMap(identity)
     }
-    (__ \ "eventDetails" \ "event10").readNullable(Reads.seq(event10ItemReads)).map {
+    uaEvent10.readNullable(Reads.seq(event10ItemReads)).map {
       case None => Json.obj()
       case Some(dataOpt) =>
         dataOpt.headOption match {
@@ -273,9 +281,79 @@ object API1834 {
     }
   }
 
-  private val yesNoTransform: String => JsBoolean = {
-    case "Yes" => JsBoolean(true)
-    case "No" => JsBoolean(false)
-    case _ => JsBoolean(false)
-  }
+  lazy val reqReads: (JsPath, JsPath) => Reads[JsObject] = (uaPath: JsPath, etmpPath: JsPath) => uaPath.json.copyFrom(etmpPath.json.pick)
+
+  lazy val optReads: (JsPath, JsPath) => Reads[JsObject] = (uaPath: JsPath, etmpPath: JsPath) => uaPath.json.copyFrom(etmpPath.json.pick).orElse(doNothing)
+
+}
+
+private object API1834Paths {
+  // UA
+  val uaEvent10:                                                JsPath = __ \ "eventDetails" \ "event10"
+
+  val uaEvent11:                                                JsPath = __ \ "event11"
+  val uaEvent11Details:                                         JsPath = __ \ "eventDetails" \ "event11"
+  val uaEvent11DetailsRecordVersion:                            JsPath = uaEvent11Details \ "recordVersion"
+  val uaEvent11DetailsUnauthorisedPmtsDate:                     JsPath = uaEvent11Details \ "unauthorisedPmtsDate"
+  val uaEvent11DetailsContractsOrPoliciesDate:                  JsPath = uaEvent11Details \ "contractsOrPoliciesDate"
+  val uaEvent11RecordVersion:                                   JsPath = uaEvent11 \ "recordVersion"
+  val uaEvent11HasSchemeChangedRulesUnAuthPayments:             JsPath = uaEvent11 \ "hasSchemeChangedRulesUnAuthPayments"
+  val uaEvent11UnAuthPaymentsRuleChangeDate:                    JsPath = uaEvent11 \ "unAuthPaymentsRuleChangeDate"
+  val uaEvent11UnAuthPaymentsRuleChangeDateValue:               JsPath = uaEvent11UnAuthPaymentsRuleChangeDate \ "date"
+  val uaEvent11HasSchemeChangedRulesInvestmentsInAssets:        JsPath = uaEvent11 \ "hasSchemeChangedRulesInvestmentsInAssets"
+  val uaEvent11InvestmentsInAssetsRuleChangeDate:               JsPath = uaEvent11 \ "investmentsInAssetsRuleChangeDate"
+  val uaEvent11InvestmentsInAssetsRuleChangeDateValue:          JsPath = uaEvent11InvestmentsInAssetsRuleChangeDate \ "date"
+
+  val uaEvent12:                                                JsPath = __ \ "event12"
+  val uaEvent12Details:                                         JsPath = __ \ "eventDetails" \ "event12"
+  val uaEvent12DetailsRecordVersion:                            JsPath = uaEvent12Details \ "recordVersion"
+  val uaEvent12DetailsTwoOrMoreSchemesDate:                     JsPath = uaEvent12Details \ "twoOrMoreSchemesDate"
+  val uaEvent12RecordVersion:                                   JsPath = uaEvent12 \ "recordVersion"
+  val uaEvent12HasSchemeChangedRules:                           JsPath = uaEvent12 \ "hasSchemeChangedRules"
+  val uaEvent12DateOfChange:                                    JsPath = uaEvent12 \ "dateOfChange" \ "dateOfChange"
+
+  val uaEvent13:                                                JsPath = __ \ "eventDetails" \ "event13"
+
+  val uaEvent14:                                                JsPath = __ \ "event14"
+  val uaEvent14Details:                                         JsPath = __ \ "eventDetails" \ "event14"
+  val uaEvent14DetailsSchemeMembers:                            JsPath = uaEvent14Details \ "schemeMembers"
+  val uaEvent14DetailsRecordVersion:                            JsPath = uaEvent14Details \ "recordVersion"
+  val uaEvent14SchemeMembers:                                   JsPath = uaEvent14 \ "schemeMembers"
+  val uaEvent14RecordVersion:                                   JsPath = uaEvent14 \ "recordVersion"
+
+  val uaEvent18:                                                JsPath = __ \ "event18"
+  val uaEvent18Details:                                         JsPath = __ \ "eventDetails" \ "event18"
+  val uaEvent18DetailsChargeablePmt:                            JsPath = uaEvent18Details \ "chargeablePmt"
+  val uaEvent18DetailsRecordVersion:                            JsPath = uaEvent18Details \ "recordVersion"
+  val uaEvent18Confirmation:                                    JsPath = uaEvent18 \ "event18Confirmation"
+  val uaEvent18RecordVersion:                                   JsPath = uaEvent18 \ "recordVersion"
+
+  val uaEvent19Details:                                         JsPath = __ \ "eventDetails" \ "event19"
+
+  val uaEvent20Details:                                         JsPath = __ \ "eventDetails" \ "event20"
+
+  val uaWindUp:                                                 JsPath = __ \ "eventWindUp"
+  val uaWindUpDetails:                                          JsPath = __ \ "eventDetails" \ "eventWindUp"
+  val uaWindUpDetailsRecordVersion:                             JsPath = uaWindUpDetails \ "recordVersion"
+  val uaDateOfWindUp:                                           JsPath = uaWindUpDetails \ "dateOfWindUp"
+  val uaWindUpRecordVersion:                                    JsPath = uaWindUp \ "recordVersion"
+
+  val uaRecordVersion:                                          JsPath = __ \ "recordVersion"
+  val uaStartDateOfInv:                                         JsPath = __ \ "invRegScheme" \ "startDateDetails" \ "startDateOfInvReg"
+  val uaInvRegSchemeContractsOrPolicies:                        JsPath = __ \ "invRegScheme" \ "startDateDetails" \ "contractsOrPolicies"
+  val uaCeaseDateOfInvReg:                                      JsPath = __ \ "invRegScheme" \ "ceaseDateDetails" \ "ceaseDateOfInvReg"
+  val uaBecomeOrCeaseScheme:                                    JsPath = __ \ "becomeOrCeaseScheme"
+  val uaSchemeChangeDate:                                       JsPath = __ \ "schemeChangeDate" \ "schemeChangeDate"
+  val uaContractsOrPolicies:                                    JsPath = __ \ "contractsOrPolicies"
+  val uaSchemeStructure:                                        JsPath = __ \ "schemeStructure"
+  val uaChangeDate:                                             JsPath = __ \ "changeDate"
+  val uaDateOfChange:                                           JsPath = __ \ "dateOfChange"
+  val uaStartDateOfOccScheme:                                   JsPath = __ \ "occSchemeDetails" \ "startDateOfOccScheme"
+  val uaStopDateOfOccScheme:                                    JsPath = __ \ "occSchemeDetails" \ "stopDateOfOccScheme"
+  val uaBecameDate:                                             JsPath = __ \ "becameDate" \ "date"
+  val uaCeasedDate:                                             JsPath = __ \ "ceasedDate" \ "date"
+  val uaWhatChange:                                             JsPath = __ \ "whatChange"
+  val uaCountryCode:                                            JsPath = __ \ "countryCode"
+  val uaDateChangeMade:                                         JsPath = __ \ "dateChangeMade"
+  val uaCountryOrTerritory:                                     JsPath = __ \ "CountryOrTerritory"
 }

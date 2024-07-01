@@ -121,74 +121,6 @@ private object API1833ReadsUtilities extends Transformer {
     }
 
   /**
-   * These are the transforms which are applied to some of the fields.
-   */
-
-  lazy val memberTypeTransform: String => String = {
-    case "Individual" => "member"
-    case "Employer" => "employer"
-  }
-
-  lazy val yesNoTransform: String => Boolean = {
-    case "Yes" => true
-    case "No" => false
-  }
-
-  val unAuthorisedPmtType1IndividualTransform: String => String = {
-    case "Benefit in kind" => "benefitInKind"
-    case "Transfer to non-registered pensions scheme" => "transferToNonRegPensionScheme"
-    case "Error in calculating tax free lump sums" => "errorCalcTaxFreeLumpSums"
-    case "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum" => "benefitsPaidEarly"
-    case "Refund of contributions" => "refundOfContributions"
-    case "Overpayment of pension/written off" => "overpaymentOrWriteOff"
-    case "Loans to or in respect of the employer exceeding 50% of the value of the fund" => "loansExceeding50PercentOfFundValue"
-    case "Residential property held directly or indirectly by an investment-regulated pension scheme" => "residentialPropertyHeld"
-    case "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme" => "tangibleMoveablePropertyHeld"
-    case "Court Order Payment/Confiscation Order" => "courtOrConfiscationOrder"
-    case "Other" => "memberOther"
-  }
-
-  val unAuthorisedPmtType1EmployerTransform: String => String = {
-    case "Benefit in kind" => "benefitInKind"
-    case "Transfer to non-registered pensions scheme" => "transferToNonRegPensionScheme"
-    case "Error in calculating tax free lump sums" => "errorCalcTaxFreeLumpSums"
-    case "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum" => "benefitsPaidEarly"
-    case "Refund of contributions" => "refundOfContributions"
-    case "Overpayment of pension/written off" => "overpaymentOrWriteOff"
-    case "Loans to or in respect of the employer exceeding 50% of the value of the fund" => "loansExceeding50PercentOfFundValue"
-    case "Residential property held directly or indirectly by an investment-regulated pension scheme" => "residentialProperty"
-    case "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme" => "tangibleMoveableProperty"
-    case "Court Order Payment/Confiscation Order" => "courtOrder"
-    case "Other" => "employerOther"
-  }
-
-  lazy val unAuthorisedPmtType2Transform: String => String = {
-    case "Transfer to an Employer Financed retirement Benefit scheme (EFRB)" => "anEmployerFinanced"
-    case "Transfer to a non-recognised pension scheme which is not a qualifying overseas pension scheme" => "nonRecognisedScheme"
-    case "Widow and/or orphan" => "widowOrOrphan"
-    case "Refund of contributions other" => "other"
-    case "Death of member" => "deathOfMember"
-    case "Death of dependent" => "deathOfDependent"
-    case "Dependent no longer qualified for pension" => "dependentNoLongerQualifiedForPension"
-    case "Overpayment of pension/written off other" => "other"
-    case _ => ""
-  }
-
-  val freeTxtOrSchemeOrRecipientNameIndividualTransform: String => String = {
-    case "Benefit in kind" => "benefitInKind"
-    case "Transfer to non-registered pensions scheme" => "transferToNonRegPensionScheme"
-    case "Error in calculating tax free lump sums" => "errorCalcTaxFreeLumpSums"
-    case "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum" => "benefitsPaidEarly"
-    case "Refund of contributions" => "refundOfContributions"
-    case "Overpayment of pension/written off" => "overpaymentOrWriteOff"
-    case "Loans to or in respect of the employer exceeding 50% of the value of the fund" => "loansExceeding50PercentOfFundValue"
-    case "Residential property held directly or indirectly by an investment-regulated pension scheme" => "residentialPropertyHeld"
-    case "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme" => "tangibleMoveablePropertyHeld"
-    case "Court Order Payment/Confiscation Order" => "courtOrConfiscationOrder"
-    case "Other" => "memberOther"
-  }
-
-  /**
    * These are dynamic path functions which are required for some fields as the appropriate uaPath is different for Individual and Employer.
    */
 
@@ -282,7 +214,6 @@ private object EventOneReportPaths {
   val pathUACompanyName: JsPath = __ \ Symbol("event1") \ Symbol("companyDetails") \ Symbol("companyName")
   val pathUACompanyNumber: JsPath = __ \ Symbol("event1") \ Symbol("companyDetails") \ Symbol("companyNumber")
   val pathUAEmployerAddress: JsPath = __ \ Symbol("employerAddress") \ Symbol("address")
-  val pathUAUnAuthorisedPaymentDetails: JsPath = __ \ Symbol("unAuthorisedPaymentDetails")
   val pathUAPaymentNatureMember: JsPath = __ \ Symbol("paymentNatureMember")
   val pathUAPaymentNatureEmployer: JsPath = __ \ Symbol("paymentNatureEmployer")
   val pathUAUnAuthorisedPaymentDetailsSchemeDetailsReference: JsPath = __ \ Symbol("schemeDetails") \ Symbol("reference")
