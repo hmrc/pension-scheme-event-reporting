@@ -40,6 +40,9 @@ case class EventReportCacheEntry(pstr: String, edi: EventDataIdentifier, data: J
 
 object EventReportCacheEntry {
   implicit val format: Format[EventReportCacheEntry] = Json.format[EventReportCacheEntry]
+  import play.api.http.Writeable
+  import play.api.mvc.Codec
+
 
   val externalIdKey = "externalId"
   val pstrKey = "pstr"
@@ -193,6 +196,15 @@ class EventReportCacheRepository @Inject()(
       case None =>
         getByEDI(pstr, EventDataIdentifier(EventType.EventTypeNone, 0, 0, externalId)).map(_.map(_.as[JsObject]))
     }
+  }
+
+  def getSessionEventReportingAnswers(externalId:String, pstr: String)
+                    (implicit ec: ExecutionContext): Future[Seq[EventReportCacheEntry]] = {
+    collection.find[EventReportCacheEntry](
+      Filters.and(
+        Filters.equal(externalIdKey, externalId)
+      )
+    ).toFuture()
   }
 
   private def getByEDI(pstr: String, edi: EventDataIdentifier)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {

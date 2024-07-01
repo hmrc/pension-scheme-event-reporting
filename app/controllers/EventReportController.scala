@@ -16,10 +16,12 @@
 
 package controllers
 
+import models.EROverviewVersion
 import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
+import repositories.EventReportCacheEntry
 import services.EventReportService
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.retrieve.{Name, ~}
@@ -29,8 +31,6 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-
-
 @Singleton()
 class EventReportController @Inject()(
                                        cc: ControllerComponents,
@@ -42,6 +42,7 @@ class EventReportController @Inject()(
     with Results
     with AuthorisedFunctions
     with Logging {
+  implicit val formats: Format[EventReportCacheEntry] = Json.format[EventReportCacheEntry]
 
   def removeUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
@@ -127,6 +128,19 @@ class EventReportController @Inject()(
           case _ => None
         }
         process(externalId, psaOrPspId, pstr, etVersionYear)
+      }
+  }
+
+  def getSessionEventReportingAnswers: Action[AnyContent] = Action.async {
+    implicit request =>
+      withAuth.flatMap { case Credentials(externalId, _, _) =>
+        val pstr = request.headers.get("pstr").getOrElse("24000041IN")
+
+        eventReportService.getSessionEventReportingAnswers(externalId, pstr)
+          .map {
+            case x => Ok(Json.toJson(x))
+            case _ => NotFound
+          }
       }
   }
 
@@ -231,6 +245,7 @@ class EventReportController @Inject()(
       withAuth.flatMap { case Credentials(_, psaPspId, _) =>
         val Seq(pstr, version) = requiredHeaders("pstr", "version")
         val userAnswersJson = requiredBody
+        println(s"************ userAnswersJson = $userAnswersJson")
         eventReportService.submitEventDeclarationReport(pstr, psaPspId, userAnswersJson, version)
       }
   }

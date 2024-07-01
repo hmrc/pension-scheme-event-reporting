@@ -31,7 +31,7 @@ import play.api.libs.json.JsResult.toTry
 import play.api.libs.json._
 import play.api.mvc.Results._
 import play.api.mvc.{RequestHeader, Result}
-import repositories.{DeclarationLockRepository, EventLockRepository, EventReportCacheRepository}
+import repositories.{DeclarationLockRepository, EventLockRepository, EventReportCacheEntry, EventReportCacheRepository}
 import transformations.ETMPToFrontEnd._
 import transformations.UserAnswersToETMP._
 import uk.gov.hmrc.auth.core.retrieve.Name
@@ -158,6 +158,14 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
   def getUserAnswers(externalId: String, pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     eventReportCacheRepository.getUserAnswers(externalId, pstr, None)
 
+  def getSessionEventReportingAnswers(externalId: String, pstr: String)(implicit ec: ExecutionContext): Future[Seq[EventReportCacheEntry]] = {
+    val x = eventReportCacheRepository.getSessionEventReportingAnswers(externalId, pstr).map{
+      s => s.filter(_.edi.eventType != EventType.EventTypeNone)
+    }
+    x.map(y => println(s"************************* $y"))
+    x
+  }
+
   //scalastyle:off method.length
   def memberChangeInfoTransformation(oldUserAnswers: Option[JsObject],
                                              newUserAnswers: JsObject,
@@ -169,6 +177,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
     def newMembersWithChangeInfo(getMemberDetails: JsObject => Option[scala.collection.IndexedSeq[JsObject]]) = {
       val newMembers = getMemberDetails(newUserAnswers)
+
+
+      println(s"**************************************************")
+      println(s">>>>>>>>>>>>>>>>>>>newUserAnswers: $newUserAnswers")
+      println(s"<<<<<<<<<<<<<<<<<<<oldUserAnswers: $oldUserAnswers")
+      println(s"**************************************************")
 
       newMembers
         .getOrElse(throw new RuntimeException("new member not available"))
@@ -532,7 +546,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def getOverview(pstr: String, startDate: String, endDate: String)
                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    val erOverview = eventReportConnector.getOverview(pstr, reportType = "ER", startDate, endDate)
+    val erOverview = eventReportConnector.getOverview(pstr, reportType = "PSR", startDate, endDate)
     val er20AOverview = eventReportConnector.getOverview(pstr, reportType = "ER20A", startDate, endDate)
 
     val combinedEROverview = erOverview.flatMap { a =>
