@@ -123,6 +123,9 @@ object EventType extends Enumerable.Implicits {
   val values: List[EventType] = List(WindUp, Event1, Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A,
     Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, Event20A, Event22, Event23, Event24, EventTypeNone)
 
+  val valuesExcludingNone: List[EventType] = List(WindUp, Event1, Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A,
+    Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, Event20A, Event22, Event23, Event24)
+
   private val api1826Events: List[EventType] = List(Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, WindUp)
   private val api1827Events: List[EventType] = List(Event1)
   private val api1829Events: List[EventType] = List(Event20A)

@@ -38,7 +38,8 @@ import uk.gov.hmrc.auth.core.retrieve.Name
 import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 
@@ -92,7 +93,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                       psaOrPspId: String,
                       saveLock: Boolean = true)
                      (implicit ec: ExecutionContext): Future[Boolean] = {
-    val ftr = if(saveLock) {
+    val ftr = if (saveLock) {
       eventLockRepository.upsertIfNotLocked(pstr, psaOrPspId, EventDataIdentifier(eventType, year, version, externalId))
     } else {
       Future.successful(true)
@@ -130,30 +131,83 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                     (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] = {
     val edi = EventDataIdentifier(eventType, year, version, externalId)
     eventLockRepository.eventIsLocked(pstr, psaOrPspId, edi).flatMap { eventIsLocked =>
-        eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(edi)).flatMap {
-          case x@Some(_) =>
-            Future.successful(x)
-          case None =>
-            val startDate = year.toString + "-04-06"
-            getEvent(pstr, startDate, version, eventType).flatMap {
-              case None =>
-                Future.successful(None)
-              case optUAData@Some(userAnswersDataToStore) =>
-                if(!eventIsLocked) {
-                  for {
-                    _ <- saveUserAnswers(externalId, pstr + "_original_cache", eventType, year, version, userAnswersDataToStore, psaOrPspId, saveLock = false)
-                    _ <- saveUserAnswers(externalId, pstr, eventType, year, version, userAnswersDataToStore, psaOrPspId)
-                  } yield optUAData
-                } else {
-                  Future.successful(optUAData.map(_ + ("locked" -> JsBoolean(true))))
-                }
-        }
+      eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(edi)).flatMap {
+        case x@Some(_) =>
+          Future.successful(x)
+        case None =>
+          val startDate = year.toString + "-04-06"
+          getEvent(pstr, startDate, version, eventType).flatMap {
+            case None =>
+              Future.successful(None)
+            case optUAData@Some(userAnswersDataToStore) =>
+              if (!eventIsLocked) {
+                for {
+                  _ <- saveUserAnswers(externalId, pstr + "_original_cache", eventType, year, version, userAnswersDataToStore, psaOrPspId, saveLock = false)
+                  _ <- saveUserAnswers(externalId, pstr, eventType, year, version, userAnswersDataToStore, psaOrPspId)
+                } yield optUAData
+              } else {
+                Future.successful(optUAData.map(_ + ("locked" -> JsBoolean(true))))
+              }
+          }
       }
     }
-
-
   }
 
+  // TODO: remove excessive log statements after happy with implementation
+  // TODO: remove scalastyle:off comment
+  //scalastyle:off
+  def isNewReportDifferentToPrevious(externalId: String,
+                                     pstr: String,
+                                     year: Int,
+                                     reportVersion: Int,
+                                     psaOrPspId: String)
+                                    (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Boolean] = {
+
+    val listOfFutureBooleans: List[Future[Boolean]] = for {
+      // (eventType, recordVersion) <- getEventWithRecordVersionFromSummary(...)
+      eventType <- EventType.valuesExcludingNone
+    } yield {
+
+      // TODO: change getUA method to use cache repository instead
+      // eventReportCacheRepository.getUserAnswers(externalId, pstr + "_original_cache", Some(EventDataIdentifier(eventType, year, recordVersion, externalId))
+      getUserAnswers(externalId, pstr + "_original_cache", eventType, year, reportVersion, psaOrPspId).map { maybeOriginalData =>
+
+        val originalData = maybeOriginalData match {
+          case Some(json) =>
+            logger.info(s"Data found in original cache for Event$eventType")
+            json
+          case _ =>
+            logger.info(s"No data found in original cache for Event$eventType")
+            Json.obj()
+        }
+
+        // TODO: change getUA method to use cache repository instead
+        // eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(eventType, year, eventVersion.toInt, externalId)))
+        getUserAnswers(externalId, pstr, eventType, year, reportVersion, psaOrPspId).map { maybeCurrentData =>
+          val currentData = maybeCurrentData match {
+            case Some(json) =>
+              logger.info(s"Data found in current UA for Event$eventType")
+              json
+            case _ =>
+              logger.info(s"No data found in current UA for Event$eventType")
+              Json.obj()
+          }
+
+          if (currentData != originalData) {
+            logger.info(s"Change in data for Event$eventType on between reportVersion $reportVersion and ${reportVersion + 1}")
+            true
+          } else {
+            logger.info(s"No change in data for Event$eventType on between reportVersion $reportVersion and ${reportVersion + 1}")
+            false
+          }
+        }
+      }
+    }.flatten
+
+    Future.sequence(listOfFutureBooleans).map { listOfBooleans =>
+      listOfBooleans.contains(true)
+    }
+  }
 
   def getUserAnswers(externalId: String, pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     eventReportCacheRepository.getUserAnswers(externalId, pstr, None)
@@ -494,12 +548,29 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           JsArray()
         }
 
+        // TODO: move this call to isNewReportDifferentToPrevious
+        Await.ready(getEventWithRecordVersionFromSummary(pstr = pstr, ("00" + version).takeRight(3), startDate, psaOrPspId, externalId, nameOfUser), Duration.Inf)
+
         Future.sequence(Set(resp1834Seq, resp1831Seq)) map { x =>
           x reduce (_ ++ _)
         }
     }
+  }
 
-
+  private def getEventWithRecordVersionFromSummary(pstr: String,
+                                            reportVersion: String,
+                                            startDate: String,
+                                            psaOrPspId: String,
+                                            externalId: String,
+                                            nameOfUser: Option[Name]
+                                          )(implicit headerCarrier: HeaderCarrier,
+                                            ec: ExecutionContext): Future[Unit] = {
+    getEventSummary(pstr, reportVersion, startDate, psaOrPspId, externalId, nameOfUser).map { jsArray =>
+      jsArray.value.map { arrayValue =>
+        // TODO: extract EventType and RecordVersion from JsValue
+        println(s"\n\n\n\n\n Array value is: $arrayValue")
+      }
+    }
   }
 
 

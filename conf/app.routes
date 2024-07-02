@@ -2,6 +2,7 @@
 
 GET           /overview                                                                         controllers.EventReportController.getOverview
 GET           /versions                                                                         controllers.EventReportController.getVersions
+GET           /compare                                                                          controllers.EventReportController.getComparison
 
 GET           /event-summary                                                                    controllers.EventReportController.getEventSummary
 POST          /compile                                                                          controllers.EventReportController.compileEvent

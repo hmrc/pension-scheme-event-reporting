@@ -22,7 +22,7 @@ import models.enumeration.EventType
 import models.enumeration.EventType.{Event1, Event20A, Event22, Event3, Event5, Event6, WindUp}
 import models.{EROverview, EROverviewVersion, EventDataIdentifier}
 import org.mockito.ArgumentMatchers
-import org.mockito.ArgumentMatchers.{any, eq => eqTo}
+import org.mockito.ArgumentMatchers.{any, anyString, eq => eqTo}
 import org.mockito.Mockito._
 import org.scalacheck.Gen
 import org.scalatest.BeforeAndAfterEach
@@ -43,7 +43,7 @@ import uk.gov.hmrc.http._
 import utils.{GeneratorAPI1828, GeneratorAPI1829, JSONSchemaValidator, JsonFileReader}
 
 import java.time.LocalDate
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSugar with BeforeAndAfterEach
@@ -62,6 +62,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val mockCompilePayloadService = mock[CompilePayloadService]
   private val mockDeclarationLockRepository: DeclarationLockRepository = mock[DeclarationLockRepository]
   private val mockEventLockRepository = mock[EventLockRepository]
+  private val mockEventReportService = mock[EventReportService]
 
   private val externalId = "externalId"
   private val psaId = "psa"
@@ -953,6 +954,66 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       }
     }
   }
+//  "doUserAnswersDifferFromCache" must {
+////    "return true when the report has been updated since the previous version" in {
+////      val (userAnswers, submitEventDeclarationReportSuccessResponseETMP) = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value
+////      eventReportService.submitEventDeclarationReport(pstr, psaId, userAnswers, "1")
+////    }
+//    "return false when the report has not been updated since the previous version" in {
+////      val (userAnswers, _) = super[GeneratorAPI1828].generateUserAnswersAndPOSTBody.sample.value
+////      val startDate = (userAnswers \ "reportStartDate").as[String].substring(0, 4)
+////      when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
+////        thenReturn(Future.successful(true))
+////      eventReportService.submitEventDeclarationReport(pstr, psaId, userAnswers, "1")
+////      eventReportService.submitEventDeclarationReport(pstr, psaId, userAnswers, "2")
+////      val edi = EventDataIdentifier(Event1, 2020, 1, externalId)
+////      val json = Json.obj("test" -> "test")
+////      when(eventReportService.getUserAnswers(
+////        eqTo(externalId), eqTo(pstr), eqTo(Event1), eqTo(edi.year), eqTo(edi.version), eqTo(psaId))(any(), any())
+////      ).thenReturn(Future.successful(Some(json)))
+////      when(mockEventLockRepository.eventIsLocked(
+////        ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(psaId), ArgumentMatchers.eq(edi))
+////      ).thenReturn(Future.successful(false))
+////      when(mockEventReportCacheRepository.getUserAnswers(
+////        eqTo(externalId), eqTo(pstr), eqTo(Some(edi)))(any())
+////      ).thenReturn(Future.successful(Some(json)))
+//
+//
+//
+////      when(mockEventReportCacheRepository.getUserAnswers(
+////        ArgumentMatchers.eq(externalId), ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(Some(edi)))(any())
+////      ).thenReturn(Future.successful(Some(Json.obj("test" -> "test"))))
+////      when(eventReportService.getUserAnswers(
+////        ArgumentMatchers.eq(externalId),
+////        ArgumentMatchers.eq(pstr),
+////        ArgumentMatchers.eq(Event22),
+////        ArgumentMatchers.eq(startDate),
+////        ArgumentMatchers.eq("1"),
+////        ArgumentMatchers.eq(psaId)
+////      )(any())).thenReturn(Future.successful())
+//
+////      when(eventReportService.getUserAnswers(
+////        externalId = ArgumentMatchers.eq(externalId),
+////        pstr = ArgumentMatchers.eq(pstr),
+////        eventType = ArgumentMatchers.eq(Event3),
+////        year = ArgumentMatchers.eq(startDate.toInt),
+////        version = ArgumentMatchers.eq(1),
+////        psaOrPspId = ArgumentMatchers.eq(psaId)
+////      )(any(): HeaderCarrier, any(): ExecutionContext)).thenReturn(Future.successful(Some(Json.obj("test" -> "test"))))
+//
+//      when(mockEventReportService.getUserAnswers(
+//        ArgumentMatchers.eq(externalId),
+//        ArgumentMatchers.eq(pstr),
+//        ArgumentMatchers.eq(Event22),
+//        ArgumentMatchers.eq(2021),
+//        ArgumentMatchers.eq(2),
+//        ArgumentMatchers.eq(psaId))(any(), any())
+//      ).thenReturn(Future.successful(Some(Json.obj("test" -> "test"))))
+//      eventReportService.doUserAnswersDifferFromCache(externalId, pstr, 2021, 2, psaId).map { res =>
+//        res mustBe JsBoolean(false)
+//      }
+//    }
+//  }
 }
 
 object EventReportServiceSpec {
