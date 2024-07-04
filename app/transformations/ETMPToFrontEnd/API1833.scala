@@ -16,14 +16,14 @@
 
 package transformations.ETMPToFrontEnd
 
-import play.api.libs.json._
-import transformations.Transformer
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
+import play.api.libs.json._
+import transformations.Transformer
 
 object API1833 {
 
-  import EventOneReportPaths._
+  import API1833Paths._
   import API1833ReadsUtilities._
 
   implicit val rds1833Api: Reads[JsObject] =
@@ -32,7 +32,13 @@ object API1833 {
       case _ => Reads.pure(Json.obj())
     }
 
-  private lazy val readsEvent1Details: Reads[JsArray] = __.read(
+}
+
+private object API1833ReadsUtilities extends Transformer {
+
+  import API1833Paths._
+
+  lazy val readsEvent1Details: Reads[JsArray] = __.read(
     Reads.seq(
       (
         readsMemberType and
@@ -41,40 +47,36 @@ object API1833 {
           readsMemberChangeInfo
         ).reduce
     ).map(JsArray(_)))
-}
 
-private object API1833ReadsUtilities extends Transformer {
+  private val readsMemberType: Reads[JsObject] = reqReadsStrTransform(pathUAWhoReceivedUnauthPayment, pathEtmpMemberType, memberTypeTransform)
 
-  import EventOneReportPaths._
-
-  val readsMemberType: Reads[JsObject] = reqReadsStrTransform(pathUAWhoReceivedUnauthPayment, pathEtmpMemberType, memberTypeTransform)
-
-  val readsIndividualOrEmployerMemberDetails: Reads[JsObject] = pathEtmpMemberType.json.pick.flatMap {
+  private val readsIndividualOrEmployerMemberDetails: Reads[JsObject] = pathEtmpMemberType.json.pick.flatMap {
     case JsString("Individual") => readsIndividualMemberDetails
     case JsString("Employer") => readsEmployerMemberDetails
     case _ => fail[JsObject]
   }
 
-  val readsIndividualMemberDetails: Reads[JsObject] = (
+  private val readsIndividualMemberDetails: Reads[JsObject] = (
     reqReads(pathUAMembersDetailsFirstName, pathEtmpIndividualMemberDetailsFirstName) and
       reqReads(pathUAMembersDetailsLastName, pathEtmpIndividualMemberDetailsLastName) and
       reqReads(pathUAMembersDetailsNino, pathEtmpIndividualMemberDetailsNino) and
-      optReadsBoolTransform(pathUADoYouHoldSignedMandate, pathEtmpIndividualMemberDetailsSignedMandate, yesNoTransform) and
-      optReadsBoolTransform(pathUAValueOfUnauthorisedPayment, pathEtmpIndividualMemberDetailsPmtMoreThan25PerFundValue, yesNoTransform) and
-      optReadsBoolTransform(pathUASchemeUnAuthPaySurchargeMember, pathEtmpIndividualMemberDetailsSchemePayingSurcharge, yesNoTransform)
+      optReadsBoolTransform(pathUADoYouHoldSignedMandate, pathEtmpIndividualMemberDetailsSignedMandate, yesNoTransformToBoolean) and
+      optReadsBoolTransform(pathUAValueOfUnauthorisedPayment, pathEtmpIndividualMemberDetailsPmtMoreThan25PerFundValue, yesNoTransformToBoolean) and
+      optReadsBoolTransform(pathUASchemeUnAuthPaySurchargeMember, pathEtmpIndividualMemberDetailsSchemePayingSurcharge, yesNoTransformToBoolean)
     ).reduce
 
-  val readsEmployerMemberDetails: Reads[JsObject] = (
+  private val readsEmployerMemberDetails: Reads[JsObject] = (
     reqReads(pathUACompanyName, pathEtmpEmployerMemberDetailsCompOrOrgName) and
       reqReads(pathUACompanyNumber, pathEtmpEmployerMemberDetailsCrnNumber) and
       pathUAEmployerAddress.json.copyFrom(readsAddressEtmp(pathEtmpEmployerMemberDetailsAddressDetails))
     ).reduce
 
-  val readsUnAuthorisedPaymentDetails: Reads[JsObject] = (
+  private val readsUnAuthorisedPaymentDetails: Reads[JsObject] = (
     readsUnAuthorisedPmtType1WithDynamicUAPaths and
       reqReads(pathUAUnAuthorisedPaymentDate, pathEtmpUnAuthorisedPaymentDetailsDateOfUnauthorisedPayment) and
       reqReads(pathUAUnAuthorisedPaymentValue, pathEtmpUnAuthorisedPaymentDetailsValueOfUnauthorisedPayment) and
-      optReadsDynamicPathStrTransform(dynamicPathUnAuthorisedPmtType2, pathEtmpUnAuthorisedPaymentDetailsUnAuthorisedPmtType2, unAuthorisedPmtType2Transform) and
+      optReadsDynamicPathStrTransform(
+        dynamicPathUnAuthorisedPmtType2, pathEtmpUnAuthorisedPaymentDetailsUnAuthorisedPmtType2, unAuthorisedPmtType2Transform) and
       readsFreeTxtOrSchemeOrRecipientNameWithDynamicUAPaths and
       optReads(pathUAUnAuthorisedPaymentDetailsSchemeDetailsReference, pathEtmpUnAuthorisedPaymentDetailsPstrOrReference) and
       optReads(pathUAUnAuthorisedLoanAmount, pathEtmpUnAuthorisedPaymentDetailsPmtAmtOrLoanAmt) and
@@ -82,7 +84,7 @@ private object API1833ReadsUtilities extends Transformer {
       readsResPropDetailsWithDynamicUAPaths
     ).reduce
 
-  val readsMemberChangeInfo: Reads[JsObject] = (
+  private val readsMemberChangeInfo: Reads[JsObject] = (
     reqReads(pathUAMemberStatus, pathEtmpMemberStatus) and
       optReads(pathUAAmendedVersion, pathEtmpAmendedVersion)
     ).reduce
@@ -96,7 +98,7 @@ private object API1833ReadsUtilities extends Transformer {
 
   lazy val optReads: (JsPath, JsPath) => Reads[JsObject] = (uaPath: JsPath, etmpPath: JsPath) => uaPath.json.copyFrom(etmpPath.json.pick).orElse(doNothing)
 
-  lazy val reqReadsStrTransform: (JsPath, JsPath, String => String) => Reads[JsObject] =
+  private lazy val reqReadsStrTransform: (JsPath, JsPath, String => String) => Reads[JsObject] =
     (uaPath: JsPath, etmpPath: JsPath, transform: String => String) => {
       uaPath.json.copyFrom(etmpPath.json.pick.flatMap {
         case JsString(str) => Reads.pure(JsString(transform(str)))
@@ -104,7 +106,7 @@ private object API1833ReadsUtilities extends Transformer {
       })
     }
 
-  lazy val optReadsBoolTransform: (JsPath, JsPath, String => Boolean) => Reads[JsObject] =
+  private lazy val optReadsBoolTransform: (JsPath, JsPath, String => Boolean) => Reads[JsObject] =
     (uaPath: JsPath, etmpPath: JsPath, transform: String => Boolean) => {
       uaPath.json.copyFrom(etmpPath.json.pick.flatMap {
         case JsString(str) => Reads.pure(JsBoolean(transform(str)))
@@ -112,7 +114,7 @@ private object API1833ReadsUtilities extends Transformer {
       }).orElse(doNothing)
     }
 
-  lazy val optReadsDynamicPathStrTransform: (String => JsPath, JsPath, String => String) => Reads[JsObject] =
+  private lazy val optReadsDynamicPathStrTransform: (String => JsPath, JsPath, String => String) => Reads[JsObject] =
     (dynamicUaPath: String => JsPath, etmpPath: JsPath, transform: String => String) => {
       etmpPath.json.pick.flatMap {
         case JsString(str) => dynamicUaPath(transform(str)).json.copyFrom(Reads.pure(JsString(transform(str))))
@@ -121,78 +123,10 @@ private object API1833ReadsUtilities extends Transformer {
     }
 
   /**
-   * These are the transforms which are applied to some of the fields.
-   */
-
-  lazy val memberTypeTransform: String => String = {
-    case "Individual" => "member"
-    case "Employer" => "employer"
-  }
-
-  lazy val yesNoTransform: String => Boolean = {
-    case "Yes" => true
-    case "No" => false
-  }
-
-  val unAuthorisedPmtType1IndividualTransform: String => String = {
-    case "Benefit in kind" => "benefitInKind"
-    case "Transfer to non-registered pensions scheme" => "transferToNonRegPensionScheme"
-    case "Error in calculating tax free lump sums" => "errorCalcTaxFreeLumpSums"
-    case "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum" => "benefitsPaidEarly"
-    case "Refund of contributions" => "refundOfContributions"
-    case "Overpayment of pension/written off" => "overpaymentOrWriteOff"
-    case "Loans to or in respect of the employer exceeding 50% of the value of the fund" => "loansExceeding50PercentOfFundValue"
-    case "Residential property held directly or indirectly by an investment-regulated pension scheme" => "residentialPropertyHeld"
-    case "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme" => "tangibleMoveablePropertyHeld"
-    case "Court Order Payment/Confiscation Order" => "courtOrConfiscationOrder"
-    case "Other" => "memberOther"
-  }
-
-  val unAuthorisedPmtType1EmployerTransform: String => String = {
-    case "Benefit in kind" => "benefitInKind"
-    case "Transfer to non-registered pensions scheme" => "transferToNonRegPensionScheme"
-    case "Error in calculating tax free lump sums" => "errorCalcTaxFreeLumpSums"
-    case "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum" => "benefitsPaidEarly"
-    case "Refund of contributions" => "refundOfContributions"
-    case "Overpayment of pension/written off" => "overpaymentOrWriteOff"
-    case "Loans to or in respect of the employer exceeding 50% of the value of the fund" => "loansExceeding50PercentOfFundValue"
-    case "Residential property held directly or indirectly by an investment-regulated pension scheme" => "residentialProperty"
-    case "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme" => "tangibleMoveableProperty"
-    case "Court Order Payment/Confiscation Order" => "courtOrder"
-    case "Other" => "employerOther"
-  }
-
-  lazy val unAuthorisedPmtType2Transform: String => String = {
-    case "Transfer to an Employer Financed retirement Benefit scheme (EFRB)" => "anEmployerFinanced"
-    case "Transfer to a non-recognised pension scheme which is not a qualifying overseas pension scheme" => "nonRecognisedScheme"
-    case "Widow and/or orphan" => "widowOrOrphan"
-    case "Refund of contributions other" => "other"
-    case "Death of member" => "deathOfMember"
-    case "Death of dependent" => "deathOfDependent"
-    case "Dependent no longer qualified for pension" => "dependentNoLongerQualifiedForPension"
-    case "Overpayment of pension/written off other" => "other"
-    case _ => ""
-  }
-
-  val freeTxtOrSchemeOrRecipientNameIndividualTransform: String => String = {
-    case "Benefit in kind" => "benefitInKind"
-    case "Transfer to non-registered pensions scheme" => "transferToNonRegPensionScheme"
-    case "Error in calculating tax free lump sums" => "errorCalcTaxFreeLumpSums"
-    case "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum" => "benefitsPaidEarly"
-    case "Refund of contributions" => "refundOfContributions"
-    case "Overpayment of pension/written off" => "overpaymentOrWriteOff"
-    case "Loans to or in respect of the employer exceeding 50% of the value of the fund" => "loansExceeding50PercentOfFundValue"
-    case "Residential property held directly or indirectly by an investment-regulated pension scheme" => "residentialPropertyHeld"
-    case "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme" => "tangibleMoveablePropertyHeld"
-    case "Court Order Payment/Confiscation Order" => "courtOrConfiscationOrder"
-    case "Other" => "memberOther"
-  }
-
-  /**
    * These are dynamic path functions which are required for some fields as the appropriate uaPath is different for Individual and Employer.
    */
 
-  val dynamicPathFreeTxtIndividual: String => JsPath = {
+  private val dynamicPathFreeTxtIndividual: String => JsPath = {
     case "Benefit in kind" => pathUABenefitInKindBriefDescription
     case "Transfer to non-registered pensions scheme" => pathUASchemeDetailsSchemeName
     case "Error in calculating tax free lump sums" => pathUAErrorDescription
@@ -202,14 +136,14 @@ private object API1833ReadsUtilities extends Transformer {
     case "Other" => pathUAMemberPaymentNatureDescription
   }
 
-  val dynamicPathFreeTxtEmployer: String => JsPath = {
+  private val dynamicPathFreeTxtEmployer: String => JsPath = {
     case "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme" => pathUAEmployerTangibleMoveableProperty
     case "Court Order Payment/Confiscation Order" => pathUAUnauthorisedPaymentRecipientName
     case "Other" => pathUAPaymentNatureDesc
     case _ => pathUAPaymentNatureEmployer
   }
 
-  lazy val dynamicPathUnAuthorisedPmtType2: String => JsPath = {
+  private lazy val dynamicPathUnAuthorisedPmtType2: String => JsPath = {
     case "anEmployerFinanced" | "nonRecognisedScheme" => pathUAWhoWasTheTransferMade
     case "widowOrOrphan" => pathUARefundOfContributions
     case "deathOfMember" | "deathOfDependent"
@@ -229,7 +163,7 @@ private object API1833ReadsUtilities extends Transformer {
     case _ => None
   }
 
-  lazy val readsUnAuthorisedPmtType1WithDynamicUAPaths: Reads[JsObject] = {
+  private lazy val readsUnAuthorisedPmtType1WithDynamicUAPaths: Reads[JsObject] = {
     readsUnAuthorisedPmtType1IndividualOrEmployer.flatMap(_.getOrElse(Reads.pure(Json.obj())))
   }
 
@@ -238,19 +172,21 @@ private object API1833ReadsUtilities extends Transformer {
       case JsString("Individual") =>
         pathEtmpUnAuthorisedPaymentDetailsUnAuthorisedPmtType1.readNullable[JsString].map {
           case Some(paymentNature) =>
-            dynamicPathFreeTxtIndividual(paymentNature.value).json.copyFrom(pathEtmpUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName.json.pick).orElse(doNothing)
+            dynamicPathFreeTxtIndividual(paymentNature.value)
+              .json.copyFrom(pathEtmpUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName.json.pick).orElse(doNothing)
           case _ => Reads.failed("Unknown EventOneReport behaviour")
         }
       case JsString("Employer") =>
         pathEtmpUnAuthorisedPaymentDetailsUnAuthorisedPmtType1.readNullable[JsString].map {
-          case Some(paymentNature) => dynamicPathFreeTxtEmployer(paymentNature.value).json.copyFrom(pathEtmpUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName.json.pick).orElse(doNothing)
+          case Some(paymentNature) => dynamicPathFreeTxtEmployer(paymentNature.value)
+            .json.copyFrom(pathEtmpUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName.json.pick).orElse(doNothing)
           case _ => Reads.failed("Unknown EventOneReport behaviour")
         }
       case _ => Reads.failed("Unknown EventOneReport behaviour")
     }
   }
 
-  lazy val readsFreeTxtOrSchemeOrRecipientNameWithDynamicUAPaths: Reads[JsObject] = {
+  private lazy val readsFreeTxtOrSchemeOrRecipientNameWithDynamicUAPaths: Reads[JsObject] = {
     readsFreeTxtOrSchemeOrRecipientName.flatMap {
       case Some(reads) => reads.flatMap(identity)
       case None => Reads.pure(Json.obj())
@@ -268,67 +204,86 @@ private object API1833ReadsUtilities extends Transformer {
   }
 }
 
-private object EventOneReportPaths {
+private object API1833Paths {
 
   /* UserAnswers */
-  val pathUAEvent1MembersOrEmployers: JsPath = __ \ Symbol("event1") \ Symbol("membersOrEmployers")
-  val pathUAWhoReceivedUnauthPayment: JsPath = __ \ Symbol("whoReceivedUnauthPayment")
-  val pathUAMembersDetailsFirstName: JsPath = __ \ Symbol("membersDetails") \ Symbol("firstName")
-  val pathUAMembersDetailsLastName: JsPath = __ \ Symbol("membersDetails") \ Symbol("lastName")
-  val pathUAMembersDetailsNino: JsPath = __ \ Symbol("membersDetails") \ Symbol("nino")
-  val pathUADoYouHoldSignedMandate: JsPath = __ \ Symbol("doYouHoldSignedMandate")
-  val pathUAValueOfUnauthorisedPayment: JsPath = __ \ Symbol("valueOfUnauthorisedPayment")
-  val pathUASchemeUnAuthPaySurchargeMember: JsPath = __ \ Symbol("schemeUnAuthPaySurchargeMember")
-  val pathUACompanyName: JsPath = __ \ Symbol("event1") \ Symbol("companyDetails") \ Symbol("companyName")
-  val pathUACompanyNumber: JsPath = __ \ Symbol("event1") \ Symbol("companyDetails") \ Symbol("companyNumber")
-  val pathUAEmployerAddress: JsPath = __ \ Symbol("employerAddress") \ Symbol("address")
-  val pathUAUnAuthorisedPaymentDetails: JsPath = __ \ Symbol("unAuthorisedPaymentDetails")
-  val pathUAPaymentNatureMember: JsPath = __ \ Symbol("paymentNatureMember")
-  val pathUAPaymentNatureEmployer: JsPath = __ \ Symbol("paymentNatureEmployer")
-  val pathUAUnAuthorisedPaymentDetailsSchemeDetailsReference: JsPath = __ \ Symbol("schemeDetails") \ Symbol("reference")
-  val pathUAUnAuthorisedPaymentValue: JsPath = __ \ Symbol("paymentValueAndDate") \ Symbol("paymentValue")
-  val pathUAUnAuthorisedPaymentDate: JsPath = __ \ Symbol("paymentValueAndDate") \ Symbol("paymentDate")
-  val pathUAUnAuthorisedLoanAmount: JsPath = __ \ Symbol("loanDetails") \ Symbol("loanAmount")
-  val pathUAUnAuthorisedFundValue: JsPath = __ \ Symbol("loanDetails") \ Symbol("fundValue")
-  val pathUABenefitInKindBriefDescription: JsPath = __ \ Symbol("benefitInKindBriefDescription")
-  val pathUASchemeDetailsSchemeName: JsPath = __ \ Symbol("schemeDetails") \ Symbol("schemeName")
-  val pathUAErrorDescription: JsPath = __ \ Symbol("errorDescription")
-  val pathUABenefitsPaidEarly: JsPath = __ \ Symbol("benefitsPaidEarly")
-  val pathUAMemberTangibleMoveableProperty: JsPath = __ \ Symbol("memberTangibleMoveableProperty")
-  val pathUAUnauthorisedPaymentRecipientName: JsPath = __ \ Symbol("unauthorisedPaymentRecipientName")
-  val pathUAMemberPaymentNatureDescription: JsPath = __ \ Symbol("memberPaymentNatureDescription")
-  val pathUAEmployerTangibleMoveableProperty: JsPath = __ \ Symbol("employerTangibleMoveableProperty")
-  val pathUAPaymentNatureDesc: JsPath = __ \ Symbol("paymentNatureDesc")
-  val pathUAWhoWasTheTransferMade: JsPath = __ \ Symbol("whoWasTheTransferMade")
-  val pathUARefundOfContributions: JsPath = __ \ Symbol("refundOfContributions")
-  val pathUAReasonForTheOverpaymentOrWriteOff: JsPath = __ \ Symbol("reasonForTheOverpaymentOrWriteOff")
-  val pathUAMemberResidentialAddress: JsPath = __ \ Symbol("memberResidentialAddress")
-  val pathUAEmployerResidentialAddress: JsPath = __ \ Symbol("employerResidentialAddress")
-  val pathUAMemberStatus: JsPath = __ \ Symbol("memberStatus")
-  val pathUAAmendedVersion: JsPath = __ \ Symbol("amendedVersion")
+  val pathUAAmendedVersion:                                   JsPath = __ \ "amendedVersion"
+  val pathUABenefitInKindBriefDescription:                    JsPath = __ \ "benefitInKindBriefDescription"
+  val pathUABenefitsPaidEarly:                                JsPath = __ \ "benefitsPaidEarly"
+
+  private val pathUACompanyDetails:                           JsPath = __ \ "event1" \ "companyDetails"
+  val pathUACompanyName:                                      JsPath = pathUACompanyDetails \ "companyName"
+  val pathUACompanyNumber:                                    JsPath = pathUACompanyDetails \ "companyNumber"
+
+  val pathUADoYouHoldSignedMandate:                           JsPath = __ \ "doYouHoldSignedMandate"
+  val pathUAEmployerAddress:                                  JsPath = __ \ "employerAddress" \ "address"
+  val pathUAEmployerResidentialAddress:                       JsPath = __ \ "employerResidentialAddress"
+  val pathUAEmployerTangibleMoveableProperty:                 JsPath = __ \ "employerTangibleMoveableProperty"
+  val pathUAErrorDescription:                                 JsPath = __ \ "errorDescription"
+  val pathUAEvent1MembersOrEmployers:                         JsPath = __ \ "event1" \ "membersOrEmployers"
+
+  private val pathUAMemberDetails:                            JsPath = __ \ "membersDetails"
+  val pathUAMembersDetailsFirstName:                          JsPath = pathUAMemberDetails \ "firstName"
+  val pathUAMembersDetailsLastName:                           JsPath = pathUAMemberDetails \ "lastName"
+  val pathUAMembersDetailsNino:                               JsPath = pathUAMemberDetails \ "nino"
+  val pathUAMemberPaymentNatureDescription:                   JsPath = __ \ "memberPaymentNatureDescription"
+  val pathUAMemberResidentialAddress:                         JsPath = __ \ "memberResidentialAddress"
+  val pathUAMemberStatus:                                     JsPath = __ \ "memberStatus"
+  val pathUAMemberTangibleMoveableProperty:                   JsPath = __ \ "memberTangibleMoveableProperty"
+
+  private val pathUALoadDetails:                              JsPath = __ \ "loanDetails"
+  val pathUAUnAuthorisedFundValue:                            JsPath = pathUALoadDetails \ "fundValue"
+  val pathUAUnAuthorisedLoanAmount:                           JsPath = pathUALoadDetails \ "loanAmount"
+
+  val pathUAPaymentNatureDesc:                                JsPath = __ \ "paymentNatureDesc"
+  val pathUAPaymentNatureEmployer:                            JsPath = __ \ "paymentNatureEmployer"
+  val pathUAPaymentNatureMember:                              JsPath = __ \ "paymentNatureMember"
+
+  private val pathUAPaymentValueAndDate:                      JsPath = __ \ "paymentValueAndDate"
+  val pathUAUnAuthorisedPaymentDate:                          JsPath = pathUAPaymentValueAndDate \ "paymentDate"
+  val pathUAUnAuthorisedPaymentValue:                         JsPath = pathUAPaymentValueAndDate \ "paymentValue"
+
+  val pathUAReasonForTheOverpaymentOrWriteOff:                JsPath = __ \ "reasonForTheOverpaymentOrWriteOff"
+  val pathUARefundOfContributions:                            JsPath = __ \ "refundOfContributions"
+
+  private val pathUASchemeDetails:                            JsPath = __ \ "schemeDetails"
+  val pathUASchemeDetailsSchemeName:                          JsPath = pathUASchemeDetails \ "schemeName"
+  val pathUAUnAuthorisedPaymentDetailsSchemeDetailsReference: JsPath = pathUASchemeDetails \ "reference"
+
+  val pathUASchemeUnAuthPaySurchargeMember:                   JsPath = __ \ "schemeUnAuthPaySurchargeMember"
+  val pathUAUnauthorisedPaymentRecipientName:                 JsPath = __ \ "unauthorisedPaymentRecipientName"
+  val pathUAValueOfUnauthorisedPayment:                       JsPath = __ \ "valueOfUnauthorisedPayment"
+  val pathUAWhoReceivedUnauthPayment:                         JsPath = __ \ "whoReceivedUnauthPayment"
+  val pathUAWhoWasTheTransferMade:                            JsPath = __ \ "whoWasTheTransferMade"
 
   /* ETMP */
-  val pathEtmpEvent1Details: JsPath = __ \ "event1Details"
-  val pathEtmpMemberType: JsPath = __ \ Symbol("memberType")
-  val pathEtmpIndividualMemberDetailsFirstName: JsPath = __ \ Symbol("individualMemberDetails") \ Symbol("firstName")
-  val pathEtmpIndividualMemberDetailsLastName: JsPath = __ \ Symbol("individualMemberDetails") \ Symbol("lastName")
-  val pathEtmpIndividualMemberDetailsNino: JsPath = __ \ Symbol("individualMemberDetails") \ Symbol("nino")
-  val pathEtmpIndividualMemberDetailsSignedMandate: JsPath = __ \ Symbol("individualMemberDetails") \ Symbol("signedMandate")
-  val pathEtmpIndividualMemberDetailsPmtMoreThan25PerFundValue: JsPath = __ \ Symbol("individualMemberDetails") \ Symbol("pmtMoreThan25PerFundValue")
-  val pathEtmpIndividualMemberDetailsSchemePayingSurcharge: JsPath = __ \ Symbol("individualMemberDetails") \ Symbol("schemePayingSurcharge")
-  val pathEtmpEmployerMemberDetailsCompOrOrgName: JsPath = __ \ Symbol("employerMemberDetails") \ Symbol("compOrOrgName")
-  val pathEtmpEmployerMemberDetailsCrnNumber: JsPath = __ \ Symbol("employerMemberDetails") \ Symbol("crnNumber")
-  val pathEtmpEmployerMemberDetailsAddressDetails: JsPath = __ \ Symbol("employerMemberDetails") \ Symbol("addressDetails")
-  val pathEtmpUnAuthorisedPaymentDetails: JsPath = __ \ Symbol("unAuthorisedPaymentDetails")
-  val pathEtmpUnAuthorisedPaymentDetailsUnAuthorisedPmtType1: JsPath = pathEtmpUnAuthorisedPaymentDetails \ Symbol("unAuthorisedPmtType1")
-  val pathEtmpUnAuthorisedPaymentDetailsUnAuthorisedPmtType2: JsPath = pathEtmpUnAuthorisedPaymentDetails \ Symbol("unAuthorisedPmtType2")
-  val pathEtmpUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName: JsPath = pathEtmpUnAuthorisedPaymentDetails \ Symbol("freeTxtOrSchemeOrRecipientName")
-  val pathEtmpUnAuthorisedPaymentDetailsPstrOrReference: JsPath = pathEtmpUnAuthorisedPaymentDetails \ Symbol("pstrOrReference")
-  val pathEtmpUnAuthorisedPaymentDetailsDateOfUnauthorisedPayment: JsPath = pathEtmpUnAuthorisedPaymentDetails \ Symbol("dateOfUnauthorisedPayment")
-  val pathEtmpUnAuthorisedPaymentDetailsValueOfUnauthorisedPayment: JsPath = pathEtmpUnAuthorisedPaymentDetails \ Symbol("valueOfUnauthorisedPayment")
-  val pathEtmpUnAuthorisedPaymentDetailsPmtAmtOrLoanAmt: JsPath = pathEtmpUnAuthorisedPaymentDetails \ Symbol("pmtAmtOrLoanAmt")
-  val pathEtmpUnAuthorisedPaymentDetailsFundValue: JsPath = pathEtmpUnAuthorisedPaymentDetails \ Symbol("fundValue")
-  val pathEtmpUnAuthorisedPaymentDetailsResidentialPropertyAddress: JsPath = pathEtmpUnAuthorisedPaymentDetails \ Symbol("residentialPropertyAddress")
-  val pathEtmpMemberStatus: JsPath = __ \ Symbol("memberStatus")
-  val pathEtmpAmendedVersion: JsPath = __ \ Symbol("amendedVersion")
+  val pathEtmpAmendedVersion:                                           JsPath = __ \ "amendedVersion"
+
+  private val pathEtmpEmployerMemberDetails:                            JsPath = __ \ "employerMemberDetails"
+  val pathEtmpEmployerMemberDetailsCompOrOrgName:                       JsPath = pathEtmpEmployerMemberDetails \ "compOrOrgName"
+  val pathEtmpEmployerMemberDetailsCrnNumber:                           JsPath = pathEtmpEmployerMemberDetails \ "crnNumber"
+  val pathEtmpEmployerMemberDetailsAddressDetails:                      JsPath = pathEtmpEmployerMemberDetails \ "addressDetails"
+
+  val pathEtmpEvent1Details:                                            JsPath = __ \ "event1Details"
+
+  private val pathEtmpIndividualMemberDetails:                          JsPath = __ \ "individualMemberDetails"
+  val pathEtmpIndividualMemberDetailsFirstName:                         JsPath = pathEtmpIndividualMemberDetails \ "firstName"
+  val pathEtmpIndividualMemberDetailsLastName:                          JsPath = pathEtmpIndividualMemberDetails \ "lastName"
+  val pathEtmpIndividualMemberDetailsNino:                              JsPath = pathEtmpIndividualMemberDetails \ "nino"
+  val pathEtmpIndividualMemberDetailsSignedMandate:                     JsPath = pathEtmpIndividualMemberDetails \ "signedMandate"
+  val pathEtmpIndividualMemberDetailsPmtMoreThan25PerFundValue:         JsPath = pathEtmpIndividualMemberDetails \ "pmtMoreThan25PerFundValue"
+  val pathEtmpIndividualMemberDetailsSchemePayingSurcharge:             JsPath = pathEtmpIndividualMemberDetails \ "schemePayingSurcharge"
+  val pathEtmpMemberStatus:                                             JsPath = __ \ "memberStatus"
+  val pathEtmpMemberType:                                               JsPath = __ \ "memberType"
+
+  private val pathEtmpUnAuthorisedPaymentDetails:                       JsPath = __ \ "unAuthorisedPaymentDetails"
+  val pathEtmpUnAuthorisedPaymentDetailsUnAuthorisedPmtType1:           JsPath = pathEtmpUnAuthorisedPaymentDetails \ "unAuthorisedPmtType1"
+  val pathEtmpUnAuthorisedPaymentDetailsUnAuthorisedPmtType2:           JsPath = pathEtmpUnAuthorisedPaymentDetails \ "unAuthorisedPmtType2"
+  val pathEtmpUnAuthorisedPaymentDetailsFreeTxtOrSchemeOrRecipientName: JsPath = pathEtmpUnAuthorisedPaymentDetails \ "freeTxtOrSchemeOrRecipientName"
+  val pathEtmpUnAuthorisedPaymentDetailsPstrOrReference:                JsPath = pathEtmpUnAuthorisedPaymentDetails \ "pstrOrReference"
+  val pathEtmpUnAuthorisedPaymentDetailsDateOfUnauthorisedPayment:      JsPath = pathEtmpUnAuthorisedPaymentDetails \ "dateOfUnauthorisedPayment"
+  val pathEtmpUnAuthorisedPaymentDetailsValueOfUnauthorisedPayment:     JsPath = pathEtmpUnAuthorisedPaymentDetails \ "valueOfUnauthorisedPayment"
+  val pathEtmpUnAuthorisedPaymentDetailsPmtAmtOrLoanAmt:                JsPath = pathEtmpUnAuthorisedPaymentDetails \ "pmtAmtOrLoanAmt"
+  val pathEtmpUnAuthorisedPaymentDetailsFundValue:                      JsPath = pathEtmpUnAuthorisedPaymentDetails \ "fundValue"
+  val pathEtmpUnAuthorisedPaymentDetailsResidentialPropertyAddress:     JsPath = pathEtmpUnAuthorisedPaymentDetails \ "residentialPropertyAddress"
 }

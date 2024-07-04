@@ -19,67 +19,76 @@ package transformations.UserAnswersToETMP
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 import transformations.Transformer
+import play.api.libs.functional.syntax._
 
-object API1828 extends Transformer {
+
+object API1828 extends {
+  import transformations.UserAnswersToETMP.API1828ReadsUtilities._
+  import transformations.UserAnswersToETMP.API1828Paths._
 
   val transformToETMPData: Reads[JsObject] = {
-
-    def nodes(seqOfNodes: Seq[JsObject]): JsObject = {
-      seqOfNodes.foldLeft(Json.obj())((a, b) => a ++ b)
-    }
-
-    def requiredNode(node: String)(nodeName: String = node): Reads[Option[JsObject]] = {
-      (__ \ node).read[String].map {
-        case node: String =>
-          Some(
-            Json.obj(
-              nodeName -> node
-            )
-          )
-        case _ => None
-      }
-    }
-
-    def optionalNode(optNode: Option[String])(nodeName: String = optNode.getOrElse("")): Reads[Option[JsObject]] = {
-      (__ \ nodeName).readNullable[String].map {
-        case Some(node) =>
-          Some(
-            Json.obj(
-              nodeName -> node
-            )
-          )
-        case _ => None
-      }
-    }
-
-    for {
-      pstrNode <- requiredNode("pstr")("pSTR")
-      reportStartDateNode <- requiredNode("reportStartDate")()
-      reportEndDateNode <- requiredNode("reportEndDate")()
-      submittedByNode <- requiredNode("submittedBy")()
-      submittedIdNode <- requiredNode("submittedID")()
-      psaDec1Node <- optionalNode(Some("psaDeclaration1"))()
-      psaDec2Node <- optionalNode(Some("psaDeclaration2"))()
-      authorisedPsaIdNode <- optionalNode(Some("authorisedPSAID"))()
-      pspDec1Node <- optionalNode(Some("pspDeclaration1"))()
-      pspDec2Node <- optionalNode(Some("pspDeclaration2"))()
-    } yield {
-      val erDetailsNodes = nodes((pstrNode ++ reportStartDateNode ++ reportEndDateNode).toSeq)
-      val erDeclarationDetailsNodes = nodes((submittedByNode ++ submittedIdNode).toSeq)
-      val psaDeclarationKeyAndNodes = ("psaDeclaration", nodes((psaDec1Node ++ psaDec2Node).toSeq))
-      val pspDeclarationKeyAndNodes = ("pspDeclaration", nodes((authorisedPsaIdNode ++ pspDec1Node ++ pspDec2Node).toSeq))
-      val psaOrPsp = if (authorisedPsaIdNode.nonEmpty) {
-        pspDeclarationKeyAndNodes
-      } else {
-        psaDeclarationKeyAndNodes
-      }
-      Json.obj(
-        "declarationDetails" -> Json.obj(
-          "erDetails" -> erDetailsNodes,
-          "erDeclarationDetails" -> erDeclarationDetailsNodes,
-          psaOrPsp._1 -> psaOrPsp._2
-        )
-      )
-    }
+    (reqReads(etmpPathToPstr, uaPathToPstr) and
+      reqReads(etmpPathToReportStartDate, uaPathToReportStartDate) and
+      reqReads(etmpPathToReportEndDate, uaPathToReportEndDate) and
+      reqReads(etmpPathToSubmittedBy, uaPathToSubmittedBy) and
+      reqReads(etmpPathToSubmittedId, uaPathToSubmittedId) and
+      readsPsaOrPsp
+      ).reduce
   }
+}
+
+private object API1828ReadsUtilities extends Transformer {
+  import transformations.UserAnswersToETMP.API1828Paths._
+
+  private val readsPsaDeclaration: Reads[JsObject] = {
+    (reqReads(etmpPathToPsaDeclaration1, uaPathToPsaDeclaration1) and
+      reqReads(etmpPathToPsaDeclaration2, uaPathToPsaDeclaration2)).reduce
+  }
+
+  private val readsPspDeclaration: Reads[JsObject] = {
+    (reqReads(etmpPathToAuthorisedPSAID, uaPathToAuthorisedPSAID) and
+      reqReads(etmpPathToPspDeclaration1, uaPathToPspDeclaration1) and
+      reqReads(etmpPathToPspDeclaration2, uaPathToPspDeclaration2)).reduce
+  }
+
+  val readsPsaOrPsp: Reads[JsObject] = readsPspDeclaration.orElse(readsPsaDeclaration)
+
+  lazy val reqReads: (JsPath, JsPath) => Reads[JsObject] = (etmpPath: JsPath, uaPath: JsPath) => etmpPath.json.copyFrom(uaPath.json.pick)
+
+  lazy val optReads: (JsPath, JsPath) => Reads[JsObject] = (etmpPath: JsPath, uaPath: JsPath) => etmpPath.json.copyFrom(uaPath.json.pick).orElse(doNothing)
+}
+
+private object API1828Paths {
+  // ETMP
+  val etmpPathToDeclarationDetails:     JsPath = __ \ "declarationDetails"
+  val etmpPathToErDetails:              JsPath = etmpPathToDeclarationDetails \ "erDetails"
+  val etmpPathToErDeclarationDetails:   JsPath = etmpPathToDeclarationDetails \ "erDeclarationDetails"
+
+  val etmpPathToPstr:                   JsPath = etmpPathToErDetails \ "pSTR"
+  val etmpPathToReportStartDate:        JsPath = etmpPathToErDetails \ "reportStartDate"
+  val etmpPathToReportEndDate:          JsPath = etmpPathToErDetails \ "reportEndDate"
+
+  val etmpPathToSubmittedBy:            JsPath = etmpPathToErDeclarationDetails \ "submittedBy"
+  val etmpPathToSubmittedId:            JsPath = etmpPathToErDeclarationDetails \ "submittedID"
+
+  val etmpPathToPsaDeclaration:         JsPath = etmpPathToDeclarationDetails \ "psaDeclaration"
+  val etmpPathToPsaDeclaration1:        JsPath = etmpPathToPsaDeclaration \ "psaDeclaration1"
+  val etmpPathToPsaDeclaration2:        JsPath = etmpPathToPsaDeclaration \ "psaDeclaration2"
+
+  val etmpPathToPspDeclaration:         JsPath = etmpPathToDeclarationDetails \ "pspDeclaration"
+  val etmpPathToAuthorisedPSAID:        JsPath = etmpPathToPspDeclaration \ "authorisedPSAID"
+  val etmpPathToPspDeclaration1:        JsPath = etmpPathToPspDeclaration \ "pspDeclaration1"
+  val etmpPathToPspDeclaration2:        JsPath = etmpPathToPspDeclaration \ "pspDeclaration2"
+
+  // UA
+  val uaPathToPstr:                     JsPath = __ \ "pstr"
+  val uaPathToReportStartDate:          JsPath = __ \ "reportStartDate"
+  val uaPathToReportEndDate:            JsPath = __ \ "reportEndDate"
+  val uaPathToSubmittedBy:              JsPath = __ \ "submittedBy"
+  val uaPathToSubmittedId:              JsPath = __ \ "submittedID"
+  val uaPathToPsaDeclaration1:          JsPath = __ \ "psaDeclaration1"
+  val uaPathToPsaDeclaration2:          JsPath = __ \ "psaDeclaration2"
+  val uaPathToAuthorisedPSAID:          JsPath = __ \ "authorisedPSAID"
+  val uaPathToPspDeclaration1:          JsPath = __ \ "pspDeclaration1"
+  val uaPathToPspDeclaration2:          JsPath = __ \ "pspDeclaration2"
 }

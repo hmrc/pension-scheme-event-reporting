@@ -801,6 +801,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
     }
     "return valid an invalid response where an 1829 payload is passed" in {
       val userAnswers = super[GeneratorAPI1829].generateUserAnswersAndPOSTBody.sample.value._1
+      println(s"\n\n userAnswers: $userAnswers")
       when(mockDeclarationLockRepository.insertDoubleClickLock(any(), any())).
         thenReturn(Future.successful(true))
       when(mockEventReportConnector.submitEventDeclarationReport(

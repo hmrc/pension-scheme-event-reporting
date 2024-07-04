@@ -22,31 +22,46 @@ import play.api.libs.json.Reads.JsObjectReducer
 import play.api.libs.json._
 import transformations.Transformer
 
-object API1826 extends Transformer {
+object API1826 {
+  import transformations.UserAnswersToETMP.API1826ReadsUtilities._
+  def transformToETMPData(deleteEvent: EventType, delete: Boolean): Reads[JsObject] = {
 
-  private def optField(fieldName: String, value: Option[String]) = {
-    value.map(fieldName -> JsString(_))
-  }
+    def eventTypeNodes(events: Seq[JsObject]): JsObject = {
+      val eventDetailNodes = events.foldLeft(Json.obj())((a, b) => a ++ b)
+      if (events.isEmpty) Json.obj() else Json.obj("eventDetails" -> eventDetailNodes)
+    }
 
-  private def optObj[T](objName: String, wrapper: String => T, value: Option[String]) = {
-    value.map(objName -> wrapper(_))
+    def deleteEventTransform(eventType: EventType, reads:Reads[Option[JsObject]]) = {
+      if(delete && deleteEvent == eventType) {
+        Reads.pure(None):Reads[Option[JsObject]]
+      } else reads
+    }
+
+    for {
+      ev10 <- deleteEventTransform(EventType.Event10,event10Reads)
+      ev11 <- deleteEventTransform(EventType.Event11,event11Reads)
+      ev12 <- deleteEventTransform(EventType.Event12,event12Reads)
+      ev13 <- deleteEventTransform(EventType.Event13,event13Reads)
+      ev14 <- deleteEventTransform(EventType.Event14,event14Reads)
+      ev18 <- deleteEventTransform(EventType.Event18,event18Reads)
+      ev19 <- deleteEventTransform(EventType.Event19,event19Reads)
+      ev20 <- deleteEventTransform(EventType.Event20,event20Reads)
+      schWindUp <- schemeWindUpReads(delete && deleteEvent == EventType.WindUp)
+      header <- HeaderForAllAPIs.transformToETMPData()
+    } yield {
+      header ++ eventTypeNodes((ev10 ++ ev11 ++ ev12 ++ ev13 ++ ev14 ++ ev18 ++ ev19 ++ ev20 ++ schWindUp).toSeq)
+    }
   }
+}
+
+private object API1826ReadsUtilities extends Transformer {
+  import transformations.UserAnswersToETMP.API1826Paths._
 
   private def mapReadsToOptionArray(eventTypeNodeName: String)(reads: JsPath => Reads[JsObject]): Reads[Option[JsObject]] = {
     (__ \ eventTypeNodeName).readNullable[JsObject].flatMap {
       case Some(_) =>
         val uaBaseForEventType = __ \ eventTypeNodeName
         reads(uaBaseForEventType).flatMap(jsObject => (__ \ eventTypeNodeName).json.put(Json.arr(jsObject)).map(Option(_)))
-      case _ =>
-        Reads.pure(None)
-    }
-  }
-  
-  private def mapReadsToOptionObject(eventTypeNodeName: String)(reads: JsPath => Reads[JsObject]): Reads[Option[JsObject]] = {
-    (__ \ eventTypeNodeName).readNullable[JsObject].flatMap {
-      case Some(_) =>
-        val uaBaseForEventType = __ \ eventTypeNodeName
-        reads(uaBaseForEventType).flatMap(jsObject => (__ \ eventTypeNodeName).json.put(jsObject)).map(Option(_))
       case _ =>
         Reads.pure(None)
     }
@@ -58,32 +73,27 @@ object API1826 extends Transformer {
   }
 
   private def recordVersionReads(eventTypeNodeName: String): Reads[JsObject] =
-    (__ \ "recordVersion").json.copyFrom((__ \ eventTypeNodeName \ "recordVersion").json.pick.map(padLeftVersion))
+    etmpPathToRecordVersion.json.copyFrom(uaPathToRecordVersion(eventTypeNodeName).json.pick.map(padLeftVersion))
 
-  private val invRegScheme = "invRegScheme"
-
-  private lazy val event10Reads: Reads[Option[JsObject]] = {
+  lazy val event10Reads: Reads[Option[JsObject]] = {
     mapReadsToOptionArray(eventTypeNodeName = "event10") { uaBaseForEventType =>
       (uaBaseForEventType \ "becomeOrCeaseScheme").read[String].flatMap {
         case "itBecameAnInvestmentRegulatedPensionScheme" =>
-          ((__ \ invRegScheme \ "startDateDetails" \ "startDateOfInvReg").json
-            .copyFrom((uaBaseForEventType \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
-            (__ \ invRegScheme \ "startDateDetails" \ "contractsOrPolicies").json
-              .copyFrom((uaBaseForEventType \ "contractsOrPolicies").json.pick.map(toYesNo)) and
+          (reqReads(etmpPathToStartDateOfInvReg, uaPathToSchemeChangeDate(uaBaseForEventType)) and
+            etmpPathToContractsOrPolicies.json
+              .copyFrom(uaPathToContractsOrPolicies(uaBaseForEventType).json.pick.map(toYesNo)) and
             recordVersionReads("event10")).reduce
         case _ =>
-          ((__ \ invRegScheme \ "ceaseDateDetails" \ "ceaseDateOfInvReg").json
-            .copyFrom((uaBaseForEventType \ "schemeChangeDate" \ "schemeChangeDate").json.pick) and
+          (reqReads(etmpPathToCeaseDateOfInvReg, uaPathToSchemeChangeDate(uaBaseForEventType)) and
             recordVersionReads("event10")).reduce
       }
     }
   }
 
-
-  private lazy val event11Reads = {
+  lazy val event11Reads: Reads[Option[JsObject]] = {
     (
-      (__ \ "event11").readNullable[JsObject] and
-        (__ \ "event11" \ "recordVersion").readNullable[JsNumber]
+      uaEvent11.readNullable[JsObject] and
+        uaRecordVersion("event11").readNullable[JsNumber]
       )(
       (et, version) =>
         (et, version) match {
@@ -117,10 +127,10 @@ object API1826 extends Transformer {
     )
   }
 
-  private lazy val event12Reads = {
+  lazy val event12Reads: Reads[Option[JsObject]] = {
     (
-      (__ \ "event12").readNullable[JsObject] and
-        (__ \ "event12" \ "recordVersion").readNullable[JsNumber]
+      uaEvent12.readNullable[JsObject] and
+        uaRecordVersion("event12").readNullable[JsNumber]
       )(
       (et, version) =>
         (et, version) match {
@@ -139,38 +149,28 @@ object API1826 extends Transformer {
     )
   }
 
-  private def event13SchemeStructureTransformer(schemeStructure: JsValue): JsString = {
-    schemeStructure.as[JsString].value match {
-      case "single" => JsString("A single trust under which all of the assets are held for the benefit of all members of the scheme")
-      case "group" => JsString("A group life/death in service scheme")
-      case "corporate" => JsString("A body corporate")
-      case _ => JsString("Other")
-    }
-  }
-
-  private lazy val event13Reads: Reads[Option[JsObject]] = {
+  lazy val event13Reads: Reads[Option[JsObject]] = {
     mapReadsToOptionArray(eventTypeNodeName = "event13") { uaBaseForEventType =>
       (uaBaseForEventType \ "schemeStructure").read[String].flatMap {
         case "other" => (
-          (__ \ "schemeStructure").json.copyFrom((uaBaseForEventType \ "schemeStructure").json.pick.map(event13SchemeStructureTransformer)) and
-            (__ \ "dateOfChange").json.copyFrom((uaBaseForEventType \ "changeDate").json.pick) and
-            ((__ \ "schemeStructureOther").json.copyFrom((uaBaseForEventType \ "schemeStructureDescription").json.pick) orElse doNothing) and
+          etmpPathToSchemeStructure.json.copyFrom(uaPathToSchemeStructure(uaBaseForEventType).json.pick.map(event13SchemeStructureTransformer)) and
+            reqReads(etmpPathToDateOfChange, uaPathToChangeDate(uaBaseForEventType)) and
+            optReads(etmpPathToSchemeStructureOther, uaPathToSchemeStructureDescription(uaBaseForEventType)) and
             recordVersionReads("event13")
           ).reduce
         case _ => (
-          (__ \ "schemeStructure").json.copyFrom((uaBaseForEventType \ "schemeStructure").json.pick.map(event13SchemeStructureTransformer)) and
-            (__ \ "dateOfChange").json.copyFrom((uaBaseForEventType \ "changeDate").json.pick) and
+          etmpPathToSchemeStructure.json.copyFrom(uaPathToSchemeStructure(uaBaseForEventType).json.pick.map(event13SchemeStructureTransformer)) and
+            reqReads(etmpPathToDateOfChange, uaPathToChangeDate(uaBaseForEventType)) and
             recordVersionReads("event13")
           ).reduce
       }
     }
   }
 
-
-  private lazy val event14Reads = {
+  lazy val event14Reads: Reads[Option[JsObject]] = {
     (
-      (__ \ "event14").readNullable[JsObject] and
-        (__ \ "event14" \ "recordVersion").readNullable[JsNumber]
+      uaEvent14.readNullable[JsObject] and
+        uaRecordVersion("event14").readNullable[JsNumber]
       )(
       (et, version) =>
         (et, version) match {
@@ -188,10 +188,10 @@ object API1826 extends Transformer {
     )
   }
 
-  private lazy val event18Reads = {
+  lazy val event18Reads: Reads[Option[JsObject]] = {
     (
-      (__ \ "event18").readNullable[JsObject] and
-        (__ \ "event18" \ "recordVersion").readNullable[JsNumber]
+      uaEvent18.readNullable[JsObject] and
+        uaRecordVersion("event18").readNullable[JsNumber]
       )(
       (et, version) =>
         (et, version) match {
@@ -208,35 +208,32 @@ object API1826 extends Transformer {
     )
   }
 
-  private lazy val event19Reads: Reads[Option[JsObject]] = {
+  lazy val event19Reads: Reads[Option[JsObject]] = {
     mapReadsToOptionArray(eventTypeNodeName = "event19") { uaBaseForEventType =>
-      ((__ \ "countryCode").json.copyFrom((uaBaseForEventType \ "CountryOrTerritory").json.pick) and
-        (__ \ "dateOfChange").json.copyFrom((uaBaseForEventType \ "dateChangeMade").json.pick) and
+      (reqReads(etmpPathToCountryCode, uaPathToCountryOrTerritory(uaBaseForEventType)) and
+        reqReads(etmpPathToDateOfChange, uaPathToDateChangeMade(uaBaseForEventType)) and
         recordVersionReads("event19")
         ).reduce
     }
   }
 
-  private lazy val event20Reads: Reads[Option[JsObject]] = {
+  lazy val event20Reads: Reads[Option[JsObject]] = {
     mapReadsToOptionArray(eventTypeNodeName = "event20") { uaBaseForEventType =>
       (uaBaseForEventType \ "whatChange").read[String].flatMap {
         case "becameOccupationalScheme" =>
-          ((__ \ "occSchemeDetails" \ "startDateOfOccScheme").json
-            .copyFrom((uaBaseForEventType \ "becameDate" \ "date").json.pick) and
+          (reqReads(etmpPathToStartDateOfOccScheme, uaPathToBecameDate(uaBaseForEventType)) and
             recordVersionReads("event20")).reduce
         case _ =>
-          ((__ \ "occSchemeDetails" \ "stopDateOfOccScheme").json
-            .copyFrom((uaBaseForEventType \ "ceasedDate" \ "date").json.pick) and
+          (reqReads(etmpPathToStopDateOfOccScheme, uaPathToCeasedDate(uaBaseForEventType)) and
             recordVersionReads("event20")).reduce
       }
     }
   }
 
-
-  private def schemeWindUpReads(delete: Boolean) = {
+  def schemeWindUpReads(delete: Boolean): Reads[Option[JsObject]] = {
     (
-      (__ \ "eventWindUp").readNullable[JsObject] and
-        (__ \ "eventWindUp" \ "recordVersion").readNullable[JsNumber]
+      uaEventWindUp.readNullable[JsObject] and
+        uaRecordVersion("eventWindUp").readNullable[JsNumber]
       )(
       (et, version) =>
         (et, version) match {
@@ -255,34 +252,47 @@ object API1826 extends Transformer {
   }
 
 
-  def transformToETMPData(deleteEvent: EventType, delete: Boolean): Reads[JsObject] = {
+  lazy val reqReads: (JsPath, JsPath) => Reads[JsObject] = (etmpPath: JsPath, uaPath: JsPath) => etmpPath.json.copyFrom(uaPath.json.pick)
 
-    def eventTypeNodes(events: Seq[JsObject]): JsObject = {
-      val eventDetailNodes = events.foldLeft(Json.obj())((a, b) => a ++ b)
-      if (events.isEmpty) Json.obj() else Json.obj("eventDetails" -> eventDetailNodes)
-    }
+  lazy val optReads: (JsPath, JsPath) => Reads[JsObject] = (etmpPath: JsPath, uaPath: JsPath) => etmpPath.json.copyFrom(uaPath.json.pick).orElse(doNothing)
+}
 
+private object API1826Paths {
+  // ETMP
+  val etmpPathToCountryCode:                          JsPath = __ \ "countryCode"
+  val etmpPathToDateOfChange:                         JsPath = __ \ "dateOfChange"
+  val etmpPathToSchemeStructure:                      JsPath = __ \ "schemeStructure"
+  val etmpPathToSchemeStructureOther:                 JsPath = __ \ "schemeStructureOther"
+  val etmpPathToStartDateOfOccScheme:                 JsPath = __ \ "occSchemeDetails" \ "startDateOfOccScheme"
+  val etmpPathToStopDateOfOccScheme:                  JsPath = __ \ "occSchemeDetails" \ "stopDateOfOccScheme"
+  val etmpPathToRecordVersion:                        JsPath = __ \ "recordVersion"
 
+  private val etmpPathToInvRegScheme:                 JsPath = __ \ "invRegScheme"
+  val etmpPathToStartDateOfInvReg:                    JsPath = etmpPathToInvRegScheme \ "startDateDetails" \ "startDateOfInvReg"
+  val etmpPathToContractsOrPolicies:                  JsPath = etmpPathToInvRegScheme \ "startDateDetails" \ "contractsOrPolicies"
+  val etmpPathToCeaseDateOfInvReg:                    JsPath = etmpPathToInvRegScheme \ "ceaseDateDetails" \ "ceaseDateOfInvReg"
 
-    def deleteEventTransform(eventType: EventType, reads:Reads[Option[JsObject]]) = {
-      if(delete && deleteEvent == eventType) {
-        Reads.pure(None):Reads[Option[JsObject]]
-      } else reads
-    }
+  // UA
+  def uaPathToBecameDate(uaBaseForEventType: JsPath):                 JsPath = uaBaseForEventType \ "becameDate" \ "date"
+  def uaPathToCeasedDate(uaBaseForEventType: JsPath):                 JsPath = uaBaseForEventType \ "ceasedDate" \ "date"
+  def uaPathToChangeDate(uaBaseForEventType: JsPath):                 JsPath = uaBaseForEventType \ "changeDate"
+  def uaPathToContractsOrPolicies(uaBaseForEventType: JsPath):        JsPath = uaBaseForEventType \ "contractsOrPolicies"
+  def uaPathToCountryOrTerritory(uaBaseForEventType: JsPath):         JsPath = uaBaseForEventType \ "CountryOrTerritory"
+  def uaPathToDateChangeMade(uaBaseForEventType: JsPath):             JsPath = uaBaseForEventType \ "dateChangeMade"
+  def uaPathToSchemeChangeDate(uaBaseForEventType: JsPath):           JsPath = uaBaseForEventType \ "schemeChangeDate" \ "schemeChangeDate"
+  def uaPathToSchemeStructure(uaBaseForEventType: JsPath):            JsPath = uaBaseForEventType \ "schemeStructure"
+  def uaPathToSchemeStructureDescription(uaBaseForEventType: JsPath): JsPath = uaBaseForEventType \ "schemeStructureDescription"
+  def uaPathToRecordVersion(eventTypeNodeName: String):               JsPath = __ \ eventTypeNodeName \ "recordVersion"
 
-    for {
-      ev10 <- deleteEventTransform(EventType.Event10,event10Reads)
-      ev11 <- deleteEventTransform(EventType.Event11,event11Reads)
-      ev12 <- deleteEventTransform(EventType.Event12,event12Reads)
-      ev13 <- deleteEventTransform(EventType.Event13,event13Reads)
-      ev14 <- deleteEventTransform(EventType.Event14,event14Reads)
-      ev18 <- deleteEventTransform(EventType.Event18,event18Reads)
-      ev19 <- deleteEventTransform(EventType.Event19,event19Reads)
-      ev20 <- deleteEventTransform(EventType.Event20,event20Reads)
-      schWindUp <- schemeWindUpReads(delete && deleteEvent == EventType.WindUp)
-      header <- HeaderForAllAPIs.transformToETMPData()
-    } yield {
-      header ++ eventTypeNodes((ev10 ++ ev11 ++ ev12 ++ ev13 ++ ev14 ++ ev18 ++ ev19 ++ ev20 ++ schWindUp).toSeq)
-    }
-  }
+  def uaRecordVersion(eventType: String):                             JsPath = __ \ eventType \ "recordVersion"
+
+  val uaEvent11:                                                      JsPath = __ \ "event11"
+
+  val uaEvent12:                                                      JsPath = __ \ "event12"
+
+  val uaEvent14:                                                      JsPath = __ \ "event14"
+
+  val uaEvent18:                                                      JsPath = __ \ "event18"
+
+  val uaEventWindUp:                                                  JsPath = __ \ "eventWindUp"
 }
