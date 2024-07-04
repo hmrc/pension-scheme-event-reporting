@@ -131,19 +131,6 @@ class EventReportController @Inject()(
       }
   }
 
-  def getSessionEventReportingAnswers: Action[AnyContent] = Action.async {
-    implicit request =>
-      withAuth.flatMap { case Credentials(externalId, _, _) =>
-        val pstr = request.headers.get("pstr").getOrElse("24000041IN")
-
-        eventReportService.getSessionEventReportingAnswers(externalId, pstr)
-          .map {
-            case x => Ok(Json.toJson(x))
-            case _ => NotFound
-          }
-      }
-  }
-
   private def requiredHeaders(headers: String*)(implicit request: Request[AnyContent]) = {
     val headerData = headers.map(request.headers.get)
     val allHeadersDefined = headerData.forall(_.isDefined)
@@ -242,11 +229,16 @@ class EventReportController @Inject()(
 
   def submitEventDeclarationReport: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuth.flatMap { case Credentials(_, psaPspId, _) =>
+      withAuth.flatMap { case Credentials(externalId, psaPspId, _) =>
+        println(s"***************>>> In submitEventDeclarationReport  ${request.headers} ***************")
         val Seq(pstr, version) = requiredHeaders("pstr", "version")
         val userAnswersJson = requiredBody
-        println(s"************ userAnswersJson = $userAnswersJson")
-        eventReportService.submitEventDeclarationReport(pstr, psaPspId, userAnswersJson, version)
+        eventReportService.submitEventDeclarationReport(pstr, psaPspId, userAnswersJson, version, externalId).recoverWith{
+          case e: Exception =>
+            logger.error(s"Error submitting event declaration report: ${e.getMessage}")
+            Future.failed(new BadRequestException(s"Bad Request: ${e.getMessage}"))
+
+        }
       }
   }
 

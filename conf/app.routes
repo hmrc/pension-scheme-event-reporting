@@ -11,7 +11,6 @@ POST          /submit-event-declaration-report                                  
 POST          /submit-event20a-declaration-report                                               controllers.EventReportController.submitEvent20ADeclarationReport
 
 GET           /user-answers                                                                     controllers.EventReportController.getUserAnswers
-GET           /session-event-reporting                                                          controllers.EventReportController.getSessionEventReportingAnswers
 POST          /user-answers                                                                     controllers.EventReportController.saveUserAnswers
 PUT           /user-answers                                                                     controllers.EventReportController.changeVersion
 DELETE        /user-answers                                                                     controllers.EventReportController.removeUserAnswers

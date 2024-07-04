@@ -154,17 +154,13 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   }
 
+  private def isEventDataNotModified(oldUserAnswers: Option[JsObject], newUserAnswers: Option[JsObject]) = {
+    oldUserAnswers.getOrElse(Json.obj()) == newUserAnswers.getOrElse(Json.obj())
+  }
+
 
   def getUserAnswers(externalId: String, pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     eventReportCacheRepository.getUserAnswers(externalId, pstr, None)
-
-  def getSessionEventReportingAnswers(externalId: String, pstr: String)(implicit ec: ExecutionContext): Future[Seq[EventReportCacheEntry]] = {
-    val x = eventReportCacheRepository.getSessionEventReportingAnswers(externalId, pstr).map{
-      s => s.filter(_.edi.eventType != EventType.EventTypeNone)
-    }
-    x.map(y => println(s"************************* $y"))
-    x
-  }
 
   //scalastyle:off method.length
   def memberChangeInfoTransformation(oldUserAnswers: Option[JsObject],
@@ -178,11 +174,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     def newMembersWithChangeInfo(getMemberDetails: JsObject => Option[scala.collection.IndexedSeq[JsObject]]) = {
       val newMembers = getMemberDetails(newUserAnswers)
 
-
-      println(s"**************************************************")
-      println(s">>>>>>>>>>>>>>>>>>>newUserAnswers: $newUserAnswers")
-      println(s"<<<<<<<<<<<<<<<<<<<oldUserAnswers: $oldUserAnswers")
-      println(s"**************************************************")
 
       newMembers
         .getOrElse(throw new RuntimeException("new member not available"))
@@ -265,9 +256,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           )
         } yield {
           (newUserAnswers, oldUserAnswers) match {
-            case (oldUserAnswers, newUserAnswers) if checkIfEventDataModified(oldUserAnswers, newUserAnswers) =>
-              logger.warn(s"Event Data for ${eventType.toString} has not been modified by the user")
-              Future.successful(NoContent)
+            case (oldUserAnswers, newUserAnswers) if isEventDataNotModified(oldUserAnswers, newUserAnswers) =>
+              Future.successful(NotFound)
               case (Some(newUserAnswers), oldUserAnswers) =>
                 processUserAnswers(newUserAnswers, oldUserAnswers, year, eventType, pstr,
                   version.toInt, deleteEvent, reads, apiType, schemaPath, psaPspId, currentVersion, connectToAPI)
@@ -322,11 +312,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           NoContent
       }
     }
-  }
-  private def checkIfEventDataModified(oldUserAnswers: Option[JsObject], newUserAnswers: Option[JsObject]) = {
-    val oldData = oldUserAnswers.getOrElse(Json.obj())
-    val newData = newUserAnswers.getOrElse(Json.obj())
-    oldData != newData
   }
 
   def deleteMember(externalId: String,
@@ -590,31 +575,34 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     Future.fromTry(jsonPayloadSchemaValidator.validatePayload(payload, schemaPath, eventName)).map(_ => (): Unit)
   }
 
-  def submitEventDeclarationReport(pstr: String, psaPspId: String, userAnswersJson: JsValue, version: String)
+  def submitEventDeclarationReport(pstr: String, psaPspId: String, userAnswersJson: JsValue, version: String, externalId: String)
                                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
 
     def recoverAndValidatePayload(transformed1828Payload: JsObject): Future[Unit] = {
-      for {
-        _ <- validatePayloadAgainstSchema(transformed1828Payload, SchemaPath1828, "submitEventDeclarationReport")
-        _ <- eventReportConnector
-          .submitEventDeclarationReport(pstr, transformed1828Payload, version).map(_.json.as[JsObject]).recover {
-          case _: BadRequestException =>
-            throw new ExpectationFailedException("Nothing to submit")
-          }
-      } yield ()
+      eventReportCacheRepository.getVersionInfoStatus(externalId, pstr).flatMap {
+        case Some("compiled") =>
+          println(s"*************************Event compiled state.. submitting the events...............")
+          for {
+            _ <- validatePayloadAgainstSchema(transformed1828Payload, SchemaPath1828, "submitEventDeclarationReport")
+            _ <- eventReportConnector.submitEventDeclarationReport(pstr, transformed1828Payload, version)
+          } yield ()
+        case _ =>
+          println("*************************Event not compiled state.. so not submitting the events")
+          Future.failed(new RuntimeException("Event not compiled state.. so not submitting the events"))
+      }
     }
 
     declarationLockRepository.insertDoubleClickLock(pstr, psaPspId).flatMap { isAvailable =>
       if (isAvailable) {
         for {
-          transformed1828Payload <- Future.fromTry(toTry(userAnswersJson.transform(API1828.transformToETMPData)))
-          _ <- recoverAndValidatePayload(transformed1828Payload)
-        } yield {
-          NoContent
-        }
+          transformedPayload <- Future.fromTry(toTry(userAnswersJson.transform(API1828.transformToETMPData)))
+          _ <- recoverAndValidatePayload(transformedPayload.as[JsObject])
+        } yield NoContent
       } else {
-        Future.successful(BadRequest)
+        Future.successful(BadRequest("Double click detected"))
       }
+    }.recover {
+      case _: BadRequestException => ExpectationFailed("Nothing to submit")
     }
   }
 
