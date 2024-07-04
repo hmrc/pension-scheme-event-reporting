@@ -579,17 +579,14 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
 
     def recoverAndValidatePayload(transformed1828Payload: JsObject): Future[Unit] = {
-      eventReportCacheRepository.getVersionInfoStatus(externalId, pstr).flatMap {
-        case Some("compiled") =>
-          println(s"*************************Event compiled state.. submitting the events...............")
-          for {
-            _ <- validatePayloadAgainstSchema(transformed1828Payload, SchemaPath1828, "submitEventDeclarationReport")
-            _ <- eventReportConnector.submitEventDeclarationReport(pstr, transformed1828Payload, version)
-          } yield ()
-        case _ =>
-          println("*************************Event not compiled state.. so not submitting the events")
-          Future.failed(new RuntimeException("Event not compiled state.. so not submitting the events"))
-      }
+      for {
+        _ <- validatePayloadAgainstSchema(transformed1828Payload, SchemaPath1828, "submitEventDeclarationReport")
+        _ <- eventReportConnector
+          .submitEventDeclarationReport(pstr, transformed1828Payload, version).map(_.json.as[JsObject]).recover {
+            case _: BadRequestException =>
+              throw new ExpectationFailedException("Nothing to submit")
+          }
+      } yield ()
     }
 
     declarationLockRepository.insertDoubleClickLock(pstr, psaPspId).flatMap { isAvailable =>

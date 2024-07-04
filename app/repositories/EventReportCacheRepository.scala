@@ -198,25 +198,6 @@ class EventReportCacheRepository @Inject()(
     }
   }
 
-  def getVersionInfoStatus(externalId:String, pstr: String)(implicit ec: ExecutionContext): Future[Option[String]] = {
-
-    println(s"*************** EventReportCacheRepository:getVersionInfoStatus externalId: $externalId ***************")
-    collection.find[EventReportCacheEntry](
-      Filters.and(
-        Filters.equal(externalIdKey, externalId),
-        Filters.equal(pstrKey, pstr),
-        Filters.equal(eventTypeKey, "None"))
-    ).headOption().map {
-      _.map {
-        dataEntry =>
-          dataEntry.data
-      }
-    }.map(x =>
-      x.map { jsValue =>
-        (jsValue \ "versionInfo" \ "status").as[String]
-      })
-  }
-
   private def getByEDI(pstr: String, edi: EventDataIdentifier)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
     collection.find[EventReportCacheEntry](
       Filters.and(
