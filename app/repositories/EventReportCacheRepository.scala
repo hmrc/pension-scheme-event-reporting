@@ -40,9 +40,6 @@ case class EventReportCacheEntry(pstr: String, edi: EventDataIdentifier, data: J
 
 object EventReportCacheEntry {
   implicit val format: Format[EventReportCacheEntry] = Json.format[EventReportCacheEntry]
-  import play.api.http.Writeable
-  import play.api.mvc.Codec
-
 
   val externalIdKey = "externalId"
   val pstrKey = "pstr"
