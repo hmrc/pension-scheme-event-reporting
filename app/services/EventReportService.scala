@@ -154,11 +154,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   }
 
-  private def isEventDataNotModified(oldUserAnswers: Option[JsObject], newUserAnswers: Option[JsObject]) = {
-    oldUserAnswers.getOrElse(Json.obj()) == newUserAnswers.getOrElse(Json.obj())
-  }
-
-
   def getUserAnswers(externalId: String, pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     eventReportCacheRepository.getUserAnswers(externalId, pstr, None)
 
@@ -256,11 +251,9 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           )
         } yield {
           (newUserAnswers, oldUserAnswers) match {
-            case (oldUserAnswers, newUserAnswers) if isEventDataNotModified(oldUserAnswers, newUserAnswers) =>
-              Future.successful(NotFound)
-              case (Some(newUserAnswers), oldUserAnswers) =>
-                processUserAnswers(newUserAnswers, oldUserAnswers, year, eventType, pstr,
-                  version.toInt, deleteEvent, reads, apiType, schemaPath, psaPspId, currentVersion, connectToAPI)
+            case (Some(newUserAnswers), oldUserAnswers) =>
+              processUserAnswers(newUserAnswers, oldUserAnswers, year, eventType, pstr,
+                version.toInt, deleteEvent, reads, apiType, schemaPath, psaPspId, currentVersion, connectToAPI)
 
             case _ => Future.successful(NotFound)
           }
