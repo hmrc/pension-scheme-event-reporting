@@ -192,7 +192,7 @@ private object API1827ReadsUtilities extends Transformer {
       (
         etmpPathToMemberType.json.put(JsString(whoReceivedUnauthorisedPayment)) and
           reqReads(etmpPathToMemberStatus, uaPathToMemberStatus) and
-          reqReads(etmpPathToAmendedVersion, uaPathToAmendedVersion) and
+          optReads(etmpPathToAmendedVersion, uaPathToAmendedVersion) and
           readsMemberOrEmployer(whoReceivedUnauthorisedPayment) and
           readsUnauthorisedPaymentDetails(paymentNature, whoReceivedUnauthorisedPayment)
         ).reduce
