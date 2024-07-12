@@ -31,35 +31,23 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class MigrationService @Inject()(mongoLockRepository: MongoLockRepository,
                                  mongoComponent: MongoComponent)(implicit ec: ExecutionContext) extends Logging {
-  private val lock = LockService(mongoLockRepository, "event_reporting_data_expireAtLock", Duration(10, TimeUnit.MINUTES))
+   private val lock = LockService(mongoLockRepository, "eventReportingEventLock_lock", Duration(10, TimeUnit.MINUTES))
 
-  private def fixExpireAt(collectionName: String) = {
+  private def dropCollection(collectionName: String) = {
     val collection = mongoComponent.database.getCollection(collectionName)
-    logger.warn("[PODS-8922] Started event reporting data migration for " + collectionName + " collection")
-    collection.find(BsonDocument("expireAt" -> BsonDocument("$type" -> BsonString("string")))).toFuture().flatMap { seq =>
-       val ftr = Future.sequence(seq.map(item => {
-         val id = item.getObjectId("_id")
-         val modifier = Updates.set(expireAtKey, BsonDateTime(java.util.Date.from(Instant.now().plusMillis(1000 * 60 * 5))))
-         val selector = Filters.equal("_id", id)
-         collection.findOneAndUpdate(selector, modifier).toFuture()
-       }))
-      val numberOfChanges = ftr.map(_.size)
-      numberOfChanges.foreach(count => logger.warn(s"[PODS-8922] Updated number of field $count from collection $collectionName"))
-      numberOfChanges
-    }
+    logger.warn("[PODS-9166] Started collection drop")
+    collection.drop().toFuture()
   }
 
 
   lock withLock {
     for {
-      res <- fixExpireAt("event-reporting-data")
-      res2 <- fixExpireAt("parsing-and-validation-outcome")
-      res3 <- fixExpireAt("get-details-cache-data")
-    } yield res + res2 + res3
+      res <- dropCollection("event-reporting-event-lock")
+    } yield res
   } map {
     case Some(result) =>
-      logger.warn(s"[PODS-8922] data migration completed, $result rows were migrated successfully")
-    case None => logger.warn(s"[PODS-8922] data migration locked by other instance")
+      logger.warn(s"[PODS-9166] collection successfully dropped")
+    case None => logger.warn(s"[PODS-9166] collection drop locked by other instance")
   } recover {
     case e => logger.error("Locking finished with error", e)
   }
