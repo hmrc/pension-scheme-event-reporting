@@ -21,7 +21,8 @@ import models.enumeration.EventType.{Event10, Event11, Event12, Event13, Event14
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
-import transformations.Transformer
+import transformations.{ReadsUtils, Transformer}
+
 import scala.language.implicitConversions
 
 
@@ -45,7 +46,7 @@ object API1834 {
 
 }
 
-private object API1834ReadsUtilities extends Transformer {
+private object API1834ReadsUtilities extends Transformer with ReadsUtils {
   import transformations.ETMPToFrontEnd.API1834Paths._
 
   private def readsRecordVersion(recordVersionPath: JsPath): Reads[JsNumber] = {
@@ -162,27 +163,6 @@ private object API1834ReadsUtilities extends Transformer {
     (reqNestedReadsJsNumber(uaRecordVersion("eventWindUp"), readsRecordVersion(etmpRecordVersion("eventWindUp"))) and
       reqReads(uaWindUpDateOfWindUp, etmpEventWindUpDateOfWindUp)).reduce
   }.orElse(Reads.pure(Json.obj()))
-
-  lazy val reqReads: (JsPath, JsPath) => Reads[JsObject] = (uaPath: JsPath, etmpPath: JsPath) => uaPath.json.copyFrom(etmpPath.json.pick)
-
-  private lazy val reqNestedReadsJsNumber: (JsPath, Reads[JsNumber]) => Reads[JsObject] =
-    (uaPath: JsPath, etmpReads: Reads[JsNumber]) => uaPath.json.copyFrom(etmpReads)
-
-  private lazy val reqNestedReadsJsBoolean: (JsPath, Reads[JsBoolean]) => Reads[JsObject] =
-    (uaPath: JsPath, etmpReads: Reads[JsBoolean]) => uaPath.json.copyFrom(etmpReads)
-
-  private lazy val reqReadsBoolTransform: (JsPath, JsPath, String => Boolean) => Reads[JsObject] =
-    (uaPath: JsPath, etmpPath: JsPath, transform: String => Boolean) => {
-      uaPath.json.copyFrom(etmpPath.json.pick.flatMap {
-        case JsString(str) => Reads.pure(JsBoolean(transform(str)))
-        case _ => fail[JsBoolean]
-      })
-    }
-
-  private lazy val reqNestedReadsJsString: (JsPath, Reads[JsString]) => Reads[JsObject] =
-    (uaPath: JsPath, etmpReads: Reads[JsString]) => uaPath.json.copyFrom(etmpReads)
-
-  lazy val optReads: (JsPath, JsPath) => Reads[JsObject] = (uaPath: JsPath, etmpPath: JsPath) => uaPath.json.copyFrom(etmpPath.json.pick).orElse(doNothing)
 
 }
 

@@ -16,16 +16,15 @@
 
 package transformations.ETMPToFrontEnd
 
-import play.api.libs.json._
-import transformations.Transformer
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
+import play.api.libs.json._
+import transformations.ReadsUtils
 
 
-object API1831 {
+object API1831 extends ReadsUtils {
 
   import API1831Paths._
-  import transformations.ETMPToFrontEnd.Event20AReadsUtilities._
 
   implicit val rds1831Api: Reads[JsObject] = (
     reqReads(uaPstr, etmpPstr)                                                    and
@@ -71,10 +70,4 @@ private object API1831Paths {
   val etmpAuthorisedPSAID:                    JsPath = __ \ "erDeclarationDetails" \ "pspDeclaration" \ "authorisedPSAID"
   val etmpPspDeclaration1:                    JsPath = __ \ "erDeclarationDetails" \ "pspDeclaration" \ "pspDeclaration1"
   val etmpPspDeclaration2:                    JsPath = __ \ "erDeclarationDetails" \ "pspDeclaration" \ "pspDeclaration2"
-}
-
-private object Event20AReadsUtilities extends Transformer {
-  lazy val reqReads: (JsPath, JsPath) => Reads[JsObject] = (uaPath: JsPath, etmpPath: JsPath) => uaPath.json.copyFrom(etmpPath.json.pick)
-
-  lazy val optReads: (JsPath, JsPath) => Reads[JsObject] = (uaPath: JsPath, etmpPath: JsPath) => uaPath.json.copyFrom(etmpPath.json.pick).orElse(doNothing)
 }

@@ -16,15 +16,15 @@
 
 package transformations.UserAnswersToETMP
 
+import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
-import transformations.Transformer
-import play.api.libs.functional.syntax._
+import transformations.{ReadsUtils, Transformer}
 
 
 object API1828 extends {
-  import transformations.UserAnswersToETMP.API1828ReadsUtilities._
   import transformations.UserAnswersToETMP.API1828Paths._
+  import transformations.UserAnswersToETMP.API1828ReadsUtilities._
 
   val transformToETMPData: Reads[JsObject] = {
     (reqReads(etmpPathToPstr, uaPathToPstr) and
@@ -37,7 +37,7 @@ object API1828 extends {
   }
 }
 
-private object API1828ReadsUtilities extends Transformer {
+private object API1828ReadsUtilities extends Transformer with ReadsUtils {
   import transformations.UserAnswersToETMP.API1828Paths._
 
   private val readsPsaDeclaration: Reads[JsObject] = {
@@ -53,9 +53,6 @@ private object API1828ReadsUtilities extends Transformer {
 
   val readsPsaOrPsp: Reads[JsObject] = readsPspDeclaration.orElse(readsPsaDeclaration)
 
-  lazy val reqReads: (JsPath, JsPath) => Reads[JsObject] = (etmpPath: JsPath, uaPath: JsPath) => etmpPath.json.copyFrom(uaPath.json.pick)
-
-  lazy val optReads: (JsPath, JsPath) => Reads[JsObject] = (etmpPath: JsPath, uaPath: JsPath) => etmpPath.json.copyFrom(uaPath.json.pick).orElse(doNothing)
 }
 
 private object API1828Paths {

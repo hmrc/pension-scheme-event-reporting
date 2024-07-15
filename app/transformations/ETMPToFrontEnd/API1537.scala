@@ -20,7 +20,7 @@ import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 import transformations.ETMPToFrontEnd.API1537Paths._
-import transformations.Transformer
+import transformations.{ReadsUtils, Transformer}
 
 object API1537 {
   import transformations.ETMPToFrontEnd.API1537ReadsUtilities._
@@ -28,7 +28,7 @@ object API1537 {
   val reads: Reads[JsArray] = Reads.seq(readsDetail).map(JsArray(_))
 }
 
-private object API1537ReadsUtilities extends Transformer {
+private object API1537ReadsUtilities extends Transformer with ReadsUtils {
   private val statusNode: JsValue => JsString = {
     case JsString("SubmittedAndInProgress") => JsString("submitted")
     case JsString("SubmittedAndSuccessfullyProcessed") => JsString("submitted")
@@ -56,14 +56,11 @@ private object API1537ReadsUtilities extends Transformer {
 
   val readsDetail: Reads[JsObject] = (
     reqReads(uaVersion, etmpReportVersion) and
-    reqNestedReads(uaStatus, etmpReportStatus.json.pick.map(statusNode)) and
-    reqNestedReads(uaSubmittedDate, etmpCompilationOrSubmissionDate.json.pick.map(dateFormatter)) and
-    reqNestedReads(uaSubmitterName, readsSubmitter)
+    reqNestedReadsJsString(uaStatus, etmpReportStatus.json.pick.map(statusNode)) and
+    reqNestedReadsJsString(uaSubmittedDate, etmpCompilationOrSubmissionDate.json.pick.map(dateFormatter)) and
+    reqNestedReadsJsString(uaSubmitterName, readsSubmitter)
     ).reduce
 
-  private lazy val reqReads: (JsPath, JsPath) => Reads[JsObject] = (uaPath: JsPath, etmpPath: JsPath) => uaPath.json.copyFrom(etmpPath.json.pick)
-  private lazy val reqNestedReads: (JsPath, Reads[JsString]) => Reads[JsObject] =
-    (uaPath: JsPath, etmpReads: Reads[JsString]) => uaPath.json.copyFrom(etmpReads)
 }
 
 private object API1537Paths {

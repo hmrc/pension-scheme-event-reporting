@@ -22,7 +22,7 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 import transformations.ETMPToFrontEnd.API1832Paths._
-import transformations.Transformer
+import transformations.{ReadsUtils, Transformer}
 
 
 object API1832 {
@@ -63,7 +63,7 @@ object API1832 {
   private val rdsMemberDetailsEvent24: Reads[JsObject] = (readsMemberDetails and readsEvent24PaymentDetails).reduce
 }
 
-private object API1832ReadsUtilities extends Transformer {
+private object API1832ReadsUtilities extends Transformer with ReadsUtils {
   def pathUaEventDetailsForEventType(eventType: EventType): JsPath = __ \ Symbol(s"event${eventType.toString}") \ Symbol("members")
 
   lazy val readsEvent2PaymentDetails: Reads[JsObject] = (
@@ -271,34 +271,6 @@ private object API1832ReadsUtilities extends Transformer {
       case _ => fail(JsString("bceTypeEvent24"))
     }
   }
-
-  lazy val reqReads: (JsPath, JsPath) => Reads[JsObject] = (uaPath: JsPath, etmpPath: JsPath) => uaPath.json.copyFrom(etmpPath.json.pick)
-  private lazy val reqNestedReadsJsString: (JsPath, Reads[JsString]) => Reads[JsObject] =
-    (uaPath: JsPath, etmpReads: Reads[JsString]) => uaPath.json.copyFrom(etmpReads)
-
-  private lazy val reqReadsBoolTransform: (JsPath, JsPath, String => Boolean) => Reads[JsObject] =
-    (uaPath: JsPath, etmpPath: JsPath, transform: String => Boolean) => {
-      uaPath.json.copyFrom(etmpPath.json.pick.flatMap {
-        case JsString(str) => Reads.pure(JsBoolean(transform(str)))
-        case _ => fail[JsBoolean]
-      })
-    }
-
-  lazy val optReads: (JsPath, JsPath) => Reads[JsObject] = (uaPath: JsPath, etmpPath: JsPath) => uaPath.json.copyFrom(etmpPath.json.pick).orElse(doNothing)
-
-  private lazy val optNestedReadsJsString: (JsPath, Reads[JsString]) => Reads[JsObject] =
-    (uaPath: JsPath, etmpReads: Reads[JsString]) => uaPath.json.copyFrom(etmpReads).orElse(doNothing)
-
-  private lazy val optNestedReadsJsArray: (JsPath, Reads[JsArray]) => Reads[JsObject] =
-    (uaPath: JsPath, etmpReads: Reads[JsArray]) => uaPath.json.copyFrom(etmpReads).orElse(doNothing)
-
-  private lazy val optReadsBoolTransform: (JsPath, JsPath, String => Boolean) => Reads[JsObject] =
-    (uaPath: JsPath, etmpPath: JsPath, transform: String => Boolean) => {
-      uaPath.json.copyFrom(etmpPath.json.pick.flatMap {
-        case JsString(str) => Reads.pure(JsBoolean(transform(str)))
-        case _ => fail[JsBoolean]
-      }).orElse(doNothing)
-    }
 
   private def typeOfProtectionUAEvent6(tOP: String): String = tOP match {
     case "Enhanced life time allowance" => "enhancedLifetimeAllowance"

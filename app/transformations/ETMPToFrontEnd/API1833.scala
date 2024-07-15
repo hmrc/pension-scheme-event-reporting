@@ -19,7 +19,7 @@ package transformations.ETMPToFrontEnd
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
-import transformations.Transformer
+import transformations.{ReadsUtils, Transformer}
 
 object API1833 {
 
@@ -34,7 +34,7 @@ object API1833 {
 
 }
 
-private object API1833ReadsUtilities extends Transformer {
+private object API1833ReadsUtilities extends Transformer with ReadsUtils {
 
   import API1833Paths._
 
@@ -87,39 +87,6 @@ private object API1833ReadsUtilities extends Transformer {
     reqReads(pathUAMemberStatus, pathEtmpMemberStatus) and
       optReads(pathUAAmendedVersion, pathEtmpAmendedVersion)
     ).reduce
-
-  /**
-   * These are utility functions for reading json from a given etmpPath into a given uaPath.
-   * They may also include transformations of the etmp json before storing in the uaPath or doNothing if the node is missing in the response (i.e., it's an optional node).
-   */
-
-  lazy val reqReads: (JsPath, JsPath) => Reads[JsObject] = (uaPath: JsPath, etmpPath: JsPath) => uaPath.json.copyFrom(etmpPath.json.pick)
-
-  lazy val optReads: (JsPath, JsPath) => Reads[JsObject] = (uaPath: JsPath, etmpPath: JsPath) => uaPath.json.copyFrom(etmpPath.json.pick).orElse(doNothing)
-
-  private lazy val reqReadsStrTransform: (JsPath, JsPath, String => String) => Reads[JsObject] =
-    (uaPath: JsPath, etmpPath: JsPath, transform: String => String) => {
-      uaPath.json.copyFrom(etmpPath.json.pick.flatMap {
-        case JsString(str) => Reads.pure(JsString(transform(str)))
-        case _ => fail[JsString]
-      })
-    }
-
-  private lazy val optReadsBoolTransform: (JsPath, JsPath, String => Boolean) => Reads[JsObject] =
-    (uaPath: JsPath, etmpPath: JsPath, transform: String => Boolean) => {
-      uaPath.json.copyFrom(etmpPath.json.pick.flatMap {
-        case JsString(str) => Reads.pure(JsBoolean(transform(str)))
-        case _ => fail[JsBoolean]
-      }).orElse(doNothing)
-    }
-
-  private lazy val optReadsDynamicPathStrTransform: (String => JsPath, JsPath, String => String) => Reads[JsObject] =
-    (dynamicUaPath: String => JsPath, etmpPath: JsPath, transform: String => String) => {
-      etmpPath.json.pick.flatMap {
-        case JsString(str) => dynamicUaPath(transform(str)).json.copyFrom(Reads.pure(JsString(transform(str))))
-        case _ => fail[JsObject]
-      }.orElse(doNothing)
-    }
 
   /**
    * These are the transforms which are applied to some of the fields.

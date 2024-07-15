@@ -19,7 +19,7 @@ package transformations.UserAnswersToETMP
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
-import transformations.Transformer
+import transformations.{ReadsUtils, Transformer}
 
 object API1827 {
   import transformations.UserAnswersToETMP.API1827Paths._
@@ -48,7 +48,7 @@ object API1827 {
   }
 }
 
-private object API1827ReadsUtilities extends Transformer {
+private object API1827ReadsUtilities extends Transformer with ReadsUtils {
   import transformations.UserAnswersToETMP.API1827Paths._
 
   private val paymentNatureTypeKeyBenefitInKind: String = "benefitInKind"
@@ -257,18 +257,6 @@ private object API1827ReadsUtilities extends Transformer {
     }).flatMap[JsObject](identity)
   }
 
-  lazy val reqReads: (JsPath, JsPath) => Reads[JsObject] = (etmpPath: JsPath, uaPath: JsPath) => etmpPath.json.copyFrom(uaPath.json.pick)
-
-  lazy val reqNestedReadsJsString: (JsPath, Reads[JsString]) => Reads[JsObject] =
-    (etmpPath: JsPath, uaReads: Reads[JsString]) => etmpPath.json.copyFrom(uaReads)
-
-  lazy val optReads: (JsPath, JsPath) => Reads[JsObject] = (etmpPath: JsPath, uaPath: JsPath) => etmpPath.json.copyFrom(uaPath.json.pick).orElse(doNothing)
-
-  lazy val optNestedReadsJsString: (JsPath, Reads[JsString]) => Reads[JsObject] =
-    (etmpPath: JsPath, uaReads: Reads[JsString]) => etmpPath.json.copyFrom(uaReads).orElse(doNothing)
-
-  lazy val optNestedReadsJsObject: (JsPath, Reads[JsObject]) => Reads[JsObject] =
-    (etmpPath: JsPath, uaReads: Reads[JsObject]) => etmpPath.json.copyFrom(uaReads).orElse(doNothing)
 }
 
 private object API1827Paths {

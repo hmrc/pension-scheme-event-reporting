@@ -21,7 +21,7 @@ import models.enumeration.EventType.{Event2, Event24, Event3, Event4, Event5, Ev
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
-import transformations.Transformer
+import transformations.{ReadsUtils, Transformer}
 
 object API1830 extends Transformer {
   import transformations.UserAnswersToETMP.API1830ReadsUtilities._
@@ -56,7 +56,7 @@ object API1830 extends Transformer {
   }
 }
 
-private object API1830ReadsUtilities extends Transformer {
+private object API1830ReadsUtilities extends Transformer with ReadsUtils {
   import transformations.UserAnswersToETMP.API1830Paths._
   def readsIndividualMemberDetailsByEventType(eventType: EventType): Reads[JsObject] = {
     val details = eventType match {
@@ -340,14 +340,6 @@ private object API1830ReadsUtilities extends Transformer {
     case "uncrystallisedFundsDeathBenefit" => "A uncrystallised funds lump sum death benefit"
     case "windingUp" => "A winding-up lump sum"
   }
-
-  lazy val reqReads: (JsPath, JsPath) => Reads[JsObject] = (etmpPath: JsPath, uaPath: JsPath) => etmpPath.json.copyFrom(uaPath.json.pick)
-  lazy val reqNestedReadsJsString: (JsPath, Reads[JsString]) => Reads[JsObject] =
-    (etmpPath: JsPath, uaReads: Reads[JsString]) => etmpPath.json.copyFrom(uaReads)
-
-  lazy val optReads: (JsPath, JsPath) => Reads[JsObject] = (etmpPath: JsPath, uaPath: JsPath) => etmpPath.json.copyFrom(uaPath.json.pick).orElse(doNothing)
-  lazy val optNestedReadsJsString: (JsPath, Reads[JsString]) => Reads[JsObject] =
-    (etmpPath: JsPath, uaReads: Reads[JsString]) => etmpPath.json.copyFrom(uaReads).orElse(doNothing)
 }
 
 private object API1830Paths {

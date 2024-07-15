@@ -20,7 +20,7 @@ import models.enumeration.EventType
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json.Reads.JsObjectReducer
 import play.api.libs.json._
-import transformations.Transformer
+import transformations.{ReadsUtils, Transformer}
 
 object API1826 {
   import transformations.UserAnswersToETMP.API1826ReadsUtilities._
@@ -54,7 +54,7 @@ object API1826 {
   }
 }
 
-private object API1826ReadsUtilities extends Transformer {
+private object API1826ReadsUtilities extends Transformer with ReadsUtils {
   import transformations.UserAnswersToETMP.API1826Paths._
 
   private def mapReadsToOptionArray(eventTypeNodeName: String)(reads: JsPath => Reads[JsObject]): Reads[Option[JsObject]] = {
@@ -260,10 +260,6 @@ private object API1826ReadsUtilities extends Transformer {
     )
   }
 
-
-  lazy val reqReads: (JsPath, JsPath) => Reads[JsObject] = (etmpPath: JsPath, uaPath: JsPath) => etmpPath.json.copyFrom(uaPath.json.pick)
-
-  lazy val optReads: (JsPath, JsPath) => Reads[JsObject] = (etmpPath: JsPath, uaPath: JsPath) => etmpPath.json.copyFrom(uaPath.json.pick).orElse(doNothing)
 }
 
 private object API1826Paths {
