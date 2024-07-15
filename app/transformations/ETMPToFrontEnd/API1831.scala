@@ -29,17 +29,17 @@ object API1831 {
 
   implicit val rds1831Api: Reads[JsObject] = (
     reqReads(uaPstr, etmpPstr)                                                    and
-      reqReads(uaReportStartDate, etmpReportStartDate)                              and
-      reqReads(uaReportEndDate, etmpReportEndDate)                                  and
-      reqReads(uaSubmittedBy, etmpSubmittedBy)                                      and
-      reqReads(uaSubmittedID, etmpSubmittedID)                                      and
-      optReads(uaSchemeMasterTrustStartDate, etmpSchemeMasterTrustDetailsStartDate) and
-      optReads(uaSchemeMasterTrustCeaseDate, etmpSchemeMasterTrustDetailsCeaseDate) and
-      optReads(uaPsaDeclaration1, etmpPsaDeclaration1)                              and
-      optReads(uaPsaDeclaration2, etmpPsaDeclaration2)                              and
-      optReads(uaAuthorisedPSAID, etmpAuthorisedPSAID)                              and
-      optReads(uaPspDeclaration1, etmpPspDeclaration1)                              and
-      optReads(uaPspDeclaration2, etmpPspDeclaration2)
+    reqReads(uaReportStartDate, etmpReportStartDate)                              and
+    reqReads(uaReportEndDate, etmpReportEndDate)                                  and
+    reqReads(uaSubmittedBy, etmpSubmittedBy)                                      and
+    reqReads(uaSubmittedID, etmpSubmittedID)                                      and
+    optReads(uaSchemeMasterTrustStartDate, etmpSchemeMasterTrustDetailsStartDate) and
+    optReads(uaSchemeMasterTrustCeaseDate, etmpSchemeMasterTrustDetailsCeaseDate) and
+    optReads(uaPsaDeclaration1, etmpPsaDeclaration1)                              and
+    optReads(uaPsaDeclaration2, etmpPsaDeclaration2)                              and
+    optReads(uaAuthorisedPSAID, etmpAuthorisedPSAID)                              and
+    optReads(uaPspDeclaration1, etmpPspDeclaration1)                              and
+    optReads(uaPspDeclaration2, etmpPspDeclaration2)
     ).reduce
 }
 
