@@ -149,6 +149,15 @@ private object API1826ReadsUtilities extends Transformer {
     )
   }
 
+  private def event13SchemeStructureTransformer(schemeStructure: JsValue): JsString = {
+    schemeStructure.as[JsString].value match {
+      case "single" => JsString("A single trust under which all of the assets are held for the benefit of all members of the scheme")
+      case "group" => JsString("A group life/death in service scheme")
+      case "corporate" => JsString("A body corporate")
+      case _ => JsString("Other")
+    }
+  }
+
   lazy val event13Reads: Reads[Option[JsObject]] = {
     mapReadsToOptionArray(eventTypeNodeName = "event13") { uaBaseForEventType =>
       (uaBaseForEventType \ "schemeStructure").read[String].flatMap {

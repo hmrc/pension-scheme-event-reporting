@@ -19,10 +19,10 @@ package transformations.ETMPToFrontEnd
 import models.enumeration.EventType
 import models.enumeration.EventType.{Event2, Event24, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
 import play.api.libs.functional.syntax._
-import play.api.libs.json.{JsArray, JsBoolean, JsObject, JsPath, JsString, Json, Reads, __}
-import transformations.Transformer
 import play.api.libs.json.Reads._
+import play.api.libs.json._
 import transformations.ETMPToFrontEnd.API1832Paths._
+import transformations.Transformer
 
 object API1832 {
   import transformations.ETMPToFrontEnd.API1832ReadsUtilities._
@@ -123,6 +123,12 @@ private object API1832ReadsUtilities extends Transformer {
       optReadsBoolTransform(pathUaMarginalRate, pathEtmpMarginalRate, yesNoTransformToBoolean) and
       optReads(pathUaPayeReference, pathEtmpPayeReference)
       ).reduce
+
+  private def readAdditiveIfPresent(etmpPath: JsPath, uaPath: JsPath, f: String => String = identity): JsObject => Reads[JsObject] = jsObj =>
+    etmpPath.readNullable[String].flatMap {
+      case None => Reads.pure(jsObj)
+      case Some(str) => uaPath.json.put(JsString(f(str))).map(_ ++ jsObj)
+    }
 
   lazy val readsEvent8APaymentDetails: Reads[JsObject] = (
       reqReads(pathUaLumpSumAmountNested, pathEtmpAmountLumpSum) and
@@ -291,6 +297,66 @@ private object API1832ReadsUtilities extends Transformer {
         case _ => fail[JsBoolean]
       }).orElse(doNothing)
     }
+
+  private def typeOfProtectionUAEvent6(tOP: String): String = tOP match {
+    case "Enhanced life time allowance" => "enhancedLifetimeAllowance"
+    case "Enhanced protection" => "enhancedProtection"
+    case "Fixed protection" => "fixedProtection"
+    case "Fixed protection 2014" => "fixedProtection2014"
+    case "Fixed protection 2016" => "fixedProtection2016"
+    case "Individual protection 2014" => "individualProtection2014"
+    case "Individual protection 2016" => "individualProtection2016"
+  }
+
+  private def paymentTypeUAEvent8A(rBT: String): String = rBT match {
+    case "Member where payment of a stand-alone lump sum (100 per lump sum) and the member had protected lump sum rights of more than £375,000 with either primary protection or enhanced protection"
+    => "paymentOfAStandAloneLumpSum"
+    case "Member where payment of a scheme specific lump sum protection and the lump sum is more than 7.5 per of the lifetime allowance"
+    => "paymentOfASchemeSpecificLumpSum"
+  }
+
+  private def typeOfProtectionUAEvent8(tOP: String): String = tOP match {
+    case "Primary Protection" => "primaryProtection"
+    case "Enhanced protection" => "enhancedProtection"
+  }
+
+  private def typeOfProtectionUAEvent8A(tOP: String): String = tOP match {
+    case "Primary Protection" => "primaryProtection"
+    case "Enhanced protection" => "enhancedProtection"
+  }
+
+  private def reasonBenefitTakenUAEvent3(rBT: String): String = rBT match {
+    case "Ill Health" => "illHealth"
+    case "Protected Pension Age" => "protectedPensionAge"
+    case "Other" => "other"
+  }
+
+  private def typeOfProtectionUAEvent24(tOP: String): String = tOP match {
+    case "Enhanced protection" => "enhancedProtection"
+    case "Enhanced protection with protected lump sum rights of more than 375,000" => "enhancedProtectionWithProtectedSum"
+    case "Fixed protection" => "fixedProtection"
+    case "Fixed protection 2014" => "fixedProtection2014"
+    case "Fixed protection 2016" => "fixedProtection2016"
+    case "Individual protection 2014" => "individualProtection2014"
+    case "Individual protection 2016" => "individualProtection2016"
+    case "Primary Protection" => "primary"
+    case "Primary protection with protected lump sum rights of more than 375,000" => "primaryWithProtectedSum"
+  }
+
+  private def bceTypeUAEvent24(tOP: String): String = tOP match {
+    case "An annuity protection lump sum death benefit" => "annuityProtection"
+    case "A defined benefit lump sum death benefit" => "definedBenefit"
+    case "A drawdown pension fund lump sum death benefit" => "drawdown"
+    case "A flexi-access drawdown lump sum death benefit" => "flexiAccess"
+    case "A pension protection lump sum death benefit" => "pensionProtection"
+    case "A small lump sum" => "small"
+    case "A stand-alone lump sum" => "standAlone"
+    case "A trivial commutation lump sum" => "trivialCommutation"
+    case "Serious ill health lump sum" => "seriousHealthLumpSum"
+    case "An uncrystalised funds pension lump sum" => "uncrystallisedFunds"
+    case "A uncrystallised funds lump sum death benefit" => "uncrystallisedFundsDeathBenefit"
+    case "A winding-up lump sum" => "windingUp"
+  }
 }
 
 private object API1832Paths {

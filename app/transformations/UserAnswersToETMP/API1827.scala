@@ -51,6 +51,64 @@ object API1827 {
 private object API1827ReadsUtilities extends Transformer {
   import transformations.UserAnswersToETMP.API1827Paths._
 
+  private val paymentNatureTypeKeyBenefitInKind: String = "benefitInKind"
+  private val paymentNatureTypeKeyTransferToNonRegPensionScheme: String = "transferToNonRegPensionScheme"
+  private val paymentNatureTypeKeyRefundOfContributions: String = "refundOfContributions"
+  private val paymentNatureTypeKeyOverpaymentOrWriteOff: String = "overpaymentOrWriteOff"
+  private val paymentNatureTypeKeyResidentialPropertyHeld: String = "residentialPropertyHeld"
+  private val paymentNatureTypeKeyResidentialPropertyHeldEmployer: String = "residentialProperty"
+  private val paymentNatureTypeKeyTangibleMoveablePropertyHeld: String = "tangibleMoveablePropertyHeld"
+  private val paymentNatureTypeKeyTangibleMoveablePropertyHeldEmployer: String = "tangibleMoveableProperty"
+  private val paymentNatureTypeKeyErrorCalcTaxFreeLumpSums: String = "errorCalcTaxFreeLumpSums"
+  private val paymentNatureTypeKeyCourtOrConfiscationOrder: String = "courtOrConfiscationOrder"
+  private val paymentNatureTypeKeyCourtOrConfiscationOrderEmployer: String = "courtOrder"
+  private val paymentNatureTypeKeyLoansExceeding50PercentOfFundValue: String = "loansExceeding50PercentOfFundValue"
+  private val paymentNatureTypeKeyOther: String = "memberOther"
+  private val paymentNatureTypeKeyOtherEmployer: String = "employerOther"
+  private val paymentNatureTypeKeyBenefitsPaidEarly: String = "benefitsPaidEarly"
+  private val whoReceivedUnauthPaymentIndividual = "Individual"
+  private val whoReceivedUnauthPaymentEmployer = "Employer"
+
+  private val paymentNatureMemberMap: Map[String, String] = Map(
+    paymentNatureTypeKeyBenefitInKind -> "Benefit in kind",
+    paymentNatureTypeKeyTransferToNonRegPensionScheme -> "Transfer to non-registered pensions scheme",
+    paymentNatureTypeKeyErrorCalcTaxFreeLumpSums -> "Error in calculating tax free lump sums",
+    paymentNatureTypeKeyBenefitsPaidEarly -> "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum",
+    paymentNatureTypeKeyRefundOfContributions -> "Refund of contributions",
+    paymentNatureTypeKeyOverpaymentOrWriteOff -> "Overpayment of pension/written off",
+    paymentNatureTypeKeyResidentialPropertyHeld -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
+    paymentNatureTypeKeyTangibleMoveablePropertyHeld -> "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
+    paymentNatureTypeKeyCourtOrConfiscationOrder -> "Court Order Payment/Confiscation Order",
+    paymentNatureTypeKeyOther -> "Other"
+  )
+
+  private val paymentNatureEmployerMap: Map[String, String] = Map(
+    paymentNatureTypeKeyLoansExceeding50PercentOfFundValue -> "Loans to or in respect of the employer exceeding 50% of the value of the fund",
+    paymentNatureTypeKeyResidentialPropertyHeldEmployer -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
+    paymentNatureTypeKeyTangibleMoveablePropertyHeldEmployer ->
+      "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme",
+    paymentNatureTypeKeyCourtOrConfiscationOrderEmployer -> "Court Order Payment/Confiscation Order",
+    paymentNatureTypeKeyOtherEmployer -> "Other"
+  )
+
+  private val whoWasTransferMadeToMap: Map[String, String] = Map(
+    "anEmployerFinanced" -> "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
+    "nonRecognisedScheme" -> "Transfer to a non-recognised pension scheme which is not a qualifying overseas pension scheme",
+    "other" -> "Overpayment of pension/written off other"
+  )
+
+  private val refundOfContributionsMap: Map[String, String] = Map(
+    "widowOrOrphan" -> "Widow and/or orphan",
+    "other" -> "Overpayment of pension/written off other"
+  )
+
+  private val overpaymentOrWriteOffMap: Map[String, String] = Map(
+    "deathOfMember" -> "Death of member",
+    "deathOfDependent" -> "Death of dependent",
+    "dependentNoLongerQualifiedForPension" -> "Dependent no longer qualified for pension",
+    "other" -> "Overpayment of pension/written off other"
+  )
+
   //scalastyle:off cyclomatic.complexity
   private def freeTxtOrSchemeOrRecipientName(paymentNature: String, whoReceivedUnauthorisedPayment: String): Reads[JsString] = {
     (paymentNature, whoReceivedUnauthorisedPayment) match {

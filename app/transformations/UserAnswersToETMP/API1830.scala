@@ -278,6 +278,69 @@ private object API1830ReadsUtilities extends Transformer {
       ).reduce
   }
 
+  private def event3TypeOfBenefitConversion(tOB: String): String = tOB match {
+    case "illHealth" => "Ill Health"
+    case "protectedPensionAge" => "Protected Pension Age"
+    case "other" => "Other"
+  }
+
+  private def event6TypeOfProtectionConversion(tOP: String): String = tOP match {
+    case "enhancedLifetimeAllowance" => "Enhanced life time allowance"
+    case "enhancedProtection" => "Enhanced protection"
+    case "fixedProtection" => "Fixed protection"
+    case "fixedProtection2014" => "Fixed protection 2014"
+    case "fixedProtection2016" => "Fixed protection 2016"
+    case "individualProtection2014" => "Individual protection 2014"
+    case "individualProtection2016" => "Individual protection 2016"
+  }
+
+  private def event8TypeOfProtectionConversion(tOP: String): String = tOP match {
+    case "primaryProtection" => "Primary Protection"
+    case "enhancedProtection" => "Enhanced protection"
+  }
+
+  private def event8ATypeOfProtectionConversion(tOP: String): String = tOP match {
+    case "primaryProtection" => "Primary Protection"
+    case "enhancedProtection" => "Enhanced protection"
+  }
+
+  //noinspection ScalaStyle
+  private def event8APaymentTypeConversion(pT: String): String = pT match {
+    case "paymentOfAStandAloneLumpSum" =>
+      "Member where payment of a stand-alone lump sum (100 per lump sum) and the member had protected lump sum rights of more than £375,000 with either primary protection or enhanced protection"
+    case "paymentOfASchemeSpecificLumpSum" =>
+      "Member where payment of a scheme specific lump sum protection and the lump sum is more than 7.5 per of the lifetime allowance"
+  }
+
+  private def event24TypeOfProtectionGroup2Conversion(tOP: String): String = tOP match {
+    case "enhancedProtection" => "Enhanced protection"
+    case "enhancedProtectionWithProtectedSum" => "Enhanced protection with protected lump sum rights of more than 375,000"
+    case "fixedProtection" => "Fixed protection"
+    case "fixedProtection2014" => "Fixed protection 2014"
+    case "fixedProtection2016" => "Fixed protection 2016"
+    case "individualProtection2014" => "Individual protection 2014"
+    case "individualProtection2016" => "Individual protection 2016"
+    case "primary" => "Primary Protection"
+    case "primaryWithProtectedSum" => "Primary protection with protected lump sum rights of more than 375,000"
+  }
+
+  //noinspection ScalaStyle
+  private def event24ReasonBenefitTakenConversion(tOB: String): String = tOB match {
+    case "annuityProtection" => "An annuity protection lump sum death benefit"
+    case "definedBenefit" => "A defined benefit lump sum death benefit"
+    case "drawdown" => "A drawdown pension fund lump sum death benefit"
+    case "flexiAccess" => "A flexi-access drawdown lump sum death benefit"
+    case "commencement" => "Pension commencement lump sum"
+    case "pensionProtection" => "A pension protection lump sum death benefit"
+    case "small" => "A small lump sum"
+    case "standAlone" => "A stand-alone lump sum"
+    case "trivialCommutation" => "A trivial commutation lump sum"
+    case "seriousHealthLumpSum" => "Serious ill health lump sum"
+    case "uncrystallisedFunds" => "An uncrystalised funds pension lump sum"
+    case "uncrystallisedFundsDeathBenefit" => "A uncrystallised funds lump sum death benefit"
+    case "windingUp" => "A winding-up lump sum"
+  }
+
   lazy val reqReads: (JsPath, JsPath) => Reads[JsObject] = (etmpPath: JsPath, uaPath: JsPath) => etmpPath.json.copyFrom(uaPath.json.pick)
   lazy val reqNestedReadsJsString: (JsPath, Reads[JsString]) => Reads[JsObject] =
     (etmpPath: JsPath, uaReads: Reads[JsString]) => etmpPath.json.copyFrom(uaReads)
