@@ -24,7 +24,9 @@ import play.api.libs.json._
 import transformations.ETMPToFrontEnd.API1832Paths._
 import transformations.Transformer
 
+
 object API1832 {
+
   import transformations.ETMPToFrontEnd.API1832ReadsUtilities._
   def rds1832Api(eventType: EventType): Reads[JsObject] = {
     pathEtmpEventDetails.readNullable(readsMembers(eventType)).flatMap {

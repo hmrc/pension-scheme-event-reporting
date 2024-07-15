@@ -69,7 +69,7 @@ private object API1827ReadsUtilities extends Transformer {
   private val whoReceivedUnauthPaymentIndividual = "Individual"
   private val whoReceivedUnauthPaymentEmployer = "Employer"
 
-  private val paymentNatureMemberMap: Map[String, String] = Map(
+  private val paymentNatureMemberMap = Map(
     paymentNatureTypeKeyBenefitInKind -> "Benefit in kind",
     paymentNatureTypeKeyTransferToNonRegPensionScheme -> "Transfer to non-registered pensions scheme",
     paymentNatureTypeKeyErrorCalcTaxFreeLumpSums -> "Error in calculating tax free lump sums",
@@ -82,7 +82,7 @@ private object API1827ReadsUtilities extends Transformer {
     paymentNatureTypeKeyOther -> "Other"
   )
 
-  private val paymentNatureEmployerMap: Map[String, String] = Map(
+  private val paymentNatureEmployerMap = Map(
     paymentNatureTypeKeyLoansExceeding50PercentOfFundValue -> "Loans to or in respect of the employer exceeding 50% of the value of the fund",
     paymentNatureTypeKeyResidentialPropertyHeldEmployer -> "Residential property held directly or indirectly by an investment-regulated pension scheme",
     paymentNatureTypeKeyTangibleMoveablePropertyHeldEmployer ->
@@ -91,18 +91,18 @@ private object API1827ReadsUtilities extends Transformer {
     paymentNatureTypeKeyOtherEmployer -> "Other"
   )
 
-  private val whoWasTransferMadeToMap: Map[String, String] = Map(
+  private val whoWasTransferMadeToMap = Map(
     "anEmployerFinanced" -> "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
     "nonRecognisedScheme" -> "Transfer to a non-recognised pension scheme which is not a qualifying overseas pension scheme",
     "other" -> "Overpayment of pension/written off other"
   )
 
-  private val refundOfContributionsMap: Map[String, String] = Map(
+  private val refundOfContributionsMap = Map(
     "widowOrOrphan" -> "Widow and/or orphan",
     "other" -> "Overpayment of pension/written off other"
   )
 
-  private val overpaymentOrWriteOffMap: Map[String, String] = Map(
+  private val overpaymentOrWriteOffMap = Map(
     "deathOfMember" -> "Death of member",
     "deathOfDependent" -> "Death of dependent",
     "dependentNoLongerQualifiedForPension" -> "Dependent no longer qualified for pension",

@@ -313,15 +313,15 @@ private object API1830ReadsUtilities extends Transformer {
   }
 
   private def event24TypeOfProtectionGroup2Conversion(tOP: String): String = tOP match {
-    case "enhancedProtection" => "Enhanced protection"
-    case "enhancedProtectionWithProtectedSum" => "Enhanced protection with protected lump sum rights of more than 375,000"
-    case "fixedProtection" => "Fixed protection"
-    case "fixedProtection2014" => "Fixed protection 2014"
-    case "fixedProtection2016" => "Fixed protection 2016"
-    case "individualProtection2014" => "Individual protection 2014"
-    case "individualProtection2016" => "Individual protection 2016"
-    case "primary" => "Primary Protection"
-    case "primaryWithProtectedSum" => "Primary protection with protected lump sum rights of more than 375,000"
+      case "enhancedProtection" => "Enhanced protection"
+      case "enhancedProtectionWithProtectedSum" => "Enhanced protection with protected lump sum rights of more than 375,000"
+      case "fixedProtection" => "Fixed protection"
+      case "fixedProtection2014" => "Fixed protection 2014"
+      case "fixedProtection2016" => "Fixed protection 2016"
+      case "individualProtection2014" => "Individual protection 2014"
+      case "individualProtection2016" => "Individual protection 2016"
+      case "primary" => "Primary Protection"
+      case "primaryWithProtectedSum" => "Primary protection with protected lump sum rights of more than 375,000"
   }
 
   //noinspection ScalaStyle
