@@ -154,6 +154,42 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   }
 
+
+  //scalastyle:off
+  def isNewReportDifferentToPrevious(externalId: String,
+                                     pstr: String,
+                                     year: Int,
+                                     version: Int,
+                                     psaOrPspId: String,
+                                     eventType: String)
+                                    (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Boolean] = {
+
+    getEventType(eventType) match {
+      case Some(et) =>
+        val res = for {
+          newUserAnswers <- eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(et, year, version, externalId)))
+          oldUserAnswers <- eventReportCacheRepository.getUserAnswers(externalId, pstr + "_original_cache", Some(EventDataIdentifier(et, year, version, externalId)))
+
+        }yield {
+          (oldUserAnswers, newUserAnswers) match {
+            case (Some(oldData), Some(newData)) =>
+              logger.info(s"When data found in repo and event data changed is ${isDataChanged(oldData, newData)}")
+              Future.successful(isDataChanged(oldData, newData))
+            case _ =>
+              logger.info(s"When data not found in repo and calling  getUserAnswers with params $pstr, $et, $year, $version, $psaOrPspId")
+              val data = getUserAnswers(externalId, pstr, et, year, version, psaOrPspId)
+              data.map(x => isDataChanged(x.getOrElse(Json.obj()), x.getOrElse(Json.obj())))
+          }
+        }
+        res.flatten
+      case None =>
+        logger.warn(s"EventType passed for dataChanges check is not a valid one $eventType, so assuming no event data is changed.")
+        Future.successful(false)
+    }
+  }
+
+  private def isDataChanged(oldData: JsObject, newData: JsObject) = (oldData != newData)
+
   def getUserAnswers(externalId: String, pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     eventReportCacheRepository.getUserAnswers(externalId, pstr, None)
 

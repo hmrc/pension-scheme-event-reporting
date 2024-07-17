@@ -96,6 +96,14 @@ class EventReportController @Inject()(
       }
   }
 
+  def isEventDataChanged: Action[AnyContent] = Action.async {
+    implicit request =>
+      withAuth.flatMap { case Credentials(externalId, psaPspId, _)  =>
+        val Seq(pstr, version, eventType, year) = requiredHeaders("pstr", "version", "eventType", "year")
+        eventReportService.isNewReportDifferentToPrevious(externalId, pstr, year.toInt, version.toInt, psaPspId, eventType).map(bool => Ok(JsBoolean(bool)))
+      }
+  }
+
   def getUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
 
