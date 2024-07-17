@@ -16,6 +16,7 @@
 
 package controllers
 
+import models.ReportVersion
 import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json._
@@ -243,7 +244,7 @@ class EventReportController @Inject()(
         println(s"***************>>> In submitEventDeclarationReport  ${request.headers} ***************")
         val Seq(pstr, version) = requiredHeaders("pstr", "version")
         val userAnswersJson = requiredBody
-        eventReportService.submitEventDeclarationReport(pstr, psaPspId, userAnswersJson, version, externalId).recoverWith{
+        eventReportService.submitEventDeclarationReport(pstr, psaPspId, userAnswersJson, version).recoverWith{
           case e: Exception =>
             logger.error(s"Error submitting event declaration report: ${e.getMessage}")
             Future.failed(new BadRequestException(s"Bad Request: ${e.getMessage}"))

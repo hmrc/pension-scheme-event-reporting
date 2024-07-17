@@ -28,10 +28,10 @@ import org.mongodb.scala.result
 import play.api.Logging
 import play.api.http.Status.NOT_IMPLEMENTED
 import play.api.libs.json.JsResult.toTry
-import play.api.libs.json.{JsValue, _}
+import play.api.libs.json._
 import play.api.mvc.Results._
 import play.api.mvc.{RequestHeader, Result}
-import repositories.{DeclarationLockRepository, EventLockRepository, EventReportCacheEntry, EventReportCacheRepository}
+import repositories.{DeclarationLockRepository, EventLockRepository, EventReportCacheRepository}
 import transformations.ETMPToFrontEnd._
 import transformations.UserAnswersToETMP._
 import uk.gov.hmrc.auth.core.retrieve.Name
@@ -130,32 +130,30 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                     (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] = {
     val edi = EventDataIdentifier(eventType, year, version, externalId)
     eventLockRepository.eventIsLocked(pstr, psaOrPspId, edi).flatMap { eventIsLocked =>
-        eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(edi)).flatMap {
-          case x@Some(_) =>
-            Future.successful(x)
-          case None =>
-            val startDate = year.toString + "-04-06"
-            getEvent(pstr, startDate, version, eventType).flatMap {
-              case None =>
-                Future.successful(None)
-              case optUAData@Some(userAnswersDataToStore) =>
-                if(!eventIsLocked) {
-                  for {
-                    _ <- saveUserAnswers(externalId, pstr + "_original_cache", eventType, year, version, userAnswersDataToStore, psaOrPspId, saveLock = false)
-                    _ <- saveUserAnswers(externalId, pstr, eventType, year, version, userAnswersDataToStore, psaOrPspId)
-                  } yield optUAData
-                } else {
-                  Future.successful(optUAData.map(_ + ("locked" -> JsBoolean(true))))
-                }
-        }
+      eventReportCacheRepository.getUserAnswers(externalId, pstr, Some(edi)).flatMap {
+        case x@Some(_) =>
+          Future.successful(x)
+        case None =>
+          val startDate = year.toString + "-04-06"
+          getEvent(pstr, startDate, version, eventType).flatMap {
+            case None =>
+              Future.successful(None)
+            case optUAData@Some(userAnswersDataToStore) =>
+              if(!eventIsLocked) {
+                for {
+                  _ <- saveUserAnswers(externalId, pstr + "_original_cache", eventType, year, version, userAnswersDataToStore, psaOrPspId, saveLock = false)
+                  _ <- saveUserAnswers(externalId, pstr, eventType, year, version, userAnswersDataToStore, psaOrPspId)
+                } yield optUAData
+              } else {
+                Future.successful(optUAData.map(_ + ("locked" -> JsBoolean(true))))
+              }
+          }
       }
     }
 
 
   }
 
-
-  //scalastyle:off
   def isNewReportDifferentToPrevious(externalId: String,
                                      pstr: String,
                                      year: Int,
@@ -195,35 +193,34 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   //scalastyle:off method.length
   def memberChangeInfoTransformation(oldUserAnswers: Option[JsObject],
-                                             newUserAnswers: JsObject,
-                                             eventType: EventType,
-                                             pstr: String,
-                                             currentVersion: Int,
-                                             delete: Boolean)
-                                            (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): JsObject = {
+                                     newUserAnswers: JsObject,
+                                     eventType: EventType,
+                                     pstr: String,
+                                     currentVersion: Int,
+                                     delete: Boolean)
+                                    (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): JsObject = {
 
     def newMembersWithChangeInfo(getMemberDetails: JsObject => Option[scala.collection.IndexedSeq[JsObject]]) = {
       val newMembers = getMemberDetails(newUserAnswers)
 
-
       newMembers
         .getOrElse(throw new RuntimeException("new member not available"))
         .zipWithIndex.flatMap { case (newMemberDetail, index) =>
-        val oldMemberDetails = oldUserAnswers.flatMap(getMemberDetails).getOrElse(Seq())
-        val oldMemberDetail = Try(oldMemberDetails(index)).toOption
-        memberChangeInfoService.generateMemberChangeInfo(
-          oldMemberDetail,
-          newMemberDetail,
-          currentVersion
-        ).map { newMemberChangeInfo =>
-          val amendedMemberDetails = newMemberDetail +
-            ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
-            ("memberStatus", JsString(newMemberChangeInfo.status.name))
+          val oldMemberDetails = oldUserAnswers.flatMap(getMemberDetails).getOrElse(Seq())
+          val oldMemberDetail = Try(oldMemberDetails(index)).toOption
+          memberChangeInfoService.generateMemberChangeInfo(
+            oldMemberDetail,
+            newMemberDetail,
+            currentVersion
+          ).map { newMemberChangeInfo =>
+            val amendedMemberDetails = newMemberDetail +
+              ("amendedVersion", JsString(("00" + newMemberChangeInfo.amendedVersion.toString).takeRight(3))) +
+              ("memberStatus", JsString(newMemberChangeInfo.status.name))
 
-          if(newMemberChangeInfo.amendedVersion == currentVersion) amendedMemberDetails - "amendedVersion"
-          else amendedMemberDetails
+            if(newMemberChangeInfo.amendedVersion == currentVersion) amendedMemberDetails - "amendedVersion"
+            else amendedMemberDetails
+          }
         }
-      }
     }
 
     apiProcessingInfo(eventType, pstr, delete) match {
@@ -288,58 +285,38 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         } yield {
           (newUserAnswers, oldUserAnswers) match {
             case (Some(newUserAnswers), oldUserAnswers) =>
-              processUserAnswers(newUserAnswers, oldUserAnswers, year, eventType, pstr,
-                version.toInt, deleteEvent, reads, apiType, schemaPath, psaPspId, currentVersion, connectToAPI)
+              val header = Json.obj(
+                "taxYear" -> year.toString
+              )
 
+              val data = memberChangeInfoTransformation(oldUserAnswers,
+                compilePayloadService.addRecordVersionToUserAnswersJson(eventType, version.toInt, newUserAnswers), eventType, pstr, version.toInt, deleteEvent)
+
+              val fullData = data ++ header
+              for {
+                transformedData <- Future.fromTry(toTry(fullData.validate(reads)))
+                collatedData <- compilePayloadService.collatePayloadsAndUpdateCache(
+                  pstr,
+                  year,
+                  currentVersion,
+                  version,
+                  apiType,
+                  eventType,
+                  transformedData)
+                _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(collatedData, schemaPath, apiType.toString))
+                response <- connectToAPI(psaPspId, pstr, collatedData, version)
+              } yield {
+                response.status match {
+                  case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
+                  case _ =>
+                    NoContent
+                }
+              }
             case _ => Future.successful(NotFound)
           }
         }
         resp.flatten
       case _ => Future.successful(BadRequest(s"Compile unimplemented for event type $eventType"))
-    }
-  }
-
-  def processUserAnswers(newUserAnswers: JsObject,
-                         oldUserAnswers: Option[JsObject],
-                         year: Int, eventType: EventType,
-                         pstr: String, version: Int,
-                         deleteEvent: Boolean,
-                         reads: Reads[JsObject],
-                         apiType: ApiType,
-                         schemaPath: String,
-                         psaPspId: String,
-                         currentVersion: String,
-                         connectToAPI: (String, String, JsValue, String) => Future[HttpResponse])
-                        (implicit ec: ExecutionContext,
-                         headerCarrier: HeaderCarrier,
-                         request: RequestHeader): Future[Result] = {
-    val header = Json.obj(
-      "taxYear" -> year.toString
-    )
-
-    val data = memberChangeInfoTransformation(oldUserAnswers,
-      compilePayloadService.addRecordVersionToUserAnswersJson(eventType, version, newUserAnswers),
-      eventType, pstr, version, deleteEvent)
-
-    val fullData = data ++ header
-    for {
-      transformedData <- Future.fromTry(toTry(fullData.validate(reads)))
-      collatedData <- compilePayloadService.collatePayloadsAndUpdateCache(
-        pstr,
-        year,
-        currentVersion,
-        version.toString,
-        apiType,
-        eventType,
-        transformedData)
-      _ <- Future.fromTry(jsonPayloadSchemaValidator.validatePayload(collatedData, schemaPath, apiType.toString))
-      response <- connectToAPI(psaPspId, pstr, collatedData, version.toString)
-    } yield {
-      response.status match {
-        case NOT_IMPLEMENTED => BadRequest(s"Not implemented - event type $eventType")
-        case _ =>
-          NoContent
-      }
     }
   }
 
@@ -367,10 +344,10 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         val members = getMembers(event, membersPath, memberTransform)
 
         val nonDeletedMembers = members.map (member => {
-         ( member \ "memberStatus").asOpt[String] match {
-           case Some("Deleted") => Json.obj()
-           case _ => member
-         }
+          ( member \ "memberStatus").asOpt[String] match {
+            case Some("Deleted") => Json.obj()
+            case _ => member
+          }
         }).filter(_ != Json.obj())
 
         if (nonDeletedMembers.isEmpty) {
@@ -426,7 +403,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         deleteMembersTransform(ua, eventType, memberTransform),
         psaPspId
       ).flatMap { _ =>
-          cer
+        cer
       }
       case None => throw new RuntimeException("User answers not available")
     }
@@ -553,7 +530,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         Future.sequence(Set(resp1834Seq, resp1831Seq)) map { x =>
           x reduce (_ ++ _)
         }
-    }
+      }
 
 
   }
@@ -588,7 +565,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
   def getOverview(pstr: String, startDate: String, endDate: String)
                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsValue] = {
-    val erOverview = eventReportConnector.getOverview(pstr, reportType = "PSR", startDate, endDate)
+    val erOverview = eventReportConnector.getOverview(pstr, reportType = "ER", startDate, endDate)
     val er20AOverview = eventReportConnector.getOverview(pstr, reportType = "ER20A", startDate, endDate)
 
     val combinedEROverview = erOverview.flatMap { a =>
@@ -604,7 +581,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     Future.fromTry(jsonPayloadSchemaValidator.validatePayload(payload, schemaPath, eventName)).map(_ => (): Unit)
   }
 
-  def submitEventDeclarationReport(pstr: String, psaPspId: String, userAnswersJson: JsValue, version: String, externalId: String)
+  def submitEventDeclarationReport(pstr: String, psaPspId: String, userAnswersJson: JsValue, version: String)
                                   (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[Result] = {
 
     def recoverAndValidatePayload(transformed1828Payload: JsObject): Future[Unit] = {
@@ -621,14 +598,14 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     declarationLockRepository.insertDoubleClickLock(pstr, psaPspId).flatMap { isAvailable =>
       if (isAvailable) {
         for {
-          transformedPayload <- Future.fromTry(toTry(userAnswersJson.transform(API1828.transformToETMPData)))
-          _ <- recoverAndValidatePayload(transformedPayload.as[JsObject])
-        } yield NoContent
+          transformed1828Payload <- Future.fromTry(toTry(userAnswersJson.transform(API1828.transformToETMPData)))
+          _ <- recoverAndValidatePayload(transformed1828Payload)
+        } yield {
+          NoContent
+        }
       } else {
-        Future.successful(BadRequest("Double click detected"))
+        Future.successful(BadRequest)
       }
-    }.recover {
-      case _: BadRequestException => ExpectationFailed("Nothing to submit")
     }
   }
 
@@ -643,7 +620,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         _ <-  eventReportConnector.submitEvent20ADeclarationReport(pstr, transformed1829Payload, version).map(_.json.as[JsObject]).recover {
           case _: BadRequestException =>
             throw new ExpectationFailedException("Nothing to submit")
-          }
+        }
       } yield ()
     }
 
