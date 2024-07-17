@@ -16,7 +16,6 @@
 
 package controllers
 
-import models.EROverviewVersion
 import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json._
@@ -168,7 +167,10 @@ class EventReportController @Inject()(
       withAuth.flatMap { _ =>
         val Seq(pstr, startDate) = requiredHeaders("pstr", "startDate")
         eventReportService.getVersions(pstr, startDate).map {
-          data => Ok(Json.toJson(data))
+          data => {
+            val sortedData = data.value.sortBy(y => y.as[ReportVersion].versionDetails.version).reverse
+            Ok(Json.toJson(sortedData))
+          }
         }
       }
   }
