@@ -3,6 +3,8 @@
 GET           /overview                                                                         controllers.EventReportController.getOverview
 GET           /versions                                                                         controllers.EventReportController.getVersions
 
+GET           /compare                                                                          controllers.EventReportController.isEventDataChanged
+
 GET           /event-summary                                                                    controllers.EventReportController.getEventSummary
 POST          /compile                                                                          controllers.EventReportController.compileEvent
 POST          /delete-member                                                                    controllers.EventReportController.deleteMember

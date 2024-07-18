@@ -271,6 +271,38 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
   }
 
+  "isEventDataChanged" must {
+    "return true when event data is changed" in {
+      when(mockEventReportService.isNewReportDifferentToPrevious(any(), any(), any(), any(), any(), any())(any(), any()))
+                .thenReturn(Future.successful(true))
+
+      val result = controller.isEventDataChanged(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr, "eventType" -> "1", "year" -> "2024", "version" -> "2"))
+
+      status(result) mustBe OK
+      contentAsString(result) mustBe true.toString
+    }
+
+    "throw a Bad Request Exception when startDate parameter is missing in header" in {
+      recoverToExceptionIf[BadRequestException] {
+        controller.isEventDataChanged(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
+      } map { response =>
+        response.responseCode mustBe BAD_REQUEST
+        response.message must include("version missing  eventType missing  year missing")
+      }
+    }
+    "throw a Unauthorised Exception if auth fails" in {
+      when(mockAuthConnector.authorise[Option[String] ~ Enrolments ~ Option[Name]](any(), any())(any(), any())) thenReturn Future.successful(emptyCredentials)
+
+      recoverToExceptionIf[UnauthorizedException] {
+        controller.isEventDataChanged()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "startDate" -> "2021-04-06"))
+      } map { response =>
+        response.responseCode mustBe UNAUTHORIZED
+        response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
+      }
+    }
+  }
+
   "getEventSummary" must {
     "return OK with dummy json response" in {
       when(mockEventReportService.getEventSummary(

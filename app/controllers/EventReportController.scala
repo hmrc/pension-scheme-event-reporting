@@ -21,6 +21,7 @@ import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
+import repositories.EventReportCacheEntry
 import services.EventReportService
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.retrieve.{Name, ~}
@@ -30,8 +31,6 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-
-
 @Singleton()
 class EventReportController @Inject()(
                                        cc: ControllerComponents,
@@ -43,6 +42,7 @@ class EventReportController @Inject()(
     with Results
     with AuthorisedFunctions
     with Logging {
+  implicit val formats: Format[EventReportCacheEntry] = Json.format[EventReportCacheEntry]
 
   def removeUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
@@ -93,6 +93,14 @@ class EventReportController @Inject()(
           }
         }
 
+      }
+  }
+
+  def isEventDataChanged: Action[AnyContent] = Action.async {
+    implicit request =>
+      withAuth.flatMap { case Credentials(externalId, psaPspId, _)  =>
+        val Seq(pstr, version, eventType, year) = requiredHeaders("pstr", "version", "eventType", "year")
+        eventReportService.isNewReportDifferentToPrevious(externalId, pstr, year.toInt, version.toInt, psaPspId, eventType).map(bool => Ok(JsBoolean(bool)))
       }
   }
 
@@ -232,10 +240,15 @@ class EventReportController @Inject()(
 
   def submitEventDeclarationReport: Action[AnyContent] = Action.async {
     implicit request =>
-      withAuth.flatMap { case Credentials(_, psaPspId, _) =>
+      withAuth.flatMap { case Credentials(externalId, psaPspId, _) =>
         val Seq(pstr, version) = requiredHeaders("pstr", "version")
         val userAnswersJson = requiredBody
-        eventReportService.submitEventDeclarationReport(pstr, psaPspId, userAnswersJson, version)
+        eventReportService.submitEventDeclarationReport(pstr, psaPspId, userAnswersJson, version).recoverWith{
+          case e: Exception =>
+            logger.error(s"Error submitting event declaration report: ${e.getMessage}")
+            Future.failed(new BadRequestException(s"Bad Request: ${e.getMessage}"))
+
+        }
       }
   }
 

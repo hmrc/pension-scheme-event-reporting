@@ -43,7 +43,7 @@ import uk.gov.hmrc.http._
 import utils.{GeneratorAPI1828, GeneratorAPI1829, JSONSchemaValidator, JsonFileReader}
 
 import java.time.LocalDate
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success}
 
 class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSugar with BeforeAndAfterEach
@@ -69,6 +69,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val reportVersion = "1"
   private val startDate = "2021-01-01"
   private val payload = Json.obj("test" -> "test")
+  private val payload2 = Json.obj("test" -> "test2")
   private val year = 2020
   private val testValue = "test"
   private val testName = Name(Some("firstName"), Some("lastName"))
@@ -855,6 +856,33 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         assert(true)
       }
     }
+  }
+
+  "isNewReportDifferentToPrevious" must {
+    "return false when there is no change from existing event report" in {
+      implicit val ec: ExecutionContextExecutor = ExecutionContext.global
+      when(mockEventReportCacheRepository.getUserAnswers(any(), any(), any())(any()))
+        .thenReturn(Future.successful(Some(payload)))
+      eventReportService.isNewReportDifferentToPrevious(externalId, pstr, 2024, 1, "", "")(hc, ec).map { result =>
+        result mustBe false
+      }
+    }
+
+    "return true when there is no change from existing event report" in {
+      implicit val ec: ExecutionContextExecutor = ExecutionContext.global
+      when(mockEventReportCacheRepository.getUserAnswers(externalId, pstr + "_original_cache", Some(EventDataIdentifier(Event1, 2024, 1, externalId)))(ec))
+        .thenReturn(Future.successful(Some(payload)))
+      when(mockEventReportCacheRepository.getUserAnswers(externalId, pstr, Some(EventDataIdentifier(Event1, 2024, 1, externalId)))(ec))
+        .thenReturn(Future.successful(Some(payload2)))
+      when(mockEventReportCacheRepository.getUserAnswers(externalId, pstr + "_original_cache", Some(EventDataIdentifier(Event1, 2024, 1, externalId)))(ec))
+        .thenReturn(Future.successful(Some(payload)))
+      eventReportService.isNewReportDifferentToPrevious(externalId, pstr, 2024, 1, "", "")(hc, ec).map { result =>
+        result mustBe false
+      }
+    }
+
+
+
   }
 
   "submitEvent20ADeclarationReport" must {
