@@ -98,11 +98,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       Future.successful(true)
     }
 
-    ftr.map {
+    ftr.flatMap {
       case true =>
         eventReportCacheRepository.upsert(pstr, EventDataIdentifier(eventType, year, version, externalId), userAnswersJson)
-        true
-      case false => false
+          .map { _ => true }
+          .recover { _ => false }
+      case false => Future.successful(false)
     }
   }
 
