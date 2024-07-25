@@ -27,6 +27,11 @@ trait Transformer {
 
   protected def toYesNo(b: JsValue): JsString = if (b.as[JsBoolean].value) JsString("Yes") else JsString("No")
 
+  lazy val yesNoTransformToBoolean: String => Boolean = {
+    case "Yes" => true
+    case "No" => false
+  }
+
   protected val yes: JsString = JsString("Yes")
 
   protected def readsAddress(jsPath: JsPath): Reads[JsObject] =

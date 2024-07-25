@@ -20,15 +20,14 @@ import models.enumeration.EventType
 import models.enumeration.EventType.{Event2, Event24, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
-import play.api.libs.json.{Reads, _}
-import transformations.Transformer
+import play.api.libs.json._
+import transformations.ETMPToFrontEnd.API1832Paths._
+import transformations.{ReadsUtils, Transformer}
 
 
 object API1832 {
 
   import transformations.ETMPToFrontEnd.API1832ReadsUtilities._
-  import transformations.ETMPToFrontEnd.MemberEventReportPaths._
-
   def rds1832Api(eventType: EventType): Reads[JsObject] = {
     pathEtmpEventDetails.readNullable(readsMembers(eventType)).flatMap {
       case None => Reads.pure(Json.obj())
@@ -64,96 +63,68 @@ object API1832 {
   private val rdsMemberDetailsEvent24: Reads[JsObject] = (readsMemberDetails and readsEvent24PaymentDetails).reduce
 }
 
-private object API1832ReadsUtilities extends Transformer {
+private object API1832ReadsUtilities extends Transformer with ReadsUtils {
+  def pathUaEventDetailsForEventType(eventType: EventType): JsPath = __ \ Symbol(s"event${eventType.toString}") \ Symbol("members")
 
-  import transformations.ETMPToFrontEnd.MemberEventReportPaths._
-
-  lazy val readsEvent2PaymentDetails: Reads[JsObject] = {
-    (
-      pathUaAmountPaid.json.copyFrom(pathEtmpAmountPaid.json.pick) and
-        pathUaDatePaid.json.copyFrom(pathEtmpEventDate.json.pick)
+  lazy val readsEvent2PaymentDetails: Reads[JsObject] = (
+      reqReads(pathUaAmountPaid, pathEtmpAmountPaid) and
+      reqReads(pathUaDatePaid, pathEtmpEventDate)
       ).reduce
-  }
 
-  lazy val readsEvent3PaymentDetails: Reads[JsObject] = {
-    (
-      pathUaReasonBenefitTaken.json.copyFrom(readsReasonBenefitTakenEvent3) and
-        pathUaFreeText.json.copyFrom(pathEtmpFreeText.json.pick).orElse(doNothing) and
-        pathUaEventDate.json.copyFrom(pathEtmpEventDate.json.pick) and
-        pathUaAmountPaidNested.json.copyFrom(pathEtmpAmountBenefit.json.pick)
+  lazy val readsEvent3PaymentDetails: Reads[JsObject] = (
+      reqNestedReadsJsString(pathUaReasonBenefitTaken, readsReasonBenefitTakenEvent3) and
+      optReads(pathUaFreeText, pathEtmpFreeText) and
+      reqReads(pathUaEventDate, pathEtmpEventDate) and
+      reqReads(pathUaAmountPaidNested, pathEtmpAmountBenefit)
       ).reduce
-  }
 
-  lazy val readsEvent4PaymentDetails: Reads[JsObject] = {
-    (
-      pathUaAmountPaidNested.json.copyFrom(pathEtmpAmountPaid.json.pick) and
-        pathUaEventDate.json.copyFrom(pathEtmpEventDate.json.pick)
+  lazy val readsEvent4PaymentDetails: Reads[JsObject] = (
+      reqReads(pathUaAmountPaidNested, pathEtmpAmountPaid) and
+      reqReads(pathUaEventDate, pathEtmpEventDate)
       ).reduce
-  }
 
-  lazy val readsEvent5PaymentDetails: Reads[JsObject] = {
-    (
-      pathUaAmountPaidNested.json.copyFrom(pathEtmpAnnualRate.json.pick) and
-        pathUaEventDate.json.copyFrom(pathEtmpEventDate.json.pick)
+  lazy val readsEvent5PaymentDetails: Reads[JsObject] = (
+      reqReads(pathUaAmountPaidNested, pathEtmpAnnualRate) and
+      reqReads(pathUaEventDate, pathEtmpEventDate)
       ).reduce
-  }
 
-  lazy val readsEvent6PaymentDetails: Reads[JsObject] = {
-    (
-      pathUaTypeOfProtection.json.copyFrom(readsTypeOfProtectionEvent6) and
-        pathUaInputProtectionType.json.copyFrom(pathEtmpFreeText.json.pick) and
-        pathUaAmountCrystallised.json.copyFrom(pathEtmpAmountCrystalised.json.pick) and
-        pathUaCrystallisedDate.json.copyFrom(pathEtmpEventDate.json.pick)
+  lazy val readsEvent6PaymentDetails: Reads[JsObject] = (
+      reqNestedReadsJsString(pathUaTypeOfProtection, readsTypeOfProtectionEvent6) and
+      reqReads(pathUaInputProtectionType, pathEtmpFreeText) and
+      reqReads(pathUaAmountCrystallised, pathEtmpAmountCrystalised) and
+      reqReads(pathUaCrystallisedDate, pathEtmpEventDate)
       ).reduce
-  }
 
-  lazy val readsEvent7PaymentDetails: Reads[JsObject] = {
-    (
-      pathUaLumpSumAmount.json.copyFrom(pathEtmpAmountLumpSum.json.pick) and
-        pathUaCrystallisedAmount.json.copyFrom(pathEtmpAmountCrystalised.json.pick) and
-        pathUaPaymentDate.json.copyFrom(pathEtmpEventDate.json.pick)
+  lazy val readsEvent7PaymentDetails: Reads[JsObject] = (
+      reqReads(pathUaLumpSumAmount, pathEtmpAmountLumpSum) and
+      reqReads(pathUaCrystallisedAmount, pathEtmpAmountCrystalised) and
+      reqReads(pathUaPaymentDate, pathEtmpEventDate)
       ).reduce
-  }
 
-  lazy val readsEvent8PaymentDetails: Reads[JsObject] = {
-    (
-      pathUaTypeOfProtection.json.copyFrom(readsTypeOfProtectionEvent8) and
-        pathUaTypeOfProtectionReference.json.copyFrom(pathEtmpFreeText.json.pick) and
-        pathUaLumpSumAmountNested.json.copyFrom(pathEtmpAmountLumpSum.json.pick) and
-        pathUaLumpSumDateNested.json.copyFrom(pathEtmpEventDate.json.pick)
+  lazy val readsEvent8PaymentDetails: Reads[JsObject] = (
+      reqNestedReadsJsString(pathUaTypeOfProtection, readsTypeOfProtectionEvent8) and
+      reqReads(pathUaTypeOfProtectionReference, pathEtmpFreeText) and
+      reqReads(pathUaLumpSumAmountNested, pathEtmpAmountLumpSum) and
+      reqReads(pathUaLumpSumDateNested, pathEtmpEventDate)
       ).reduce
-  }
 
-  def yesNoTransform(js: JsValue, err: String):Reads[JsBoolean] = {
-    js match {
-      case JsString(value) => value match {
-        case "Yes" => Reads.pure(JsBoolean(true))
-        case "No" => Reads.pure(JsBoolean(false))
-        case _ => Reads.failed(err)
-      }
-      case _ => Reads.failed(err)
-    }
-  }
-
-  lazy val readsEvent24PaymentDetails: Reads[JsObject] = {
-    (
-      pathUaMemberHoldProtection.json.copyFrom(pathEtmpMemberHoldProtectionEvent24.json.pick.flatMap(yesNoTransform(_, "hold protection failed"))) and
-        pathUaTypeOfProtectionEvent24.json.copyFrom(readsTypeOfProtectionEvent24).orElse(doNothing) and
-        pathUaProtectionGroup1Event24.json.copyFrom(readsTypeOfProtectionGroup1Event24).orElse(doNothing) and
-        pathUaPreCommenceReference.json.copyFrom(readsPreCommenceReference).orElse(doNothing) and
-        pathUaPensionCreditReference.json.copyFrom(readsPensionCreditReference).orElse(doNothing) and
-        pathUaNonResidenceReference.json.copyFrom(readsNonResidenceReference).orElse(doNothing) and
-        pathUaOverseasReference.json.copyFrom(readsOverseasReference).orElse(doNothing) and
-        pathUaAvailableLumpSumDBAExceeded.json.copyFrom(pathEtmpAvailableLumpSumDBAExceeded.json.pick.flatMap(yesNoTransform(_, "available lump sum DBA exceeded failed"))) and
-        pathUaAvailableLumpSumExceeded.json.copyFrom(pathEtmpAvailableLumpSumExceeded.json.pick.flatMap(yesNoTransform(_, "available lump sum exceeded failed"))).orElse(doNothing) and
-        pathUaAmountCrystalised.json.copyFrom(pathEtmpAmountCrystalised.json.pick) and
-        pathUaBCEType.json.copyFrom(readsBCETypeEvent24) and
-        pathUaCrystallisedDateEvent24.json.copyFrom(pathEtmpTaxYearEndingDate.json.pick) and
-        pathUaFreeTextEvent24.json.copyFrom(pathEtmpFreeText.json.pick).orElse(doNothing) and
-        pathUaMarginalRate.json.copyFrom(pathEtmpMarginalRate.json.pick.flatMap(yesNoTransform(_, "taxed at marginal rate failed"))).orElse(doNothing) and
-        pathUaPayeReference.json.copyFrom(pathEtmpPayeReference.json.pick).orElse(doNothing)
-    ).reduce
-  }
+  lazy val readsEvent24PaymentDetails: Reads[JsObject] = (
+    reqReadsBoolTransform(pathUaMemberHoldProtection, pathEtmpMemberHoldProtectionEvent24, yesNoTransformToBoolean) and
+      optNestedReadsJsString(pathUaTypeOfProtectionEvent24, readsTypeOfProtectionEvent24) and
+      optNestedReadsJsArray(pathUaProtectionGroup1Event24, readsTypeOfProtectionGroup1Event24) and
+      optNestedReadsJsString(pathUaPreCommenceReference, readsPreCommenceReference) and
+      optNestedReadsJsString(pathUaPensionCreditReference, readsPensionCreditReference) and
+      optNestedReadsJsString(pathUaNonResidenceReference, readsNonResidenceReference) and
+      optNestedReadsJsString(pathUaOverseasReference, readsOverseasReference) and
+      optReadsBoolTransform(pathUaAvailableLumpSumDBAExceeded, pathEtmpAvailableLumpSumDBAExceeded, yesNoTransformToBoolean) and
+      optReadsBoolTransform(pathUaAvailableLumpSumExceeded, pathEtmpAvailableLumpSumExceeded, yesNoTransformToBoolean) and
+      reqReads(pathUaAmountCrystalised, pathEtmpAmountCrystalised) and
+      reqNestedReadsJsString(pathUaBCEType, readsBCETypeEvent24) and
+      reqReads(pathUaCrystallisedDateEvent24, pathEtmpTaxYearEndingDate) and
+      optReads(pathUaFreeTextEvent24, pathEtmpFreeText) and
+      optReadsBoolTransform(pathUaMarginalRate, pathEtmpMarginalRate, yesNoTransformToBoolean) and
+      optReads(pathUaPayeReference, pathEtmpPayeReference)
+      ).reduce
 
   private def readAdditiveIfPresent(etmpPath: JsPath, uaPath: JsPath, f: String => String = identity): JsObject => Reads[JsObject] = jsObj =>
     etmpPath.readNullable[String].flatMap {
@@ -161,50 +132,40 @@ private object API1832ReadsUtilities extends Transformer {
       case Some(str) => uaPath.json.put(JsString(f(str))).map(_ ++ jsObj)
     }
 
-  lazy val readsEvent8APaymentDetails: Reads[JsObject] = {
-    (
-      pathUaLumpSumAmountNested.json.copyFrom(pathEtmpAmountLumpSum.json.pick) and
-        pathUaLumpSumDateNested.json.copyFrom(pathEtmpEventDate.json.pick)
+  lazy val readsEvent8APaymentDetails: Reads[JsObject] = (
+      reqReads(pathUaLumpSumAmountNested, pathEtmpAmountLumpSum) and
+      reqReads(pathUaLumpSumDateNested, pathEtmpEventDate)
       ).reduce
       .flatMap(readAdditiveIfPresent(pathEtmpTypeOfProtection, pathUaTypeOfProtection, typeOfProtectionUAEvent8A))
       .flatMap(readAdditiveIfPresent(pathEtmpReasonBenefitTaken, pathUaPaymentType, paymentTypeUAEvent8A))
       .flatMap(readAdditiveIfPresent(pathEtmpFreeText, pathUaTypeOfProtectionReference))
-  }
 
-  lazy val readsEvent22Or23PaymentDetails: Reads[JsObject] = {
-    (
-      pathUaChooseTaxYearEvent.json.copyFrom(readsTaxYearEndDateEvent22And23) and
-        pathUaTotalPensionAmounts.json.copyFrom(pathEtmpMonetaryAmount.json.pick)
+  lazy val readsEvent22Or23PaymentDetails: Reads[JsObject] = (
+      reqNestedReadsJsString(pathUaChooseTaxYearEvent, readsTaxYearEndDateEvent22And23) and
+      reqReads(pathUaTotalPensionAmounts, pathEtmpMonetaryAmount)
       ).reduce
-  }
 
-  lazy val readsMemberDetails: Reads[JsObject] = {
-    (
-      (pathUaMembersDetails \ Symbol("firstName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("firstName")).json.pick) and
-        (pathUaMembersDetails \ Symbol("lastName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("lastName")).json.pick) and
-        (pathUaMembersDetails \ Symbol("nino")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("nino")).json.pick) and
-        pathUaMemberStatus.json.copyFrom(pathEtmlMemberStatus.json.pick).orElse(doNothing) and
-        pathUaAmendedVersion.json.copyFrom(pathEtmlAmendedVersion.json.pick).orElse(doNothing)
-      ).reduce
-  }
+  lazy val readsMemberDetails: Reads[JsObject] = (
+    reqReads(pathUaMemberFirstName, pathEtmpIndividualFirstName) and
+    reqReads(pathUaMemberLastName, pathEtmpIndividualLastName) and
+    reqReads(pathUaMemberNino, pathEtmpIndividualNino) and
+    optReads(pathUaMemberStatus, pathEtmlMemberStatus) and
+    optReads(pathUaAmendedVersion, pathEtmlAmendedVersion)
+    ).reduce
 
-  lazy val readsDeceasedMemberDetails: Reads[JsObject] = {
-    (
-      (pathUaDeceasedMembersDetails \ Symbol("firstName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("firstName")).json.pick) and
-        (pathUaDeceasedMembersDetails \ Symbol("lastName")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("lastName")).json.pick) and
-        (pathUaDeceasedMembersDetails \ Symbol("nino")).json.copyFrom((pathEtmpIndividualDetails \ Symbol("nino")).json.pick) and
-        pathUaMemberStatus.json.copyFrom(pathEtmlMemberStatus.json.pick).orElse(doNothing) and
-        pathUaAmendedVersion.json.copyFrom(pathEtmlAmendedVersion.json.pick).orElse(doNothing)
-      ).reduce
-  }
+  lazy val readsDeceasedMemberDetails: Reads[JsObject] = (
+    reqReads(pathUaDeceasedMemberFirstName, pathEtmpIndividualFirstName) and
+    reqReads(pathUaDeceasedMemberLastName, pathEtmpIndividualLastName) and
+    reqReads(pathUaDeceasedMemberNino, pathEtmpIndividualNino) and
+    optReads(pathUaMemberStatus, pathEtmlMemberStatus) and
+    optReads(pathUaAmendedVersion, pathEtmlAmendedVersion)
+    ).reduce
 
-  lazy val readsBeneficiaryDetails: Reads[JsObject] = {
-    (
-      (pathUaBeneficiaryDetails \ Symbol("firstName")).json.copyFrom((pathEtmpPersonReceivedThePayment \ Symbol("firstName")).json.pick) and
-        (pathUaBeneficiaryDetails \ Symbol("lastName")).json.copyFrom((pathEtmpPersonReceivedThePayment \ Symbol("lastName")).json.pick) and
-        (pathUaBeneficiaryDetails \ Symbol("nino")).json.copyFrom((pathEtmpPersonReceivedThePayment \ Symbol("nino")).json.pick)
-      ).reduce
-  }
+  lazy val readsBeneficiaryDetails: Reads[JsObject] = (
+    reqReads(pathUaBeneficiaryFirstName, pathEtmpReceiverFirstName) and
+    reqReads(pathUaBeneficiaryLastName, pathEtmpReceiverLastName) and
+    reqReads(pathUaBeneficiaryNino, pathEtmpReceiverNino)
+    ).reduce
 
   private lazy val readsTypeOfProtectionEvent6: Reads[JsString] = {
     pathEtmpTypeOfProtection.json.pick.flatMap {
@@ -372,11 +333,8 @@ private object API1832ReadsUtilities extends Transformer {
   }
 }
 
-//noinspection ScalaStyle
-private object MemberEventReportPaths {
-
-  /* UserAnswers paths in alphabetical order */
-  def pathUaEventDetailsForEventType(eventType: EventType): JsPath = __ \ Symbol(s"event${eventType.toString}") \ Symbol("members")
+private object API1832Paths {
+  // UA
 
   // UA - nested once
   val pathUaAmountPaid: JsPath = __ \ Symbol("amountPaid")
@@ -421,8 +379,17 @@ private object MemberEventReportPaths {
   val pathUaAmountPaidNested: JsPath = __ \ Symbol("paymentDetails") \ Symbol("amountPaid")
   val pathUaEventDate: JsPath = __ \ Symbol("paymentDetails") \ Symbol("eventDate")
   val pathUaCrystallisedDateEvent24: JsPath = __ \ Symbol("crystallisedDate") \ Symbol("date")
+  val pathUaBeneficiaryFirstName: JsPath = pathUaBeneficiaryDetails \ Symbol("firstName")
+  val pathUaBeneficiaryLastName: JsPath = pathUaBeneficiaryDetails \ Symbol("lastName")
+  val pathUaBeneficiaryNino: JsPath = pathUaBeneficiaryDetails \ Symbol("nino")
+  val pathUaDeceasedMemberFirstName: JsPath = pathUaDeceasedMembersDetails \ Symbol("firstName")
+  val pathUaDeceasedMemberLastName: JsPath = pathUaDeceasedMembersDetails \ Symbol("lastName")
+  val pathUaDeceasedMemberNino: JsPath = pathUaDeceasedMembersDetails \ Symbol("nino")
+  val pathUaMemberFirstName: JsPath = pathUaMembersDetails \ Symbol("firstName")
+  val pathUaMemberLastName: JsPath = pathUaMembersDetails \ Symbol("lastName")
+  val pathUaMemberNino: JsPath = pathUaMembersDetails \ Symbol("nino")
 
-  /* ETMP paths in alphabetical order */
+  // ETMP
 
   // ETMP - nested once or utils
   val pathEtmlAmendedVersion: JsPath = __ \ Symbol("memberDetail") \ Symbol("amendedVersion")
@@ -459,4 +426,10 @@ private object MemberEventReportPaths {
   val pathEtmpSchemeSpecificLumpSum: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("schemeSpecificLumpSum")
   val pathEtmpTaxYearEndingDate: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("taxYearEndingDate")
   val pathEtmpTypeOfProtection: JsPath = pathEtmpMemberDetailEventPaymentDetails \ Symbol("typeOfProtection")
+  val pathEtmpIndividualFirstName: JsPath = pathEtmpIndividualDetails \ "firstName"
+  val pathEtmpIndividualLastName: JsPath = pathEtmpIndividualDetails \ "lastName"
+  val pathEtmpIndividualNino: JsPath = pathEtmpIndividualDetails \ "nino"
+  val pathEtmpReceiverFirstName: JsPath = pathEtmpPersonReceivedThePayment \ "firstName"
+  val pathEtmpReceiverLastName: JsPath = pathEtmpPersonReceivedThePayment \ "lastName"
+  val pathEtmpReceiverNino: JsPath = pathEtmpPersonReceivedThePayment \ "nino"
 }

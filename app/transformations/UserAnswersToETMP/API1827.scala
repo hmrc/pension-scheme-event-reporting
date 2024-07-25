@@ -19,12 +19,37 @@ package transformations.UserAnswersToETMP
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
-import transformations.Transformer
+import transformations.{ReadsUtils, Transformer}
 
-object API1827 extends Transformer {
-  private val pathIndividualMemberDetails = __ \ Symbol("individualMemberDetails")
-  private val pathEmployerMemberDetails = __ \ Symbol("employerMemDetails")
-  private val pathUnauthorisedPaymentDetails = __ \ Symbol("unAuthorisedPaymentDetails")
+object API1827 {
+  import transformations.UserAnswersToETMP.API1827Paths._
+  import transformations.UserAnswersToETMP.API1827ReadsUtilities._
+
+  val transformToETMPData: Reads[JsObject] = {
+    val reads = uaPathToMembersOrEmployers.readNullable[JsArray](__.read(Reads.seq(readsMember))
+      .map(JsArray(_))).map {
+        case None =>  Json.obj()
+        case Some(x) if x.value.isEmpty => Json.obj()
+        case Some(x) =>
+          Json.obj(
+            "event1Details" -> Json.obj(
+              "event1Details" -> x
+            )
+          )
+    }
+
+    for {
+      jsObject <- reads
+      header <- HeaderForAllAPIs.transformToETMPData()
+    } yield {
+      header ++ jsObject
+    }
+
+  }
+}
+
+private object API1827ReadsUtilities extends Transformer with ReadsUtils {
+  import transformations.UserAnswersToETMP.API1827Paths._
 
   private val paymentNatureTypeKeyBenefitInKind: String = "benefitInKind"
   private val paymentNatureTypeKeyTransferToNonRegPensionScheme: String = "transferToNonRegPensionScheme"
@@ -88,49 +113,41 @@ object API1827 extends Transformer {
   private def freeTxtOrSchemeOrRecipientName(paymentNature: String, whoReceivedUnauthorisedPayment: String): Reads[JsString] = {
     (paymentNature, whoReceivedUnauthorisedPayment) match {
       case (`paymentNatureTypeKeyBenefitInKind`, `whoReceivedUnauthPaymentIndividual`) =>
-        (__ \ Symbol("benefitInKindBriefDescription")).json.pick.map(_.as[JsString])
+        uaPathToBenefitInKindBriefDescription.json.pick.map(_.as[JsString])
       case (`paymentNatureTypeKeyTransferToNonRegPensionScheme`, `whoReceivedUnauthPaymentIndividual`) =>
-        (__ \ Symbol("schemeDetails") \ Symbol("schemeName")).json.pick.map(_.as[JsString])
+        uaPathToSchemeName.json.pick.map(_.as[JsString])
       case (`paymentNatureTypeKeyErrorCalcTaxFreeLumpSums`, `whoReceivedUnauthPaymentIndividual`) =>
-        (__ \ Symbol("errorDescription")).json.pick.map(_.as[JsString])
+        uaPathToErrorDescription.json.pick.map(_.as[JsString])
       case (`paymentNatureTypeKeyBenefitsPaidEarly`, `whoReceivedUnauthPaymentIndividual`) =>
-        (__ \ Symbol("benefitsPaidEarly")).json.pick.map(_.as[JsString])
+        uaPathToBenefitsPaidEarly.json.pick.map(_.as[JsString])
       case (`paymentNatureTypeKeyTangibleMoveablePropertyHeld`, `whoReceivedUnauthPaymentIndividual`) =>
-        (__ \ Symbol("memberTangibleMoveableProperty")).json.pick.map(_.as[JsString])
+        uaPathToMemberTangibleMoveableProperty.json.pick.map(_.as[JsString])
       case (`paymentNatureTypeKeyTangibleMoveablePropertyHeldEmployer`, `whoReceivedUnauthPaymentEmployer`) =>
-        (__ \ Symbol("employerTangibleMoveableProperty")).json.pick.map(_.as[JsString])
+        uaPathToEmployerTangibleMoveableProperty.json.pick.map(_.as[JsString])
       case (`paymentNatureTypeKeyCourtOrConfiscationOrder`, _) =>
-        (__ \ Symbol("unauthorisedPaymentRecipientName")).json.pick.map(_.as[JsString])
+        uaPathToUnauthorisedPaymentRecipientName.json.pick.map(_.as[JsString])
       case (`paymentNatureTypeKeyCourtOrConfiscationOrderEmployer`, _) =>
-        (__ \ Symbol("unauthorisedPaymentRecipientName")).json.pick.map(_.as[JsString])
+        uaPathToUnauthorisedPaymentRecipientName.json.pick.map(_.as[JsString])
       case (`paymentNatureTypeKeyOther`, `whoReceivedUnauthPaymentIndividual`) =>
-        (__ \ Symbol("memberPaymentNatureDescription")).json.pick.map(_.as[JsString])
+        uaPathToMemberPaymentNatureDescription.json.pick.map(_.as[JsString])
       case (`paymentNatureTypeKeyOtherEmployer`, `whoReceivedUnauthPaymentEmployer`) =>
-        (__ \ Symbol("paymentNatureDesc")).json.pick.map(_.as[JsString])
+        uaPathToPaymentNatureDesc.json.pick.map(_.as[JsString])
       case _ => Reads[JsString](_ => JsError(""))
     }
   }
 
   private def pstrOrReference(paymentNature: String): Reads[JsString] = {
     paymentNature match {
-      case `paymentNatureTypeKeyTransferToNonRegPensionScheme` => (__ \ Symbol("schemeDetails") \ Symbol("reference")).json.pick.map(_.as[JsString])
+      case `paymentNatureTypeKeyTransferToNonRegPensionScheme` => uaPathToReference.json.pick.map(_.as[JsString])
       case _ => Reads[JsString](_ => JsError(""))
     }
   }
 
-  private val readsPaymentNatureMember: Reads[String] = (__ \ Symbol("paymentNatureMember")).json.pick.map(_.as[JsString].value)
-  private val readsPaymentNatureEmployer: Reads[String] = (__ \ Symbol("paymentNatureEmployer")).json.pick.map(_.as[JsString].value)
-
-  private val readsMemberStatus = {
-    (__ \ Symbol("memberStatus")).json.pick
-  }
-
-  private val readsAmendedVersion = {
-    (__ \ Symbol("amendedVersion")).json.pick
-  }
+  private val readsPaymentNatureMember: Reads[String] = uaPathToPaymentNatureMember.json.pick.map(_.as[JsString].value)
+  private val readsPaymentNatureEmployer: Reads[String] = uaPathToPaymentNatureEmployer.json.pick.map(_.as[JsString].value)
 
   private val readsWhoReceivedUnauthorisedPayment: Reads[String] = {
-    (__ \ Symbol("whoReceivedUnauthPayment")).json.pick.flatMap {
+    etmpPathToWhoReceivedUnauthPayment.json.pick.flatMap {
       case JsString("member") => Reads.pure[String](whoReceivedUnauthPaymentIndividual)
       case JsString("employer") => Reads.pure[String](whoReceivedUnauthPaymentEmployer)
       case _ => fail
@@ -138,34 +155,30 @@ object API1827 extends Transformer {
   }
 
   private val schemePayingSurcharge: Reads[JsObject] =
-    (__ \ Symbol("valueOfUnauthorisedPayment")).read[Boolean].flatMap {
-      case true => (pathIndividualMemberDetails \ Symbol("schemePayingSurcharge")).json
-        .copyFrom((__ \ Symbol("schemeUnAuthPaySurchargeMember")).json.pick.map(toYesNo))
+    etmpPathToValueOfUnauthorisedPayment.read[Boolean].flatMap {
+      case true => etmpPathToSchemePayingSurcharge.json
+        .copyFrom(uaPathToSchemeUnAuthPaySurchargeMember.json.pick.map(toYesNo))
       case _ => fail
     }
 
   private val readsIndividualMemberDetails: Reads[JsObject] =
-    ((pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick) and
-      (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("lastName")).json.pick) and
-      (pathIndividualMemberDetails \ Symbol("nino")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("nino")).json.pick) and
-      (pathIndividualMemberDetails \ Symbol("signedMandate")).json.copyFrom((__ \ Symbol("doYouHoldSignedMandate")).json.pick.map(toYesNo)) and
-      (pathIndividualMemberDetails \ Symbol("pmtMoreThan25PerFundValue")).json.copyFrom((__ \ Symbol("valueOfUnauthorisedPayment")).json.pick.map(toYesNo)) and
+    (reqReads(etmpPathToIndividualMemberFirstName, uaPathToIndividualMemberFirstName) and
+      reqReads(etmpPathToIndividualMemberLastName, uaPathToIndividualMemberLastName) and
+      reqReads(etmpPathToIndividualMemberNino, uaPathToIndividualMemberNino) and
+      reqNestedReadsJsString(etmpPathToIndividualMemberSignedMandate, uaPathToDoYouHoldSignedMandate.json.pick.map(toYesNo)) and
+      reqNestedReadsJsString(etmpPathToIndividualMemberPmtMoreThan25PerFundValue, uaPathToValueOfUnauthorisedPayment.json.pick.map(toYesNo)) and
       schemePayingSurcharge.orElse(doNothing)).reduce
 
   private val readsEmployerDetails: Reads[JsObject] =
-    ((pathEmployerMemberDetails \ Symbol("compOrOrgName")).json
-      .copyFrom((__ \ Symbol("event1") \ Symbol("companyDetails") \ Symbol("companyName")).json.pick) and
-      (pathEmployerMemberDetails \ Symbol("crnNumber")).json
-        .copyFrom((__ \ Symbol("event1") \ Symbol("companyDetails") \ Symbol("companyNumber")).json.pick) and
-      (pathEmployerMemberDetails \ Symbol("addressDetails")).json.copyFrom(readsAddress(__ \ Symbol("employerAddress"))).orElse(doNothing)
+    (reqReads(etmpPathToEmployerMemberCompOrOrgName, uaPathToCompanyName) and
+      reqReads(etmpPathToEmployerMemberCrnNumber, uaPathToCompanyNumber) and
+      etmpPathToEmployerMemberAddressDetails.json.copyFrom(readsAddress(uaPathToCompanyAddress)).orElse(doNothing)
       ).reduce
 
   private def loanPymtPgs(paymentNature: String): Reads[JsObject] = {
-    def readsLoanAmount: Reads[JsObject] =
-      (pathUnauthorisedPaymentDetails \ Symbol("pmtAmtOrLoanAmt")).json.copyFrom((__ \ Symbol("loanDetails") \ Symbol("loanAmount")).json.pick)
+    def readsLoanAmount: Reads[JsObject] = reqReads(etmpPathToPmtAmtOrLoanAmt, uaPathToLoanAmount)
 
-    def readsFundValue: Reads[JsObject] = (pathUnauthorisedPaymentDetails \ Symbol("fundValue")).json
-      .copyFrom((__ \ Symbol("loanDetails") \ Symbol("fundValue")).json.pick)
+    def readsFundValue: Reads[JsObject] = reqReads(etmpPathToFundValue, uaPathToFundValue)
 
     paymentNature match {
       case `paymentNatureTypeKeyLoansExceeding50PercentOfFundValue` => (readsLoanAmount and readsFundValue).reduce
@@ -176,50 +189,42 @@ object API1827 extends Transformer {
 
   private def readsPaymentType2(paymentNature: String): Reads[JsString] = paymentNature match {
     case `paymentNatureTypeKeyTransferToNonRegPensionScheme` =>
-      (__ \ Symbol("whoWasTheTransferMade")).json.pick.map(jsValue => JsString(whoWasTransferMadeToMap(jsValue.as[JsString].value)))
+      uaPathToWhoWasTheTransferMade.json.pick.map(jsValue => JsString(whoWasTransferMadeToMap(jsValue.as[JsString].value)))
     case `paymentNatureTypeKeyRefundOfContributions` =>
-      (__ \ Symbol("refundOfContributions")).json.pick.map(jsValue => JsString(refundOfContributionsMap(jsValue.as[JsString].value)))
+      uaPathToRefundOfContributions.json.pick.map(jsValue => JsString(refundOfContributionsMap(jsValue.as[JsString].value)))
     case `paymentNatureTypeKeyOverpaymentOrWriteOff` =>
-      (__ \ Symbol("reasonForTheOverpaymentOrWriteOff")).json.pick.map(jsValue => JsString(overpaymentOrWriteOffMap(jsValue.as[JsString].value)))
+      uaPathToReasonForTheOverpaymentOrWriteOff.json.pick.map(jsValue => JsString(overpaymentOrWriteOffMap(jsValue.as[JsString].value)))
     case _ => fail
   }
 
   private def readsUnauthorisedPaymentDetails(paymentNature: String, whoReceivedUnauthorisedPayment: String): Reads[JsObject] = {
     val readsResidentialAddressMember: Reads[JsObject] = paymentNature match {
-      case `paymentNatureTypeKeyResidentialPropertyHeld` => readsAddress(__ \ Symbol("memberResidentialAddress"))
+      case `paymentNatureTypeKeyResidentialPropertyHeld` => readsAddress(uaPathToMemberResidentialAddress)
       case _ => fail
     }
 
     val readsResidentialAddressEmployer: Reads[JsObject] = paymentNature match {
-      case `paymentNatureTypeKeyResidentialPropertyHeldEmployer` => readsAddress(__ \ Symbol("employerResidentialAddress"))
+      case `paymentNatureTypeKeyResidentialPropertyHeldEmployer` => readsAddress(uaPathToEmployerResidentialAddress)
       case _ => fail
     }
 
     whoReceivedUnauthorisedPayment match {
       case `whoReceivedUnauthPaymentIndividual` =>
-        ((pathUnauthorisedPaymentDetails \ Symbol("unAuthorisedPmtType1")).json.put(JsString(paymentNatureMemberMap(paymentNature))) and
-          (pathUnauthorisedPaymentDetails \ Symbol("freeTxtOrSchemeOrRecipientName")).json
-            .copyFrom(freeTxtOrSchemeOrRecipientName(paymentNature, whoReceivedUnauthorisedPayment)).orElse(doNothing) and
-          (pathUnauthorisedPaymentDetails \ Symbol("pstrOrReference")).json.copyFrom(pstrOrReference(paymentNature)).orElse(doNothing) and
-          (pathUnauthorisedPaymentDetails \ Symbol("unAuthorisedPmtType2")).json.copyFrom(readsPaymentType2(paymentNature)).orElse(doNothing) and
-          (pathUnauthorisedPaymentDetails \ Symbol("valueOfUnauthorisedPayment")).json
-            .copyFrom((__ \ Symbol("paymentValueAndDate") \ Symbol("paymentValue")).json.pick) and
-          (pathUnauthorisedPaymentDetails \ Symbol("dateOfUnauthorisedPayment")).json
-            .copyFrom((__ \ Symbol("paymentValueAndDate") \ Symbol("paymentDate")).json.pick) and
-          (pathUnauthorisedPaymentDetails \ Symbol("residentialPropertyAddress")).json
-            .copyFrom(readsResidentialAddressMember).orElse(doNothing)
+        (etmpPathToUnAuthorisedPmtType1.json.put(JsString(paymentNatureMemberMap(paymentNature))) and
+          optNestedReadsJsString(etmpPathToFreeTxtOrSchemeOrRecipientName, freeTxtOrSchemeOrRecipientName(paymentNature, whoReceivedUnauthorisedPayment)) and
+          optNestedReadsJsString(etmpPathToPstrOrReference, pstrOrReference(paymentNature)) and
+          optNestedReadsJsString(etmpPathToUnAuthorisedPmtType2, readsPaymentType2(paymentNature)) and
+          reqReads(etmpPathToValueOfUnauthorisedPaymentFromDetails, uaPathToPaymentValue) and
+          reqReads(etmpPathToDateOfUnauthorisedPayment, uaPathToPaymentDate) and
+          optNestedReadsJsObject(etmpPathToResidentialPropertyAddress, readsResidentialAddressMember)
           ).reduce
       case `whoReceivedUnauthPaymentEmployer` =>
-        ((pathUnauthorisedPaymentDetails \ Symbol("unAuthorisedPmtType1")).json.put(JsString(paymentNatureEmployerMap(paymentNature))) and
-          (pathUnauthorisedPaymentDetails \ Symbol("freeTxtOrSchemeOrRecipientName")).json
-            .copyFrom(freeTxtOrSchemeOrRecipientName(paymentNature, whoReceivedUnauthorisedPayment)).orElse(doNothing) and
+        (etmpPathToUnAuthorisedPmtType1.json.put(JsString(paymentNatureEmployerMap(paymentNature))) and
+          optNestedReadsJsString(etmpPathToFreeTxtOrSchemeOrRecipientName, freeTxtOrSchemeOrRecipientName(paymentNature, whoReceivedUnauthorisedPayment)) and
           loanPymtPgs(paymentNature).orElse(doNothing) and
-          (pathUnauthorisedPaymentDetails \ Symbol("residentialPropertyAddress")).json
-            .copyFrom(readsResidentialAddressEmployer).orElse(doNothing) and
-          (pathUnauthorisedPaymentDetails \ Symbol("valueOfUnauthorisedPayment")).json
-            .copyFrom((__ \ Symbol("paymentValueAndDate") \ Symbol("paymentValue")).json.pick) and
-          (pathUnauthorisedPaymentDetails \ Symbol("dateOfUnauthorisedPayment")).json
-            .copyFrom((__ \ Symbol("paymentValueAndDate") \ Symbol("paymentDate")).json.pick)
+          optNestedReadsJsObject(etmpPathToResidentialPropertyAddress, readsResidentialAddressEmployer) and
+          reqReads(etmpPathToValueOfUnauthorisedPaymentFromDetails, uaPathToPaymentValue) and
+          reqReads(etmpPathToDateOfUnauthorisedPayment, uaPathToPaymentDate)
           ).reduce
       case _ => fail
     }
@@ -233,7 +238,7 @@ object API1827 extends Transformer {
     }
   }
 
-  private val readsMember: Reads[JsObject] = {
+  val readsMember: Reads[JsObject] = {
     (for {
       whoReceivedUnauthorisedPayment <- readsWhoReceivedUnauthorisedPayment
       paymentNature <- whoReceivedUnauthorisedPayment match {
@@ -243,35 +248,96 @@ object API1827 extends Transformer {
       }
     } yield {
       (
-        (__ \ Symbol("memberType")).json.put(JsString(whoReceivedUnauthorisedPayment)) and
-          (__ \ Symbol("memberStatus")).json.copyFrom(readsMemberStatus) and
-          (__ \ Symbol("amendedVersion")).json.copyFrom(readsAmendedVersion).orElse(doNothing) and
+        etmpPathToMemberType.json.put(JsString(whoReceivedUnauthorisedPayment)) and
+          reqReads(etmpPathToMemberStatus, uaPathToMemberStatus) and
+          optReads(etmpPathToAmendedVersion, uaPathToAmendedVersion) and
           readsMemberOrEmployer(whoReceivedUnauthorisedPayment) and
           readsUnauthorisedPaymentDetails(paymentNature, whoReceivedUnauthorisedPayment)
         ).reduce
     }).flatMap[JsObject](identity)
   }
 
-  val transformToETMPData: Reads[JsObject] = {
-    val reads = (__ \ Symbol("event1") \ Symbol("membersOrEmployers")).readNullable[JsArray](__.read(Reads.seq(readsMember))
-      .map(JsArray(_))).map {
-        case None =>  Json.obj()
-        case Some(x) if x.value.isEmpty => Json.obj()
-        case Some(x) =>
-          Json.obj(
-            "event1Details" -> Json.obj(
-              "event1Details" -> x
-            )
-          )
-    }
-
-    for {
-      jsObject <- reads
-      header <- HeaderForAllAPIs.transformToETMPData()
-    } yield {
-      header ++ jsObject
-    }
-
-  }
 }
 
+private object API1827Paths {
+  // ETMP
+  val etmpPathToEmployerMemberDetails:                      JsPath = __ \ "employerMemDetails"
+  val etmpPathToEmployerMemberCompOrOrgName:                JsPath = etmpPathToEmployerMemberDetails \ "compOrOrgName"
+  val etmpPathToEmployerMemberCrnNumber:                    JsPath = etmpPathToEmployerMemberDetails \ "crnNumber"
+  val etmpPathToEmployerMemberAddressDetails:               JsPath = etmpPathToEmployerMemberDetails \ "addressDetails"
+
+  val etmpPathToIndividualMemberDetails:                    JsPath = __ \ "individualMemberDetails"
+  val etmpPathToIndividualMemberFirstName:                  JsPath = etmpPathToIndividualMemberDetails \ "firstName"
+  val etmpPathToIndividualMemberLastName:                   JsPath = etmpPathToIndividualMemberDetails \ "lastName"
+  val etmpPathToIndividualMemberNino:                       JsPath = etmpPathToIndividualMemberDetails \ "nino"
+  val etmpPathToIndividualMemberSignedMandate:              JsPath = etmpPathToIndividualMemberDetails \ "signedMandate"
+  val etmpPathToIndividualMemberPmtMoreThan25PerFundValue:  JsPath = etmpPathToIndividualMemberDetails \ "pmtMoreThan25PerFundValue"
+  val etmpPathToSchemePayingSurcharge:                      JsPath = etmpPathToIndividualMemberDetails \ "schemePayingSurcharge"
+
+  val etmpPathToAmendedVersion:                             JsPath = __ \ "amendedVersion"
+  private val etmpPathToUnauthorisedPaymentDetails:         JsPath = __ \ "unAuthorisedPaymentDetails"
+  val etmpPathToDateOfUnauthorisedPayment:                  JsPath = etmpPathToUnauthorisedPaymentDetails \ "dateOfUnauthorisedPayment"
+  val etmpPathToFundValue:                                  JsPath = etmpPathToUnauthorisedPaymentDetails \ "fundValue"
+  val etmpPathToFreeTxtOrSchemeOrRecipientName:             JsPath = etmpPathToUnauthorisedPaymentDetails \ "freeTxtOrSchemeOrRecipientName"
+  val etmpPathToPmtAmtOrLoanAmt:                            JsPath = etmpPathToUnauthorisedPaymentDetails \ "pmtAmtOrLoanAmt"
+  val etmpPathToPstrOrReference:                            JsPath = etmpPathToUnauthorisedPaymentDetails \ "pstrOrReference"
+  val etmpPathToResidentialPropertyAddress:                 JsPath = etmpPathToUnauthorisedPaymentDetails \ "residentialPropertyAddress"
+  val etmpPathToUnAuthorisedPmtType2:                       JsPath = etmpPathToUnauthorisedPaymentDetails \ "unAuthorisedPmtType2"
+  val etmpPathToUnAuthorisedPmtType1:                       JsPath = etmpPathToUnauthorisedPaymentDetails \ "unAuthorisedPmtType1"
+  val etmpPathToValueOfUnauthorisedPaymentFromDetails:      JsPath = etmpPathToUnauthorisedPaymentDetails \ "valueOfUnauthorisedPayment"
+
+  val etmpPathToMemberStatus:                               JsPath = __ \ "memberStatus"
+  val etmpPathToMemberType:                                 JsPath = __ \ "memberType"
+  val etmpPathToValueOfUnauthorisedPayment:                 JsPath = __ \ "valueOfUnauthorisedPayment"
+  val etmpPathToWhoReceivedUnauthPayment:                   JsPath = __ \ "whoReceivedUnauthPayment"
+
+
+  // UA
+  val uaPathToAmendedVersion:                               JsPath = __ \ "amendedVersion"
+  val uaPathToBenefitInKindBriefDescription:                JsPath = __ \ "benefitInKindBriefDescription"
+  val uaPathToBenefitsPaidEarly:                            JsPath = __ \ "benefitsPaidEarly"
+  val uaPathToCompanyAddress:                               JsPath = __ \ "employerAddress"
+
+  private val uaPathToCompanyDetails:                       JsPath = __ \ "event1" \ "companyDetails"
+  val uaPathToCompanyName:                                  JsPath = uaPathToCompanyDetails \ "companyName"
+  val uaPathToCompanyNumber:                                JsPath = uaPathToCompanyDetails \ "companyNumber"
+
+  val uaPathToDoYouHoldSignedMandate:                       JsPath = __ \ "doYouHoldSignedMandate"
+  val uaPathToEmployerResidentialAddress:                   JsPath = __ \ "employerResidentialAddress"
+  val uaPathToEmployerTangibleMoveableProperty:             JsPath = __ \ "employerTangibleMoveableProperty"
+  val uaPathToErrorDescription:                             JsPath = __ \ "errorDescription"
+
+  private val uaPathToIndividualMemberDetails:              JsPath = __ \ "membersDetails"
+  val uaPathToIndividualMemberFirstName:                    JsPath = uaPathToIndividualMemberDetails \ "firstName"
+  val uaPathToIndividualMemberLastName:                     JsPath = uaPathToIndividualMemberDetails \ "lastName"
+  val uaPathToIndividualMemberNino:                         JsPath = uaPathToIndividualMemberDetails \ "nino"
+
+  private val uaPathToLoanDetails:                          JsPath = __ \ "loanDetails"
+  val uaPathToFundValue:                                    JsPath = uaPathToLoanDetails \ "fundValue"
+  val uaPathToLoanAmount:                                   JsPath = uaPathToLoanDetails \ "loanAmount"
+
+  val uaPathToMembersOrEmployers:                           JsPath = __ \ "event1" \ "membersOrEmployers"
+  val uaPathToMemberPaymentNatureDescription:               JsPath = __ \ "memberPaymentNatureDescription"
+  val uaPathToMemberResidentialAddress:                     JsPath = __ \ "memberResidentialAddress"
+  val uaPathToMemberStatus:                                 JsPath = __ \ "memberStatus"
+  val uaPathToMemberTangibleMoveableProperty:               JsPath = __ \ "memberTangibleMoveableProperty"
+  val uaPathToPaymentNatureDesc:                            JsPath = __ \ "paymentNatureDesc"
+  val uaPathToPaymentNatureEmployer:                        JsPath = __ \ "paymentNatureEmployer"
+  val uaPathToPaymentNatureMember:                          JsPath = __ \ "paymentNatureMember"
+
+  private val uaPathToPaymentValueAndDate:                  JsPath = __ \ "paymentValueAndDate"
+  val uaPathToPaymentDate:                                  JsPath = uaPathToPaymentValueAndDate \ "paymentDate"
+  val uaPathToPaymentValue:                                 JsPath = uaPathToPaymentValueAndDate \ "paymentValue"
+
+  val uaPathToReasonForTheOverpaymentOrWriteOff:            JsPath = __ \ "reasonForTheOverpaymentOrWriteOff"
+  val uaPathToRefundOfContributions:                        JsPath = __ \ "refundOfContributions"
+
+  private val uaPathToSchemeDetails:                        JsPath = __ \ "schemeDetails"
+  val uaPathToSchemeName:                                   JsPath = uaPathToSchemeDetails \ "schemeName"
+  val uaPathToReference:                                    JsPath = uaPathToSchemeDetails \ "reference"
+
+  val uaPathToSchemeUnAuthPaySurchargeMember:               JsPath = __ \ "schemeUnAuthPaySurchargeMember"
+  val uaPathToUnauthorisedPaymentRecipientName:             JsPath = __ \ "unauthorisedPaymentRecipientName"
+  val uaPathToValueOfUnauthorisedPayment:                   JsPath = __ \ "valueOfUnauthorisedPayment"
+  val uaPathToWhoWasTheTransferMade:                        JsPath = __ \ "whoWasTheTransferMade"
+}

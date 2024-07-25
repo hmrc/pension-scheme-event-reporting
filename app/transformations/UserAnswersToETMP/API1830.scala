@@ -21,9 +21,10 @@ import models.enumeration.EventType.{Event2, Event24, Event3, Event4, Event5, Ev
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
-import transformations.Transformer
+import transformations.{ReadsUtils, Transformer}
 
 object API1830 extends Transformer {
+  import transformations.UserAnswersToETMP.API1830ReadsUtilities._
 
   def transformToETMPData(eventType: EventType, pstr: String): Reads[JsObject] = {
     val extraFieldsForHeaderReads = Reads.pure(
@@ -34,8 +35,6 @@ object API1830 extends Transformer {
         )
       )
     )
-
-
 
     HeaderForAllAPIs.transformToETMPData(extraFieldsForHeaderReads).flatMap { hdr =>
       val fullHdr = hdr
@@ -55,8 +54,11 @@ object API1830 extends Transformer {
       }
     }
   }
+}
 
-  private def readsIndividualMemberDetailsByEventType(eventType: EventType): Reads[JsObject] = {
+private object API1830ReadsUtilities extends Transformer with ReadsUtils {
+  import transformations.UserAnswersToETMP.API1830Paths._
+  def readsIndividualMemberDetailsByEventType(eventType: EventType): Reads[JsObject] = {
     val details = eventType match {
       case Event2 => readsDeceasedAndBeneficiaryMemberDetailsEvent2
       case Event3 => readsIndividualMemberDetailsEvent3
@@ -72,183 +74,142 @@ object API1830 extends Transformer {
     (memberChangeStatusReads and details).reduce
   }
 
-  private def readsDeceasedAndBeneficiaryMemberDetailsEvent2: Reads[JsObject] = {
+  private def readsDeceasedAndBeneficiaryMemberDetailsEvent2: Reads[JsObject] = (
+    etmpPathToEventType.json.put(JsString(s"Event$Event2")) and
+      reqReads(etmpPathToIndividualMemberFirstName, uaPathToDeceasedMemberFirstName) and
+      reqReads(etmpPathToIndividualMemberLastName, uaPathToDeceasedMemberLastName) and
+      reqReads(etmpPathToIndividualMemberNino, uaPathToDeceasedMemberNino) and
+      reqReads(etmpPathToPersonReceivedThePaymentFirstName, uaPathToBeneficiaryFirstName) and
+      reqReads(etmpPathToPersonReceivedThePaymentLastName, uaPathToBeneficiaryLastName) and
+      reqReads(etmpPathToPersonReceivedThePaymentNino, uaPathToBeneficiaryNino) and
+      reqReads(etmpPathToAmountPaid, uaPathToAmountPaid) and
+      reqReads(etmpPathToEventDate, uaPathToDatePaid)
+    ).reduce
 
-    val pathPersonReceivedThePayment = pathToEvent \ Symbol("personReceivedThePayment")
-    (
-      (pathToEvent \ Symbol("eventType")).json.put(JsString(s"Event$Event2")) and
-        (pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((pathDeceasedMemberDetails \ Symbol("firstName")).json.pick) and
-        (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((pathDeceasedMemberDetails \ Symbol("lastName")).json.pick) and
-        (pathIndividualMemberDetails \ Symbol("nino")).json.copyFrom((pathDeceasedMemberDetails \ Symbol("nino")).json.pick) and
-        (pathPersonReceivedThePayment \ Symbol("firstName")).json.copyFrom((pathBeneficiaryMemberDetails \ Symbol("firstName")).json.pick) and
-        (pathPersonReceivedThePayment \ Symbol("lastName")).json.copyFrom((pathBeneficiaryMemberDetails \ Symbol("lastName")).json.pick) and
-        (pathPersonReceivedThePayment \ Symbol("nino")).json.copyFrom((pathBeneficiaryMemberDetails \ Symbol("nino")).json.pick) and
-        (pathPaymentDetails \ Symbol("amountPaid")).json.copyFrom((__ \ Symbol("amountPaid")).json.pick) and
-        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((__ \ Symbol("datePaid")).json.pick)
-      ).reduce
-  }
+  private def readsIndividualMemberDetailsEvent3: Reads[JsObject] = (
+    etmpPathToEventType.json.put(JsString(s"Event$Event3")) and
+      readsIndividualMemberDetails and
+      reqNestedReadsJsString(etmpPathToReasonBenefitTaken, readsTypeOfBenefitEvent3) and
+      reqReads(etmpPathToAmountBenefit, uaPathToAmountPaidFromPaymentDetails) and
+      reqReads(etmpPathToEventDate, uaPathToEventDate) and
+      optReads(etmpPathToFreeText, uaPathToFreeText)
+    ).reduce
 
-  private def readsIndividualMemberDetailsEvent3: Reads[JsObject] = {
+  private def readsIndividualMemberDetailsEvent4: Reads[JsObject] = (
+    etmpPathToEventType.json.put(JsString(s"Event$Event4")) and
+      readsIndividualMemberDetails and
+      etmpPathToAmountPaid.json.copyFrom(uaPathToAmountPaidFromPaymentDetails.json.pick) and
+      etmpPathToEventDate.json.copyFrom(uaPathToEventDate.json.pick)
+    ).reduce
+
+  private def readsIndividualMemberDetailsEvent5: Reads[JsObject] = (
+    etmpPathToEventType.json.put(JsString(s"Event$Event5")) and
+      readsIndividualMemberDetails and
+      reqReads(etmpPathToAnnualRate, uaPathToAmountPaidFromPaymentDetails) and
+      reqReads(etmpPathToEventDate, uaPathToEventDate)
+    ).reduce
+
+  private def readsIndividualMemberDetailsEvent6: Reads[JsObject] = (
+    etmpPathToEventType.json.put(JsString(s"Event$Event6")) and
+      readsIndividualMemberDetails and
+      reqReads(etmpPathToAmountCrystalised, uaPathToAmountCrystallisedFromDetails) and
+      reqNestedReadsJsString(etmpPathToTypeOfProtection, readsTypeOfProtectionEvent6) and
+      reqReads(etmpPathToEventDate, uaPathToCrystallisedDateFromDetails) and
+      reqReads(etmpPathToFreeText, uaPathToInputProtectionType) and
+      reqReads(etmpPathToMemberStatus, uaPathToMemberStatus)
+    ).reduce
+
+  private def readsIndividualMemberDetailsEvent7: Reads[JsObject] = (
+    etmpPathToEventType.json.put(JsString(s"Event$Event7")) and
+      readsIndividualMemberDetails and
+      reqReads(etmpPathToAmountLumpSum, uaPathToLumpSumAmount) and
+      reqReads(etmpPathToAmountCrystalised, uaPathToCrystallisedAmount) and
+      reqReads(etmpPathToEventDate, uaPathToPaymentDate)
+    ).reduce
+
+  private def readsIndividualMemberDetailsEvent8: Reads[JsObject] = (
+    etmpPathToEventType.json.put(JsString(s"Event$Event8")) and
+      readsIndividualMemberDetails and
+      reqReads(etmpPathToAmountLumpSum, uaPathToLumpSumAmountFromDetails) and
+      reqNestedReadsJsString(etmpPathToTypeOfProtection, readsTypeOfProtectionEvent8) and
+      reqReads(etmpPathToEventDate, uaPathToLumpSumDateFromDetails) and
+      reqReads(etmpPathToFreeText, uaPathToTypeOfProtectionReference)
+    ).reduce
+
+  private def readsIndividualMemberDetailsEvent8A: Reads[JsObject] = (
+    etmpPathToEventType.json.put(JsString(s"Event$Event8A")) and
+      readsIndividualMemberDetails and
+      reqNestedReadsJsString(etmpPathToReasonBenefitTaken, readsPaymentTypeEvent8A) and
+      optNestedReadsJsString(etmpPathToTypeOfProtection, readsTypeOfProtectionEvent8A) and
+      reqReads(etmpPathToAmountLumpSum, uaPathToLumpSumAmountFromDetails) and
+      reqReads(etmpPathToEventDate, uaPathToLumpSumDateFromDetails) and
+      optReads(etmpPathToFreeText, uaPathToTypeOfProtectionReference)
+    ).reduce
+
+  private def readsIndividualMemberDetailsEvent24: Reads[JsObject] = (
+    etmpPathToEventType.json.put(JsString(s"Event$Event24")) and
+      readsIndividualMemberDetails and
+      reqNestedReadsJsString(etmpPathToMemberHoldProtection, readsMemberHoldProtection) and
+      optNestedReadsJsString(etmpPathToPreCommenceReference, readsPreCommenceReference) and
+      optNestedReadsJsString(etmpPathToPensionCreditReference, readsPensionCreditReference) and
+      optNestedReadsJsString(etmpPathToNonResidenceReference, readsNonResidenceEnhancement) and
+      optNestedReadsJsString(etmpPathToOverseasReference, readsOverseasReference) and
+      reqNestedReadsJsString(etmpPathToAvailableLumpSumDBAExceeded, readsAvailableLumpSumDBAExceeded) and
+      reqNestedReadsJsString(etmpPathToAvailableLumpSumExceeded, readsAvailableLumpSumExceeded) and
+      optNestedReadsJsString(etmpPathToSchemeSpecificLumpSum, readsSchemeSpecificLumpSum) and
+      reqReads(etmpPathToAmountCrystalised, uaPathToTotalAmountBenefitCrystallisation) and
+      optNestedReadsJsString(etmpPathToTypeOfProtection, readsTypeOfProtectionGroup2Event24) and
+      reqNestedReadsJsString(etmpPathToReasonBenefitTaken, readsReasonBenefitTakenEvent24) and
+      reqReads(etmpPathToTaxYearEndingDate, uaPathToTaxYearEndingDateEvent24) and
+      optReads(etmpPathToFreeText, uaPathToTypeOfProtectionGroup2Reference) and
+      optNestedReadsJsString(etmpPathToTaxedAtMarginalRate, readsTaxedAtMarginalRate) and
+      optReads(etmpPathToPayeReference, uaPathToEmployerPayeReference)
+    ).reduce
+
+  private def readsIndividualMemberDetailsEvent22And23(eventType: EventType): Reads[JsObject] = (
+    etmpPathToEventType.json.put(JsString(s"Event${eventType}")) and
+      readsIndividualMemberDetails and
+      reqNestedReadsJsString(etmpPathToTaxYearEndingDate, readsTaxYearEndDate) and
+      reqReads(etmpPathToMonetaryAmount, uaPathToTotalPensionAmounts)
+    ).reduce
 
 
-    (
-      (pathToEvent \ Symbol("eventType")).json.put(JsString(s"Event$Event3")) and
-        readsIndividualMemberDetails and
-        (pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.copyFrom(readsTypeOfBenefitEvent3) and
-        (pathPaymentDetails \ Symbol("amountBenefit")).json.copyFrom((__ \ Symbol("paymentDetails") \ Symbol("amountPaid")).json.pick) and
-        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((__ \ Symbol("paymentDetails") \ Symbol("eventDate")).json.pick) and
-        ((pathPaymentDetails \ Symbol("freeText")).json.copyFrom((pathBenefitType \ Symbol("freeText")).json.pick) orElse doNothing)
-      ).reduce
-  }
-
-  private def readsIndividualMemberDetailsEvent4: Reads[JsObject] = {
-
-    (
-      (pathToEvent \ Symbol("eventType")).json.put(JsString(s"Event$Event4")) and
-        readsIndividualMemberDetails and
-        (pathPaymentDetails \ Symbol("amountPaid")).json.copyFrom((__ \ Symbol("paymentDetails") \ Symbol("amountPaid")).json.pick) and
-        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((__ \ Symbol("paymentDetails") \ Symbol("eventDate")).json.pick)
-      ).reduce
-  }
-
-  private def readsIndividualMemberDetailsEvent5: Reads[JsObject] = {
-    (
-      (pathToEvent \ Symbol("eventType")).json.put(JsString(s"Event$Event5")) and
-        readsIndividualMemberDetails and
-        (pathPaymentDetails \ Symbol("annualRate")).json.copyFrom((__ \ Symbol("paymentDetails") \ Symbol("amountPaid")).json.pick) and
-        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((__ \ Symbol("paymentDetails") \ Symbol("eventDate")).json.pick)
-      ).reduce
-  }
-
-  private def readsIndividualMemberDetailsEvent6: Reads[JsObject] = {
-
-    (
-      (pathToEvent \ Symbol("eventType")).json.put(JsString(s"Event$Event6")) and
-        readsIndividualMemberDetails and
-        (pathPaymentDetails \ Symbol("amountCrystalised")).json.copyFrom((pathAmountCrystallisedAndDateDetails \ Symbol("amountCrystallised")).json.pick) and
-        (pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionEvent6) and
-        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathAmountCrystallisedAndDateDetails \ Symbol("crystallisedDate")).json.pick) and
-        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom((__ \ Symbol("inputProtectionType")).json.pick) and
-        pathMemberStatus.json.copyFrom((__ \ Symbol("memberStatus")).json.pick)
-      ).reduce
-  }
-
-  private def readsIndividualMemberDetailsEvent7: Reads[JsObject] = {
-
-    (
-      (pathToEvent \ Symbol("eventType")).json.put(JsString(s"Event$Event7")) and
-        readsIndividualMemberDetails and
-        (pathPaymentDetails \ Symbol("amountLumpSum")).json.copyFrom((__ \ Symbol("lumpSumAmount")).json.pick) and
-        (pathPaymentDetails \ Symbol("amountCrystalised")).json.copyFrom((__ \ Symbol("crystallisedAmount")).json.pick) and
-        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((__ \ Symbol("paymentDate") \ Symbol("date")).json.pick)
-      ).reduce
-  }
-
-  private def readsIndividualMemberDetailsEvent8: Reads[JsObject] = {
-    (
-      (pathToEvent \ Symbol("eventType")).json.put(JsString(s"Event$Event8")) and
-        readsIndividualMemberDetails and
-        (pathPaymentDetails \ Symbol("amountLumpSum")).json.copyFrom((pathLumpSumAmountAndDateDetails \ Symbol("lumpSumAmount")).json.pick) and
-        (pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionEvent8) and
-        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathLumpSumAmountAndDateDetails \ Symbol("lumpSumDate")).json.pick) and
-        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom((__ \ Symbol("typeOfProtectionReference")).json.pick)
-      ).reduce
-  }
-
-  private def readsIndividualMemberDetailsEvent8A: Reads[JsObject] = {
-   (
-      (pathToEvent \ Symbol("eventType")).json.put(JsString(s"Event$Event8A")) and
-        readsIndividualMemberDetails and
-        (pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.copyFrom(readsPaymentTypeEvent8A) and
-        ((pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionEvent8A) orElse doNothing) and
-        (pathPaymentDetails \ Symbol("amountLumpSum")).json.copyFrom((pathLumpSumAmountAndDateDetails \ Symbol("lumpSumAmount")).json.pick) and
-        (pathPaymentDetails \ Symbol("eventDate")).json.copyFrom((pathLumpSumAmountAndDateDetails \ Symbol("lumpSumDate")).json.pick) and
-        ((pathPaymentDetails \ Symbol("freeText")).json.copyFrom((__ \ Symbol("typeOfProtectionReference")).json.pick) orElse doNothing)
-     ).reduce
-  }
-
-  private def readsIndividualMemberDetailsEvent24: Reads[JsObject] = {
-    (
-      (pathToEvent \ Symbol("eventType")).json.put(JsString(s"Event$Event24")) and
-        readsIndividualMemberDetails and
-        (pathPaymentDetails \ Symbol("memberHoldProtection")).json.copyFrom(readsMemberHoldProtection) and
-        (pathPaymentDetails \ Symbol("preCommenceReference"))
-          .json.copyFrom(readsPreCommenceReference).orElse(doNothing) and
-        (pathPaymentDetails \ Symbol("pensionCreditReference"))
-          .json.copyFrom(readsPensionCreditReference).orElse(doNothing) and
-        (pathPaymentDetails \ Symbol("nonResidenceReference"))
-          .json.copyFrom(readsNonResidenceEnhancement).orElse(doNothing) and
-        (pathPaymentDetails \ Symbol("overseasReference"))
-          .json.copyFrom(readsOverseasReference).orElse(doNothing) and
-        (pathPaymentDetails \ Symbol("availableLumpSumDBAExceeded")).json.copyFrom(readsAvailableLumpSumDBAExceeded) and
-        (pathPaymentDetails \ Symbol("availableLumpSumExceeded")).json.copyFrom(readsAvailableLumpSumExceeded) and
-        (pathPaymentDetails \ Symbol("schemeSpecificLumpSum")).json.copyFrom(readsSchemeSpecificLumpSum).orElse(doNothing) and
-        (pathPaymentDetails \ Symbol("amountCrystalised")).json.copyFrom((__ \ Symbol("totalAmountBenefitCrystallisation")).json.pick) and
-        (pathPaymentDetails \ Symbol("typeOfProtection")).json.copyFrom(readsTypeOfProtectionGroup2Event24).orElse(doNothing) and
-        (pathPaymentDetails \ Symbol("reasonBenefitTaken")).json.copyFrom(readsReasonBenefitTakenEvent24) and
-        (pathPaymentDetails \ Symbol("taxYearEndingDate")).json.copyFrom(pathTaxYearEndingDateEvent24.json.pick) and
-        (pathPaymentDetails \ Symbol("freeText")).json.copyFrom((__ \ Symbol("typeOfProtectionGroup2Reference")).json.pick).orElse(doNothing) and
-        (pathPaymentDetails \ Symbol("taxedAtMarginalRate")).json.copyFrom(readsTaxedAtMarginalRate).orElse(doNothing) and
-        (pathPaymentDetails \ Symbol("payeReference")).json.copyFrom((__ \ Symbol("employerPayeReference")).json.pick).orElse(doNothing)
-      ).reduce
-  }
-
-  private def readsIndividualMemberDetailsEvent22And23(eventType: EventType): Reads[JsObject] = {
-
-    (
-      (pathToEvent \ Symbol("eventType")).json.put(JsString(s"Event${eventType}")) and
-        readsIndividualMemberDetails and
-        (pathPaymentDetails \ Symbol("taxYearEndingDate")).json.copyFrom(readsTaxYearEndDate) and
-        (pathPaymentDetails \ Symbol("monetaryAmount")).json.copyFrom((__ \ Symbol("totalPensionAmounts")).json.pick)
-      ).reduce
-  }
-
-  private val pathBenefitType = __ \ Symbol("benefitType")
-  private val pathAmountCrystallisedAndDateDetails = __ \ Symbol("AmountCrystallisedAndDate")
-  private val pathLumpSumAmountAndDateDetails = __ \ Symbol("lumpSumAmountAndDate")
-
-  private val pathDeceasedMemberDetails = __ \ Symbol("deceasedMembersDetails")
-  private val pathBeneficiaryMemberDetails = __ \ Symbol("beneficiaryDetails")
-
-  private val pathCrystallisedDateEvent24 = __ \ Symbol("crystallisedDate")
-  private val pathTaxYearEndingDateEvent24 = pathCrystallisedDateEvent24 \ Symbol("date")
-
-  private val readsTaxYearEndDate: Reads[JsString] = (__ \ Symbol("chooseTaxYear")).json.pick.flatMap {
+  private val readsTaxYearEndDate: Reads[JsString] = uaPathToChooseTaxYear.json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString(s"${str.toInt + 1}-04-05"))
     case _ => fail(JsString("taxYearEndDate"))
   }
 
-  private val readsTypeOfBenefitEvent3: Reads[JsString] = (pathBenefitType \ Symbol("reasonBenefitTaken")).json.pick.flatMap {
+  private val readsTypeOfBenefitEvent3: Reads[JsString] = uaPathToReasonBenefitTaken.json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString(event3TypeOfBenefitConversion(str)))
     case _ => fail(JsString("typeOfBenefitEvent3"))
   }
 
-  private val readsTypeOfProtectionEvent6: Reads[JsString] = (__ \ Symbol("typeOfProtection")).json.pick.flatMap {
+  private val readsTypeOfProtectionEvent6: Reads[JsString] = uaPathToTypeOfProtection.json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString(event6TypeOfProtectionConversion(str)))
     case _ => fail(JsString("typeOfProtectionEvent6"))
   }
 
-  private val readsTypeOfProtectionEvent8: Reads[JsString] = (__ \ Symbol("typeOfProtection")).json.pick.flatMap {
+  private val readsTypeOfProtectionEvent8: Reads[JsString] = uaPathToTypeOfProtection.json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString(event8TypeOfProtectionConversion(str)))
     case _ => fail(JsString("typeOfProtectionEvent8"))
   }
 
-  private val readsTypeOfProtectionEvent8A: Reads[JsString] = (__ \ Symbol("typeOfProtection")).json.pick.flatMap {
+  private val readsTypeOfProtectionEvent8A: Reads[JsString] = uaPathToTypeOfProtection.json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString(event8ATypeOfProtectionConversion(str)))
     case _ => fail(JsString("typeOfProtectionEvent8A"))
   }
 
-  private val readsPaymentTypeEvent8A: Reads[JsString] = (__ \ Symbol("paymentType")).json.pick.flatMap {
+  private val readsPaymentTypeEvent8A: Reads[JsString] = uaPathToPaymentType.json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString(event8APaymentTypeConversion(str)))
     case _ => fail(JsString("paymentTypeEvent8A"))
   }
 
-  private val readsMemberHoldProtection: Reads[JsString] = (__ \ Symbol("validProtection")).json.pick.flatMap {
+  private val readsMemberHoldProtection: Reads[JsString] = uaPathToValidProtection.json.pick.flatMap {
     case JsBoolean(value) => Reads.pure(toYesNo(JsBoolean(value)))
     case _ => fail(JsString("memberHoldProtection"))
   }
 
-  private val readsAvailableLumpSumExceeded: Reads[JsString] = (__ \ Symbol("overAllowanceAndDeathBenefit")).json.pick.flatMap {
+  private val readsAvailableLumpSumExceeded: Reads[JsString] = uaPathToOverAllowanceAndDeathBenefit.json.pick.flatMap {
     case JsBoolean(value) => value match {
       case true => Reads.pure(toYesNo(JsBoolean(false)))
       case false => (__ \ Symbol("overAllowance")).json.pick.flatMap {
@@ -259,72 +220,61 @@ object API1830 extends Transformer {
     case _ => fail(JsString("availableLumpSumDBAExceeded"))
   }
 
-  private val readsAvailableLumpSumDBAExceeded: Reads[JsString] = (__ \ Symbol("overAllowanceAndDeathBenefit")).json.pick.flatMap {
+  private val readsAvailableLumpSumDBAExceeded: Reads[JsString] = uaPathToOverAllowanceAndDeathBenefit.json.pick.flatMap {
     case JsBoolean(value) => Reads.pure(toYesNo(JsBoolean(value)))
     case _ => fail(JsString("availableLumpSumDBAExceeded"))
   }
 
-  private val readsSchemeSpecificLumpSum: Reads[JsString] = (__ \ Symbol("typeOfProtectionGroup1")).json.pick.flatMap {
+  private val readsSchemeSpecificLumpSum: Reads[JsString] = uaPathToTypeOfProtectionGroup1.json.pick.flatMap {
     case JsArray(value) if value.contains(JsString("schemeSpecific")) => Reads.pure(JsString("Yes"))
     case _ => fail(JsString("schemeSpecificLumpSum"))
   }
 
-  private val readsTypeOfProtectionGroup2Event24: Reads[JsString] = (__ \ Symbol("typeOfProtectionGroup2")).json.pick.flatMap {
+  private val readsTypeOfProtectionGroup2Event24: Reads[JsString] = uaPathToTypeOfProtectionGroup2.json.pick.flatMap {
     case JsString(str) if str != "noOtherProtections" => Reads.pure(JsString(event24TypeOfProtectionGroup2Conversion(str)))
     case _ => fail(JsString("typeOfProtectionGroup2Event24"))
   }
 
-  private val readsReasonBenefitTakenEvent24: Reads[JsString] = (__ \ Symbol("bceTypeSelection")).json.pick.flatMap {
+  private val readsReasonBenefitTakenEvent24: Reads[JsString] = uaPathToBceTypeSelection.json.pick.flatMap {
     case JsString(str) => Reads.pure(JsString(event24ReasonBenefitTakenConversion(str)))
     case _ => fail(JsString("reasonBenefitTakenEvent24"))
   }
 
-  private val readsTaxedAtMarginalRate: Reads[JsString] = (__ \ Symbol("marginalRate")).json.pick.flatMap {
+  private val readsTaxedAtMarginalRate: Reads[JsString] = uaPathToMarginalRate.json.pick.flatMap {
     case JsBoolean(value) => Reads.pure(toYesNo(JsBoolean(value)))
     case _ => fail(JsString("taxedAtMarginalRate"))
   }
 
-  private val pathToEvent: JsPath = __ \ Symbol("memberDetail") \ Symbol("event")
-  private val pathIndividualMemberDetails: JsPath = pathToEvent \ Symbol("individualDetails")
-  private val pathMemberStatus: JsPath = __ \ Symbol("memberDetail") \ Symbol("memberStatus")
-  private val pathAmendedVersion: JsPath = __ \ Symbol("memberDetail") \ Symbol("amendedVersion")
-  private val pathPaymentDetails = pathToEvent \ Symbol("paymentDetails")
-  private val pathToTypeOfProtectionReferenceGroup1 = __ \ Symbol("typeOfProtectionGroup1Reference")
-  private val pathToNonResidenceEnhancement = pathToTypeOfProtectionReferenceGroup1 \ Symbol("nonResidenceEnhancement")
-  private val pathToPreCommenceReference = pathToTypeOfProtectionReferenceGroup1 \ Symbol("preCommencement")
-  private val pathToOverseasReference = pathToTypeOfProtectionReferenceGroup1 \ Symbol("recognisedOverseasPSTE")
-  private val pathToPensionCreditReference = pathToTypeOfProtectionReferenceGroup1 \ Symbol("pensionCreditsPreCRE")
-
-  private val readsNonResidenceEnhancement: Reads[JsString] = pathToNonResidenceEnhancement.json.pick.flatMap {
+  private val readsNonResidenceEnhancement: Reads[JsString] = uaPathToNonResidenceEnhancement.json.pick.flatMap {
     case JsString(value) if value.nonEmpty => Reads.pure(JsString(value))
     case _ => fail(JsString("nonResidenceEnhancement"))
   }
 
-  private val readsPreCommenceReference: Reads[JsString] = pathToPreCommenceReference.json.pick.flatMap {
+  private val readsPreCommenceReference: Reads[JsString] = uaPathToPreCommenceReference.json.pick.flatMap {
     case JsString(value) if value.nonEmpty => Reads.pure(JsString(value))
     case _ => fail(JsString("preCommenceReference"))
   }
 
-  private val readsOverseasReference: Reads[JsString] = pathToOverseasReference.json.pick.flatMap {
+  private val readsOverseasReference: Reads[JsString] = uaPathToOverseasReference.json.pick.flatMap {
     case JsString(value) if value.nonEmpty => Reads.pure(JsString(value))
     case _ => fail(JsString("overseasReference"))
   }
 
-  private val readsPensionCreditReference: Reads[JsString] = pathToPensionCreditReference.json.pick.flatMap {
+  private val readsPensionCreditReference: Reads[JsString] = uaPathToPensionCreditReference.json.pick.flatMap {
     case JsString(value) if value.nonEmpty => Reads.pure(JsString(value))
     case _ => fail(JsString("pensionCreditReference"))
   }
 
   private val memberChangeStatusReads = (
-    pathMemberStatus.json.copyFrom((__ \ Symbol("memberStatus")).json.pick).orElse(doNothing) and
-      pathAmendedVersion.json.copyFrom((__ \ Symbol("amendedVersion")).json.pick).orElse(doNothing)
+    optReads(etmpPathToMemberStatus, uaPathToMemberStatus) and
+      optReads(etmpPathToAmendedVersion, uaPathToAmendedVersion)
     ).reduce
 
   private val readsIndividualMemberDetails: Reads[JsObject] = {
     (
-      (pathIndividualMemberDetails \ Symbol("firstName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("firstName")).json.pick) and
-        (pathIndividualMemberDetails \ Symbol("lastName")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("lastName")).json.pick) and
-        (pathIndividualMemberDetails \ Symbol("nino")).json.copyFrom((__ \ Symbol("membersDetails") \ Symbol("nino")).json.pick)
+      reqReads(etmpPathToIndividualMemberFirstName, uaPathToMembersFirstName) and
+        reqReads(etmpPathToIndividualMemberLastName, uaPathToMembersLastName) and
+        reqReads(etmpPathToIndividualMemberNino, uaPathToMembersNino)
       ).reduce
   }
 
@@ -390,5 +340,119 @@ object API1830 extends Transformer {
     case "uncrystallisedFundsDeathBenefit" => "A uncrystallised funds lump sum death benefit"
     case "windingUp" => "A winding-up lump sum"
   }
+}
+
+private object API1830Paths {
+  // ETMP
+  private val etmpPathToMemberDetail:                             JsPath = __ \ "memberDetail"
+  val etmpPathToAmendedVersion:                                   JsPath = etmpPathToMemberDetail \ "amendedVersion"
+  val etmpPathToMemberStatus:                                     JsPath = etmpPathToMemberDetail \ "memberStatus"
+
+  private val etmpPathToEvent:                                    JsPath = etmpPathToMemberDetail \ "event"
+  val etmpPathToEventType:                                        JsPath = etmpPathToEvent \ "eventType"
+
+  val etmpPathToIndividualMemberDetails:                          JsPath = etmpPathToEvent \ "individualDetails"
+  val etmpPathToIndividualMemberFirstName:                        JsPath = etmpPathToIndividualMemberDetails \ "firstName"
+  val etmpPathToIndividualMemberLastName:                         JsPath = etmpPathToIndividualMemberDetails \ "lastName"
+  val etmpPathToIndividualMemberNino:                             JsPath = etmpPathToIndividualMemberDetails \ "nino"
+
+  private val etmpPathToPersonReceivedThePayment:                 JsPath = etmpPathToEvent \ "personReceivedThePayment"
+  val etmpPathToPersonReceivedThePaymentFirstName:                JsPath = etmpPathToPersonReceivedThePayment \ "firstName"
+  val etmpPathToPersonReceivedThePaymentLastName:                 JsPath = etmpPathToPersonReceivedThePayment \ "lastName"
+  val etmpPathToPersonReceivedThePaymentNino:                     JsPath = etmpPathToPersonReceivedThePayment \ "nino"
+
+  private val etmpPathToPaymentDetails:                           JsPath = etmpPathToEvent \ "paymentDetails"
+  val etmpPathToAmountBenefit:                                    JsPath = etmpPathToPaymentDetails \ "amountBenefit"
+  val etmpPathToAmountCrystalised:                                JsPath = etmpPathToPaymentDetails \ "amountCrystalised"
+  val etmpPathToAmountLumpSum:                                    JsPath = etmpPathToPaymentDetails \ "amountLumpSum"
+  val etmpPathToAmountPaid:                                       JsPath = etmpPathToPaymentDetails \ "amountPaid"
+  val etmpPathToAnnualRate:                                       JsPath = etmpPathToPaymentDetails \ "annualRate"
+  val etmpPathToAvailableLumpSumDBAExceeded:                      JsPath = etmpPathToPaymentDetails \ "availableLumpSumDBAExceeded"
+  val etmpPathToAvailableLumpSumExceeded:                         JsPath = etmpPathToPaymentDetails \ "availableLumpSumExceeded"
+  val etmpPathToEventDate:                                        JsPath = etmpPathToPaymentDetails \ "eventDate"
+  val etmpPathToFreeText:                                         JsPath = etmpPathToPaymentDetails \ "freeText"
+  val etmpPathToMemberHoldProtection:                             JsPath = etmpPathToPaymentDetails \ "memberHoldProtection"
+  val etmpPathToMonetaryAmount:                                   JsPath = etmpPathToPaymentDetails \ "monetaryAmount"
+  val etmpPathToNonResidenceReference:                            JsPath = etmpPathToPaymentDetails \ "nonResidenceReference"
+  val etmpPathToOverseasReference:                                JsPath = etmpPathToPaymentDetails \ "overseasReference"
+  val etmpPathToPayeReference:                                    JsPath = etmpPathToPaymentDetails \ "payeReference"
+  val etmpPathToPensionCreditReference:                           JsPath = etmpPathToPaymentDetails \ "pensionCreditReference"
+  val etmpPathToPreCommenceReference:                             JsPath = etmpPathToPaymentDetails \ "preCommenceReference"
+  val etmpPathToReasonBenefitTaken:                               JsPath = etmpPathToPaymentDetails \ "reasonBenefitTaken"
+  val etmpPathToSchemeSpecificLumpSum:                            JsPath = etmpPathToPaymentDetails \ "schemeSpecificLumpSum"
+  val etmpPathToTaxedAtMarginalRate:                              JsPath = etmpPathToPaymentDetails \ "taxedAtMarginalRate"
+  val etmpPathToTaxYearEndingDate:                                JsPath = etmpPathToPaymentDetails \ "taxYearEndingDate"
+  val etmpPathToTypeOfProtection:                                 JsPath = etmpPathToPaymentDetails \ "typeOfProtection"
+
+
+
+  // UA
+  private val uaPathToAmountCrystallisedAndDateDetails:           JsPath = __ \ "AmountCrystallisedAndDate"
+  val uaPathToCrystallisedDateFromDetails:                        JsPath = uaPathToAmountCrystallisedAndDateDetails \ "crystallisedDate"
+  val uaPathToAmountCrystallisedFromDetails:                      JsPath = uaPathToAmountCrystallisedAndDateDetails \ "amountCrystallised"
+
+  val uaPathToAmendedVersion:                                     JsPath = __ \ "amendedVersion"
+  val uaPathToAmountPaid:                                         JsPath = __ \ "amountPaid"
+  val uaPathToAmountPaidFromPaymentDetails:                       JsPath = __ \ "paymentDetails" \ "amountPaid"
+
+  private val uaPathToBenefitType:                                JsPath = __ \ "benefitType"
+  val uaPathToFreeText:                                           JsPath = uaPathToBenefitType \ "freeText"
+
+  private val uaPathToBeneficiaryMemberDetails:                   JsPath = __ \ "beneficiaryDetails"
+  val uaPathToBeneficiaryFirstName:                               JsPath = uaPathToBeneficiaryMemberDetails \ "firstName"
+  val uaPathToBeneficiaryLastName:                                JsPath = uaPathToBeneficiaryMemberDetails \ "lastName"
+  val uaPathToBeneficiaryNino:                                    JsPath = uaPathToBeneficiaryMemberDetails \ "nino"
+
+  val uaPathToBceTypeSelection:                                   JsPath = __ \ "bceTypeSelection"
+  val uaPathToChooseTaxYear:                                      JsPath = __ \ "chooseTaxYear"
+  val uaPathToCrystallisedAmount:                                 JsPath = __ \ "crystallisedAmount"
+
+  private val uaPathToCrystallisedDateEvent24:                    JsPath = __ \ "crystallisedDate"
+  val uaPathToTaxYearEndingDateEvent24:                           JsPath = uaPathToCrystallisedDateEvent24 \ "date"
+
+  val uaPathToDatePaid:                                           JsPath = __ \ "datePaid"
+
+  private val uaPathToDeceasedMemberDetails:                      JsPath = __ \ "deceasedMembersDetails"
+  val uaPathToDeceasedMemberFirstName:                            JsPath = uaPathToDeceasedMemberDetails \ "firstName"
+  val uaPathToDeceasedMemberLastName:                             JsPath = uaPathToDeceasedMemberDetails \ "lastName"
+  val uaPathToDeceasedMemberNino:                                 JsPath = uaPathToDeceasedMemberDetails \ "nino"
+
+  val uaPathToEmployerPayeReference:                              JsPath = __ \ "employerPayeReference"
+  val uaPathToInputProtectionType:                                JsPath = __ \ "inputProtectionType"
+  val uaPathToLumpSumAmount:                                      JsPath = __ \ "lumpSumAmount"
+
+  val uaPathToEventDate:                                          JsPath = __ \ "paymentDetails" \ "eventDate"
+
+  private val uaPathToLumpSumAmountAndDateDetails:                JsPath = __ \ "lumpSumAmountAndDate"
+  val uaPathToLumpSumAmountFromDetails:                           JsPath = uaPathToLumpSumAmountAndDateDetails \ "lumpSumAmount"
+  val uaPathToLumpSumDateFromDetails:                             JsPath = uaPathToLumpSumAmountAndDateDetails \ "lumpSumDate"
+
+  private val uaPathToMembersDetails:                             JsPath = __ \ "membersDetails"
+  val uaPathToMembersFirstName:                                   JsPath = uaPathToMembersDetails \ "firstName"
+  val uaPathToMembersLastName:                                    JsPath = uaPathToMembersDetails \ "lastName"
+  val uaPathToMembersNino:                                        JsPath = uaPathToMembersDetails \ "nino"
+
+  val uaPathToMarginalRate:                                       JsPath = __ \ "marginalRate"
+  val uaPathToMemberStatus:                                       JsPath = __ \ "memberStatus"
+  val uaPathToOverAllowanceAndDeathBenefit:                       JsPath = __ \ "overAllowanceAndDeathBenefit"
+  val uaPathToPaymentDate:                                        JsPath = __ \ "paymentDate" \ "date"
+  val uaPathToPaymentType:                                        JsPath = __ \ "paymentType"
+  val uaPathToTotalAmountBenefitCrystallisation:                  JsPath = __ \ "totalAmountBenefitCrystallisation"
+  val uaPathToTotalPensionAmounts:                                JsPath = __ \ "totalPensionAmounts"
+
+  val uaPathToReasonBenefitTaken:                                 JsPath = uaPathToBenefitType \ "reasonBenefitTaken"
+  val uaPathToTypeOfProtection:                                   JsPath = __ \ "typeOfProtection"
+
+  private val uaPathToTypeOfProtectionReferenceGroup1:            JsPath = __ \ "typeOfProtectionGroup1Reference"
+  val uaPathToPreCommenceReference:                               JsPath = uaPathToTypeOfProtectionReferenceGroup1 \ "preCommencement"
+  val uaPathToNonResidenceEnhancement:                            JsPath = uaPathToTypeOfProtectionReferenceGroup1 \ "nonResidenceEnhancement"
+  val uaPathToOverseasReference:                                  JsPath = uaPathToTypeOfProtectionReferenceGroup1 \ "recognisedOverseasPSTE"
+  val uaPathToPensionCreditReference:                             JsPath = uaPathToTypeOfProtectionReferenceGroup1 \ "pensionCreditsPreCRE"
+
+  val uaPathToTypeOfProtectionGroup1:                             JsPath = __ \ "typeOfProtectionGroup1"
+  val uaPathToTypeOfProtectionGroup2:                             JsPath = __ \ "typeOfProtectionGroup2"
+  val uaPathToTypeOfProtectionGroup2Reference:                    JsPath = __ \ "typeOfProtectionGroup2Reference"
+  val uaPathToTypeOfProtectionReference:                          JsPath = __ \ "typeOfProtectionReference"
+  val uaPathToValidProtection:                                    JsPath = __ \ "validProtection"
 }
 
