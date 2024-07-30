@@ -102,8 +102,10 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       case true =>
         eventReportCacheRepository.upsert(pstr, EventDataIdentifier(eventType, year, version, externalId), userAnswersJson)
           .map { _ => true }
-          .recover { _ => false }
-      case false => Future.successful(false)
+          .recover { _ => throw new RuntimeException("Unable to save user answers") }
+      case false =>
+        logger.info(s"PSTR $pstr, is locked by $psaOrPspId")
+        Future.successful(false)
     }
   }
 
@@ -313,7 +315,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                     NoContent
                 }
               }
-            case _ => Future.successful(NotFound)
+            case _ => throw new RuntimeException("User answers not available")
           }
         }
         resp.flatten

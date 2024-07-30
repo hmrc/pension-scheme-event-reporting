@@ -101,12 +101,12 @@ class EventReportConnector @Inject()(
       val logMessage =
         s"Get ${api.toString} (IF) called (URL $apiUrl). Event type: $etAsString reportStartDate: $startDate and reportVersionNumber: $versionAsString"
       logger.info(logMessage)
-      http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
+      http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map(_ => HttpResponse(404, "")).map { response =>
         response.status match {
           case OK =>
             Some(response.json.as[JsObject])
           case NOT_FOUND | UNPROCESSABLE_ENTITY =>
-            logger.warn(s"$logMessage and returned ${response.status} with message ${response.body}")
+            // logger.warn(s"$logMessage and returned ${response.status} with message ${response.body}")
             None
           case _ => handleErrorResponse("GET", apiUrl)(response)
         }
