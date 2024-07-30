@@ -16,7 +16,7 @@
 
 package controllers
 
-import models.ReportVersion
+import models.{ErrorResult, ReportVersion, UserLockedError}
 import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json._
@@ -31,6 +31,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+
 @Singleton()
 class EventReportController @Inject()(
                                        cc: ControllerComponents,
@@ -67,7 +68,15 @@ class EventReportController @Inject()(
           case Some((eventType, version, year)) =>
             EventType.getEventType(eventType) match {
               case Some(et) =>
-                eventReportService.saveUserAnswers(externalId, pstr, et, year, version, userAnswersJson, psaOrPspId).map(_ => Ok)
+                val lockedFtr = eventReportService.saveUserAnswers(externalId, pstr, et, year, version, userAnswersJson, psaOrPspId)
+                lockedFtr.flatMap {
+                  case true =>
+                    val userName = ???
+                    Future.successful(
+                      ErrorResult(FORBIDDEN, UserLockedError("EVENT_LOCKED", userName))
+                    )
+                  case false => Future.successful(Ok)
+                }
               case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
             }
           case _ =>
