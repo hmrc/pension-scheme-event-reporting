@@ -108,21 +108,34 @@ private object API1832ReadsUtilities extends Transformer with ReadsUtils {
       reqReads(pathUaLumpSumDateNested, pathEtmpEventDate)
       ).reduce
 
+  def yesNoTransform(js: JsValue, err: String):Reads[JsBoolean] = {
+    js match {
+      case JsString(value) => value match {
+        case "Yes" => Reads.pure(JsBoolean(true))
+        case "No" => Reads.pure(JsBoolean(false))
+        case _ => Reads.failed(err)
+      }
+      case _ => Reads.failed(err)
+    }
+  }
+
   lazy val readsEvent24PaymentDetails: Reads[JsObject] = (
-    reqReadsBoolTransform(pathUaMemberHoldProtection, pathEtmpMemberHoldProtectionEvent24, yesNoTransformToBoolean) and
+    pathUaMemberHoldProtection.json.copyFrom(pathEtmpMemberHoldProtectionEvent24.json.pick.flatMap(yesNoTransform(_, "hold protection failed"))) and
       optNestedReadsJsString(pathUaTypeOfProtectionEvent24, readsTypeOfProtectionEvent24) and
       optNestedReadsJsArray(pathUaProtectionGroup1Event24, readsTypeOfProtectionGroup1Event24) and
       optNestedReadsJsString(pathUaPreCommenceReference, readsPreCommenceReference) and
       optNestedReadsJsString(pathUaPensionCreditReference, readsPensionCreditReference) and
       optNestedReadsJsString(pathUaNonResidenceReference, readsNonResidenceReference) and
       optNestedReadsJsString(pathUaOverseasReference, readsOverseasReference) and
-      optReadsBoolTransform(pathUaAvailableLumpSumDBAExceeded, pathEtmpAvailableLumpSumDBAExceeded, yesNoTransformToBoolean) and
-      optReadsBoolTransform(pathUaAvailableLumpSumExceeded, pathEtmpAvailableLumpSumExceeded, yesNoTransformToBoolean) and
+      pathUaAvailableLumpSumDBAExceeded.json.copyFrom(
+        pathEtmpAvailableLumpSumDBAExceeded.json.pick.flatMap(yesNoTransform(_, "available lump sum DBA exceeded failed"))) and
+      pathUaAvailableLumpSumExceeded.json.copyFrom(
+        pathEtmpAvailableLumpSumExceeded.json.pick.flatMap(yesNoTransform(_, "available lump sum exceeded failed"))).orElse(doNothing) and
       reqReads(pathUaAmountCrystalised, pathEtmpAmountCrystalised) and
       reqNestedReadsJsString(pathUaBCEType, readsBCETypeEvent24) and
       reqReads(pathUaCrystallisedDateEvent24, pathEtmpTaxYearEndingDate) and
       optReads(pathUaFreeTextEvent24, pathEtmpFreeText) and
-      optReadsBoolTransform(pathUaMarginalRate, pathEtmpMarginalRate, yesNoTransformToBoolean) and
+      pathUaMarginalRate.json.copyFrom(pathEtmpMarginalRate.json.pick.flatMap(yesNoTransform(_, "taxed at marginal rate failed"))).orElse(doNothing) and
       optReads(pathUaPayeReference, pathEtmpPayeReference)
       ).reduce
 
