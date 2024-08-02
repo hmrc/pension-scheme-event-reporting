@@ -71,7 +71,6 @@ class EventReportController @Inject()(
                 val lockedFtr = eventReportService.saveUserAnswers(externalId, pstr, et, year, version, userAnswersJson, psaOrPspId)
                 lockedFtr.flatMap {
                   case true =>
-                    val userName = ???
                     Future.successful(
                       ErrorResult(FORBIDDEN, UserLockedError("EVENT_LOCKED", userName))
                     )

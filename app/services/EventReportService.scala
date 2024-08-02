@@ -83,6 +83,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
+  type PsaOrPspId = String
+
   def saveUserAnswers(externalId: String,
                       pstr: String,
                       eventType: EventType,
@@ -91,21 +93,17 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                       userAnswersJson: JsObject,
                       psaOrPspId: String,
                       saveLock: Boolean = true)
-                     (implicit ec: ExecutionContext): Future[Boolean] = {
-    val ftr = if(saveLock) {
+                     (implicit ec: ExecutionContext): Future[Unit] = {
+    val lockFtr:Future[Unit] = if(saveLock) {
       eventLockRepository.upsertIfNotLocked(pstr, psaOrPspId, EventDataIdentifier(eventType, year, version, externalId))
     } else {
-      Future.successful(true)
+      Future.successful(())
     }
 
-    ftr.flatMap {
-      case true =>
-        eventReportCacheRepository.upsert(pstr, EventDataIdentifier(eventType, year, version, externalId), userAnswersJson)
-          .map { _ => true }
-          .recover { _ => throw new RuntimeException("Unable to save user answers") }
-      case false =>
-        logger.info(s"PSTR $pstr, is locked by $psaOrPspId")
-        Future.successful(false)
+    lockFtr.flatMap {
+      eventReportCacheRepository.upsert(pstr, EventDataIdentifier(eventType, year, version, externalId), userAnswersJson)
+        .map { _ => () }
+        .recover { _ => throw new RuntimeException("Unable to save user answers") }
     }
   }
 
