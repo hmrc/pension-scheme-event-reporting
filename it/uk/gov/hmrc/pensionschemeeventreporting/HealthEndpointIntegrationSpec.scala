@@ -16,9 +16,18 @@
 
 package uk.gov.hmrc.pensionschemeeventreporting
 
-class HealthEndpointIntegrationSpec extends BaseSpec {
+import org.scalatestplus.play.guice.GuiceOneServerPerSuite
+import play.api.libs.ws.WSClient
 
+class HealthEndpointIntegrationSpec extends BaseSpec with GuiceOneServerPerSuite {
 
+  lazy val wsClient = app.injector.instanceOf[WSClient]
+  lazy val baseUrl  = s"http://localhost:$port"
+
+  override def afterAll(): Unit = {
+    app.stop()
+    wsClient.close()
+  }
 
   "service health endpoint" should {
     "respond with 200 status" in {

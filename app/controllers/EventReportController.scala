@@ -16,7 +16,7 @@
 
 package controllers
 
-import models.{ErrorResult, ReportVersion, UserLockedError}
+import models.ReportVersion
 import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json._
@@ -69,13 +69,7 @@ class EventReportController @Inject()(
             EventType.getEventType(eventType) match {
               case Some(et) =>
                 val lockedFtr = eventReportService.saveUserAnswers(externalId, pstr, et, year, version, userAnswersJson, psaOrPspId)
-                lockedFtr.flatMap {
-                  case true =>
-                    Future.successful(
-                      ErrorResult(FORBIDDEN, UserLockedError("EVENT_LOCKED", userName))
-                    )
-                  case false => Future.successful(Ok)
-                }
+                lockedFtr.flatMap {_ => Future.successful(Ok) }
               case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
             }
           case _ =>

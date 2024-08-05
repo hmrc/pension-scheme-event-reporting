@@ -114,7 +114,7 @@ class EventLockRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
     "update expireAt value if lock already exists" in {
       val edi = EventDataIdentifier(EventType.Event7, 1, 1, "externalId")
 
-      def upsert: Future[Boolean] = eventLockRepository.upsertIfNotLocked(
+      def upsert: Future[Unit] = eventLockRepository.upsertIfNotLocked(
         "pstr",
         "psaId",
         edi

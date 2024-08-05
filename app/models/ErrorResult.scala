@@ -25,7 +25,7 @@ object ErrorResult extends Results {
   def apply[T <: ErrorResponse](status: Int, body: T)(implicit reads: Writes[T]): Result = new Status(status)(Json.toJson(body))
 }
 
-private class ErrorResponse(message: String)
+class ErrorResponse(message: String)
 
 case class UserLockedException(psaOrPspId: Option[String]) extends HttpException("EVENT_LOCKED", FORBIDDEN)
 case class UserLockedError(

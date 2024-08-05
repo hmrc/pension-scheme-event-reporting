@@ -83,7 +83,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  type PsaOrPspId = String
 
   def saveUserAnswers(externalId: String,
                       pstr: String,
@@ -100,7 +99,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
       Future.successful(())
     }
 
-    lockFtr.flatMap {
+    lockFtr.flatMap { _ =>
       eventReportCacheRepository.upsert(pstr, EventDataIdentifier(eventType, year, version, externalId), userAnswersJson)
         .map { _ => () }
         .recover { _ => throw new RuntimeException("Unable to save user answers") }
@@ -111,10 +110,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     eventReportCacheRepository.upsert(externalId, pstr, userAnswersJson)
   }
 
+  // TODO: I don't know why this is PUT, don't know if need to check for user locks. -Pavel Vjalicin
   def changeVersion(externalId: String, pstr: String, currentVersion: Int, newVersion: Int)
                    (implicit ec: ExecutionContext): Future[Option[result.UpdateResult]] =
     eventReportCacheRepository.changeVersion(externalId, pstr, currentVersion, newVersion)
 
+  // TODO: Does this need to check for locks?
   def removeUserAnswers(externalId: String)(implicit ec: ExecutionContext): Future[Unit] = {
     for {
       _ <- eventLockRepository.remove(externalId)
