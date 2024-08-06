@@ -16,10 +16,11 @@
 
 package repositories
 
-import models.EventDataIdentifier
+import models.{EventDataIdentifier, UserLockedException}
 import models.cache.EventLockJson
 import models.enumeration.EventType
 import org.mockito.Mockito.when
+import org.scalatest.RecoverMethods.recoverToExceptionIf
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -30,7 +31,8 @@ import play.api.Configuration
 import uk.gov.hmrc.mongo.MongoComponent
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 
 class EventLockRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers
   with BeforeAndAfter with BeforeAndAfterAll with ScalaFutures { // scalastyle:off magic.number
@@ -85,8 +87,6 @@ class EventLockRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
         event7IsLocked mustBe false
         lockedEvents2.length mustBe 0
         event7IsLocked2 mustBe false
-        upsertResult mustBe true
-        upsertResult2 mustBe true
       }
     }
 
@@ -131,36 +131,34 @@ class EventLockRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
       } yield (result, result2, find1, find2)
 
       whenReady(result) { case (result, result2, find1, find2) =>
-        result mustBe true
-        result2 mustBe true
         find1.expireAt.isBefore(find2.expireAt) mustBe true
       }
     }
 
-    "return false if locked" in {
+    "return throw user locked exception if locked" in {
       val edi = EventDataIdentifier(EventType.Event7, 1, 1, "externalId")
       val edi2 = EventDataIdentifier(EventType.Event7, 1, 1, "externalId2")
-      val result = for {
-        _ <- eventLockRepository.collection.drop().toFuture()
-        _ <- eventLockRepository.upsertIfNotLocked(
-          "pstr",
-          "psaId",
-          edi
-        )
-        result <- eventLockRepository.upsertIfNotLocked(
-          "pstr",
-          "psaId",
-          edi2
-        )
-        result2 <- eventLockRepository.upsertIfNotLocked(
-          "pstr",
-          "psaId2",
-          edi
-        )
-      } yield result -> result2
 
-      whenReady(result) { case (result, result2) =>
-        result mustBe false
+      import scala.concurrent.duration._
+      Await.result(eventLockRepository.upsertIfNotLocked(
+        "pstr",
+        "psaId",
+        edi
+      ), 10.seconds )
+
+      recoverToExceptionIf[UserLockedException](eventLockRepository.upsertIfNotLocked(
+        "pstr",
+        "psaId",
+        edi2
+      )).map { e =>
+        e.psaOrPspId mustBe Some("psaId")
+      }
+      recoverToExceptionIf[UserLockedException](eventLockRepository.upsertIfNotLocked(
+        "pstr",
+        "psaId2",
+        edi
+      )).map { e =>
+        e.psaOrPspId mustBe Some("psaId")
       }
     }
   }
