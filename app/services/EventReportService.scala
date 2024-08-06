@@ -83,6 +83,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
+
   def saveUserAnswers(externalId: String,
                       pstr: String,
                       eventType: EventType,
@@ -91,19 +92,17 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                       userAnswersJson: JsObject,
                       psaOrPspId: String,
                       saveLock: Boolean = true)
-                     (implicit ec: ExecutionContext): Future[Boolean] = {
-    val ftr = if(saveLock) {
+                     (implicit ec: ExecutionContext): Future[Unit] = {
+    val lockFtr:Future[Unit] = if(saveLock) {
       eventLockRepository.upsertIfNotLocked(pstr, psaOrPspId, EventDataIdentifier(eventType, year, version, externalId))
     } else {
-      Future.successful(true)
+      Future.successful(())
     }
 
-    ftr.flatMap {
-      case true =>
-        eventReportCacheRepository.upsert(pstr, EventDataIdentifier(eventType, year, version, externalId), userAnswersJson)
-          .map { _ => true }
-          .recover { _ => false }
-      case false => Future.successful(false)
+    lockFtr.flatMap { _ =>
+      eventReportCacheRepository.upsert(pstr, EventDataIdentifier(eventType, year, version, externalId), userAnswersJson)
+        .map { _ => () }
+        .recover { _ => throw new RuntimeException("Unable to save user answers") }
     }
   }
 
@@ -111,10 +110,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     eventReportCacheRepository.upsert(externalId, pstr, userAnswersJson)
   }
 
+  // TODO: I don't know why this is PUT, don't know if need to check for user locks. -Pavel Vjalicin
   def changeVersion(externalId: String, pstr: String, currentVersion: Int, newVersion: Int)
                    (implicit ec: ExecutionContext): Future[Option[result.UpdateResult]] =
     eventReportCacheRepository.changeVersion(externalId, pstr, currentVersion, newVersion)
 
+  // TODO: Does this need to check for locks?
   def removeUserAnswers(externalId: String)(implicit ec: ExecutionContext): Future[Unit] = {
     for {
       _ <- eventLockRepository.remove(externalId)
@@ -313,7 +314,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                     NoContent
                 }
               }
-            case _ => Future.successful(NotFound)
+            case _ => throw new RuntimeException("User answers not available")
           }
         }
         resp.flatten

@@ -115,14 +115,22 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   }
 
   "compileEventReport for event 1" must {
-    "return NOT FOUND when no data return from repository" in {
+    "throw runtime exception when no data return from repository" in {
       when(mockCompilePayloadService.addRecordVersionToUserAnswersJson(any(), any(), any()))
         .thenReturn(responseJsonEvent1WithRecordVersion)
       when(mockEventReportCacheRepository.getUserAnswers(any(), any(), any())(any()))
         .thenReturn(Future.successful(None))
-      eventReportService.compileEventReport(externalId, psaId, "pstr", Event1, year, reportVersion, reportVersion)(implicitly, implicitly, implicitly).map {
-        result => result.header.status mustBe NOT_FOUND
-      }
+      recoverToSucceededIf[RuntimeException](
+        eventReportService
+          .compileEventReport(
+            externalId,
+            psaId,
+            "pstr",
+            Event1,
+            year,
+            reportVersion,
+            reportVersion)(implicitly, implicitly, implicitly)
+      )
     }
 
     "return 204 No Content when valid data return from repository - event 1" in {
@@ -179,7 +187,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   }
 
   "compileEventReport for event windup" must {
-    "return Not Found when no data returned from repository" in {
+    "throw runtime exception when no data returned from repository" in {
       when(mockEventReportCacheRepository.getUserAnswers(any(), any(), any())(any()))
         .thenReturn(Future.successful(None))
 
@@ -189,12 +197,17 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         ArgumentMatchers.eq(currentVersion), ArgumentMatchers.eq(reportVersion), any(), any(), any())(any(), any()))
         .thenReturn(Future.successful(Json.obj()))
 
-      eventReportService.compileEventReport(externalId, psaId, "pstr", WindUp, year, currentVersion, reportVersion)(implicitly, implicitly, implicitly).map {
-        verify(mockCompilePayloadService, times(0))
-          .collatePayloadsAndUpdateCache(any(), any(),
-            ArgumentMatchers.eq(currentVersion), ArgumentMatchers.eq(reportVersion), any(), any(), any())(any(), any())
-        result => result.header.status mustBe NOT_FOUND
-      }
+
+      recoverToSucceededIf[RuntimeException](
+        eventReportService.compileEventReport(
+          externalId,
+          psaId,
+          "pstr",
+          WindUp,
+          year,
+          currentVersion,
+          reportVersion)(implicitly, implicitly, implicitly)
+      )
     }
 
 
@@ -616,7 +629,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         verify(mockEventReportCacheRepository, times(1)).upsert(
           ArgumentMatchers.eq(pstr),
           ArgumentMatchers.eq(EventDataIdentifier(Event3, year, reportVersion.toInt, externalId)), any())(any())
-        result mustBe(true)
+        result mustBe ()
       }
     }
 
@@ -636,7 +649,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
           any(),
           any()
         )
-        result mustBe (false)
+        result mustBe ()
       }
     }
   }

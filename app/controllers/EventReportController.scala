@@ -31,6 +31,7 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+
 @Singleton()
 class EventReportController @Inject()(
                                        cc: ControllerComponents,
@@ -67,7 +68,8 @@ class EventReportController @Inject()(
           case Some((eventType, version, year)) =>
             EventType.getEventType(eventType) match {
               case Some(et) =>
-                eventReportService.saveUserAnswers(externalId, pstr, et, year, version, userAnswersJson, psaOrPspId).map(_ => Ok)
+                val lockedFtr = eventReportService.saveUserAnswers(externalId, pstr, et, year, version, userAnswersJson, psaOrPspId)
+                lockedFtr.flatMap {_ => Future.successful(Ok) }
               case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
             }
           case _ =>
