@@ -238,7 +238,7 @@ class EventReportConnector @Inject()(
       response =>
         response.status match {
           case OK =>
-            debugLogs("submit event declaration report Event20A API 1829", versionUrl, hc.extraHeaders, Json.obj())
+            debugLogs("get versions", versionUrl, hc.extraHeaders, Json.obj())
             response.json.as[JsArray]
           case _ =>
             handleErrorResponse("GET", versionUrl)(response)
