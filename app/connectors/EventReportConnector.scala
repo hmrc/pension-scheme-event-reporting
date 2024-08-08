@@ -42,6 +42,17 @@ class EventReportConnector @Inject()(
     with HttpResponseHelper
     with Logging {
 
+  private def debugLogs(title:String, url: String, headers: Seq[(String, String)], data: => JsValue): Unit = {
+    logger.debug(
+      s"""$title:
+         |URL: $url
+         |Headers:
+         |${Json.prettyPrint(Json.toJson(headers))}
+         |Data:
+         |${Json.prettyPrint(data)}
+         |""".stripMargin)
+  }
+
   //scalastyle:off cyclomatic.complexity
   def getOverview(pstr: String, reportType: String, startDate: String, endDate: String)
                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]] = {
@@ -56,7 +67,9 @@ class EventReportConnector @Inject()(
       response.status match {
         case OK =>
           Json.parse(response.body).validate[Seq[EROverview]](Reads.seq(EROverview.rds)) match {
-            case JsSuccess(data, _) => data
+            case JsSuccess(data, _) =>
+              debugLogs("get overview", getErOverviewUrl, hc.extraHeaders, Json.parse(response.body))
+              data
             case JsError(errors) => throw JsResultException(errors)
           }
         case NOT_FOUND =>
@@ -104,6 +117,7 @@ class EventReportConnector @Inject()(
       http.GET[HttpResponse](apiUrl)(implicitly, hc, implicitly).map { response =>
         response.status match {
           case OK =>
+            debugLogs("get event API " + api.toString, apiUrl, hc.extraHeaders, response.json)
             Some(response.json.as[JsObject])
           case NOT_FOUND | UNPROCESSABLE_ENTITY =>
             logger.warn(s"$logMessage and returned ${response.status} with message ${response.body}")
@@ -142,7 +156,9 @@ class EventReportConnector @Inject()(
     http.POST[JsValue, HttpResponse](createCompileEventReportSummaryUrl, data)(implicitly, implicitly, hc, implicitly) map {
       response =>
         response.status match {
-          case OK => response
+          case OK =>
+            debugLogs("compile event report summary ", createCompileEventReportSummaryUrl, hc.extraHeaders, data)
+            response
           case _ => handleErrorResponse("POST", createCompileEventReportSummaryUrl)(response)
         }
     } andThen postToAPIAuditService.sendCompileEventDeclarationAuditEvent(psaPspId, pstr, data, reportVersion)
@@ -156,7 +172,9 @@ class EventReportConnector @Inject()(
     http.POST[JsValue, HttpResponse](compileEvent1ReportUrl, data)(implicitly, implicitly, hc, implicitly) map {
       response =>
         response.status match {
-          case OK => response
+          case OK =>
+            debugLogs("compile event 1 API 1827", compileEvent1ReportUrl, hc.extraHeaders, data)
+            response
           case _ => handleErrorResponse("POST", compileEvent1ReportUrl)(response)
         }
     } andThen postToAPIAuditService.sendCompileEventDeclarationAuditEvent(psaPspId, pstr, data, reportVersion)
@@ -170,7 +188,9 @@ class EventReportConnector @Inject()(
     http.POST[JsValue, HttpResponse](compileMemberEventReportUrl, data)(implicitly, implicitly, hc, implicitly) map {
       response =>
         response.status match {
-          case OK => response
+          case OK =>
+            debugLogs("compile Member Event API 1830", compileMemberEventReportUrl, hc.extraHeaders, data)
+            response
           case _ => handleErrorResponse("POST", compileMemberEventReportUrl)(response)
         }
     } andThen postToAPIAuditService.sendCompileEventDeclarationAuditEvent(psaPspId, pstr, data, reportVersion)
@@ -184,7 +204,9 @@ class EventReportConnector @Inject()(
     http.POST[JsValue, HttpResponse](submitEventDeclarationReportUrl, data)(implicitly, implicitly, hc, implicitly) map {
       response =>
         response.status match {
-          case OK => response
+          case OK =>
+            debugLogs("submit event declaration report API 1828", submitEventDeclarationReportUrl, hc.extraHeaders, data)
+            response
           case _ => handleErrorResponse("POST", submitEventDeclarationReportUrl)(response)
         }
     } andThen postToAPIAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data, reportVersion, None)
@@ -198,7 +220,9 @@ class EventReportConnector @Inject()(
     http.POST[JsValue, HttpResponse](submitEvent20ADeclarationReportUrl, data)(implicitly, implicitly, hc, implicitly) map {
       response =>
         response.status match {
-          case OK => response
+          case OK =>
+            debugLogs("submit event declaration report Event20A API 1829", submitEvent20ADeclarationReportUrl, hc.extraHeaders, data)
+            response
           case _ => handleErrorResponse("POST", submitEvent20ADeclarationReportUrl)(response)
         }
     } andThen postToAPIAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data, reportVersion, Some(EventType.Event20A))
@@ -213,7 +237,9 @@ class EventReportConnector @Inject()(
     http.GET[HttpResponse](versionUrl)(implicitly, hc, implicitly).map {
       response =>
         response.status match {
-          case OK => response.json.as[JsArray]
+          case OK =>
+            debugLogs("submit event declaration report Event20A API 1829", versionUrl, hc.extraHeaders, Json.obj())
+            response.json.as[JsArray]
           case _ =>
             handleErrorResponse("GET", versionUrl)(response)
         }
