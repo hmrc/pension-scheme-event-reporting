@@ -161,14 +161,18 @@ class EventReportCacheRepository @Inject()(
     }
   }
 
-  def upsert(externalId:String, pstr: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
+  private def debugLog(externalId:String, pstr: String, data: JsValue): Unit = {
     logger.debug(
       s"""Save user answers:
-        |externalId: $externalId
-        |PSTR: $pstr
-        |Data:
-        |${Json.prettyPrint(data)}
-        |""".stripMargin)
+         |externalId: $externalId
+         |PSTR: $pstr
+         |Data:
+         |${Json.prettyPrint(data)}
+         |""".stripMargin)
+  }
+
+  def upsert(externalId:String, pstr: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
+
     val modifier = Updates.combine(
       Updates.set(externalIdKey, externalId),
       Updates.set(pstrKey, pstr),
@@ -189,7 +193,9 @@ class EventReportCacheRepository @Inject()(
 
     collection.findOneAndUpdate(
       filter = selector,
-      update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
+      update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ =>
+      debugLog(externalId, pstr, data)
+    )
   }
 
   def getUserAnswers(externalId:String, pstr: String, optEventDataIdentifier: Option[EventDataIdentifier])
@@ -214,6 +220,7 @@ class EventReportCacheRepository @Inject()(
     ).headOption().map {
       _.map {
         dataEntry =>
+          debugLog(edi.externalId, pstr, dataEntry.data)
           dataEntry.data
       }
     }
