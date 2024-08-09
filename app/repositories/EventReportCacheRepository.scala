@@ -162,6 +162,13 @@ class EventReportCacheRepository @Inject()(
   }
 
   def upsert(externalId:String, pstr: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
+    logger.debug(
+      s"""Save user answers:
+        |externalId: $externalId
+        |PSTR: $pstr
+        |Data:
+        |${Json.prettyPrint(data)}
+        |""".stripMargin)
     val modifier = Updates.combine(
       Updates.set(externalIdKey, externalId),
       Updates.set(pstrKey, pstr),
