@@ -286,7 +286,6 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         } yield {
           (newUserAnswers, oldUserAnswers) match {
             case (Some(newUserAnswers), oldUserAnswers) =>
-              println(Json.prettyPrint(newUserAnswers))
               val header = Json.obj(
                 "taxYear" -> year.toString
               )
