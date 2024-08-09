@@ -135,7 +135,7 @@ class EventReportCacheRepository @Inject()(
     )
     collection.findOneAndUpdate(
       filter = selector,
-      update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
+      update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => debugLog("save user answers", edi, pstr, data))
   }
 
   def changeVersion(externalId: String, pstr: String, version: Int, newVersion: Int)(implicit ec: ExecutionContext): Future[Option[result.UpdateResult]] = {
@@ -161,10 +161,21 @@ class EventReportCacheRepository @Inject()(
     }
   }
 
-  private def debugLog(externalId:String, pstr: String, data: JsValue): Unit = {
+  private def debugLog(title:String, externalId:String, pstr: String, data: JsValue): Unit = {
     logger.debug(
-      s"""Save user answers:
+      s"""$title
          |externalId: $externalId
+         |PSTR: $pstr
+         |Data:
+         |${Json.prettyPrint(data)}
+         |""".stripMargin)
+  }
+
+  private def debugLog(title:String, edi:EventDataIdentifier, pstr: String, data: JsValue): Unit = {
+    logger.debug(
+      s"""$title
+         |edi:
+         |${Json.prettyPrint(Json.toJson(edi))}
          |PSTR: $pstr
          |Data:
          |${Json.prettyPrint(data)}
@@ -194,7 +205,7 @@ class EventReportCacheRepository @Inject()(
     collection.findOneAndUpdate(
       filter = selector,
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ =>
-      debugLog(externalId, pstr, data)
+      debugLog("save user answers", externalId, pstr, data)
     )
   }
 
@@ -220,7 +231,7 @@ class EventReportCacheRepository @Inject()(
     ).headOption().map {
       _.map {
         dataEntry =>
-          debugLog(edi.externalId, pstr, dataEntry.data)
+          debugLog("get user answers", edi, pstr, dataEntry.data)
           dataEntry.data
       }
     }
