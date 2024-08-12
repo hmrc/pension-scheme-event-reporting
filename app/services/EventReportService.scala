@@ -23,7 +23,7 @@ import models.MemberChangeInfo.Deleted
 import models.enumeration.ApiType._
 import models.enumeration.EventType._
 import models.enumeration.{ApiType, EventType}
-import models.{EROverview, EventDataIdentifier}
+import models.{EROverview, EventDataIdentifier, EventTypeNotFound}
 import org.mongodb.scala.result
 import play.api.Logging
 import play.api.http.Status.NOT_IMPLEMENTED
@@ -188,7 +188,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         res.flatten
       case None =>
         logger.warn(s"EventType passed for dataChanges check is not a valid one $eventType, so assuming no event data is changed.")
-        Future.successful(false)
+        throw EventTypeNotFound(s"EventType passed for dataChanges check is not a valid one $eventType")
     }
   }
 

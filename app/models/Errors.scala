@@ -19,3 +19,4 @@ package models
 import uk.gov.hmrc.http.BadRequestException
 
 case class EventReportValidationFailureException(exMessage: String) extends BadRequestException(exMessage)
+case class EventTypeNotFound(exMessage: String) extends BadRequestException(exMessage)
