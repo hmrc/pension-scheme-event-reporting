@@ -171,19 +171,22 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
         }yield {
           (oldUserAnswers, newUserAnswers) match {
+            case (None, Some(_)) => Future.successful(true)
             case (Some(oldData), Some(newData)) =>
               logger.info(s"When data found in repo and event data changed is ${isDataChanged(oldData, newData)}")
               Future.successful(isDataChanged(oldData, newData))
-            case _ =>
-              logger.info(s"When data not found in repo and calling  getUserAnswers with params $pstr, $et, $year, $version, $psaOrPspId")
-              val data = getUserAnswers(externalId, pstr, et, year, version, psaOrPspId)
-              data.map(x => isDataChanged(x.getOrElse(Json.obj()), x.getOrElse(Json.obj())))
+            case (Some(_), None) =>
+              logger.warn("Old answers are available while new ones are not")
+              Future.successful(true)
+            case (None, None) =>
+              logger.warn("Neither user answers are there")
+              Future.successful(true)
           }
         }
         res.flatten
       case None =>
         logger.warn(s"EventType passed for dataChanges check is not a valid one $eventType, so assuming no event data is changed.")
-        Future.successful(false)
+        throw new BadRequestException(s"Event type not correct: $eventType")
     }
   }
 
