@@ -174,10 +174,15 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
             case (Some(oldData), Some(newData)) =>
               logger.info(s"When data found in repo and event data changed is ${isDataChanged(oldData, newData)}")
               Future.successful(isDataChanged(oldData, newData))
-            case _ =>
-              logger.info(s"When data not found in repo and calling  getUserAnswers with params $pstr, $et, $year, $version, $psaOrPspId")
-              val data = getUserAnswers(externalId, pstr, et, year, version, psaOrPspId)
-              data.map(x => isDataChanged(x.getOrElse(Json.obj()), x.getOrElse(Json.obj())))
+            case (None, Some(_)) =>
+              logger.warn("New answers are available while old ones are not")
+              Future.successful(true)
+            case (Some(_), None) =>
+              logger.warn("Old answers are available while new ones are not")
+              Future.successful(true)
+            case (None, None) =>
+              logger.warn("Neither user answers are there")
+              Future.successful(true)
           }
         }
         res.flatten
