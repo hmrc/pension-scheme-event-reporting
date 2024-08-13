@@ -23,7 +23,7 @@ import models.MemberChangeInfo.Deleted
 import models.enumeration.ApiType._
 import models.enumeration.EventType._
 import models.enumeration.{ApiType, EventType}
-import models.{EROverview, EventDataIdentifier}
+import models.{EROverview, EventDataIdentifier, EventTypeNotFoundException}
 import org.mongodb.scala.result
 import play.api.Logging
 import play.api.http.Status.NOT_IMPLEMENTED
@@ -174,16 +174,21 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
             case (Some(oldData), Some(newData)) =>
               logger.info(s"When data found in repo and event data changed is ${isDataChanged(oldData, newData)}")
               Future.successful(isDataChanged(oldData, newData))
-            case _ =>
-              logger.info(s"When data not found in repo and calling  getUserAnswers with params $pstr, $et, $year, $version, $psaOrPspId")
-              val data = getUserAnswers(externalId, pstr, et, year, version, psaOrPspId)
-              data.map(x => isDataChanged(x.getOrElse(Json.obj()), x.getOrElse(Json.obj())))
+            case (None, Some(_)) =>
+              logger.info("New answers are available while old ones are not")
+              Future.successful(true)
+            case (Some(_), None) =>
+              logger.info("Old answers are available while new ones are not")
+              Future.successful(true)
+            case (None, None) =>
+              logger.info("Neither user answers are there")
+              Future.successful(true)
           }
         }
         res.flatten
       case None =>
         logger.warn(s"EventType passed for dataChanges check is not a valid one $eventType, so assuming no event data is changed.")
-        Future.successful(false)
+        throw EventTypeNotFoundException(s"EventType passed for dataChanges check is not a valid one $eventType")
     }
   }
 
