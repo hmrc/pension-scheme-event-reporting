@@ -120,7 +120,7 @@ class EventReportConnector @Inject()(
             debugLogs("get event API " + api.toString, apiUrl, hc.extraHeaders, response.json)
             Some(response.json.as[JsObject])
           case NOT_FOUND | UNPROCESSABLE_ENTITY =>
-            logger.warn(s"$logMessage and returned ${response.status} with message ${response.body}")
+            // logger.warn(s"$logMessage and returned ${response.status} with message ${response.body}")
             None
           case _ => handleErrorResponse("GET", apiUrl)(response)
         }

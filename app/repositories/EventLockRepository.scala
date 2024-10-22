@@ -17,12 +17,12 @@
 package repositories
 
 import com.google.inject.Inject
-import models.EventDataIdentifier
+import models.{EventDataIdentifier, UserLockedException}
 import models.cache.EventLockJson
 import models.enumeration.EventType
 import org.mongodb.scala.{MongoWriteException, SingleObservable}
 import org.mongodb.scala.model._
-import org.mongodb.scala.result.DeleteResult
+import org.mongodb.scala.result.{DeleteResult, InsertOneResult}
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
@@ -67,28 +67,30 @@ class EventLockRepository @Inject()(
 
   private lazy val documentExistsErrorCode = 11000
 
+  type PsaOrPspId = String
+
   /**
    *
    * @param pstr
    * @param psaOrPspId
    * @param edi
-   * @return true if lock updated, false if locked
+   * @return Option of PSA who is locking the event
    */
-  def upsertIfNotLocked(pstr: String, psaOrPspId: String, edi: EventDataIdentifier): Future[Boolean] = {
+  def upsertIfNotLocked(pstr: String, psaOrPspId: String, edi: EventDataIdentifier): Future[Unit] = {
     collection.find(Filters.and(
       Filters.equal("pstr", pstr),
       Filters.equal("edi.year", edi.year),
       Filters.equal("edi.eventType", edi.eventType.toString),
       Filters.equal("edi.version", edi.version)
     )).toFuture().flatMap {
-      case Seq() => insertEventLock(pstr, psaOrPspId, edi)
+      case Seq() => insertEventLock(pstr, psaOrPspId, edi).map(_ => ())
       case lockSeq if lockSeq.length > 1 => throw new RuntimeException("Multiple locks found")
       case Seq(lock) =>
         val lockedBySomeoneElse = lock.psaOrPspId != psaOrPspId || lock.edi.externalId != edi.externalId
         if(lockedBySomeoneElse) {
-          Future.successful(false)
+          throw UserLockedException(Some(lock.psaOrPspId))
         } else {
-          updateEventLockExpire(pstr, psaOrPspId, edi).toFuture().map { _ => true }
+          updateEventLockExpire(pstr, psaOrPspId, edi).toFuture().map(_ => ())
         }
     }
   }
@@ -137,12 +139,12 @@ class EventLockRepository @Inject()(
     collection.deleteMany(Filters.equal("edi.externalId", externalId)).toFuture()
   }
 
-  private def insertEventLock(pstr: String, psaOrPspId: String, edi: EventDataIdentifier): Future[Boolean] = {
+  private def insertEventLock(pstr: String, psaOrPspId: String, edi: EventDataIdentifier): Future[InsertOneResult] = {
     collection.insertOne(EventLockJson(pstr, psaOrPspId, expireInSeconds, edi)
-    ).toFuture().map { _ => true }
+    ).toFuture()
       .recoverWith {
         case e: MongoWriteException if e.getCode == documentExistsErrorCode =>
-          Future.successful(false)
+          throw UserLockedException(None)
       }
   }
 

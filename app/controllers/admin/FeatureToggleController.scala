@@ -20,7 +20,6 @@ import models.ToggleDetails
 import play.api.libs.json.Json
 import play.api.mvc.{AbstractController, Action, AnyContent, ControllerComponents}
 import services.FeatureToggleService
-import utils.ErrorHandler
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
@@ -29,7 +28,7 @@ class FeatureToggleController @Inject()(
                                          cc: ControllerComponents,
                                          featureToggleService: FeatureToggleService
                                        )(implicit ec: ExecutionContext)
-  extends AbstractController(cc) with ErrorHandler {
+  extends AbstractController(cc) {
 
   def upsertFeatureToggle: Action[AnyContent] = Action.async {
     request => {

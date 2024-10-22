@@ -19,9 +19,9 @@ package controllers
 import com.mongodb.client.result.UpdateResult
 import models.enumeration.EventType
 import models.enumeration.EventType._
-import models.EventReportValidationFailureException
+import models.{EventReportValidationFailureException, UserLockedException}
 import org.mockito.ArgumentMatchers
-import org.mockito.ArgumentMatchers.any
+import org.mockito.ArgumentMatchers.{any, booleanThat}
 import org.mockito.Mockito.{never, reset, verify, when}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.ScalaFutures.whenReady
@@ -462,7 +462,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         any(),
         any()
       )(any()))
-        .thenReturn(Future.successful(true))
+        .thenReturn(Future.successful())
 
       val result = controller.saveUserAnswers(fakeRequest.withJsonBody(saveUserAnswersToCacheSuccessResponse).withHeaders(
         newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> reportVersion, "eventType" -> eventType, externalId -> externalId))
@@ -505,6 +505,18 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       } map { response =>
         response.responseCode mustBe UNAUTHORIZED
         response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
+      }
+    }
+    "return error if locked" in {
+      when(mockEventReportService.saveUserAnswers(any(), any(), any(), any(), any(), any(), any(), any())(any()))
+        .thenReturn(Future.failed(UserLockedException(Some("A0000000"))))
+      recoverToExceptionIf[UserLockedException] {
+        controller.saveUserAnswers()(fakeRequest.withHeaders(
+              newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> reportVersion, "eventType" -> eventType, externalId -> externalId
+          )
+          .withJsonBody(saveUserAnswersToCacheSuccessResponse))
+      } map { response =>
+        response.psaOrPspId mustBe Some("A0000000")
       }
     }
   }
