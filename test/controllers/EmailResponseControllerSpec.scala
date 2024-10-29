@@ -18,7 +18,6 @@ package controllers
 
 import audit.EmailAuditEvent
 import models._
-import org.joda.time.DateTime
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
@@ -37,6 +36,7 @@ import repositories.{EventReportCacheRepository, ToggleDataRepository}
 import services.AuditService
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.crypto.{ApplicationCrypto, PlainText}
+import java.time.ZonedDateTime
 
 import scala.concurrent.Future
 
@@ -130,6 +130,8 @@ object EmailResponseControllerSpec {
     ), "Activated", None)
   ))
   private val eventCaptor = ArgumentCaptor.forClass(classOf[EmailAuditEvent])
-  private val emailEvents = EmailEvents(Seq(EmailEvent(Sent, DateTime.now()), EmailEvent(Delivered, DateTime.now()),
-    EmailEvent(PermanentBounce, DateTime.now()), EmailEvent(Opened, DateTime.now()), EmailEvent(Complained, DateTime.now())))
+  private val emailEvents = EmailEvents(Seq(EmailEvent(Sent, now()), EmailEvent(Delivered, now()),
+    EmailEvent(PermanentBounce, now()), EmailEvent(Opened, now()), EmailEvent(Complained, now())))
+
+  def now(): ZonedDateTime = ZonedDateTime.now()
 }
