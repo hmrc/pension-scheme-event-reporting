@@ -17,10 +17,11 @@
 package models
 
 import models.enumeration.{Enumerable, WithName}
-import org.joda.time.DateTime
-import org.joda.time.format.ISODateTimeFormat
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 sealed trait Event
 
@@ -43,21 +44,22 @@ case object Opened extends WithName("Opened") with Event
 
 case object Complained extends WithName("Complained") with Event
 
-case class EmailEvent(event: Event, detected: DateTime)
+case class EmailEvent(event: Event, detected: ZonedDateTime)
 
 object EmailEvent {
 
-  private val dateTimeFormat = ISODateTimeFormat.dateTime.withZoneUTC
-  implicit val dateTimeWrite: Writes[DateTime] = new Writes[DateTime] {
-    def writes(dateTime: DateTime): JsValue = JsString(dateTimeFormat.print(dateTime))
+  private val dateTimeFormatter: DateTimeFormatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME
+
+  implicit val dateTimeWrite: Writes[ZonedDateTime] = new Writes[ZonedDateTime] {
+    def writes(dateTime: ZonedDateTime): JsValue = JsString(dateTimeFormatter.format(dateTime))
   }
 
   implicit val read: Reads[EmailEvent] = {
-    ((JsPath \ "event").read[Event] and ((JsPath \ "detected").read[String] map DateTime.parse))(EmailEvent.apply _)
+    ((JsPath \ "event").read[Event] and ((JsPath \ "detected").read[String] map ZonedDateTime.parse))(EmailEvent.apply _)
   }
 
   implicit val write: Writes[EmailEvent] = (
-    (JsPath \ "event").write[Event] and (JsPath \ "detected").write[DateTime]
+    (JsPath \ "event").write[Event] and (JsPath \ "detected").write[ZonedDateTime]
     )(emailEvent => (emailEvent.event, emailEvent.detected))
 
 }
