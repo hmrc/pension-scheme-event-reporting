@@ -17,17 +17,13 @@
 package services
 
 import com.google.inject.Inject
-import org.mongodb.scala.bson.{BsonDateTime, BsonDocument, BsonString}
-import org.mongodb.scala.model.{Filters, Updates}
 import play.api.Logging
-import repositories.EventReportCacheEntry.expireAtKey
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.lock.{LockService, MongoLockRepository}
 
-import java.time.Instant
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.Duration
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 class MigrationService @Inject()(mongoLockRepository: MongoLockRepository,
                                  mongoComponent: MongoComponent)(implicit ec: ExecutionContext) extends Logging {

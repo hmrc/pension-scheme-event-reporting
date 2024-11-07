@@ -34,14 +34,15 @@ import play.api.test.FakeRequest
 import repositories.EventReportCacheRepository
 import services.PostToAPIAuditService
 import uk.gov.hmrc.http._
-import uk.gov.hmrc.http.test.HttpClientSupport
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.test.HttpClientV2Support
 import utils.{JsonFileReader, UnrecognisedHttpResponseException, WireMockHelper}
 
 import java.time.LocalDate
 import scala.util.Try
 
 
-class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMockHelper with HttpClientSupport with JsonFileReader with MockitoSugar {
+class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMockHelper with HttpClientV2Support with JsonFileReader with MockitoSugar {
 
   import EventReportConnectorSpec._
 
@@ -58,7 +59,7 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
 
   override protected def bindings: Seq[GuiceableModule] =
     Seq(
-      bind[HttpClient].toInstance(httpClient),
+      bind[HttpClientV2].toInstance(httpClientV2),
       bind[HeaderUtils].toInstance(mockHeaderUtils),
       bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
       bind[PostToAPIAuditService].toInstance(mockPostToAPIAuditService)
