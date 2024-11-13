@@ -25,13 +25,8 @@ import javax.inject.{Inject, Singleton}
 class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig, runModeConfiguration: Configuration) {
 
   lazy val appName: String = config.get[String](path = "appName")
-  val authBaseUrl: String = servicesConfig.baseUrl(serviceName = "auth")
-
-  val auditingEnabled: Boolean = config.get[Boolean](path = "auditing.enabled")
-  val graphiteHost: String = config.get[String](path = "microservice.metrics.graphite.host")
 
   private val ifURL: String = servicesConfig.baseUrl(serviceName = "if-hod")
-  private val desURL: String = servicesConfig.baseUrl(serviceName = "des-hod")
 
   lazy val desEnvironment: String = runModeConfiguration.getOptional[String]("microservice.services.des-hod.env").getOrElse("local")
   lazy val authorization: String = "Bearer " + runModeConfiguration.getOptional[String]("microservice.services.des-hod.authorizationToken").getOrElse("local")
@@ -51,5 +46,4 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig,
   def versionUrl: String  = s"$ifURL${config.get[String](path = "serviceUrls.version")}"
   val submitEventDeclarationReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event-declaration-report")}"
   val submitEvent20ADeclarationReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event20a-declaration-report")}"
-
 }
