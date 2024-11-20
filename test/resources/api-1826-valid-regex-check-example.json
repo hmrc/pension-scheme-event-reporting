@@ -1,0 +1,63 @@
+{
+    "eventReportDetails": {
+      "reportStartDate": "2021-04-06",
+      "reportEndDate": "2022-04-05"
+    },
+    "eventDetails": {
+      "event10": [
+        {
+          "recordVersion": "001",
+          "invRegScheme": {
+            "startDateDetails": {
+              "startDateOfInvReg": "2022-01-31",
+              "contractsOrPolicies": "Yes"
+            }
+          }
+        }
+      ],
+      "event11": {
+        "recordVersion": "001",
+        "unauthorisedPmtsDate": "2022-01-31",
+        "contractsOrPoliciesDate": "2022-01-10"
+      },
+      "event12": {
+        "recordVersion": "001",
+        "twoOrMoreSchemesDate": "2022-01-02"
+      },
+      "event13": [
+        {
+          "recordVersion": "001",
+          "schemeStructure": "A single trust under which all of the assets are held for the benefit of all members of the scheme",
+          "schemeStructureOther": "- Payment due to employee receiving additional Lump Sum at age 55 ",
+          "dateOfChange": "2022-01-02"
+        }
+      ],
+      "event14": {
+        "recordVersion": "001",
+        "schemeMembers": "12 to 50"
+      },
+      "event18": {
+        "recordVersion": "001",
+        "chargeablePmt": "Yes"
+      },
+      "event19": [
+        {
+          "recordVersion": "001",
+          "countryCode": "GB",
+          "dateOfChange": "2022-01-14"
+        }
+      ],
+      "event20": [
+        {
+          "recordVersion": "001",
+          "occSchemeDetails": {
+            "startDateOfOccScheme": "2022-01-27"
+          }
+        }
+      ],
+      "eventWindUp": {
+        "recordVersion": "001",
+        "dateOfWindUp": "2022-01-28"
+      }
+    }
+  }
