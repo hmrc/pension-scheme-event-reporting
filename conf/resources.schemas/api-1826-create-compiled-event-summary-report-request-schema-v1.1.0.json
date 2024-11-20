@@ -160,7 +160,7 @@
                     },
                     "schemeStructureOther": {
                       "type": "string",
-                      "pattern": "^[a-zA-Z0-9\\s\\\\u00C0-\\\\u00FF!#$%&'‘’\\\\\"“”«»()*+,.\\/:;=?@\\\\\\[\\\\\\]£€¥\\\\u005C\\\\u2014\\\\u2013\\\\u2010\\\\u002d]{1,160}$",
+                      "pattern": "^[a-zA-Z0-9\\s\\u00C0-\\u00FF!#$%&'‘’\\\"“”«»()*+,.\\/:;=?@\\[\\]£€¥\\u005C\\u2014\\u2013\\u2010\\u002d]{1,160}$",
                       "description": "Free text to provide the scheme structure name if 04-other is selected for the pension scheme structure \\u00C0 for À, \\u00FF for ÿ, \\u2014 for — (EM DASH), \\u2013 for – (EN DASH), \\u2010 for -(HYPHEN), \\u002d for -(HYPHEN_MINUS), \\u005C for \\"
                     },
                     "dateOfChange": {
