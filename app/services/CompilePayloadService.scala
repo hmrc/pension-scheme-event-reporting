@@ -147,8 +147,8 @@ class CompilePayloadService @Inject()(
       } else {
         Json.obj(EventDetailsNodeName -> newEventDetails)
       }
-       val ret = Json.obj(EventReportDetailsNodeName -> originalEventReportDetails) ++ newEventDetailsObj
-       ret
+       Json.obj(EventReportDetailsNodeName -> originalEventReportDetails) ++ newEventDetailsObj
+
     }
   }
 
