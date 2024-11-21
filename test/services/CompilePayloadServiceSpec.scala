@@ -300,6 +300,31 @@ class CompilePayloadServiceSpec extends AsyncWordSpec with Matchers with Mockito
       }
     }
 
+    "not contain an empty eventDetails if it is empty" in {
+      val event11Payload: JsObject = Json.obj()
+      eventTypesFor1834ExcludingEvent11.foreach { et =>
+        val gdcdi = GetDetailsCacheDataIdentifier(et, year, version.toInt)
+        when(mockGetDetailsCacheRepository.get(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(gdcdi))(any()))
+          .thenReturn(Future.successful(Some(et match {
+            case _ => Json.obj()
+          })))
+      }
+      when(mockGetDetailsCacheRepository
+        .remove(ArgumentMatchers.eq(pstr), ArgumentMatchers.eq(GetDetailsCacheDataIdentifier(Event11, year, version.toInt)))(any()))
+        .thenReturn(Future.successful((): Unit))
+
+
+      val service = new CompilePayloadService(mockGetDetailsCacheRepository, mockEventReportConnector)
+      whenReady(service.collatePayloadsAndUpdateCache(pstr, year, currentVersion, version, ApiType.Api1826,
+        EventType.Event11, event11Payload)(global, implicitly)) { result =>
+
+
+        (result \ "eventDetails").isDefined mustBe false
+
+
+      }
+    }
+
   }
 
 }

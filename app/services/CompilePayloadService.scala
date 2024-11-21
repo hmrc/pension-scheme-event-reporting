@@ -122,16 +122,7 @@ class CompilePayloadService @Inject()(
           }
         }
 
-        val futureJsObject = Future.sequence(transformedPayloads).map { seqPayloads =>
-          val eventTypesAsOnePayload = seqPayloads.foldLeft(Json.obj()) { case (acc, payload) => acc ++ payload }
-          val originalEventDetails = (jsonForEventBeingCompiled \ EventDetailsNodeName).asOpt[JsObject].getOrElse(Json.obj())
-          val originalEventReportDetails = (jsonForEventBeingCompiled \ EventReportDetailsNodeName).asOpt[JsObject].getOrElse(Json.obj())
-          Json.obj(EventReportDetailsNodeName -> originalEventReportDetails) ++ Json.obj(
-            EventDetailsNodeName -> (eventTypesAsOnePayload ++ originalEventDetails)
-          )
-        }
-
-        futureJsObject.flatMap { jsObject =>
+        futureJsObject(jsonForEventBeingCompiled, transformedPayloads).flatMap { jsObject =>
           getDetailsCacheRepository
             .remove(pstr, GetDetailsCacheDataIdentifier(eventTypeForEventBeingCompiled, year, versionAsInt))
             .map(_ => jsObject)
@@ -142,4 +133,23 @@ class CompilePayloadService @Inject()(
       }
     }
   }
+
+  private def futureJsObject(jsonForEventBeingCompiled: JsObject, transformedPayloads: Seq[Future[JsObject]])
+                            (implicit ec: ExecutionContext): Future[JsObject] = {
+     Future.sequence(transformedPayloads).map { seqPayloads =>
+      val eventTypesAsOnePayload = seqPayloads.foldLeft(Json.obj()) { case (acc, payload) => acc ++ payload }
+      logger.info(s"Json to be parsed is: ${jsonForEventBeingCompiled}")
+      val originalEventDetails = (jsonForEventBeingCompiled \ EventDetailsNodeName).asOpt[JsObject].getOrElse(Json.obj())
+      val originalEventReportDetails = (jsonForEventBeingCompiled \ EventReportDetailsNodeName).asOpt[JsObject].getOrElse(Json.obj())
+      val newEventDetails = eventTypesAsOnePayload ++ originalEventDetails
+      val newEventDetailsObj = if (newEventDetails.keys.isEmpty) {
+        Json.obj()
+      } else {
+        Json.obj(EventDetailsNodeName -> newEventDetails)
+      }
+       Json.obj(EventReportDetailsNodeName -> originalEventReportDetails) ++ newEventDetailsObj
+
+    }
+  }
+
 }
