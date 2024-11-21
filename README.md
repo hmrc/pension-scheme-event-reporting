@@ -1,30 +1,5 @@
 # Pension Scheme Event Reporting
 
-
-
-## Technical documentation
-
-### Before running the app (if applicable)
-
-Anything that's not done automatically by the development environment:
-
-- You need to run mongo
-- ```sm2 --start PODS_ER```
-
-### Running the test suite
-
-```
-sbt clean
-sbt compile
-sbt test
-```
-
-### Further documentation
-
-A list of links to key files in docs/.
-
-You can also just link to the docs/ directory itself.
-
 - [Overview](#overview)
 - [Requirements](#requirements)
 - [Running the Service](#running-the-service)
@@ -37,11 +12,11 @@ You can also just link to the docs/ directory itself.
 
 ## Overview
 
-This is the backend repository for the *TEMPLATE* service. This service allows a user to *DO X, Y AND Z. Clarify any other points overviewing the service here*.
+This is the backend repository for the Pension Scheme Event Reporting service. This service allows a user to report events pertaining to ... *Clarify any other points overviewing the service here*.
 
-This service has a corresponding front-end microservice, namely *NAME FRONTEND SERVICE*.
+This service has a corresponding front-end microservice, namely Pension Scheme Event Reporting Frontend.
 
-**Associated Frontend Link:** *INSERT LINK TO FRONTEND HERE*
+**Associated Frontend Link:** https://github.com/hmrc/pension-scheme-event-reporting-frontend
 
 **Stubs:** https://github.com/hmrc/pensions-scheme-stubs
 
@@ -49,8 +24,6 @@ This service has a corresponding front-end microservice, namely *NAME FRONTEND S
 
 ## Requirements
 This service is written in Scala and Play, so needs at least a [JRE] to run.
-
-*VERIFY VERSIONS. VERSIONS CORRECT AS OF 20/11/2024*
 
 **Node version:** 16.20.2
 
@@ -60,10 +33,9 @@ This service is written in Scala and Play, so needs at least a [JRE] to run.
 
 
 ## Running the Service
-*VERIFY DETAILS. VERSIONS CORRECT AS OF 20/11/2024*
 **Service Manager Profile:** PODS_ALL
 
-**Port:** XXXX
+**Port:** 8215
 
 **Link:** *http://localhost:XXXX/INSERT-BASE-URL-HERE*
 
@@ -71,7 +43,7 @@ This service is written in Scala and Play, so needs at least a [JRE] to run.
 In order to run the service, ensure Service Manager is installed (see [MDTP guidance](https://docs.tax.service.gov.uk/mdtp-handbook/documentation/developer-set-up/set-up-service-manager.html) if needed) and launch the relevant configuration by typing into the terminal:
 `sm2 --start PODS_ALL`
 
-To run the service locally, enter `sm2 --stop *REPONAMEHERE*`.
+To run the service locally, enter `sm2 --stop PENSION_SCHEME_EVENT_REPORTING`.
 
 In your terminal, navigate to the relevant directory and enter `sbt run`.
 
@@ -81,22 +53,6 @@ Access the Authority Wizard and login with the relevant enrolment details [here]
 ## Enrolments
 There are several different options for enrolling through the auth login stub. In order to enrol as a dummy user to access the platform for local development and testing purposes, the following details must be entered on the auth login page.
 
-
-In order to access the **Pension Practitioner dashboard** for local development, enter the following information: 
-
-**Redirect URL -** http://localhost:8204/manage-pension-schemes/dashboard 
-
-**GNAP Token -** NO 
-
-**Affinity Group -** Organisation 
-
-**Enrolment Key -** HMRC-PODSPP-ORG 
-
-**Identifier Name -** PspID 
-
-**Identifier Value -** 21000005
-
----
 
 For access to the **Pension Administrator dashboard** for local development, enter the following information: 
 
@@ -111,6 +67,22 @@ For access to the **Pension Administrator dashboard** for local development, ent
 **Identifier Name -** PsaID 
 
 **Identifier Value -** A2100005
+
+---
+
+In order to access the **Pension Practitioner dashboard** for local development, enter the following information: 
+
+**Redirect URL -** http://localhost:8204/manage-pension-schemes/dashboard 
+
+**GNAP Token -** NO 
+
+**Affinity Group -** Organisation 
+
+**Enrolment Key -** HMRC-PODSPP-ORG 
+
+**Identifier Name -** PspID 
+
+**Identifier Value -** 21000005
 
 ---
 
@@ -169,6 +141,8 @@ There are numerous APIs implemented throughout the MPS architecture, and the rel
 [To Do]
 Include relevant links or details to any additional, service-specific documents (e.g., stubs, testing protocols) when available.
 
+## Note on terminology
+The terms scheme reference number and submission reference number (SRN) are interchangeable within the PODS codebase; some downstream APIs use scheme reference number, some use submission reference number, probably because of oversight on part of the technical teams who developed these APIs. This detail means the same thing, the reference number that was returned from ETMP when the scheme details were submitted.
 
 ## Endpoints
 [To Do]
