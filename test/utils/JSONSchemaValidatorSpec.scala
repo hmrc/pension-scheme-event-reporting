@@ -29,6 +29,7 @@ import scala.util.Success
 
 class JSONSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with JsonFileReader with TryValues {
   val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.1.0.json"
+  val oldCreateCompiledEventSummaryReportSchemaPath = "/resources.schemas/old-api-1826-create-compiled-event-summary-report-request-schema-v1.1.0.json"
   val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.4.json"
   val submitEventDeclarationReportSchemaPath = "/resources.schemas/api-1828-submit-event-declaration-report-request-schema-v1.0.4.json"
   val submitEvent20ADeclarationReportSchemaPath = "/resources.schemas/api-1829-submit-event20a-declaration-report-request-schema-v1.0.0.json"
@@ -46,6 +47,7 @@ class JSONSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with Matcher
     .overrides(modules: _*).build()
 
   private lazy val jsonPayloadSchemaValidator: JSONSchemaValidator = app.injector.instanceOf[JSONSchemaValidator]
+
   "validateJson" must {
     "Behaviour for valid payload for API 1826" in {
       val json = readJsonFromFile("/api-1826-valid-example.json")
@@ -65,6 +67,19 @@ class JSONSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with Matcher
       result.failure.exception.getMessage must include(s"Schema validation errors for $testEventName")
       result.failure.exception.getMessage must include("/eventDetails/event10/0/invRegScheme/startDateDetails/startDateOfInvReg")
       result.failure.exception.getMessage must include("/eventDetails/event10/1/invRegScheme/ceaseDateDetails/ceaseDateOfInvReg")
+    }
+
+    "Behaviour for valid payload for API 1826 to pass new regex changes" in {
+      val json = readJsonFromFile("/api-1826-valid-regex-check-example.json")
+      val result = jsonPayloadSchemaValidator.validatePayload(json, createCompiledEventSummaryReportSchemaPath, testEventName)
+      result mustBe Success(():Unit)
+    }
+
+    "Behaviour for valid payload for API 1826 to fail new regex changes" in {
+      val json = readJsonFromFile("/api-1826-valid-regex-check-example.json")
+      val result = jsonPayloadSchemaValidator.validatePayload(json, oldCreateCompiledEventSummaryReportSchemaPath, testEventName)
+      result.failure.exception.getMessage must include("/eventDetails/event13/0/schemeStructureOther")
+      result.failure.exception.getMessage must include("does not match input string")
     }
 
     "Behaviour for valid payload for API 1827" in {
