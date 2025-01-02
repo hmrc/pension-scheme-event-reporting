@@ -148,6 +148,7 @@ private object API1833ReadsUtilities extends Transformer with ReadsUtils {
     case "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum" => pathUABenefitsPaidEarly
     case "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme" => pathUAMemberTangibleMoveableProperty
     case "Court Order Payment/Confiscation Order" => pathUAUnauthorisedPaymentRecipientName
+    case "Overpayment of pension/written off" => pathUAReasonForTheOverpaymentOrWriteOff
     case "Other" => pathUAMemberPaymentNatureDescription
   }
 
