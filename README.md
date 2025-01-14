@@ -12,7 +12,7 @@
 
 ## Overview
 
-This is the backend repository for the Pension Scheme Event Reporting service. This service allows a user to report events pertaining to ... *Clarify any other points overviewing the service here*.
+This is the backend repository for the Pension Scheme Event Reporting service.
 
 This service has a corresponding front-end microservice, namely Pension Scheme Event Reporting Frontend.
 
@@ -36,9 +36,6 @@ This service is written in Scala and Play, so needs at least a [JRE] to run.
 **Service Manager Profile:** PODS_ALL
 
 **Port:** 8215
-
-**Link:** *http://localhost:XXXX/INSERT-BASE-URL-HERE*
-
 
 In order to run the service, ensure Service Manager is installed (see [MDTP guidance](https://docs.tax.service.gov.uk/mdtp-handbook/documentation/developer-set-up/set-up-service-manager.html) if needed) and launch the relevant configuration by typing into the terminal:
 `sm2 --start PODS_ALL`
@@ -136,29 +133,8 @@ View the prototype [here](https://pods-event-reporting-prototype.herokuapp.com/)
 ## Dependent Services
 There are numerous APIs implemented throughout the MPS architecture, and the relevant endpoints are illustrated below. For an overview of all PODS APIs, refer to the [PODS API Documentation](https://confluence.tools.tax.service.gov.uk/display/PODSP/PODS+API+Latest+Version).
 
-
-## Service Documentation
-[To Do]
-Include relevant links or details to any additional, service-specific documents (e.g., stubs, testing protocols) when available.
-
 ## Note on terminology
 The terms scheme reference number and submission reference number (SRN) are interchangeable within the PODS codebase; some downstream APIs use scheme reference number, some use submission reference number, probably because of oversight on part of the technical teams who developed these APIs. This detail means the same thing, the reference number that was returned from ETMP when the scheme details were submitted.
-
-## Endpoints
-[To Do]
-
-*Must add: standard docs, path, any args, expected request and a sample response and error codes and/or responses.*
-
-**Standard Path**
-
-
-**Description**
-
-
-| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
-|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
-| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
-
 
 ## License
 This code is open source software Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at:
