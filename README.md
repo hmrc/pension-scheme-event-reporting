@@ -27,7 +27,7 @@ This service is written in Scala and Play, so needs at least a [JRE] to run.
 
 **Node version:** 16.20.2
 
-**Java version:** 11
+**Java version:** 21
 
 **Scala version:** 2.13.14
 
