@@ -20,6 +20,7 @@ import play.api.Configuration
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.duration.Duration
 
 @Singleton
 class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig, runModeConfiguration: Configuration) {
@@ -27,6 +28,7 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig,
   lazy val appName: String = config.get[String](path = "appName")
 
   private val ifURL: String = servicesConfig.baseUrl(serviceName = "if-hod")
+  val ifsTimeout: Duration = config.get[Duration]("ifs.timeout")
 
   lazy val desEnvironment: String = runModeConfiguration.getOptional[String]("microservice.services.des-hod.env").getOrElse("local")
   lazy val authorization: String = "Bearer " + runModeConfiguration.getOptional[String]("microservice.services.des-hod.authorizationToken").getOrElse("local")

@@ -115,7 +115,10 @@ class EventReportConnector @Inject()(
       val logMessage =
         s"Get ${api.toString} (IF) called (URL $apiUrl). Event type: $etAsString reportStartDate: $startDate and reportVersionNumber: $versionAsString"
       logger.info(logMessage)
-      httpV2Client.get(url"$apiUrl")(hc).execute[HttpResponse].map { response =>
+      httpV2Client
+        .get(url"$apiUrl")(hc)
+        .transform(_.withRequestTimeout(config.ifsTimeout))
+        .execute[HttpResponse].map { response =>
         response.status match {
           case OK =>
             debugLogs("get event API " + api.toString, apiUrl, hc.extraHeaders, response.json)
