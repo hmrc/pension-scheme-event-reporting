@@ -16,13 +16,13 @@
 
 package config
 
-import play.api.Configuration
+import play.api.{Configuration, Environment, Mode}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig, runModeConfiguration: Configuration) {
+class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig, runModeConfiguration: Configuration, env: Environment) {
 
   lazy val appName: String = config.get[String](path = "appName")
 
@@ -46,4 +46,9 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig,
   def versionUrl: String  = s"$ifURL${config.get[String](path = "serviceUrls.version")}"
   val submitEventDeclarationReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event-declaration-report")}"
   val submitEvent20ADeclarationReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event20a-declaration-report")}"
+
+  val mongoEncryptionKey: Option[String] = config.getOptional[String]("mongodb.encryption.key") match {
+    case None if env.mode == Mode.Prod => throw new RuntimeException("Encryption key is not set")
+    case x => x
+  }
 }
