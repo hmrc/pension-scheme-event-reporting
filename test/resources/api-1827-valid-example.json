@@ -49,7 +49,7 @@
         "unAuthorisedPaymentDetails": {
           "unAuthorisedPmtType1": "Transfer to non-registered pensions scheme",
           "unAuthorisedPmtType2": "Transfer to an Employer Financed retirement Benefit scheme (EFRB)",
-          "freeTxtOrSchemeOrRecipientName": "ABCDEFGHIJKLMNOPQRSTUV",
+          "freeTxtOrSchemeOrRecipientName": "Employer contribution received after retirement settlement - value too low to purchase annuity.",
           "pstrOrReference": "20034565RX",
           "dateOfUnauthorisedPayment": "2020-06-30",
           "valueOfUnauthorisedPayment": 723
