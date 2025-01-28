@@ -17,25 +17,29 @@
 package crypto
 
 import config.AppConfig
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsValue, Json, OFormat}
+import uk.gov.hmrc.crypto.{EncryptedValue, SymmetricCryptoFactory}
 
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class DataEncryptor @Inject() (cipher: SecureGCMCipher, appConfig: AppConfig){
+class DataEncryptor @Inject() (appConfig: AppConfig) extends DataEncryptorImpl(appConfig.mongoEncryptionKey)
+
+class DataEncryptorImpl(key:Option[String]) {
+  private implicit val encryptedValueFormat: OFormat[EncryptedValue] = Json.format[EncryptedValue]
+  private lazy val aesGcmAdCrypto = key.map { key => SymmetricCryptoFactory.aesGcmAdCrypto(key) }
   def encrypt(id:String, data: JsValue):JsValue = {
-    appConfig.mongoEncryptionKey.map { encryptionKey =>
-      Json.toJson(cipher.encrypt(data.toString, id, encryptionKey))
+    aesGcmAdCrypto.map { cipher =>
+      Json.toJson(cipher.encrypt(data.toString, id))
     }.getOrElse(data)
   }
 
   def decrypt(id:String, jsValue: JsValue): JsValue = {
     jsValue.validate[EncryptedValue]
       .map { encryptedValue =>
-        appConfig.mongoEncryptionKey.map { encryptionKey =>
-          Json.parse(cipher.decrypt(encryptedValue, id, encryptionKey))
+        aesGcmAdCrypto.map { cipher =>
+          Json.parse(cipher.decrypt(encryptedValue, id))
         }.getOrElse(throw new RuntimeException("Cannot decrypt mongoDB data. Encryption key not available."))
-      }
-      .getOrElse(jsValue)
+      }.getOrElse(jsValue)
   }
 }

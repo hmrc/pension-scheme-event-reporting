@@ -38,6 +38,8 @@ import scala.concurrent.{ExecutionContext, Future}
 case class GetDetailsCacheEntry(pstr: String, gdcdi: GetDetailsCacheDataIdentifier, data: JsValue, lastUpdated: Instant, expireAt: Instant)
 
 object GetDetailsCacheEntry {
+  implicit val dateFormat: Format[Instant] = MongoJavatimeFormats.instantFormat
+
   implicit val format: Format[GetDetailsCacheEntry] = Json.format[GetDetailsCacheEntry]
 
   val pstrKey = "pstr"
@@ -47,8 +49,6 @@ object GetDetailsCacheEntry {
   val expireAtKey = "expireAt"
   val lastUpdatedKey = "lastUpdated"
   val dataKey = "data"
-
-  implicit val dateFormat: Format[Instant] = MongoJavatimeFormats.instantFormat
 
   private val dateReads = new Reads[Instant] { //TODO: Remove after expireAt migration fix
     def reads(json: JsValue): JsResult[Instant] = {
