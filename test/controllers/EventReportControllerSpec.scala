@@ -16,6 +16,7 @@
 
 package controllers
 
+import actions.AuthAction
 import com.mongodb.client.result.UpdateResult
 import models.enumeration.EventType
 import models.enumeration.EventType._
@@ -39,7 +40,8 @@ import services.EventReportService
 import uk.gov.hmrc.auth.core.retrieve.{Name, ~}
 import uk.gov.hmrc.auth.core.{AuthConnector, Enrolment, EnrolmentIdentifier, Enrolments}
 import uk.gov.hmrc.http._
-import utils.JSONSchemaValidator
+import utils.AuthUtils.FakeAuthAction
+import utils.{AuthUtils, JSONSchemaValidator}
 
 import java.time.LocalDate
 import scala.concurrent.Future
@@ -55,8 +57,11 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   private val mockEventReportService = mock[EventReportService]
   private val mockAuthConnector: AuthConnector = mock[AuthConnector]
 
-  val modules: Seq[GuiceableModule] =
+  private val srn = AuthUtils.srn
+
+  private val modules: Seq[GuiceableModule] =
     Seq(
+      bind[AuthAction].to[FakeAuthAction],
       bind[AuthConnector].toInstance(mockAuthConnector),
       bind[JSONSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
       bind[EventReportService].toInstance(mockEventReportService)
@@ -147,16 +152,41 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         response.message must include("endDate missing")
       }
     }
+  }
 
-    "throw a Unauthorised Exception if auth fails" in {
-      when(mockAuthConnector.authorise[Option[String] ~ Enrolments ~ Option[Name]](any(), any())(any(), any())) thenReturn Future.successful(emptyCredentials)
+  "getOverviewSrn" must {
+    "return OK with the overview payload returned from service" in {
+      when(mockEventReportService.getOverview(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(startDate),
+        ArgumentMatchers.eq(endDate))(any(), any()))
+        .thenReturn(Future.successful(erOverviewResponseJson))
 
-      recoverToExceptionIf[UnauthorizedException] {
-        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "fromDate" -> "2021-04-06", "toDate" -> "2022-04-05"))
-      } map { response =>
-        response.responseCode mustBe UNAUTHORIZED
-        response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
+      val result = controller.getOverviewSrn(srn)(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr, "startDate" -> startDate, "endDate" -> endDate))
+
+      whenReady(result) { _ =>
+        status(result) mustBe OK
+        contentAsJson(result) mustBe erOverviewResponseJson
       }
+    }
+
+    "throw a Bad Request Exception when endDate parameter is missing in header" in {
+      val result = controller.getOverviewSrn(srn)(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "startDate" -> "2022-04-06"))
+      status(result) mustBe BAD_REQUEST
+      contentAsString(result) must include("endDate")
+    }
+
+    "throw a Bad Request Exception when startDate parameter is missing in header" in {
+      val result = controller.getOverviewSrn(srn)(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "endDate" -> "2022-04-06"))
+      status(result) mustBe BAD_REQUEST
+      contentAsString(result) must include("startDate")
+    }
+
+    "throw a Bad Request Exception when pstr parameter is missing in header" in {
+      val result = controller.getOverviewSrn(srn)(fakeRequest.withHeaders(newHeaders = "startDate" -> "2022-04-06", "endDate" -> "2022-04-06"))
+      status(result) mustBe BAD_REQUEST
+      contentAsString(result) must include("pstr")
     }
   }
 
@@ -206,6 +236,44 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
   }
 
+  "submitEventDeclarationReportSrn" must {
+
+    "return BadRequest when the scheme is already registered  by the user within the TTL" in {
+      when(mockEventReportService.submitEventDeclarationReport(any(), any(), any(), any())(any(), any(), any()))
+        .thenReturn(Future.successful(BadRequest))
+      when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
+        .thenReturn(Success(()))
+
+      val result = controller.submitEventDeclarationReportSrn(srn)(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse).withHeaders(
+        newHeaders = "pstr" -> pstr, "version" -> reportVersion))
+      status(result) mustBe BAD_REQUEST
+    }
+
+    "return NoContent when valid response" in {
+      when(mockEventReportService.submitEventDeclarationReport(any(), any(), any(), any())(any(), any(), any()))
+        .thenReturn(Future.successful(NoContent))
+      when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
+        .thenReturn(Success(()))
+
+      val result = controller.submitEventDeclarationReportSrn(srn)(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse).withHeaders(
+        newHeaders = "pstr" -> pstr, "version" -> reportVersion))
+
+      status(result) mustBe NO_CONTENT
+    }
+
+    "throw a Bad Request Exception when the body is missing" in {
+      val result = controller.submitEventDeclarationReportSrn(srn)(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "version" -> reportVersion))
+      status(result) mustBe BAD_REQUEST
+      contentAsString(result) must include("Request does not contain required Json body")
+    }
+
+    "throw a Bad Request Exception when the pstr is missing from the header" in {
+      val result = controller.submitEventDeclarationReportSrn(srn)(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse))
+      status(result) mustBe BAD_REQUEST
+      contentAsString(result) must include("pstr")
+    }
+  }
+
   "submitEvent20ADeclarationReport" must {
     "return NoContent when valid response" in {
       when(mockEventReportService.submitEvent20ADeclarationReport(any(), any(), any(), any())(any(), any(), any()))
@@ -237,6 +305,31 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       }
     }
   }
+
+  "submitEvent20ADeclarationReportSrn" must {
+    "return NoContent when valid response" in {
+      when(mockEventReportService.submitEvent20ADeclarationReport(any(), any(), any(), any())(any(), any(), any()))
+        .thenReturn(Future.successful(NoContent))
+      when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
+        .thenReturn(Success(()))
+
+      val result = controller.submitEvent20ADeclarationReportSrn(srn)(fakeRequest.withJsonBody(submitEvent20ADeclarationReportSuccessResponse).withHeaders(
+        newHeaders = "pstr" -> pstr, "version" -> reportVersion))
+
+      status(result) mustBe NO_CONTENT
+    }
+    "throw a Bad Request Exception when the pstr is missing from the header" in {
+      val result = controller.submitEvent20ADeclarationReportSrn(srn)(fakeRequest.withJsonBody(submitEvent20ADeclarationReportSuccessResponse))
+      status(result) mustBe BAD_REQUEST
+      contentAsString(result) must include ("pstr")
+    }
+    "throw a Bad Request Exception when the body is missing" in {
+      val result = controller.submitEvent20ADeclarationReportSrn(srn)(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "version" -> reportVersion))
+      status(result) mustBe BAD_REQUEST
+      contentAsString(result) must include ("Request does not contain required Json body")
+    }
+  }
+
   "getVersions" must {
     "return OK with the Seq of Version" in {
       when(mockEventReportService.getVersions(
@@ -271,6 +364,27 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
   }
 
+  "getVersionsSrn" must {
+    "return OK with the Seq of Version" in {
+      when(mockEventReportService.getVersions(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(startDate))(any(), any()))
+        .thenReturn(Future.successful(erVersions))
+
+      val result = controller.getVersionsSrn(srn)(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr, "startDate" -> startDate))
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe erVersions
+    }
+
+    "throw a Bad Request Exception when startDate parameter is missing in header" in {
+      val result = controller.getVersionsSrn(srn)(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
+      status(result) mustBe BAD_REQUEST
+      contentAsString(result) must include("startDate")
+    }
+  }
+
   "isEventDataChanged" must {
     "return true when event data is changed" in {
       when(mockEventReportService.isNewReportDifferentToPrevious(any(), any(), any(), any(), any(), any())(any(), any()))
@@ -300,6 +414,25 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         response.responseCode mustBe UNAUTHORIZED
         response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
       }
+    }
+  }
+
+  "isEventDataChangedSrn" must {
+    "return true when event data is changed" in {
+      when(mockEventReportService.isNewReportDifferentToPrevious(any(), any(), any(), any(), any(), any())(any(), any()))
+        .thenReturn(Future.successful(true))
+
+      val result = controller.isEventDataChangedSrn(srn)(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr, "eventType" -> "1", "year" -> "2024", "version" -> "2"))
+
+      status(result) mustBe OK
+      contentAsString(result) mustBe true.toString
+    }
+
+    "throw a Bad Request Exception when startDate parameter is missing in header" in {
+      val result = controller.isEventDataChangedSrn(srn)(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
+      status(result) mustBe BAD_REQUEST
+      contentAsString(result) must include("version")
     }
   }
 
@@ -345,6 +478,35 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         response.responseCode mustBe UNAUTHORIZED
         response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
       }
+    }
+  }
+
+  "getEventSummarySrn" must {
+    "return OK with dummy json response" in {
+      when(mockEventReportService.getEventSummary(
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq("001"),
+        ArgumentMatchers.eq(startDate),
+        any(),
+        any(),
+        any()
+      )(any(), any()))
+        .thenReturn(Future.successful(dummyJsValue))
+
+      val result = controller.getEventSummarySrn(srn)(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr,
+        "reportStartDate" -> startDate,
+        "reportVersionNumber" -> reportVersion
+      ))
+
+      status(result) mustBe OK
+      contentAsJson(result) mustBe dummyJsValue
+    }
+
+    "throw a Bad Request Exception when all parameters missing in header" in {
+      val result = controller.getEventSummarySrn(srn)(fakeRequest)
+      status(result) mustBe BAD_REQUEST
+      contentAsString(result) must include("pstr")
     }
   }
 
@@ -425,6 +587,66 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
   }
 
+  "getUserAnswersSrn" must {
+    "return 200 OK when valid response" in {
+
+      when(mockEventReportService.getUserAnswers(
+        ArgumentMatchers.eq(externalId),
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(Event1: EventType),
+        ArgumentMatchers.eq(2020),
+        ArgumentMatchers.eq(1),
+        any()
+      )(any(), any()))
+        .thenReturn(Future.successful(Some(json)))
+
+      val result = controller.getUserAnswersSrn(srn)(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> reportVersion, "eventType" -> eventType, externalId -> externalId))
+
+      status(result) mustBe OK
+    }
+
+    "return not found exception when invalid event type" in {
+      val result = controller.getUserAnswersSrn(srn)(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> reportVersion, "eventType" -> "test", externalId -> externalId))
+      status(result) mustBe NOT_FOUND
+      contentAsString(result) must include("Bad Request: eventType (test) not found")
+    }
+
+    "return none when not found" in {
+
+      when(mockEventReportService.getUserAnswers(
+        ArgumentMatchers.eq(externalId),
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(Event1),
+        ArgumentMatchers.eq(2020),
+        ArgumentMatchers.eq(1),
+        any()
+      )(any(), any()))
+        .thenReturn(Future.successful(None))
+
+      val result = controller.getUserAnswersSrn(srn)(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> reportVersion, "eventType" -> eventType, externalId -> externalId))
+
+      status(result) mustBe NOT_FOUND
+
+    }
+
+    "return OK when eventType missing" in {
+
+      when(mockEventReportService.getUserAnswers(
+        ArgumentMatchers.eq(externalId),
+        any()
+      )(any()))
+        .thenReturn(Future.successful(Some(json)))
+
+      val result = controller.getUserAnswersSrn(srn)(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> reportVersion))
+
+      status(result) mustBe OK
+    }
+  }
+
   "removeUserAnswers" must {
     "return 200 OK when no reportVersion" in {
 
@@ -446,6 +668,21 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       } map { response =>
         response.responseCode mustBe UNAUTHORIZED
       }
+    }
+  }
+
+  "removeUserAnswersSrn" must {
+    "return 200 OK when no reportVersion" in {
+
+      when(mockEventReportService.removeUserAnswers(
+        ArgumentMatchers.eq(externalId)
+      )(any()))
+        .thenReturn(Future.successful(()))
+
+      val result = controller.removeUserAnswersSrn(srn)(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr, externalId -> externalId))
+
+      status(result) mustBe OK
     }
   }
 
@@ -509,6 +746,49 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
   }
 
+  "saveUserAnswersToCacheSrn" must {
+    "return 200 OK when valid response" in {
+
+      when(mockEventReportService.saveUserAnswers(
+        ArgumentMatchers.eq(externalId),
+        ArgumentMatchers.eq(pstr),
+        ArgumentMatchers.eq(Event1),
+        ArgumentMatchers.eq(2020),
+        ArgumentMatchers.eq(1),
+        any(),
+        any(),
+        any()
+      )(any()))
+        .thenReturn(Future.successful(true))
+
+      val result = controller.saveUserAnswersSrn(srn)(fakeRequest.withJsonBody(saveUserAnswersToCacheSuccessResponse).withHeaders(
+        newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> reportVersion, "eventType" -> eventType, externalId -> externalId))
+
+      status(result) mustBe OK
+    }
+
+    "return not found exception when invalid event type" in {
+      val result = controller.saveUserAnswersSrn(srn)(fakeRequest.withJsonBody(saveUserAnswersToCacheSuccessResponse).withHeaders(
+        newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> reportVersion, "eventType" -> "test"))
+      status(result) mustBe NOT_FOUND
+      contentAsString(result) must include("Bad Request: eventType (test) not found")
+    }
+
+    "return OK when eventType missing" in {
+      when(mockEventReportService.saveUserAnswers(
+        ArgumentMatchers.eq(externalId),
+        any(),
+        any()
+      )(any()))
+        .thenReturn(Future.successful(()))
+
+      val result = controller.saveUserAnswersSrn(srn)(fakeRequest.withJsonBody(saveUserAnswersToCacheSuccessResponse).withHeaders(
+        newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> reportVersion, externalId -> externalId))
+
+      status(result) mustBe OK
+    }
+  }
+
   "changeVersion" must {
     "return 204 OK when valid response" in {
       when(mockEventReportService.changeVersion(
@@ -539,6 +819,36 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
   }
 
+  "changeVersionSrn" must {
+    "return 204 OK when valid response" in {
+      when(mockEventReportService.changeVersion(
+        ArgumentMatchers.eq(externalId),
+        any(),
+        ArgumentMatchers.eq(1),
+        ArgumentMatchers.eq(2)
+      )(any()))
+        .thenReturn(Future.successful(Some(mock[UpdateResult])))
+      val result = controller.changeVersionSrn(srn)(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> reportVersion, "eventType" -> eventType, externalId -> externalId, "newVersion" -> "2"))
+
+      status(result) mustBe NO_CONTENT
+    }
+
+    "return 400 OK when not found" in {
+      when(mockEventReportService.changeVersion(
+        ArgumentMatchers.eq(externalId),
+        any(),
+        ArgumentMatchers.eq(1),
+        ArgumentMatchers.eq(2)
+      )(any()))
+        .thenReturn(Future.successful(None))
+      val result = controller.changeVersionSrn(srn)(fakeRequest.withHeaders(
+        newHeaders = "pstr" -> pstr, "year" -> "2020", "version" -> reportVersion, "eventType" -> eventType, externalId -> externalId, "newVersion" -> "2"))
+
+      status(result) mustBe NOT_FOUND
+    }
+  }
+
   "compileEvent" must {
     "return 204 No Content when valid response" in {
       when(mockAuthConnector.authorise[Option[String] ~ Enrolments ~ Option[Name]](any(), any())(any(), any())) thenReturn
@@ -562,6 +872,25 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         response.responseCode mustBe UNAUTHORIZED
         response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
       }
+    }
+  }
+
+  "compileEventSrn" must {
+    "return 204 No Content when valid response" in {
+      when(mockEventReportService.compileEventReport(any(), any(), any(), any(), any(), any(), any(), any())(any(), any(), any()))
+        .thenReturn(Future.successful(NoContent))
+
+      val result = controller.compileEventSrn(srn)(fakeRequest.withJsonBody(compileEventSuccessResponse).withHeaders(
+        newHeaders = "pstr" -> pstr,
+        "eventType" -> "1", "year" -> "2020", "currentVersion" -> "1", "reportVersion" -> "1", externalId -> externalId, "version" -> reportVersion))
+
+      status(result) mustBe NO_CONTENT
+    }
+
+    "throw a 401 Unauthorised Exception if auth fails" in {
+      val result = controller.compileEventSrn(srn)(fakeRequest.withJsonBody(compileEventSuccessResponse))
+      status(result) mustBe BAD_REQUEST
+      contentAsString(result) must include("pstr")
     }
   }
 
@@ -601,6 +930,26 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         response.responseCode mustBe UNAUTHORIZED
         response.message must include("Not Authorised - Unable to retrieve credentials - externalId")
       }
+    }
+  }
+
+  "deleteMemberSrn" must {
+    "return 204 No Content when valid response" in {
+      when(mockEventReportService.deleteMember(any(), any(), any(), any(), any(), any(), any(), any())(any(), any(), any()))
+        .thenReturn(Future.successful(NoContent))
+
+      val result = controller.deleteMemberSrn(srn)(fakeRequest.withJsonBody(compileEventSuccessResponse).withHeaders(
+        newHeaders = "pstr" -> pstr,
+        "eventType" -> "1",
+        "year" -> "2020",
+        "reportVersion" -> "1",
+        externalId -> externalId,
+        "version" -> reportVersion,
+        "memberIdToDelete" -> "0",
+        "currentVersion" -> "1")
+      )
+
+      status(result) mustBe NO_CONTENT
     }
   }
 }

@@ -16,7 +16,9 @@
 
 package controllers
 
+import actions.AuthAction
 import com.google.inject.Inject
+import models.SchemeReferenceNumber
 import play.api.Logger
 import play.api.mvc._
 import repositories.ParsingAndValidationOutcomeRepository
@@ -30,7 +32,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class ParsingAndValidationOutcomeController @Inject()(
                                              repository: ParsingAndValidationOutcomeRepository,
                                              val authConnector: AuthConnector,
-                                             cc: ControllerComponents
+                                             cc: ControllerComponents,
+                                             authAction: AuthAction
                                            )(implicit ec: ExecutionContext) extends BackendController(cc) with AuthorisedFunctions {
 
   import ParsingAndValidationOutcomeController._
@@ -62,6 +65,27 @@ class ParsingAndValidationOutcomeController @Inject()(
       getId { id =>
         repository.remove(id).map(_ => Ok)
       }
+  }
+
+  def getSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
+    implicit request =>
+     repository.get(request.externalId).map { response =>
+       response.map(Ok(_)) getOrElse NotFound
+     }
+  }
+
+  def postSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
+    implicit request =>
+      request.body.asJson.map {
+        jsValue =>
+          repository.save(request.externalId, jsValue)
+            .map(_ => Created)
+      } getOrElse Future.successful(BadRequest)
+  }
+
+  def deleteSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
+    implicit request =>
+      repository.remove(request.externalId).map(_ => Ok)
   }
 
   private def getId(block: String => Future[Result])

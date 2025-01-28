@@ -17,6 +17,7 @@
 package controllers
 
 import ParsingAndValidationOutcomeController.IdNotFoundFromAuth
+import actions.AuthAction
 import org.apache.commons.lang3.RandomUtils
 import org.apache.pekko.util.ByteString
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
@@ -33,6 +34,8 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories.ParsingAndValidationOutcomeRepository
 import uk.gov.hmrc.auth.core.AuthConnector
+import utils.AuthUtils
+import utils.AuthUtils.FakeAuthAction
 
 import scala.concurrent.Future
 
@@ -40,22 +43,24 @@ class ParsingAndValidationOutcomeControllerSpec extends AsyncWordSpec with Match
 
   private val repo = mock[ParsingAndValidationOutcomeRepository]
   private val authConnector: AuthConnector = mock[AuthConnector]
-  private val id = "id"
+  private val id = AuthUtils.externalId
   private val fakePostRequest = FakeRequest("POST", "/")
   private val fakeRequest = FakeRequest()
 
-  def modules: Seq[GuiceableModule] = {
+  private def modules: Seq[GuiceableModule] = {
     Seq(
+      bind[AuthAction].to[FakeAuthAction],
       bind[AuthConnector].toInstance(authConnector),
       bind[ParsingAndValidationOutcomeRepository].toInstance(repo),
     )
   }
+  private val srn = AuthUtils.srn
 
   private val application: Application = new GuiceApplicationBuilder()
     .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false).
     overrides(modules: _*).build()
 
-  val controller: ParsingAndValidationOutcomeController = application.injector.instanceOf[ParsingAndValidationOutcomeController]
+  private val controller: ParsingAndValidationOutcomeController = application.injector.instanceOf[ParsingAndValidationOutcomeController]
 
   override def beforeEach(): Unit = {
     reset(repo)
@@ -138,6 +143,57 @@ class ParsingAndValidationOutcomeControllerSpec extends AsyncWordSpec with Match
 
         val result = controller.delete(fakeRequest)
         an[IdNotFoundFromAuth] must be thrownBy status(result)
+      }
+    }
+  }
+
+  "ParsingAndValidationOutcomeSrn Controller" when {
+    "calling get" must {
+      "return OK with the data" in {
+        when(repo.get(eqTo(id))(any())) thenReturn Future.successful(Some(Json.obj("testId" -> "data")))
+
+        val result = controller.getSrn(srn)(fakeRequest)
+        status(result) mustEqual OK
+        contentAsJson(result) mustEqual Json.obj(fields = "testId" -> "data")
+      }
+
+      "return NOT FOUND when the data doesn't exist" in {
+        when(repo.get(eqTo(id))(any())) thenReturn Future.successful(None)
+
+        val result = controller.getSrn(srn)(fakeRequest)
+        status(result) mustEqual NOT_FOUND
+      }
+
+      "throw an exception when the repository call fails" in {
+        when(repo.get(eqTo(id))(any())) thenReturn Future.failed(new Exception())
+        val result = controller.getSrn(srn)(fakeRequest)
+        an[Exception] must be thrownBy status(result)
+      }
+    }
+
+    "calling save" must {
+
+      "return OK when the data is saved successfully" in {
+        when(repo.save(any(), any())(any())) thenReturn Future.successful((): Unit)
+
+        val result = controller.postSrn(srn)(fakePostRequest.withJsonBody(Json.obj("value" -> "data")))
+        status(result) mustEqual CREATED
+      }
+
+      "return BAD REQUEST when the request body cannot be parsed" in {
+        when(repo.save(any(), any())(any())) thenReturn Future.successful((): Unit)
+
+        val result = controller.postSrn(srn)(fakePostRequest.withRawBody(ByteString(RandomUtils.nextBytes(512001))))
+        status(result) mustEqual BAD_REQUEST
+      }
+    }
+
+    "calling delete" must {
+      "return OK when the data is removed successfully" in {
+        when(repo.remove(eqTo(id))(any())) thenReturn Future.successful(true)
+
+        val result = controller.deleteSrn(srn)(fakeRequest)
+        status(result) mustEqual OK
       }
     }
   }
