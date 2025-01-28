@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import play.sbt.routes.RoutesKeys
 import uk.gov.hmrc.DefaultBuildSettings
 import uk.gov.hmrc.DefaultBuildSettings.integrationTestSettings
 
@@ -36,6 +37,9 @@ lazy val root = (project in file("."))
     retrieveManaged := true,
     resolvers ++= Seq(
       Resolver.jcenterRepo
+    ),
+    RoutesKeys.routesImport ++= Seq(
+      "models.SchemeReferenceNumber"
     )
   )
   .configs(IntegrationTest)

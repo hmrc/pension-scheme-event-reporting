@@ -16,6 +16,8 @@
 
 package controllers
 
+import actions.AuthAction
+import models.SchemeReferenceNumber
 import play.api.Logging
 import play.api.mvc._
 import repositories.FileUploadResponseCacheRepository
@@ -29,7 +31,8 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton()
 class FileUploadOutcomeController @Inject()(
                                              cc: ControllerComponents,
-                                             fileUploadResponseCacheRepository: FileUploadResponseCacheRepository
+                                             fileUploadResponseCacheRepository: FileUploadResponseCacheRepository,
+                                             authAction: AuthAction
                                            )(implicit ec: ExecutionContext)
   extends BackendController(cc)
     with HttpErrorFunctions
@@ -43,7 +46,18 @@ class FileUploadOutcomeController @Inject()(
           val reference = (json \ "reference").as[String]
           fileUploadResponseCacheRepository.upsert(reference, json).map(_ => Ok)
         case None =>
-          Future.failed(new RuntimeException("No JSON body"))
+          Future.successful(BadRequest("No JSON body"))
+      }
+  }
+
+  def saveSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
+    implicit request =>
+      request.body.asJson match {
+        case Some(json) =>
+          val reference = (json \ "reference").as[String]
+          fileUploadResponseCacheRepository.upsert(reference, json).map(_ => Ok)
+        case None =>
+          Future.successful(BadRequest("No JSON body"))
       }
   }
 
@@ -53,6 +67,22 @@ class FileUploadOutcomeController @Inject()(
         fileUploadResponseCacheRepository.get(reference).map {
           case Some(value) => Ok(value)
           case None => NotFound
+        } recover { e =>
+          logger.error("file upload cache get failed",e)
+          InternalServerError("file upload cache get failed")
+        }
+      }
+  }
+
+  def getSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
+    implicit request =>
+      withReferenceId { reference =>
+        fileUploadResponseCacheRepository.get(reference).map {
+          case Some(value) => Ok(value)
+          case None => NotFound
+        } recover { e =>
+          logger.error("file upload cache get failed",e)
+          InternalServerError("file upload cache get failed")
         }
       }
   }
@@ -61,7 +91,7 @@ class FileUploadOutcomeController @Inject()(
                              (implicit request: Request[AnyContent]): Future[Result] = {
     request.headers.get("reference") match {
       case Some(id) => block(id)
-      case _ => Future.failed(new BadRequestException(s"Bad Request with missing reference"))
+      case _ => Future.successful(BadRequest(s"Bad Request with missing reference"))
     }
   }
 }

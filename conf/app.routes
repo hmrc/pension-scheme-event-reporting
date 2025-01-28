@@ -1,26 +1,55 @@
 # microservice specific routes
 
+#deprecated
 GET           /overview                                                                         controllers.EventReportController.getOverview
+GET           /overview/:srn                                                                    controllers.EventReportController.getOverviewSrn(srn: SchemeReferenceNumber)
+#deprecated
 GET           /versions                                                                         controllers.EventReportController.getVersions
-
+GET           /versions/:srn                                                                    controllers.EventReportController.getVersionsSrn(srn: SchemeReferenceNumber)
+#deprecated
 GET           /compare                                                                          controllers.EventReportController.isEventDataChanged
-
+GET           /compare/:srn                                                                     controllers.EventReportController.isEventDataChangedSrn(srn: SchemeReferenceNumber)
+#deprecated
 GET           /event-summary                                                                    controllers.EventReportController.getEventSummary
+GET           /event-summary/:srn                                                               controllers.EventReportController.getEventSummarySrn(srn: SchemeReferenceNumber)
+#deprecated
 POST          /compile                                                                          controllers.EventReportController.compileEvent
+POST          /compile/:srn                                                                     controllers.EventReportController.compileEventSrn(srn: SchemeReferenceNumber)
+#deprecated
 POST          /delete-member                                                                    controllers.EventReportController.deleteMember
-
+POST          /delete-member/:srn                                                               controllers.EventReportController.deleteMemberSrn(srn: SchemeReferenceNumber)
+#deprecated
 POST          /submit-event-declaration-report                                                  controllers.EventReportController.submitEventDeclarationReport
+POST          /submit-event-declaration-report/:srn                                             controllers.EventReportController.submitEventDeclarationReportSrn(srn: SchemeReferenceNumber)
+#deprecated
 POST          /submit-event20a-declaration-report                                               controllers.EventReportController.submitEvent20ADeclarationReport
-
+POST          /submit-event20a-declaration-report/:srn                                          controllers.EventReportController.submitEvent20ADeclarationReportSrn(srn: SchemeReferenceNumber)
+#deprecated
 GET           /user-answers                                                                     controllers.EventReportController.getUserAnswers
+GET           /user-answers/:srn                                                                controllers.EventReportController.getUserAnswersSrn(srn: SchemeReferenceNumber)
+#deprecated
 POST          /user-answers                                                                     controllers.EventReportController.saveUserAnswers
+POST          /user-answers/:srn                                                                controllers.EventReportController.saveUserAnswersSrn(srn: SchemeReferenceNumber)
+#deprecated
 PUT           /user-answers                                                                     controllers.EventReportController.changeVersion
+PUT           /user-answers/:srn                                                                controllers.EventReportController.changeVersionSrn(srn: SchemeReferenceNumber)
+#deprecated
 DELETE        /user-answers                                                                     controllers.EventReportController.removeUserAnswers
+DELETE        /user-answers/:srn                                                                controllers.EventReportController.removeUserAnswersSrn(srn: SchemeReferenceNumber)
 
 POST          /email-response/:submittedBy/:requestId/:email/:psaId/:pstr/:reportVersion        controllers.EmailResponseController.sendAuditEvents(submittedBy: String, requestId: String, email: String, psaId: String, pstr: String, reportVersion: String)
+#deprecated
 GET           /file-upload-response/get                                                         controllers.FileUploadOutcomeController.get
+GET           /file-upload-response/get/:srn                                                    controllers.FileUploadOutcomeController.getSrn(srn: SchemeReferenceNumber)
+#deprecated
 POST          /file-upload-response/save                                                        controllers.FileUploadOutcomeController.save
-
+POST          /file-upload-response/save/:srn                                                   controllers.FileUploadOutcomeController.saveSrn(srn: SchemeReferenceNumber)
+#deprecated
 GET           /parsing-and-validation-outcome                                                   controllers.ParsingAndValidationOutcomeController.get
+GET           /parsing-and-validation-outcome/:srn                                              controllers.ParsingAndValidationOutcomeController.getSrn(srn: SchemeReferenceNumber)
+#deprecated
 POST          /parsing-and-validation-outcome                                                   controllers.ParsingAndValidationOutcomeController.post
+POST          /parsing-and-validation-outcome/:srn                                              controllers.ParsingAndValidationOutcomeController.postSrn(srn: SchemeReferenceNumber)
+#deprecated
 DELETE        /parsing-and-validation-outcome                                                   controllers.ParsingAndValidationOutcomeController.delete
+DELETE        /parsing-and-validation-outcome/:srn                                              controllers.ParsingAndValidationOutcomeController.deleteSrn(srn: SchemeReferenceNumber)
