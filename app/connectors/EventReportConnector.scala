@@ -115,7 +115,10 @@ class EventReportConnector @Inject()(
       val logMessage =
         s"Get ${api.toString} (IF) called (URL $apiUrl). Event type: $etAsString reportStartDate: $startDate and reportVersionNumber: $versionAsString"
       logger.info(logMessage)
-      httpV2Client.get(url"$apiUrl")(hc).execute[HttpResponse].map { response =>
+      httpV2Client
+        .get(url"$apiUrl")(hc)
+        .transform(_.withRequestTimeout(config.ifsTimeout))
+        .execute[HttpResponse].map { response =>
         response.status match {
           case OK =>
             debugLogs("get event API " + api.toString, apiUrl, hc.extraHeaders, response.json)
@@ -186,7 +189,7 @@ class EventReportConnector @Inject()(
     val compileMemberEventReportUrl = config.compileMemberEventReportUrl.format(pstr)
     logger.debug("Compile Member Event Report- URL:" + compileMemberEventReportUrl)
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
-    httpV2Client.post(url"$compileMemberEventReportUrl")(hc).withBody(data).execute[HttpResponse].map {
+    httpV2Client.post(url"$compileMemberEventReportUrl")(hc).withBody(data).transform(_.withRequestTimeout(config.ifsTimeout)).execute[HttpResponse].map {
       response =>
         response.status match {
           case OK =>
@@ -202,7 +205,7 @@ class EventReportConnector @Inject()(
     val submitEventDeclarationReportUrl = config.submitEventDeclarationReportUrl.format(pstr)
     logger.debug("Submit Event Declaration Report called URL:" + submitEventDeclarationReportUrl)
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
-    httpV2Client.post(url"$submitEventDeclarationReportUrl")(hc).withBody(data).execute[HttpResponse].map {
+    httpV2Client.post(url"$submitEventDeclarationReportUrl")(hc).withBody(data).transform(_.withRequestTimeout(config.ifsTimeout)).execute[HttpResponse].map {
       response =>
         response.status match {
           case OK =>
@@ -218,7 +221,11 @@ class EventReportConnector @Inject()(
     val submitEvent20ADeclarationReportUrl = config.submitEvent20ADeclarationReportUrl.format(pstr)
     logger.debug("Submit Event 20A Report - URL:" + submitEvent20ADeclarationReportUrl)
     implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
-    httpV2Client.post(url"$submitEvent20ADeclarationReportUrl")(hc).withBody(data).execute[HttpResponse].map {
+    httpV2Client
+      .post(url"$submitEvent20ADeclarationReportUrl")(hc)
+      .withBody(data)
+      .transform(_.withRequestTimeout(config.ifsTimeout))
+      .execute[HttpResponse].map {
       response =>
         response.status match {
           case OK =>

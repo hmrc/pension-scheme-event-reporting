@@ -206,7 +206,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                      delete: Boolean)
                                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): JsObject = {
 
-    def newMembersWithChangeInfo(getMemberDetails: JsObject => Option[scala.collection.IndexedSeq[JsObject]]) = {
+    def newMembersWithChangeInfo(getMemberDetails: JsObject => Option[scala.collection.IndexedSeq[JsObject]]): collection.IndexedSeq[JsObject] = {
       val newMembers = getMemberDetails(newUserAnswers)
 
       newMembers
@@ -250,7 +250,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
             (newUserAnswers - "event1") + ("event1", event1)
           case ApiType.Api1830 =>
-            def getMemberDetails(userAnswers: JsObject) = {
+            def getMemberDetails(userAnswers: JsObject): Option[collection.IndexedSeq[JsObject]] = {
               Try(
                 (userAnswers \ ("event" + eventType.toString) \ "members").as[JsArray].value.map(_.as[JsObject])
               ) match {
@@ -261,7 +261,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               }
             }
 
-            val event = ((newUserAnswers \ ("event" + eventType.toString)).as[JsObject] - "members") +
+            val event: JsObject = ((newUserAnswers \ ("event" + eventType.toString)).as[JsObject] - "members") +
               ("members", Json.toJson(newMembersWithChangeInfo(getMemberDetails)))
 
             newUserAnswers - ("event" + eventType.toString) + ("event" + eventType.toString, event)

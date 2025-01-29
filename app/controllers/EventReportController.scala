@@ -16,7 +16,8 @@
 
 package controllers
 
-import models.ReportVersion
+import actions.AuthAction
+import models.{ReportVersion, SchemeReferenceNumber}
 import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json._
@@ -35,7 +36,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class EventReportController @Inject()(
                                        cc: ControllerComponents,
                                        val authConnector: AuthConnector,
-                                       eventReportService: EventReportService
+                                       eventReportService: EventReportService,
+                                       authAction: AuthAction
                                      )(implicit ec: ExecutionContext)
   extends BackendController(cc)
     with HttpErrorFunctions
@@ -50,6 +52,11 @@ class EventReportController @Inject()(
         eventReportService.removeUserAnswers(externalId)
         Ok
       }
+  }
+
+  def removeUserAnswersSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
+    implicit request =>
+      eventReportService.removeUserAnswers(request.externalId).map { _ => Ok("") }
   }
 
   def saveUserAnswers: Action[AnyContent] = Action.async {
@@ -79,6 +86,36 @@ class EventReportController @Inject()(
       }
   }
 
+  def saveUserAnswersSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
+    implicit request =>
+
+      requiredHeader("pstr").map { pstr =>
+        val userAnswersJson = requiredBody.validate[JsObject].getOrElse(throw new RuntimeException("Expected JsObject body"))
+        val pstr = requiredHeaders("pstr").head
+        val etVersionYear = (request.headers.get("eventType"), request.headers.get("version"), request.headers.get("year")) match {
+          case (Some(et), Some(version), Some(year)) => Some((et, version.toInt, year.toInt))
+          case _ => None
+        }
+
+        etVersionYear match {
+          case Some((eventType, version, year)) =>
+            EventType.getEventType(eventType) match {
+              case Some(et) =>
+                eventReportService.saveUserAnswers(request.externalId, pstr, et, year, version, userAnswersJson, request.getId).map(_ => Ok)
+              case _ => Future.successful(NotFound(s"Bad Request: eventType ($eventType) not found"))
+            }
+          case _ =>
+            for {
+              _ <- eventReportService.saveUserAnswers(request.externalId, pstr, userAnswersJson)
+              _ <- eventReportService.saveUserAnswers(request.externalId, pstr + "_original_cache", userAnswersJson)
+            } yield Ok
+        }
+      } match {
+        case Left(msg) => Future.successful(BadRequest(msg))
+        case Right(result) => result
+      }
+  }
+
   def changeVersion: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { case Credentials(externalId, _, _) =>
@@ -96,11 +133,50 @@ class EventReportController @Inject()(
       }
   }
 
+  def changeVersionSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
+    implicit request =>
+      (for {
+        pstr <- requiredHeader("pstr")
+        version <- requiredHeader("version")
+        newVersion <- requiredHeader("newVersion")
+      } yield {
+        for {
+          x <- eventReportService.changeVersion(request.externalId, pstr, version.toInt, newVersion.toInt)
+          y <- eventReportService.changeVersion(request.externalId, pstr + "_original_cache", version.toInt, newVersion.toInt)
+        } yield {
+          (x,y) match {
+            case (Some(_), Some(_)) => NoContent
+            case _ => NotFound
+          }
+        }
+      }) match {
+        case Left(msg) => Future.successful(BadRequest(msg))
+        case Right(result) => result
+      }
+  }
+
   def isEventDataChanged: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { case Credentials(externalId, psaPspId, _)  =>
         val Seq(pstr, version, eventType, year) = requiredHeaders("pstr", "version", "eventType", "year")
         eventReportService.isNewReportDifferentToPrevious(externalId, pstr, year.toInt, version.toInt, psaPspId, eventType).map(bool => Ok(JsBoolean(bool)))
+      }
+  }
+
+  def isEventDataChangedSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
+    implicit request =>
+      (for {
+        pstr <- requiredHeader("pstr")
+        version <- requiredHeader("version")
+        eventType <- requiredHeader("eventType")
+        year <- requiredHeader("year")
+      } yield {
+        val id = request.getId
+        eventReportService.isNewReportDifferentToPrevious(request.externalId, pstr, year.toInt, version.toInt, id, eventType)
+          .map(bool => Ok(JsBoolean(bool)))
+      }) match {
+        case Left(msg) => Future.successful(BadRequest(msg))
+        case Right(result) => result
       }
   }
 
@@ -139,6 +215,47 @@ class EventReportController @Inject()(
       }
   }
 
+  def getUserAnswersSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
+    implicit request =>
+
+      def process(externalId: String, psaOrPspId: String, pstr: String, optEtVersionYear: Option[(String, Int, Int)]): Future[Result] = {
+
+        optEtVersionYear match {
+          case Some((eventType, version, year)) =>
+            EventType.getEventType(eventType) match {
+              case Some(et) =>
+                eventReportService.getUserAnswers(externalId, pstr, et, year, version, psaOrPspId)
+                  .map {
+                    case None => NotFound
+                    case Some(jsobj) => Ok(jsobj)
+                  }
+              case _ => Future.successful(NotFound(s"Bad Request: eventType ($eventType) not found"))
+            }
+          case _ =>
+            eventReportService.getUserAnswers(externalId, pstr)
+              .map {
+                case None => NotFound
+                case Some(jsobj) => Ok(jsobj)
+              }
+        }
+      }
+
+      requiredHeader("pstr").map { pstr =>
+        val etVersionYear = (request.headers.get("eventType"), request.headers.get("version"), request.headers.get("year")) match {
+          case (Some(et), Some(version), Some(year)) => Some((et, version.toInt, year.toInt))
+          case _ => None
+        }
+        process(request.externalId, request.getId, pstr, etVersionYear)
+      } match {
+        case Left(msg) => Future.successful(BadRequest(msg))
+        case Right(result) => result
+      }
+  }
+
+  private def requiredHeader[A](header: String)(implicit req: Request[A]):Either[String, String] = {
+    req.headers.get(header).map(Right(_)).getOrElse(Left(s"Bad Request with missing header: $header"))
+  }
+
   private def requiredHeaders(headers: String*)(implicit request: Request[AnyContent]) = {
     val headerData = headers.map(request.headers.get)
     val allHeadersDefined = headerData.forall(_.isDefined)
@@ -155,11 +272,30 @@ class EventReportController @Inject()(
   private def requiredBody(implicit request: Request[AnyContent]) =
     request.body.asJson.getOrElse(throw new BadRequestException("Request does not contain required Json body"))
 
+  private def requiredBodyEither(implicit request: Request[AnyContent]) =
+    request.body.asJson
+      .map(Right(_)).getOrElse(Left(s"Request does not contain required Json body"))
+
   def getEventSummary: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { case Credentials(externalId, psaPspId, name)  =>
         val Seq(pstr, version, startDate) = requiredHeaders("pstr", "reportVersionNumber", "reportStartDate")
         eventReportService.getEventSummary(pstr, ("00" + version).takeRight(3), startDate, psaPspId, externalId, name).map(Ok(_))
+      }
+  }
+
+  def getEventSummarySrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
+    implicit request =>
+      (
+        for {
+          pstr <- requiredHeader("pstr")
+          version <- requiredHeader("reportVersionNumber")
+          startDate <- requiredHeader("reportStartDate")
+        } yield {
+          eventReportService.getEventSummary(pstr, ("00" + version).takeRight(3), startDate, request.getId, request.externalId, request.name).map(Ok(_))
+        }) match {
+        case Left(msg) => Future.successful(BadRequest(msg))
+        case Right(result) => result
       }
   }
 
@@ -176,6 +312,23 @@ class EventReportController @Inject()(
       }
   }
 
+  def getVersionsSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
+    implicit request =>
+      (for {
+        pstr <- requiredHeader("pstr")
+        startDate <- requiredHeader("startDate")
+      } yield eventReportService.getVersions(pstr, startDate).map {
+        data => {
+          val sortedData = data.value.sortBy(y => y.as[ReportVersion].versionDetails.version).reverse
+          Ok(Json.toJson(sortedData))
+        }
+      }) match {
+        case Left(msg) => Future.successful(BadRequest(msg))
+        case Right(result) => result
+      }
+
+  }
+
   def getOverview: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { _ =>
@@ -184,6 +337,21 @@ class EventReportController @Inject()(
           data => Ok(data)
         }
       }
+  }
+
+  def getOverviewSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async { implicit req =>
+    val okEither = for {
+      pstr <- requiredHeader("pstr")
+      startDate <- requiredHeader("startDate")
+      endDate <- requiredHeader("endDate")
+    } yield eventReportService.getOverview(pstr, startDate, endDate).map {
+      data => Ok(data)
+    }
+
+    okEither match {
+      case Left(message) => Future.successful(BadRequest(message))
+      case Right(resp) => resp
+    }
   }
 
   def compileEvent: Action[AnyContent] = Action.async { implicit request =>
@@ -218,6 +386,45 @@ class EventReportController @Inject()(
     }
   }
 
+  def compileEventSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async { implicit request =>
+    (for {
+      pstr <- requiredHeader("pstr")
+      et <- requiredHeader("eventType")
+      version <- requiredHeader("version")
+      currentVersion <- requiredHeader("currentVersion")
+      year <- requiredHeader("year")
+    } yield {
+      val delete = request.headers.get("delete").contains("true")
+      EventType.getEventType(et) match {
+        case Some(eventType) => if(delete)
+          eventReportService.deleteEvent(
+            request.externalId,
+            request.getId,
+            pstr,
+            eventType,
+            year.toInt,
+            version,
+            currentVersion,
+            None
+          )
+        else
+          eventReportService.compileEventReport(
+            request.externalId,
+            request.getId,
+            pstr,
+            eventType,
+            year.toInt,
+            version,
+            currentVersion
+          )
+        case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
+      }
+    }) match {
+      case Left(msg) => Future.successful(BadRequest(msg))
+      case Right(result) => result
+    }
+  }
+
   def deleteMember(): Action[AnyContent] = Action.async { implicit request =>
     withAuth.flatMap { case Credentials(externalId, psaPspId, _) =>
       val Seq(pstr, et, version, year, memberIdToDelete, currentVersion) =
@@ -238,6 +445,34 @@ class EventReportController @Inject()(
     }
   }
 
+  def deleteMemberSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async { implicit request =>
+    (for {
+      pstr <- requiredHeader("pstr")
+      et <- requiredHeader("eventType")
+      version <- requiredHeader("version")
+      year <- requiredHeader("year")
+      memberIdToDelete <- requiredHeader("memberIdToDelete")
+      currentVersion <- requiredHeader("currentVersion")
+    } yield {
+      EventType.getEventType(et) match {
+        case Some(eventType) => eventReportService.deleteMember(
+          request.externalId,
+          request.getId,
+          pstr,
+          eventType,
+          year.toInt,
+          version,
+          memberIdToDelete.toInt,
+          currentVersion
+        )
+        case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
+      }
+    }) match {
+      case Left(msg) => Future.successful(BadRequest(msg))
+      case Right(result) => result
+    }
+  }
+
   def submitEventDeclarationReport: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { case Credentials(externalId, psaPspId, _) =>
@@ -252,12 +487,45 @@ class EventReportController @Inject()(
       }
   }
 
+  def submitEventDeclarationReportSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
+    implicit request =>
+      (for {
+        pstr <- requiredHeader("pstr")
+        version <- requiredHeader("version")
+        userAnswersJson <- requiredBodyEither
+      } yield {
+        eventReportService.submitEventDeclarationReport(pstr, request.getId, userAnswersJson, version).recoverWith{
+          case e: Exception =>
+            logger.error(s"Error submitting event declaration report: ${e.getMessage}")
+            Future.failed(new BadRequestException(s"Bad Request: ${e.getMessage}"))
+
+        }
+      }) match {
+        case Left(msg) => Future.successful(BadRequest(msg))
+        case Right(result) => result
+      }
+  }
+
   def submitEvent20ADeclarationReport: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { case Credentials(_, psaPspId, _) =>
         val Seq(pstr, version) = requiredHeaders("pstr", "version")
         val userAnswersJson = requiredBody
         eventReportService.submitEvent20ADeclarationReport(pstr, psaPspId, userAnswersJson, version)
+      }
+  }
+
+  def submitEvent20ADeclarationReportSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
+    implicit request =>
+      (for {
+        pstr <- requiredHeader("pstr")
+        version <- requiredHeader("version")
+        userAnswersJson <- requiredBodyEither
+      } yield {
+        eventReportService.submitEvent20ADeclarationReport(pstr, request.getId, userAnswersJson, version)
+      }) match {
+        case Left(msg) => Future.successful(BadRequest(msg))
+        case Right(result) => result
       }
   }
 

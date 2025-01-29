@@ -20,6 +20,7 @@ import play.api.{Configuration, Environment, Mode}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import javax.inject.{Inject, Singleton}
+import scala.concurrent.duration.Duration
 
 @Singleton
 class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig, runModeConfiguration: Configuration, env: Environment) {
@@ -27,6 +28,7 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig,
   lazy val appName: String = config.get[String](path = "appName")
 
   private val ifURL: String = servicesConfig.baseUrl(serviceName = "if-hod")
+  val ifsTimeout: Duration = config.get[Duration]("ifs.timeout")
 
   lazy val desEnvironment: String = runModeConfiguration.getOptional[String]("microservice.services.des-hod.env").getOrElse("local")
   lazy val authorization: String = "Bearer " + runModeConfiguration.getOptional[String]("microservice.services.des-hod.authorizationToken").getOrElse("local")
@@ -46,6 +48,9 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig,
   def versionUrl: String  = s"$ifURL${config.get[String](path = "serviceUrls.version")}"
   val submitEventDeclarationReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event-declaration-report")}"
   val submitEvent20ADeclarationReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event20a-declaration-report")}"
+
+  private val baseUrlPensionsScheme: String = servicesConfig.baseUrl("pensions-scheme")
+  val checkAssociationUrl: String = s"$baseUrlPensionsScheme${runModeConfiguration.underlying.getString("serviceUrls.checkPsaAssociation")}"
 
   val mongoEncryptionKey: Option[String] = config.getOptional[String]("mongodb.encryption.key") match {
     case None if env.mode == Mode.Prod => throw new RuntimeException("Encryption key is not set")
