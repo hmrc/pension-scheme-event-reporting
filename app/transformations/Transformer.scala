@@ -24,6 +24,7 @@ trait Transformer {
   protected def fail[A]: Reads[A] = Reads.failed[A]("Unknown value")
 
   protected def fail[A](s: A): Reads[A] = Reads.failed[A](s"Unknown value: $s")
+  protected def fail[A](s: String): Reads[A] = Reads.failed[A](s"Missing field: $s")
 
   protected def toYesNo(b: JsValue): JsString = if (b.as[JsBoolean].value) JsString("Yes") else JsString("No")
 
