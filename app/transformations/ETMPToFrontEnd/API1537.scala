@@ -56,10 +56,10 @@ private object API1537ReadsUtilities extends Transformer with ReadsUtils {
           case (Some(o), None, None) => Reads.pure(JsString(o))
           case (None,Some(_),None) =>
             logger.warn("Last Name field Missing")
-            fail("Last Name")[JsString]
+            fail[JsString]("Last Name")
           case (None,None,Some(_)) =>
             logger.warn("First Name field Missing")
-            fail("First Name")[JsString]
+            fail[JsString]("First Name")
           case _ =>
             logger.warn(s"Status of fields: orgName: ${orgName.isDefined}, firstName: ${firstName.isDefined}, lastName: ${lastName.isDefined}")
             fail[JsString]
