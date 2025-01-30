@@ -28,7 +28,6 @@ object API1537 {
 
   val reads: Reads[JsArray] = Reads.seq(readsDetail).map(JsArray(_))
 
-  protected val logger: Logger = Logger(getClass)
 }
 
 private object API1537ReadsUtilities extends Transformer with ReadsUtils {
