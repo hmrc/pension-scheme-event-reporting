@@ -82,4 +82,44 @@ trait GeneratorAPI1537 extends ResponseGenerators {
     }
   }
 
+  def generateGetVersionMissingSubmitterJson: Gen[(JsArray, JsArray)] = {
+    for {
+      reportStatus <- Gen.oneOf(Seq("SubmittedAndInProgress", "SubmittedAndSuccessfullyProcessed", "Compiled"))
+      version <- Gen.oneOf(1, 2, 3)
+    } yield {
+
+      val expectedReportStatus = reportStatus match {
+        case "SubmittedAndInProgress" => "submitted"
+        case "SubmittedAndSuccessfullyProcessed" => "submitted"
+        case _ => "compiled"
+      }
+
+      val payload = Json.arr(Json.obj(
+        "reportFormBundleNumber" -> "123456785015",
+        "reportVersion" -> version,
+        "reportStatus" -> reportStatus,
+        "compilationOrSubmissionDate" -> "2021-04-01T09:30:47Z",
+        "psaDetails" -> Json.obj(
+          "psaOrgOrPartnershipDetails" -> Json.obj(
+            "orgOrPartnershipName" -> "XYZ Limited"
+          )
+        )
+      ))
+      val expected = Json.arr(Json.obj(
+        "versionDetails" -> Json.obj(
+          "version" -> version,
+          "status" -> expectedReportStatus
+        ),
+
+        "submittedDate" -> LocalDate.of(2021, 4, 1)
+      ))
+
+      Tuple2(payload, expected)
+    }
+  }
+
+
+
+
+
 }

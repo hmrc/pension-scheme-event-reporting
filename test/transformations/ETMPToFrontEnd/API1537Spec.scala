@@ -34,5 +34,14 @@ class API1537Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
         }
       }
     }
+
+    "transform a valid payload from API 1537 correctly missing reportSubmitterDetails" in {
+      forAll(generateGetVersionMissingSubmitterJson) {
+        case (payload: JsArray, expected: JsArray) => {
+          val result = payload.validate(API1537.reads)
+          result mustBe JsSuccess(expected)
+        }
+      }
+    }
   }
 }
