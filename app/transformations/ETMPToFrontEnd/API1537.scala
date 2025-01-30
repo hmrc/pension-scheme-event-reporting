@@ -16,6 +16,7 @@
 
 package transformations.ETMPToFrontEnd
 
+import play.api.Logger
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json.Reads._
 import play.api.libs.json._
@@ -26,9 +27,12 @@ object API1537 {
   import transformations.ETMPToFrontEnd.API1537ReadsUtilities._
 
   val reads: Reads[JsArray] = Reads.seq(readsDetail).map(JsArray(_))
+
+  protected val logger: Logger = Logger(getClass)
 }
 
 private object API1537ReadsUtilities extends Transformer with ReadsUtils {
+  protected val logger: Logger = Logger(getClass)
   private val statusNode: JsValue => JsString = {
     case JsString("SubmittedAndInProgress") => JsString("submitted")
     case JsString("SubmittedAndSuccessfullyProcessed") => JsString("submitted")
@@ -50,7 +54,15 @@ private object API1537ReadsUtilities extends Transformer with ReadsUtils {
         (orgName, firstName, lastName) match {
           case (None, Some(fn), Some(ln)) => Reads.pure(JsString(s"$fn $ln"))
           case (Some(o), None, None) => Reads.pure(JsString(o))
-          case _ => fail[JsString]
+          case (None,Some(_),None) =>
+            logger.warn("Last Name field Missing")
+            fail("Last Name")[JsString]
+          case (None,None,Some(_)) =>
+            logger.warn("First Name field Missing")
+            fail("First Name")[JsString]
+          case _ =>
+            logger.warn(s"Status of fields: orgName: ${orgName.isDefined}, firstName: ${firstName.isDefined}, lastName: ${lastName.isDefined}")
+            fail[JsString]
         }
     ).flatMap(identity)
 
