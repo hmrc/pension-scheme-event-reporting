@@ -190,7 +190,7 @@ class EventReportCacheRepository @Inject()(
       Updates.set(eventTypeKey, "None"),
       Updates.set(yearKey, 0),
       Updates.set(versionKey, 0),
-      Updates.set(dataKey, Codecs.toBson(pstr, Json.toJson(data))),
+      Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
       Updates.set(lastUpdatedKey, LocalDateTime.now(ZoneId.of("UTC"))),
       Updates.set(expireAtKey, nonEventTypeEvaluatedExpireAt)
     )
