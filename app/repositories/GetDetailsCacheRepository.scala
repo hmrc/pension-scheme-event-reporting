@@ -85,7 +85,7 @@ object GetDetailsCacheEntry {
 @Singleton
 class GetDetailsCacheRepository @Inject()(
                                            mongoComponent: MongoComponent,
-                                           config: Configuration,
+                                           config: Configuration
                                          )(implicit val ec: ExecutionContext)
   extends PlayMongoRepository[GetDetailsCacheEntry](
     collectionName = config.underlying.getString("mongodb.get-details-cache-data.name"),
