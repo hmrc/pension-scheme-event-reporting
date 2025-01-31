@@ -18,7 +18,6 @@ package repositories
 
 import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
-import crypto.{DataEncryptor, EncryptedValue}
 import models.EventDataIdentifier
 import models.enumeration.EventType
 import org.mongodb.scala.bson.conversions.Bson
@@ -82,7 +81,6 @@ object EventReportCacheEntry {
 class EventReportCacheRepository @Inject()(
                                             mongoComponent: MongoComponent,
                                             config: Configuration,
-                                            cipher: DataEncryptor
                                           )(implicit val ec: ExecutionContext)
   extends PlayMongoRepository[EventReportCacheEntry](
     collectionName = config.underlying.getString("mongodb.event-reporting-data.name"),
@@ -124,7 +122,7 @@ class EventReportCacheRepository @Inject()(
       Updates.set(eventTypeKey, edi.eventType.toString),
       Updates.set(yearKey, edi.year),
       Updates.set(versionKey, edi.version),
-      Updates.set(dataKey, Codecs.toBson(cipher.encrypt(pstr, Json.toJson(data)))),
+      Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
       Updates.set(lastUpdatedKey, LocalDateTime.now(ZoneId.of("UTC"))),
       Updates.set(expireAtKey, evaluatedExpireAt)
     )
@@ -192,7 +190,7 @@ class EventReportCacheRepository @Inject()(
       Updates.set(eventTypeKey, "None"),
       Updates.set(yearKey, 0),
       Updates.set(versionKey, 0),
-      Updates.set(dataKey, Codecs.toBson(cipher.encrypt(pstr, Json.toJson(data)))),
+      Updates.set(dataKey, Codecs.toBson(pstr, Json.toJson(data))),
       Updates.set(lastUpdatedKey, LocalDateTime.now(ZoneId.of("UTC"))),
       Updates.set(expireAtKey, nonEventTypeEvaluatedExpireAt)
     )
@@ -233,9 +231,8 @@ class EventReportCacheRepository @Inject()(
     ).headOption().map {
       _.map {
         dataEntry =>
-          val decryptedData = cipher.decrypt(pstr, dataEntry.data)
-          debugLog("get user answers", edi, pstr, decryptedData)
-          decryptedData
+          debugLog("get user answers", edi, pstr, dataEntry.data)
+          dataEntry.data
       }
     }
   }

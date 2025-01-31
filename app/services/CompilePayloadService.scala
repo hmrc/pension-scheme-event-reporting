@@ -118,9 +118,7 @@ class CompilePayloadService @Inject()(
             }
             case None =>
               getPayloadFromAPIForEventType(futureGetEventResponse, et)
-                .flatMap(payload => {
-                  getDetailsCacheRepository.upsert(pstr, gdcdi, payload).map(_ => payload)
-                })
+                .flatMap(payload => getDetailsCacheRepository.upsert(pstr, gdcdi, payload).map(_ => payload))
           }
         }
 

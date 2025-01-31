@@ -17,7 +17,6 @@
 package repositories
 
 import com.typesafe.config.Config
-import crypto.DataEncryptor
 import models.GetDetailsCacheDataIdentifier
 import models.enumeration.EventType
 import org.mockito.Mockito.when
@@ -29,38 +28,13 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
-import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.Json
 import uk.gov.hmrc.mongo.MongoComponent
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import uk.gov.hmrc.auth.core.AuthConnector
-import play.api.inject.bind
-import repositories.GetDetailsCacheRepositorySpec.mockAppConfig
 
 class GetDetailsCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers
   with BeforeAndAfter with BeforeAndAfterAll with ScalaFutures { // scalastyle:off magic.number
-
-  private val modules: Seq[GuiceableModule] = Seq(
-    bind[AuthConnector].toInstance(mock[AuthConnector]),
-    bind[GetDetailsCacheRepository].toInstance(mock[GetDetailsCacheRepository])
-  )
-
-  private val app = new GuiceApplicationBuilder()
-    .configure(
-      conf = "auditing.enabled" -> false,
-      "metrics.enabled" -> false,
-      "metrics.jvm" -> false,
-      "run.mode" -> "Test"
-    ).overrides(modules: _*).build()
-
-  private val cipher = app.injector.instanceOf[DataEncryptor]
-
-  private def buildFormRepository(mongoHost: String, mongoPort: Int) = {
-    val databaseName = "pension-scheme-event-reporting"
-    val mongoUri = s"mongodb://$mongoHost:$mongoPort/$databaseName?heartbeatFrequencyMS=1000&rm.failover=default"
-    new GetDetailsCacheRepository(MongoComponent(mongoUri), mockAppConfig, cipher)
-  }
 
   val mongoHost = "localhost"
   var mongoPort: Int = 27017
@@ -129,7 +103,7 @@ class GetDetailsCacheRepositorySpec extends AnyWordSpec with MockitoSugar with M
       whenReady(documentsInDB) {
         documentsInDB =>
           documentsInDB.size mustBe 1
-          cipher.decrypt(pstr1, documentsInDB.head.data) mustBe data2
+          documentsInDB.head.data mustBe data2
       }
     }
 
@@ -163,8 +137,8 @@ class GetDetailsCacheRepositorySpec extends AnyWordSpec with MockitoSugar with M
         val doc1 = documentsInDB.head
         val doc2 = documentsInDB(1)
         documentsInDB.size mustBe 2
-        (doc1.pstr, doc1.gdcdi.eventType, cipher.decrypt(pstr2, doc1.data)) mustBe(pstr2, gdcdi2.eventType, data2)
-        (doc2.pstr, doc2.gdcdi.eventType, cipher.decrypt(pstr3, doc2.data)) mustBe(pstr3, gdcdi3.eventType, data3)
+        (doc1.pstr, doc1.gdcdi.eventType, doc1.data) mustBe(pstr2, gdcdi2.eventType, data2)
+        (doc2.pstr, doc2.gdcdi.eventType, doc2.data) mustBe(pstr3, gdcdi3.eventType, data3)
       }
     }
   }
@@ -190,5 +164,11 @@ object GetDetailsCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
   private val mockAppConfig = mock[Configuration]
   private val mockConfig = mock[Config]
   private val ttlValue = 28
+
+  private def buildFormRepository(mongoHost: String, mongoPort: Int) = {
+    val databaseName = "pension-scheme-event-reporting"
+    val mongoUri = s"mongodb://$mongoHost:$mongoPort/$databaseName?heartbeatFrequencyMS=1000&rm.failover=default"
+    new GetDetailsCacheRepository(MongoComponent(mongoUri), mockAppConfig)
+  }
 }
 
