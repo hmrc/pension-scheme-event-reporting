@@ -22,17 +22,10 @@ import play.api.libs.json.{Format, JsPath, Json, Reads}
 case class ReportVersion(
                         versionDetails: VersionDetails,
                         submittedDate: String,
-                        submitterName: String
+                        submitterName: Option[String]
                         )
 
 object ReportVersion {
-  implicit val reads: Reads[ReportVersion] = {
-    ((JsPath \ "versionDetails").read[VersionDetails] and
-      (JsPath \ "submittedDate").read[String] and
-      (JsPath \ "submitterName").read[String])(
-      (versionDetails, submittedBy, submitterName) => ReportVersion(versionDetails, submittedBy, submitterName))
-  }
-
   implicit val formats: Format[ReportVersion] = Json.format[ReportVersion]
 
   implicit def ordering[A <: ReportVersion]: Ordering[A] = (x: A, y: A) =>
@@ -46,10 +39,5 @@ case class VersionDetails(
                          )
 
 object VersionDetails {
-  implicit val reads: Reads[VersionDetails] = {
-    ((JsPath \ "version").read[Int] and (JsPath \ "status").read[String])(
-      (version, status) => VersionDetails(version, status))
-  }
-
   implicit val formats: Format[VersionDetails] = Json.format[VersionDetails]
 }
