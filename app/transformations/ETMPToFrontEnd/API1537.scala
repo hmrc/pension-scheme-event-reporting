@@ -44,32 +44,36 @@ private object API1537ReadsUtilities extends Transformer with ReadsUtils {
     case e => throw new RuntimeException("Incorrect date string format: " + e)
   }
 
-  private val readsSubmitter: Reads[JsString] = (
+  private val readsSubmitter: Reads[Option[JsString]] = (
         uaOrganisationOrPartnershipNamePath.readNullable[String] and
         uaFirstNamePath.readNullable[String] and
         uaLastNamePath.readNullable[String]
       )(
       (orgName, firstName, lastName) =>
         (orgName, firstName, lastName) match {
-          case (None, Some(fn), Some(ln)) => Reads.pure(JsString(s"$fn $ln"))
-          case (Some(o), None, None) => Reads.pure(JsString(o))
-          case (None,Some(_),None) =>
+          case (None, Some(fn), Some(ln)) =>Some(JsString(s"$fn $ln"))
+          case (Some(o), None, None) => Some(JsString(o))
+          case (None, Some(_), None) =>
             logger.warn("Last Name field Missing")
-            fail[JsString]("Last Name")
-          case (None,None,Some(_)) =>
+            None
+          case (None, None, Some(_)) =>
             logger.warn("First Name field Missing")
-            fail[JsString]("First Name")
+            None
           case _ =>
             logger.warn(s"Status of fields: orgName: ${orgName.isDefined}, firstName: ${firstName.isDefined}, lastName: ${lastName.isDefined}")
-            fail[JsString]
+            None
         }
-    ).flatMap(identity)
+    )
 
   val readsDetail: Reads[JsObject] = (
     reqReads(uaVersion, etmpReportVersion) and
     reqNestedReadsJsString(uaStatus, etmpReportStatus.json.pick.map(statusNode)) and
     reqNestedReadsJsString(uaSubmittedDate, etmpCompilationOrSubmissionDate.json.pick.map(dateFormatter)) and
-    reqNestedReadsJsString(uaSubmitterName, readsSubmitter)
+      readsSubmitter.flatMap {
+        case Some(jsString) => uaSubmitterName.json.put(jsString)
+        case None => Reads.pure(Json.obj())
+      }
+
     ).reduce
 
 }
