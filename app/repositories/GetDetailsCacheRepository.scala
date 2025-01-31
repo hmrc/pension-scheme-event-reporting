@@ -18,7 +18,6 @@ package repositories
 
 import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
-import crypto.DataEncryptor
 import models.GetDetailsCacheDataIdentifier
 import models.enumeration.EventType
 import org.mongodb.scala.model._
@@ -86,8 +85,7 @@ object GetDetailsCacheEntry {
 @Singleton
 class GetDetailsCacheRepository @Inject()(
                                            mongoComponent: MongoComponent,
-                                           config: Configuration,
-                                           cipher: DataEncryptor
+                                           config: Configuration
                                          )(implicit val ec: ExecutionContext)
   extends PlayMongoRepository[GetDetailsCacheEntry](
     collectionName = config.underlying.getString("mongodb.get-details-cache-data.name"),
@@ -124,7 +122,7 @@ class GetDetailsCacheRepository @Inject()(
       Updates.set(eventTypeKey, gdcdi.eventType.toString),
       Updates.set(yearKey, gdcdi.year),
       Updates.set(versionKey, gdcdi.version),
-      Updates.set(dataKey, Codecs.toBson(cipher.encrypt(pstr, Json.toJson(data)))),
+      Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
       Updates.set(lastUpdatedKey, Codecs.toBson(Instant.now())),
       Updates.set(expireAtKey, evaluatedExpireAt)
     )
@@ -150,7 +148,7 @@ class GetDetailsCacheRepository @Inject()(
     ).headOption().map {
       _.map {
         dataEntry =>
-          cipher.decrypt(pstr, dataEntry.data)
+          dataEntry.data
       }
     }
   }
