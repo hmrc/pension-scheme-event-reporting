@@ -149,6 +149,7 @@ private object API1833ReadsUtilities extends Transformer with ReadsUtils {
     case "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme" => pathUAMemberTangibleMoveableProperty
     case "Court Order Payment/Confiscation Order" => pathUAUnauthorisedPaymentRecipientName
     case "Overpayment of pension/written off" => pathUAReasonForTheOverpaymentOrWriteOff
+    case "Refund of contributions" => pathUARefundOfContributions
     case "Other" => pathUAMemberPaymentNatureDescription
   }
 
