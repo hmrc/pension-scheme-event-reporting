@@ -22,7 +22,7 @@ import models.EventDataIdentifier
 import models.enumeration.EventType
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
-import org.mongodb.scala.result
+import org.mongodb.scala.{FindObservable, result}
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
@@ -231,6 +231,7 @@ class EventReportCacheRepository @Inject()(
     ).headOption().map {
       _.map {
         dataEntry =>
+          logger.warn(s"EventReportCacheRepository: Stored data is empty? ${dataEntry.data == JsNull}")
           debugLog("get user answers", edi, pstr, dataEntry.data)
           dataEntry.data
       }
