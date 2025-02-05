@@ -84,7 +84,6 @@ object SchemeConnectorSpec extends JsonFileReader {
   private implicit val hc: HeaderCarrier = HeaderCarrier()
 
   val checkForAssociationUrl = "/pensions-scheme/is-psa-associated"
-  val listSchemesUrl = "/pensions-scheme/list-of-schemes"
   val srn: SchemeReferenceNumber = SchemeReferenceNumber("S0987654321")
   val psaId: PsaId = PsaId("A7654321")
 
