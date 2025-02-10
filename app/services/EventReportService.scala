@@ -207,7 +207,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): JsObject = {
 
     def newMembersWithChangeInfo(getMemberDetails: JsObject => Option[scala.collection.IndexedSeq[JsObject]]): collection.IndexedSeq[JsObject] = {
-      logger.warn(s"EventReportService.newMembersWithChangeInfo: Stored data is empty? ${newUserAnswers == JsNull}")
+      logger.warn(s"EventReportService.newMembersWithChangeInfo: Stored data is empty? ${newUserAnswers.value.isEmpty}")
       val newMembers = getMemberDetails(newUserAnswers)
 
       newMembers
@@ -297,7 +297,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
               )
 
               val addRecordsToNewUA: JsObject = compilePayloadService.addRecordVersionToUserAnswersJson(eventType, version.toInt, newUserAnswers)
-                logger.warn(s"EventReportService.compileEventReport: Stored data is empty? ${addRecordsToNewUA == JsNull}")
+                logger.warn(s"EventReportService.compileEventReport: Stored data is empty? ${addRecordsToNewUA.value.isEmpty}")
 
               val data = memberChangeInfoTransformation(oldUserAnswers,
                 addRecordsToNewUA, eventType, pstr, version.toInt, deleteEvent)
