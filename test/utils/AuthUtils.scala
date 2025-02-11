@@ -18,13 +18,13 @@ package utils
 
 import actions.{AuthAction, AuthRequest}
 import com.google.inject.Inject
-import connectors.SchemeConnector
+import connectors.{SchemeConnector, SessionDataCacheConnector}
 import models.SchemeReferenceNumber
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.mockito.stubbing.OngoingStubbing
-import play.api.mvc.{ActionBuilder, ActionFunction, AnyContent, BodyParser, BodyParsers, Request, Result}
+import play.api.mvc._
 import services.AuditServiceSpec.mock
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.authorise.Predicate
@@ -84,6 +84,18 @@ object AuthUtils {
     Some(Name(Some("John"), Some("Smith")))
   )
 
+  val authResponsePsaPsp = new ~(
+    new ~(
+      Enrolments(
+        Set(
+          new Enrolment("HMRC-PODS-ORG", Seq(EnrolmentIdentifier("PsaId", psaId)), "Activated"),
+          new Enrolment("HMRC-PODSPP-ORG", Seq(EnrolmentIdentifier("PspId", pspId)), "Activated")
+        )
+      ), Some(id)
+    ),
+    Some(Name(Some("John"), Some("Smith")))
+  )
+
 
   def noEnrolmentAuthStub(mockAuthConnector: AuthConnector): OngoingStubbing[Future[Option[String]]] =
     when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn
@@ -94,7 +106,7 @@ object AuthUtils {
   private val mockAuthConnector = mock[AuthConnector]
   private val mockParser = mock[BodyParsers.Default]
   private val mockSchemeConnector = mock[SchemeConnector]
-  class FakeAuthAction extends AuthAction(mockAuthConnector, mockParser, mockSchemeConnector) {
+  class FakeAuthAction extends AuthAction(mockAuthConnector, mockParser, mockSchemeConnector, mock[SessionDataCacheConnector]) {
     override def apply(srn: SchemeReferenceNumber): ActionBuilder[AuthRequest, AnyContent] with ActionFunction[Request, AuthRequest] = {
       new ActionBuilder[AuthRequest, AnyContent] {
         override def parser: BodyParser[AnyContent] = mockParser

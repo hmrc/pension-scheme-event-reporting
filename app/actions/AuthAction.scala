@@ -16,8 +16,10 @@
 
 package actions
 
-import connectors.SchemeConnector
+import connectors.{SchemeConnector, SessionDataCacheConnector}
 import models.SchemeReferenceNumber
+import models.enumeration.AdministratorOrPractitioner
+import models.enumeration.AdministratorOrPractitioner.{Administrator, Practitioner}
 import play.api.Logging
 import play.api.mvc.Results._
 import play.api.mvc._
@@ -30,7 +32,6 @@ import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
 import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success, Try}
 import scala.util.control.NonFatal
 case class AuthRequest[A](request: Request[A],
                           psaOrPspId:Either[PsaId, PspId],
@@ -46,7 +47,8 @@ class AuthActionImpl (
                                   override val authConnector: AuthConnector,
                                   val parser: BodyParsers.Default,
                                   schemeConnector: SchemeConnector,
-                                  srn: SchemeReferenceNumber
+                                  srn: SchemeReferenceNumber,
+                                  sessionDataCacheConnector: SessionDataCacheConnector
                                 )(implicit val executionContext: ExecutionContext)
   extends ActionBuilder[AuthRequest, AnyContent]
     with ActionFunction[Request, AuthRequest]
@@ -72,8 +74,18 @@ class AuthActionImpl (
   invokeBlock[A](request: Request[A], block: AuthRequest[A] => Future[Result]): Future[Result] =
     invoke(request, block)(HeaderCarrierConverter.fromRequest(request))
 
+  private def administratorOrPractitioner()(implicit hc: HeaderCarrier): Future[Option[AdministratorOrPractitioner]] = {
+    sessionDataCacheConnector.fetch().map { optionJsValue =>
+      optionJsValue.flatMap { json =>
+        (json \ "administratorOrPractitioner").toOption.flatMap(_.validate[AdministratorOrPractitioner].asOpt)
+      }
+    }
+  }
+
+  type PsaOrPspId = Either[PsaId, PspId]
+
   private def enrolmentResult(enrolments: Enrolments)
-                           (block: Either[PsaId, PspId] => Future[Result]) = {
+                           (block: PsaOrPspId => Future[Result])(implicit hc: HeaderCarrier) = {
     val psaId = getEnrolmentIdentifier(
       enrolments,
       PSAEnrolmentKey,
@@ -85,21 +97,33 @@ class AuthActionImpl (
       PSPEnrolmentKey,
       PSPEnrolmentIdKey
     )
-    psaId -> pspId match {
-      case (None, None) =>
-        logger.warn("Failed to authorise due to insufficient enrolments")
-        Future.successful(Forbidden("Enrolments not present"))
-      case (psaIdOpt, pspIdOpt) =>
-        val tryPsaOrPspId = Try(psaIdOpt.map(psaId => Left(PsaId(psaId))).getOrElse(Right(PspId(pspIdOpt.get))))
-        tryPsaOrPspId match {
-          case Failure(exception) =>
-            val msg = "Authorised as neither PSA or PSP"
-            logger.warn(msg, exception)
-            Future.successful(Forbidden(msg))
-          case Success(psaOrPspId) => block(psaOrPspId)
-        }
 
+    val psaOrPspIdFtr:Future[Either[PsaOrPspId, String]] = psaId -> pspId match {
+        case (None, None) => Future.successful(Right("No credentials found"))
+        case (Some(psaId), Some(pspId)) =>
+          administratorOrPractitioner().map {
+            case None =>
+              val msg = "User has both PSA and PSP credentials, information about which one to use for authentication was not provided"
+              logger.error(msg)
+              Right(msg)
+            case Some(Administrator) =>
+              Left(Left(PsaId(psaId)))
+            case Some(Practitioner) =>
+              Left(Right(PspId(pspId)))
+          } recover { e =>
+            val msg = "Unable to retrive logged in user from PSA service"
+            logger.error(msg,e)
+            Right(msg)
+          }
+        case (Some(psaId), None) => Future.successful(Left(Left(PsaId(psaId))))
+        case (None, Some(pspId)) => Future.successful(Left(Right(PspId(pspId))))
+      }
 
+    psaOrPspIdFtr.flatMap {
+      case Right(msg) =>
+        Future.successful(Forbidden(msg))
+      case Left(psaOrPspId: PsaOrPspId) =>
+        block(psaOrPspId)
     }
   }
 
@@ -141,7 +165,8 @@ class AuthActionImpl (
 
 class AuthAction @Inject()(authConnector: AuthConnector,
                            parser: BodyParsers.Default,
-                           schemeConnector: SchemeConnector)(implicit executionContext: ExecutionContext) {
+                           schemeConnector: SchemeConnector,
+                           sessionDataCacheConnector: SessionDataCacheConnector)(implicit executionContext: ExecutionContext) {
   def apply(srn: SchemeReferenceNumber):ActionBuilder[AuthRequest, AnyContent] with ActionFunction[Request, AuthRequest] =
-    new AuthActionImpl(authConnector, parser, schemeConnector, srn)
+    new AuthActionImpl(authConnector, parser, schemeConnector, srn, sessionDataCacheConnector)
 }
