@@ -231,7 +231,7 @@ class EventReportCacheRepository @Inject()(
     ).headOption().map {
       _.map {
         dataEntry =>
-          logger.warn(s"EventReportCacheRepository: Stored data is empty? ${dataEntry.data == JsNull}")
+          logger.warn(s"EventReportCacheRepository: Stored data is empty? ${dataEntry.data.as[JsObject].value.isEmpty}")
           debugLog("get user answers", edi, pstr, dataEntry.data)
           dataEntry.data
       }
