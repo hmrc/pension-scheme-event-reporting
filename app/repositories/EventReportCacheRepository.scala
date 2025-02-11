@@ -80,7 +80,7 @@ object EventReportCacheEntry {
 @Singleton
 class EventReportCacheRepository @Inject()(
                                             mongoComponent: MongoComponent,
-                                            config: Configuration
+                                            config: Configuration,
                                           )(implicit val ec: ExecutionContext)
   extends PlayMongoRepository[EventReportCacheEntry](
     collectionName = config.underlying.getString("mongodb.event-reporting-data.name"),
