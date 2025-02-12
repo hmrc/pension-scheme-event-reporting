@@ -53,8 +53,5 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig,
   val checkAssociationUrl: String = s"$baseUrlPensionsScheme${runModeConfiguration.underlying.getString("serviceUrls.checkPsaAssociation")}"
   val pensionsAdministratorUrl: String = servicesConfig.baseUrl("pension-administrator")
 
-  val mongoEncryptionKey: Option[String] = config.getOptional[String]("mongodb.encryption.key") match {
-    case None if env.mode == Mode.Prod => throw new RuntimeException("Encryption key is not set")
-    case x => x
-  }
+  val mongoEncryptionKey: Option[String] = config.getOptional[String]("mongodb.encryption.key")
 }
