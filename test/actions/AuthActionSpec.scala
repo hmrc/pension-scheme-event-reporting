@@ -17,11 +17,14 @@
 package actions
 
 import base.SpecBase
-import connectors.SchemeConnector
+import connectors.{SchemeConnector, SessionDataCacheConnector}
+import models.enumeration.AdministratorOrPractitioner
+import models.enumeration.AdministratorOrPractitioner.{Administrator, Practitioner}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
 import org.mockito.{ArgumentMatchers, Mockito}
 import org.scalatest.BeforeAndAfterEach
+import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, BodyParsers, Results}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -46,15 +49,17 @@ class AuthActionSpec extends SpecBase with BeforeAndAfterEach {
 
   private val mockAuthConnector: AuthConnector = mock[AuthConnector]
   private val mockSchemeConnector = mock[SchemeConnector]
+  private val mockSessionDataConnector = mock[SessionDataCacheConnector]
   private lazy val bodyParsers = app.injector.instanceOf[BodyParsers.Default]
-  private lazy val action = new AuthAction(mockAuthConnector, bodyParsers, mockSchemeConnector)
+  private lazy val action = new AuthAction(mockAuthConnector, bodyParsers, mockSchemeConnector, mockSessionDataConnector)
 
   override def beforeEach(): Unit = {
     Mockito.reset(mockAuthConnector)
     Mockito.reset(mockSchemeConnector)
+    Mockito.reset(mockSessionDataConnector)
   }
 
-  "PsaPspEnrolmentAuthAction" must {
+  "AuthAction" must {
 
     "when the user is logged in and has a PODS enrolment" must {
 
@@ -120,6 +125,76 @@ class AuthActionSpec extends SpecBase with BeforeAndAfterEach {
       }
     }
 
+    "when the user is logged in with both PSA and PSP enrolments" must {
+      "must succeed if logged in as PSA and PSA is authorised" in {
+        when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any())) thenReturn
+          Future.successful(AuthUtils.authResponsePsaPsp)
+        when(mockSessionDataConnector.fetch()(any(), any())).thenReturn(Future.successful(Some(
+          Json.toJson(
+            Map("administratorOrPractitioner" -> Administrator.asInstanceOf[AdministratorOrPractitioner])
+          )
+        )))
+        when(mockSchemeConnector.checkForAssociation(ArgumentMatchers.eq(Left(PsaId(psaId))), ArgumentMatchers.eq(srn))(any()))
+          .thenReturn(Future.successful(Right(true)))
+
+        val controller = new Harness(action)
+        val result = controller.onPageLoad()(FakeRequest())
+
+        status(result) mustEqual OK
+      }
+
+      "must fail if logged in as PSA and PSA is unauthorised" in {
+        when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any())) thenReturn
+          Future.successful(AuthUtils.authResponsePsaPsp)
+        when(mockSessionDataConnector.fetch()(any(), any())).thenReturn(Future.successful(Some(
+          Json.toJson(
+            Map("administratorOrPractitioner" -> Administrator.asInstanceOf[AdministratorOrPractitioner])
+          )
+        )))
+        when(mockSchemeConnector.checkForAssociation(ArgumentMatchers.eq(Left(PsaId(psaId))), ArgumentMatchers.eq(srn))(any()))
+          .thenReturn(Future.successful(Right(false)))
+
+        val controller = new Harness(action)
+        val result = controller.onPageLoad()(FakeRequest())
+
+        status(result) mustEqual FORBIDDEN
+      }
+
+      "must succeed if logged in as PSP and PSP is authorised" in {
+        when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any())) thenReturn
+          Future.successful(AuthUtils.authResponsePsaPsp)
+        when(mockSessionDataConnector.fetch()(any(), any())).thenReturn(Future.successful(Some(
+          Json.toJson(
+            Map("administratorOrPractitioner" -> Practitioner.asInstanceOf[AdministratorOrPractitioner])
+          )
+        )))
+        when(mockSchemeConnector.checkForAssociation(ArgumentMatchers.eq(Right(PspId(pspId))), ArgumentMatchers.eq(srn))(any()))
+          .thenReturn(Future.successful(Right(true)))
+
+        val controller = new Harness(action)
+        val result = controller.onPageLoad()(FakeRequest())
+
+        status(result) mustEqual OK
+      }
+
+      "must fail if logged in as PSP and PSP is unauthorised" in {
+        when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any())) thenReturn
+          Future.successful(AuthUtils.authResponsePsaPsp)
+        when(mockSessionDataConnector.fetch()(any(), any())).thenReturn(Future.successful(Some(
+          Json.toJson(
+            Map("administratorOrPractitioner" -> Practitioner.asInstanceOf[AdministratorOrPractitioner])
+          )
+        )))
+        when(mockSchemeConnector.checkForAssociation(ArgumentMatchers.eq(Right(PspId(pspId))), ArgumentMatchers.eq(srn))(any()))
+          .thenReturn(Future.successful(Right(false)))
+
+        val controller = new Harness(action)
+        val result = controller.onPageLoad()(FakeRequest())
+
+        status(result) mustEqual FORBIDDEN
+      }
+    }
+
     "when the user is logged in without a PODS enrolment" must {
 
       "must return FORBIDDEN" in {
@@ -148,7 +223,7 @@ class AuthActionSpec extends SpecBase with BeforeAndAfterEach {
       "must return Unauthorized" in {
 
         running(app) {
-          val authAction = new AuthAction(new FakeFailingAuthConnector(new MissingBearerToken), bodyParsers, mockSchemeConnector)
+          val authAction = new AuthAction(new FakeFailingAuthConnector(new MissingBearerToken), bodyParsers, mockSchemeConnector, mock[SessionDataCacheConnector])
           val controller = new Harness(authAction)
           val result = controller.onPageLoad()(FakeRequest())
 

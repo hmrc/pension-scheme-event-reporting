@@ -16,7 +16,7 @@
 
 package config
 
-import play.api.{Configuration, Environment, Mode}
+import play.api.{Configuration, Environment}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import javax.inject.{Inject, Singleton}
@@ -51,6 +51,7 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig,
 
   private val baseUrlPensionsScheme: String = servicesConfig.baseUrl("pensions-scheme")
   val checkAssociationUrl: String = s"$baseUrlPensionsScheme${runModeConfiguration.underlying.getString("serviceUrls.checkPsaAssociation")}"
+  val pensionsAdministratorUrl: String = servicesConfig.baseUrl("pension-administrator")
 
   val mongoEncryptionKey: Option[String] = config.getOptional[String]("mongodb.encryption.key") match {
     case None if env.mode == Mode.Prod => throw new RuntimeException("Encryption key is not set")
