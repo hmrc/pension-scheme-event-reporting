@@ -189,6 +189,7 @@ class EventReportController @Inject()(
           case Some((eventType, version, year)) =>
             EventType.getEventType(eventType) match {
               case Some(et) =>
+                logger.warn(s"Retrieving user answers within timeframe ")
                 eventReportService.getUserAnswers(externalId, pstr, et, year, version, psaOrPspId)
                   .map {
                     case None => NotFound
@@ -197,6 +198,7 @@ class EventReportController @Inject()(
               case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
             }
           case _ =>
+            logger.warn(s"Retrieving user answers without timeframe ")
             eventReportService.getUserAnswers(externalId, pstr)
               .map {
                 case None => NotFound
