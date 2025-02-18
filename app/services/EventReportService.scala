@@ -172,16 +172,16 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
         }yield {
           (oldUserAnswers, newUserAnswers) match {
             case (Some(oldData), Some(newData)) =>
-              logger.info(s"When data found in repo and event data changed is ${isDataChanged(oldData, newData)}")
+              logger.warn(s"When data found in repo and event data changed is ${isDataChanged(oldData, newData)}")
               Future.successful(isDataChanged(oldData, newData))
             case (None, Some(_)) =>
-              logger.info("New answers are available while old ones are not")
+              logger.warn("New answers are available while old ones are not")
               Future.successful(true)
             case (Some(_), None) =>
-              logger.info("Old answers are available while new ones are not")
+              logger.warn("Old answers are available while new ones are not")
               Future.successful(true)
             case (None, None) =>
-              logger.info("Neither user answers are there")
+              logger.warn("Neither user answers are there")
               Future.successful(true)
           }
         }
