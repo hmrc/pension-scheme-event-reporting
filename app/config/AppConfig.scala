@@ -52,4 +52,6 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig,
   private val baseUrlPensionsScheme: String = servicesConfig.baseUrl("pensions-scheme")
   val checkAssociationUrl: String = s"$baseUrlPensionsScheme${runModeConfiguration.underlying.getString("serviceUrls.checkPsaAssociation")}"
   val pensionsAdministratorUrl: String = servicesConfig.baseUrl("pension-administrator")
+
+  val mongoEncryptionKey: Option[String] = config.getOptional[String]("mongodb.encryption.key")
 }
