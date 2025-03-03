@@ -6,6 +6,7 @@
 - [Enrolments](#enrolments)
 - [Compile & Test](#compile--test)
 - [Dependent Services](#dependent-services)
+- [Terminology](#note-on-terminology)
 - [License](#license)
 
 ## Overview
