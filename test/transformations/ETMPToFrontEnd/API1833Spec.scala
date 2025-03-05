@@ -46,6 +46,14 @@ class API1833Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
           result mustBe Some(expectedResponse)
       }
     }
+
+    "transform a valid individual payload with residential property unauthorised payment correctly" in {
+      (individualResidentialPropertyPayload, expectedIndividualResidentialPropertyResponse) match {
+        case (payload: JsObject, expectedResponse: JsObject) =>
+          val result = payload.validate(API1833.rds1833Api).asOpt
+          result mustBe Some(expectedResponse)
+      }
+    }
   }
 }
 
@@ -208,7 +216,73 @@ object API1833Spec {
       |   }
       |}""".stripMargin)
 
+  val individualResidentialPropertyPayload: JsValue = Json.parse(
+    """
+      |{
+      |  "processingDate": "2023-12-15T12:30:46Z",
+      |  "schemeDetails": {
+      |    "pSTR": "87219363YN",
+      |    "schemeName": "Abc Ltd"
+      |  },
+      |  "eventReportDetails": {
+      |    "reportFormBundleNumber": "123456789012",
+      |    "reportStartDate": "2021-04-06",
+      |    "reportEndDate": "2022-04-05",
+      |    "reportStatus": "Compiled",
+      |    "reportVersionNumber": "001",
+      |    "reportSubmittedDateAndTime": "2023-12-13T12:12:12Z"
+      |  },
+      |  "event1Details": [
+      |    {
+      |      "amendedVersion": "001",
+      |      "memberStatus": "New",
+      |      "memberType": "Individual",
+      |      "individualMemberDetails": {
+      |        "title": "Mr",
+      |        "firstName": "John",
+      |        "middleName": "Mac",
+      |        "lastName": "Smith",
+      |        "nino": "AA999999A",
+      |        "signedMandate": "Yes",
+      |        "pmtMoreThan25PerFundValue": "No",
+      |        "schemePayingSurcharge": "Yes"
+      |      },
+      |      "unAuthorisedPaymentDetails": {
+      |        "unAuthorisedPmtType1": "Residential property held directly or indirectly by an investment-regulated pension scheme",
+      |        "freeTxtOrSchemeOrRecipientName": "Residential Property Description",
+      |        "dateOfUnauthorisedPayment": "2020-06-30",
+      |        "valueOfUnauthorisedPayment": 850
+      |      }
+      |    }
+      |  ]
+      |}
+      |""".stripMargin)
 
-
-
+  val expectedIndividualResidentialPropertyResponse: JsValue = Json.parse(
+    """
+      |{
+      |  "event1": {
+      |    "membersOrEmployers": [
+      |      {
+      |        "memberStatus": "New",
+      |        "amendedVersion": "001",
+      |        "doYouHoldSignedMandate": true,
+      |        "schemeUnAuthPaySurchargeMember": true,
+      |        "membersDetails": {
+      |          "lastName": "Smith",
+      |          "firstName": "John",
+      |          "nino": "AA999999A"
+      |        },
+      |        "whoReceivedUnauthPayment": "member",
+      |        "paymentValueAndDate": {
+      |          "paymentValue": 850,
+      |          "paymentDate": "2020-06-30"
+      |        },
+      |        "paymentNatureMember": "Residential Property Description",
+      |        "valueOfUnauthorisedPayment": false
+      |      }
+      |    ]
+      |  }
+      |}
+      |""".stripMargin)
 }
