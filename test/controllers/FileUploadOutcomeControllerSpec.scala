@@ -17,7 +17,6 @@
 package controllers
 
 import actions.AuthAction
-import org.apache.commons.lang3.RandomUtils
 import org.apache.pekko.util.ByteString
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
@@ -37,6 +36,7 @@ import utils.AuthUtils
 import utils.AuthUtils.FakeAuthAction
 
 import scala.concurrent.Future
+import scala.util.Random
 
 class FileUploadOutcomeControllerSpec extends AsyncWordSpec with Matchers with MockitoSugar with BeforeAndAfterEach {
 
@@ -99,7 +99,7 @@ class FileUploadOutcomeControllerSpec extends AsyncWordSpec with Matchers with M
 
     "throw an exception when the request body cannot be parsed" in {
       when(mockFileUploadResponseCache.upsert(any(), any())(any())) thenReturn Future.successful(None)
-      val result = controller.save(fakePostRequest.withRawBody(ByteString(RandomUtils.nextBytes(512001))))
+      val result = controller.save(fakePostRequest.withRawBody(ByteString(Random.alphanumeric.dropWhile(_.isDigit).take(20).mkString)))
       status(result) mustBe BAD_REQUEST
       contentAsString(result) mustBe "No JSON body"
     }
@@ -135,7 +135,7 @@ class FileUploadOutcomeControllerSpec extends AsyncWordSpec with Matchers with M
 
     "throw an exception when the request body cannot be parsed" in {
       when(mockFileUploadResponseCache.upsert(any(), any())(any())) thenReturn Future.successful(None)
-      val result = controller.saveSrn(srn)(fakePostRequest.withRawBody(ByteString(RandomUtils.nextBytes(512001))))
+      val result = controller.saveSrn(srn)(fakePostRequest.withRawBody(ByteString(Random.alphanumeric.dropWhile(_.isDigit).take(20).mkString)))
       status(result) mustBe BAD_REQUEST
       contentAsString(result) mustBe "No JSON body"
     }

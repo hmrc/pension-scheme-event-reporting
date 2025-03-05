@@ -112,10 +112,9 @@ class CompilePayloadService @Inject()(
           val gdcdi = GetDetailsCacheDataIdentifier(et, year, versionAsInt)
 
           getDetailsCacheRepository.get(pstr, gdcdi).flatMap {
-            case Some(json) => {
+            case Some(json) =>
               logger.info(s"json for Api1826 is: $json")
               Future.successful(json.as[JsObject])
-            }
             case None =>
               getPayloadFromAPIForEventType(futureGetEventResponse, et)
                 .flatMap(payload => {

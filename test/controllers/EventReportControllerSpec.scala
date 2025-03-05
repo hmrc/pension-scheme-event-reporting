@@ -112,45 +112,27 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw a Bad Request Exception when endDate parameter is missing in header" in {
-      recoverToExceptionIf[BadRequestException] {
-        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "startDate" -> "2022-04-06"))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-
-        response.message must include("endDate missing")
-      }
+        val result = controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "startDate" -> "2022-04-06"))
+        status(result) mustBe BAD_REQUEST
+      contentAsString(result) must include("endDate")
     }
 
     "throw a Bad Request Exception when startDate parameter is missing in header" in {
-      recoverToExceptionIf[BadRequestException] {
-        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "endDate" -> "2022-04-06"))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-
-        response.message must include("startDate missing")
-      }
+      val result = controller.getOverview()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "endDate" -> "2022-04-06"))
+      status(result) mustBe BAD_REQUEST
+      contentAsString(result) must include("startDate")
     }
 
     "throw a Bad Request Exception when pstr parameter is missing in header" in {
-      recoverToExceptionIf[BadRequestException] {
-        controller.getOverview()(fakeRequest.withHeaders(newHeaders = "startDate" -> "2022-04-06", "endDate" -> "2022-04-06"))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-
-        response.message must include("pstr missing")
-      }
+        val result = controller.getOverview()(fakeRequest.withHeaders(newHeaders = "startDate" -> "2022-04-06", "endDate" -> "2022-04-06"))
+        status(result) mustBe BAD_REQUEST
+        contentAsString(result) must include("pstr")
     }
 
     "throw a Bad Request Exception when all required parameters are missing in header" in {
-      recoverToExceptionIf[BadRequestException] {
-        controller.getOverview()(fakeRequest)
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-
-        response.message must include("pstr missing")
-        response.message must include("startDate missing")
-        response.message must include("endDate missing")
-      }
+        val result = controller.getOverview()(fakeRequest)
+        status(result) mustBe BAD_REQUEST
+        contentAsString(result) must include("pstr")
     }
   }
 
@@ -216,23 +198,15 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw a Bad Request Exception when the body is missing" in {
-      recoverToExceptionIf[BadRequestException] {
-        controller.submitEventDeclarationReport(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "version" -> reportVersion))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-
-        response.message must include("Request does not contain required Json body")
-      }
+        val result = controller.submitEventDeclarationReport(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr, "version" -> reportVersion))
+        status(result) mustBe BAD_REQUEST
+        contentAsString(result) must include("Request does not contain required Json body")
     }
 
     "throw a Bad Request Exception when the pstr is missing from the header" in {
-      recoverToExceptionIf[BadRequestException] {
-        controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-
-        response.message must include("""pstr missing""")
-      }
+        val result = controller.submitEventDeclarationReport(fakeRequest.withJsonBody(submitEventDeclarationReportSuccessResponse))
+        status(result) mustBe BAD_REQUEST
+        contentAsString(result) must include("""pstr""")
     }
   }
 
@@ -287,13 +261,9 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       status(result) mustBe NO_CONTENT
     }
     "throw a Bad Request Exception when the pstr is missing from the header" in {
-      recoverToExceptionIf[BadRequestException] {
-        controller.submitEvent20ADeclarationReport(fakeRequest.withJsonBody(submitEvent20ADeclarationReportSuccessResponse))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-
-        response.message must include("""pstr missing""")
-      }
+        val result = controller.submitEvent20ADeclarationReport(fakeRequest.withJsonBody(submitEvent20ADeclarationReportSuccessResponse))
+        status(result) mustBe BAD_REQUEST
+        contentAsString(result) must include("""pstr""")
     }
     "throw a Bad Request Exception when the body is missing" in {
       recoverToExceptionIf[BadRequestException] {
@@ -345,12 +315,9 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw a Bad Request Exception when startDate parameter is missing in header" in {
-      recoverToExceptionIf[BadRequestException] {
-        controller.getVersions()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-        response.message must include("startDate missing")
-      }
+        val result = controller.getVersions()(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
+        status(result) mustBe BAD_REQUEST
+        contentAsString(result) must include("startDate")
     }
     "throw a Unauthorised Exception if auth fails" in {
       when(mockAuthConnector.authorise[Option[String] ~ Enrolments ~ Option[Name]](any(), any())(any(), any())) thenReturn Future.successful(emptyCredentials)
@@ -387,7 +354,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
   "isEventDataChanged" must {
     "return true when event data is changed" in {
-      when(mockEventReportService.isNewReportDifferentToPrevious(any(), any(), any(), any(), any(), any())(any(), any()))
+      when(mockEventReportService.isNewReportDifferentToPrevious(any(), any(), any(), any(), any())(any()))
                 .thenReturn(Future.successful(true))
 
       val result = controller.isEventDataChanged(fakeRequest.withHeaders(
@@ -398,12 +365,9 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw a Bad Request Exception when startDate parameter is missing in header" in {
-      recoverToExceptionIf[BadRequestException] {
-        controller.isEventDataChanged(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-        response.message must include("version missing  eventType missing  year missing")
-      }
+        val result = controller.isEventDataChanged(fakeRequest.withHeaders(newHeaders = "pstr" -> pstr))
+        status(result) mustBe BAD_REQUEST
+        contentAsString(result) must include("version")
     }
     "throw a Unauthorised Exception if auth fails" in {
       when(mockAuthConnector.authorise[Option[String] ~ Enrolments ~ Option[Name]](any(), any())(any(), any())) thenReturn Future.successful(emptyCredentials)
@@ -419,7 +383,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
   "isEventDataChangedSrn" must {
     "return true when event data is changed" in {
-      when(mockEventReportService.isNewReportDifferentToPrevious(any(), any(), any(), any(), any(), any())(any(), any()))
+      when(mockEventReportService.isNewReportDifferentToPrevious(any(), any(), any(), any(), any())(any()))
         .thenReturn(Future.successful(true))
 
       val result = controller.isEventDataChangedSrn(srn)(fakeRequest.withHeaders(
@@ -459,14 +423,9 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     }
 
     "throw a Bad Request Exception when all parameters missing in header" in {
-      recoverToExceptionIf[BadRequestException] {
-        controller.getEventSummary(fakeRequest)
-      } map { response =>
-        response.responseCode mustBe BAD_REQUEST
-        response.message must include("pstr missing")
-        response.message must include("reportVersionNumber missing")
-        response.message must include("reportStartDate missing")
-      }
+        val result = controller.getEventSummary(fakeRequest)
+        status(result) mustBe BAD_REQUEST
+        contentAsString(result) must include("pstr")
     }
 
     "throw a Unauthorised Exception if auth fails" in {

@@ -863,7 +863,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
       implicit val ec: ExecutionContextExecutor = ExecutionContext.global
       when(mockEventReportCacheRepository.getUserAnswers(any(), any(), any())(any()))
         .thenReturn(Future.successful(Some(payload)))
-      eventReportService.isNewReportDifferentToPrevious(externalId, pstr, 2024, 1, "", "1")(hc, ec).map { result =>
+      eventReportService.isNewReportDifferentToPrevious(externalId, pstr, 2024, 1, "1")(ec).map { result =>
         result mustBe false
       }
     }
@@ -876,7 +876,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
         .thenReturn(Future.successful(Some(payload2)))
       when(mockEventReportCacheRepository.getUserAnswers(externalId, pstr + "_original_cache", Some(EventDataIdentifier(Event1, 2024, 1, externalId)))(ec))
         .thenReturn(Future.successful(Some(payload)))
-      eventReportService.isNewReportDifferentToPrevious(externalId, pstr, 2024, 1, "", "1")(hc, ec).map { result =>
+      eventReportService.isNewReportDifferentToPrevious(externalId, pstr, 2024, 1, "1")(ec).map { result =>
         result mustBe true
       }
     }

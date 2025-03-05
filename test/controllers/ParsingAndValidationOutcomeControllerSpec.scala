@@ -18,7 +18,6 @@ package controllers
 
 import ParsingAndValidationOutcomeController.IdNotFoundFromAuth
 import actions.AuthAction
-import org.apache.commons.lang3.RandomUtils
 import org.apache.pekko.util.ByteString
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
 import org.mockito.Mockito._
@@ -38,6 +37,7 @@ import utils.AuthUtils
 import utils.AuthUtils.FakeAuthAction
 
 import scala.concurrent.Future
+import scala.util.Random
 
 class ParsingAndValidationOutcomeControllerSpec extends AsyncWordSpec with Matchers with MockitoSugar with BeforeAndAfterEach { // scalastyle:off magic.number
 
@@ -117,7 +117,7 @@ class ParsingAndValidationOutcomeControllerSpec extends AsyncWordSpec with Match
         when(repo.save(any(), any())(any())) thenReturn Future.successful((): Unit)
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
 
-        val result = controller.post(fakePostRequest.withRawBody(ByteString(RandomUtils.nextBytes(512001))))
+        val result = controller.post(fakePostRequest.withRawBody(ByteString(Random.alphanumeric.dropWhile(_.isDigit).take(20).mkString)))
         status(result) mustEqual BAD_REQUEST
       }
 
@@ -183,7 +183,7 @@ class ParsingAndValidationOutcomeControllerSpec extends AsyncWordSpec with Match
       "return BAD REQUEST when the request body cannot be parsed" in {
         when(repo.save(any(), any())(any())) thenReturn Future.successful((): Unit)
 
-        val result = controller.postSrn(srn)(fakePostRequest.withRawBody(ByteString(RandomUtils.nextBytes(512001))))
+        val result = controller.postSrn(srn)(fakePostRequest.withRawBody(ByteString(Random.alphanumeric.dropWhile(_.isDigit).take(20).mkString)))
         status(result) mustEqual BAD_REQUEST
       }
     }

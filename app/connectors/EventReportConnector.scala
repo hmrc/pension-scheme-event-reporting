@@ -110,7 +110,7 @@ class EventReportConnector @Inject()(
     def getForApi(headers: Seq[(String, String)], pstr: String, api: ApiType, eventType: Option[EventType])
                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] = {
 
-      val etAsString = eventType.getOrElse("none")
+      val etAsString = eventType.getOrElse(EventType.EventTypeNone)
 
       val apiUrl: String = s"${config.getApiUrlByApiNum(api.toString).format(pstr)}"
       implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = headers: _*)

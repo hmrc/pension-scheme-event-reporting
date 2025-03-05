@@ -119,7 +119,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     for {
       _ <- eventLockRepository.remove(externalId)
       _ <- eventReportCacheRepository.removeAllOnSignOut(externalId)
-    } yield true
+    } yield ()
   }
 
   def getUserAnswers(externalId: String,
@@ -159,9 +159,8 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                      pstr: String,
                                      year: Int,
                                      version: Int,
-                                     psaOrPspId: String,
                                      eventType: String)
-                                    (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Boolean] = {
+                                    (implicit ec: ExecutionContext): Future[Boolean] = {
 
     getEventType(eventType) match {
       case Some(et) =>
@@ -192,7 +191,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  private def isDataChanged(oldData: JsObject, newData: JsObject) = (oldData != newData)
+  private def isDataChanged(oldData: JsObject, newData: JsObject) = oldData != newData
 
   def getUserAnswers(externalId: String, pstr: String)(implicit ec: ExecutionContext): Future[Option[JsObject]] =
     eventReportCacheRepository.getUserAnswers(externalId, pstr, None)
@@ -390,13 +389,12 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
 
     def memberTransform(members: Seq[JsObject]): Seq[JsObject] = {
       memberIdToDelete match {
-        case Some(memberId) => {
+        case Some(memberId) =>
           val member = Try(members(memberId)) match {
             case Failure(exception) => throw new RuntimeException("Member does not exist", exception)
             case Success(member) => member + ("memberStatus", JsString(Deleted().name))
           }
           members.updated(memberId, member)
-        }
         case _ => members.map(member => member + ("memberStatus", JsString(Deleted().name)))
       }
     }

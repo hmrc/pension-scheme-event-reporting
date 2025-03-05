@@ -37,7 +37,7 @@ case class AuthRequest[A](request: Request[A],
                           psaOrPspId:Either[PsaId, PspId],
                           externalId: String,
                           name: Option[Name]) extends WrappedRequest[A](request) {
-  def getId = psaOrPspId match {
+  def getId: String = psaOrPspId match {
     case Left(psaId) => psaId.id
     case Right(pspId) => pspId.id
   }
