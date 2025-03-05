@@ -198,7 +198,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
           "recordVersion" -> version,
           "hasSchemeChangedRules" -> true,
           "dateOfChange" -> Json.obj(
-            "dateOfChange" -> s"${taxYear}-04-06"
+            "dateOfChange" -> s"$taxYear-04-06"
           )
         ),
         "taxYear" -> taxYear
@@ -211,7 +211,7 @@ trait GeneratorAPI1826 extends Matchers with OptionValues with ResponseGenerator
         "eventDetails" -> Json.obj(
           "event12" -> Json.obj(
             "recordVersion" -> ("00" + version.toString),
-            "twoOrMoreSchemesDate" -> s"${taxYear}-04-06"
+            "twoOrMoreSchemesDate" -> s"$taxYear-04-06"
           )
         )
       )

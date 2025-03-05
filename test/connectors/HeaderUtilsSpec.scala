@@ -16,15 +16,13 @@
 
 package connectors
 
-import config.AppConfig
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 
 class HeaderUtilsSpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfterEach {
-  private val mockConfig = mock[AppConfig]
-  private val headerUtils = new HeaderUtils(mockConfig)
+  private val headerUtils = new HeaderUtils
 
   "call getCorrelationId" must {
     "return a CorrelationId of the correct size" in {

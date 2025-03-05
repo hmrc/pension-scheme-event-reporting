@@ -163,6 +163,6 @@ class GetDetailsCacheRepository @Inject()(
         Filters.equal(yearKey, gdcdi.year),
         Filters.equal(versionKey, gdcdi.version)
       )
-    ).toFuture().map(_ => true)
+    ).toFuture().map(_ => ())
   }
 }

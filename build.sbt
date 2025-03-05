@@ -16,18 +16,18 @@
 
 import play.sbt.routes.RoutesKeys
 import uk.gov.hmrc.DefaultBuildSettings
-import uk.gov.hmrc.DefaultBuildSettings.integrationTestSettings
 
 val appName: String = "pension-scheme-event-reporting"
+
+ThisBuild / majorVersion := 0
+ThisBuild / scalaVersion := "2.13.12"
 
 lazy val root = (project in file("."))
   .disablePlugins(JUnitXmlReportPlugin)
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
-  .settings(DefaultBuildSettings.scalaSettings: _*)
-  .settings(DefaultBuildSettings.defaultSettings(): _*)
-  .settings(scalaVersion := "2.13.12")
-  .settings(inConfig(Test)(testSettings): _*)
-  .settings(majorVersion := 0)
+  .settings(DefaultBuildSettings.scalaSettings)
+  .settings(DefaultBuildSettings.defaultSettings())
+  .settings(inConfig(Test)(testSettings))
   .settings(
     name := appName,
     PlayKeys.playDefaultPort := 8215,
@@ -42,10 +42,14 @@ lazy val root = (project in file("."))
       "models.SchemeReferenceNumber"
     )
   )
-  .configs(IntegrationTest)
-  .settings(integrationTestSettings(): _*)
   .settings(resolvers += Resolver.jcenterRepo)
-  .settings(CodeCoverageSettings.settings: _*)
+  .settings(CodeCoverageSettings.settings)
+
+lazy val it = project
+  .enablePlugins(PlayScala)
+  .dependsOn(root % "test->test") // the "test->test" allows reusing test code and test dependencies
+  .settings(DefaultBuildSettings.itSettings())
+  .settings(libraryDependencies ++= AppDependencies.test)
 
 lazy val testSettings: Seq[Def.Setting[_]] = Seq(
   fork := true,

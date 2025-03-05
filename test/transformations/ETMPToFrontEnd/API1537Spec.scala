@@ -28,10 +28,9 @@ class API1537Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
   "Reads" - {
     "transform a valid payload from API 1537 correctly" in {
       forAll(generateGetVersionJson) {
-        case (payload: JsArray, expected: JsArray) => {
+        case (payload: JsArray, expected: JsArray) =>
           val result = payload.validate(API1537.reads)
           result mustBe JsSuccess(expected)
-        }
       }
     }
 

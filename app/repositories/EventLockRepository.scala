@@ -90,6 +90,7 @@ class EventLockRepository @Inject()(
         } else {
           updateEventLockExpire(pstr, psaOrPspId, edi).toFuture().map { _ => true }
         }
+      case _ => throw new RuntimeException("Unexpected match on upsertIfNotLocked")
     }
   }
 

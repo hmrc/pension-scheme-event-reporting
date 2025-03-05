@@ -18,12 +18,12 @@ package repositories
 
 import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
-import crypto.{DataEncryptor, EncryptedValue}
+import crypto.DataEncryptor
 import models.EventDataIdentifier
 import models.enumeration.EventType
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
-import org.mongodb.scala.{FindObservable, result}
+import org.mongodb.scala.result
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import play.api.{Configuration, Logging}

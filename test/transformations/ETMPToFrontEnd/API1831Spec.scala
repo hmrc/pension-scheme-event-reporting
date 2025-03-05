@@ -23,6 +23,9 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks
 import play.api.libs.json._
 import utils.{GeneratorAPI1831, JsonFileReader}
 
+import scala.annotation.nowarn
+
+@nowarn
 class API1831Spec extends AnyFreeSpec
   with Matchers with MockitoSugar with JsonFileReader with ScalaCheckPropertyChecks with GeneratorAPI1831 {
   "Reads" - {

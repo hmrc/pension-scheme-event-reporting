@@ -167,7 +167,7 @@ private object API1830ReadsUtilities extends Transformer with ReadsUtils {
     ).reduce
 
   private def readsIndividualMemberDetailsEvent22And23(eventType: EventType): Reads[JsObject] = (
-    etmpPathToEventType.json.put(JsString(s"Event${eventType}")) and
+    etmpPathToEventType.json.put(JsString(s"Event$eventType")) and
       readsIndividualMemberDetails and
       reqNestedReadsJsString(etmpPathToTaxYearEndingDate, readsTaxYearEndDate) and
       reqReads(etmpPathToMonetaryAmount, uaPathToTotalPensionAmounts)
