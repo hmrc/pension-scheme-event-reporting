@@ -63,7 +63,7 @@ class AuditServiceSpec extends AnyWordSpec with Matchers with Inside {
       auditService().sendEvent(event)
       verify(mockAuditConnector, times(1)).sendExtendedEvent(templateCaptor.capture())(any(), any())
       inside(templateCaptor.getValue) {
-        case ExtendedDataEvent(auditSource, auditType, _, _, detail, _, _, _) =>
+        case ExtendedDataEvent(auditSource, auditType, _, _, detail, _, _, _, _) =>
           auditSource mustBe appName
           auditType mustBe event.auditType
 

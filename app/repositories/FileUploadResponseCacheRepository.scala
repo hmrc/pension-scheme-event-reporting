@@ -18,7 +18,6 @@ package repositories
 
 import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
-import models.enumeration.ApiType
 import org.mongodb.scala.model._
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
@@ -35,15 +34,6 @@ import scala.concurrent.{ExecutionContext, Future}
 case class FileUploadResponseCacheEntry(pstr: String, apiTypes: String, data: JsValue, lastUpdated: Instant, expireAt: Instant)
 
 object FileUploadResponseCacheEntry {
-
-  def applyFileUploadResponseCacheEntry(pstr: String,
-                                 apiTypes: ApiType,
-                                 data: JsValue,
-                                 lastUpdated: Instant = Instant.now(),
-                                 expireAt: Instant): FileUploadResponseCacheEntry = {
-
-    FileUploadResponseCacheEntry(pstr, apiTypes.toString, data, lastUpdated, expireAt)
-  }
 
   implicit val dateFormat: Format[Instant] = MongoJavatimeFormats.instantFormat
   implicit val format: Format[FileUploadResponseCacheEntry] = Json.format[FileUploadResponseCacheEntry]

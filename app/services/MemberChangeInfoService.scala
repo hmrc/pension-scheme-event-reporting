@@ -23,7 +23,7 @@ import models.MemberChangeInfo._
 import javax.inject.Singleton
 
 @Singleton
-class MemberChangeInfoService() {
+class MemberChangeInfoService {
 
   //scalastyle:off cyclomatic.complexity
   def generateMemberChangeInfo(oldMember: Option[JsObject],

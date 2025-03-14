@@ -146,10 +146,11 @@ private object API1833ReadsUtilities extends Transformer with ReadsUtils {
     case "Transfer to non-registered pensions scheme" => pathUASchemeDetailsSchemeName
     case "Error in calculating tax free lump sums" => pathUAErrorDescription
     case "Benefits paid early other than on the grounds of ill-health, protected pension age or a winding up lump sum" => pathUABenefitsPaidEarly
+    case "Refund of contributions" => pathUARefundOfContributions
+    case "Overpayment of pension/written off" => pathUAReasonForTheOverpaymentOrWriteOff
+    case "Residential property held directly or indirectly by an investment-regulated pension scheme" => pathUAPaymentNatureMember
     case "Tangible moveable property held directly or indirectly by an investment-regulated pension scheme" => pathUAMemberTangibleMoveableProperty
     case "Court Order Payment/Confiscation Order" => pathUAUnauthorisedPaymentRecipientName
-    case "Overpayment of pension/written off" => pathUAReasonForTheOverpaymentOrWriteOff
-    case "Refund of contributions" => pathUARefundOfContributions
     case "Other" => pathUAMemberPaymentNatureDescription
   }
 

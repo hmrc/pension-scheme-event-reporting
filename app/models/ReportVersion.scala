@@ -16,8 +16,7 @@
 
 package models
 
-import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json.{Format, JsPath, Json, Reads}
+import play.api.libs.json.{Format, Json}
 
 case class ReportVersion(
                         versionDetails: VersionDetails,

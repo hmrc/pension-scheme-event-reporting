@@ -16,12 +16,9 @@
 
 package connectors
 
-import com.google.inject.Inject
-import config.AppConfig
-
 import java.util.UUID.randomUUID
 
-class HeaderUtils @Inject()(config: AppConfig) {
+class HeaderUtils {
 
   val maxLengthCorrelationIdIF = 36
 

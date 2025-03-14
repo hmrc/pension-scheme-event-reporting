@@ -23,7 +23,9 @@ import scala.io.Source
 trait JsonFileReader {
 
   def readJsonFromFile(filePath: String): JsValue = {
-    val path = Source.fromURL(getClass.getResource(filePath)).mkString
+    val source = Source.fromURL(getClass.getResource(filePath))
+    val path = source.mkString
+    source.close()
     Json.parse(path)
   }
 

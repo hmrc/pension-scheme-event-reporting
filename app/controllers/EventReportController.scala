@@ -21,13 +21,13 @@ import models.{ReportVersion, SchemeReferenceNumber}
 import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json._
-import play.api.mvc._
-import repositories.{EventReportCacheEntry, EventReportCacheRepository}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Request, Result, Results}
+import repositories.EventReportCacheEntry
 import services.EventReportService
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.retrieve.{Name, ~}
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, Enrolment, Enrolments}
-import uk.gov.hmrc.http.{UnauthorizedException, Request => _, _}
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpErrorFunctions, NotFoundException, UnauthorizedException}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
@@ -82,24 +82,27 @@ class EventReportController @Inject()(
 
       withAuth.flatMap { case Credentials(externalId, psaOrPspId, _) =>
         val userAnswersJson = requiredBody.validate[JsObject].getOrElse(throw new RuntimeException("Expected JsObject body"))
-        val pstr = requiredHeaders("pstr").head
-        val etVersionYear = (request.headers.get("eventType"), request.headers.get("version"), request.headers.get("year")) match {
-          case (Some(et), Some(version), Some(year)) => Some((et, version.toInt, year.toInt))
-          case _ => None
-        }
-
-        etVersionYear match {
-          case Some((eventType, version, year)) =>
-            EventType.getEventType(eventType) match {
-              case Some(et) =>
-                eventReportService.saveUserAnswers(externalId, pstr, et, year, version, userAnswersJson, psaOrPspId).map(_ => Ok)
-              case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
+        requiredHeader("pstr") match {
+          case Left(msg) => Future.successful(BadRequest(msg))
+          case Right(pstr) =>
+            val etVersionYear = (request.headers.get("eventType"), request.headers.get("version"), request.headers.get("year")) match {
+              case (Some(et), Some(version), Some(year)) => Some((et, version.toInt, year.toInt))
+              case _ => None
             }
-          case _ =>
-            for {
-              _ <- eventReportService.saveUserAnswers(externalId, pstr, userAnswersJson)
-              _ <- eventReportService.saveUserAnswers(externalId, pstr + "_original_cache", userAnswersJson)
-            } yield Ok
+
+            etVersionYear match {
+              case Some((eventType, version, year)) =>
+                EventType.getEventType(eventType) match {
+                  case Some(et) =>
+                    eventReportService.saveUserAnswers(externalId, pstr, et, year, version, userAnswersJson, psaOrPspId).map(_ => Ok)
+                  case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
+                }
+              case _ =>
+                for {
+                  _ <- eventReportService.saveUserAnswers(externalId, pstr, userAnswersJson)
+                  _ <- eventReportService.saveUserAnswers(externalId, pstr + "_original_cache", userAnswersJson)
+                } yield Ok
+            }
         }
       }
   }
@@ -109,7 +112,6 @@ class EventReportController @Inject()(
 
       requiredHeader("pstr").map { pstr =>
         val userAnswersJson = requiredBody.validate[JsObject].getOrElse(throw new RuntimeException("Expected JsObject body"))
-        val pstr = requiredHeaders("pstr").head
         val etVersionYear = (request.headers.get("eventType"), request.headers.get("version"), request.headers.get("year")) match {
           case (Some(et), Some(version), Some(year)) => Some((et, version.toInt, year.toInt))
           case _ => None
@@ -137,17 +139,24 @@ class EventReportController @Inject()(
   def changeVersion: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { case Credentials(externalId, _, _) =>
-        val Seq(pstr, version, newVersion) = requiredHeaders("pstr", "version", "newVersion")
-        for {
-          x <- eventReportService.changeVersion(externalId, pstr, version.toInt, newVersion.toInt)
-          y <- eventReportService.changeVersion(externalId, pstr + "_original_cache", version.toInt, newVersion.toInt)
+        (for {
+          pstr <- requiredHeader("pstr")
+          version <- requiredHeader("version")
+          newVersion <- requiredHeader("newVersion")
         } yield {
-          (x,y) match {
-            case (Some(_), Some(_)) => NoContent
-            case _ => NotFound
+          for {
+            x <- eventReportService.changeVersion(externalId, pstr, version.toInt, newVersion.toInt)
+            y <- eventReportService.changeVersion(externalId, pstr + "_original_cache", version.toInt, newVersion.toInt)
+          } yield {
+            (x,y) match {
+              case (Some(_), Some(_)) => NoContent
+              case _ => NotFound
+            }
           }
+        }) match {
+          case Left(msg) => Future.successful(BadRequest(msg))
+          case Right(result) => result
         }
-
       }
   }
 
@@ -176,8 +185,17 @@ class EventReportController @Inject()(
   def isEventDataChanged: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { case Credentials(externalId, psaPspId, _)  =>
-        val Seq(pstr, version, eventType, year) = requiredHeaders("pstr", "version", "eventType", "year")
-        eventReportService.isNewReportDifferentToPrevious(externalId, pstr, year.toInt, version.toInt, psaPspId, eventType).map(bool => Ok(JsBoolean(bool)))
+        (for {
+          pstr <- requiredHeader("pstr")
+          version <- requiredHeader("version")
+          eventType <- requiredHeader("eventType")
+          year <- requiredHeader("year")
+        } yield {
+          eventReportService.isNewReportDifferentToPrevious(externalId, pstr, year.toInt, version.toInt, eventType).map(bool => Ok(JsBoolean(bool)))
+        }) match {
+          case Left(msg) => Future.successful(BadRequest(msg))
+          case Right(result) => result
+        }
       }
   }
 
@@ -189,8 +207,7 @@ class EventReportController @Inject()(
         eventType <- requiredHeader("eventType")
         year <- requiredHeader("year")
       } yield {
-        val id = request.getId
-        eventReportService.isNewReportDifferentToPrevious(request.externalId, pstr, year.toInt, version.toInt, id, eventType)
+        eventReportService.isNewReportDifferentToPrevious(request.externalId, pstr, year.toInt, version.toInt, eventType)
           .map(bool => Ok(JsBoolean(bool)))
       }) match {
         case Left(msg) => Future.successful(BadRequest(msg))
@@ -226,12 +243,15 @@ class EventReportController @Inject()(
       }
 
       withAuth.flatMap { case Credentials(externalId, psaOrPspId, _) =>
-        val pstr = requiredHeaders("pstr").head
-        val etVersionYear = (request.headers.get("eventType"), request.headers.get("version"), request.headers.get("year")) match {
-          case (Some(et), Some(version), Some(year)) => Some((et, version.toInt, year.toInt))
-          case _ => None
+        requiredHeader("pstr") match {
+          case Left(msg) => Future.successful(BadRequest(msg))
+          case Right(pstr) =>
+            val etVersionYear = (request.headers.get("eventType"), request.headers.get("version"), request.headers.get("year")) match {
+              case (Some(et), Some(version), Some(year)) => Some((et, version.toInt, year.toInt))
+              case _ => None
+            }
+            process(externalId, psaOrPspId, pstr, etVersionYear)
         }
-        process(externalId, psaOrPspId, pstr, etVersionYear)
       }
   }
 
@@ -276,19 +296,6 @@ class EventReportController @Inject()(
     req.headers.get(header).map(Right(_)).getOrElse(Left(s"Bad Request with missing header: $header"))
   }
 
-  private def requiredHeaders(headers: String*)(implicit request: Request[AnyContent]) = {
-    val headerData = headers.map(request.headers.get)
-    val allHeadersDefined = headerData.forall(_.isDefined)
-    if (allHeadersDefined) headerData.collect { case Some(value) => value }
-    else {
-      val missingHeaders = headers.zip(headerData)
-      val errorString = missingHeaders.map { case (headerName, data) =>
-        prettyMissingParamError(data, headerName + " missing")
-      }.mkString(" ")
-      throw new BadRequestException("Bad Request with missing parameters: " + errorString)
-    }
-  }
-
   private def requiredBody(implicit request: Request[AnyContent]) =
     request.body.asJson.getOrElse(throw new BadRequestException("Request does not contain required Json body"))
 
@@ -299,8 +306,16 @@ class EventReportController @Inject()(
   def getEventSummary: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { case Credentials(externalId, psaPspId, name)  =>
-        val Seq(pstr, version, startDate) = requiredHeaders("pstr", "reportVersionNumber", "reportStartDate")
-        eventReportService.getEventSummary(pstr, ("00" + version).takeRight(3), startDate, psaPspId, externalId, name).map(Ok(_))
+        (for {
+            pstr <- requiredHeader("pstr")
+            version <- requiredHeader("reportVersionNumber")
+            startDate <- requiredHeader("reportStartDate")
+          } yield {
+            eventReportService.getEventSummary(pstr, ("00" + version).takeRight(3), startDate, psaPspId, externalId, name).map(Ok(_))
+          }) match {
+          case Left(msg) => Future.successful(BadRequest(msg))
+          case Right(result) => result
+        }
       }
   }
 
@@ -322,12 +337,19 @@ class EventReportController @Inject()(
   def getVersions: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { _ =>
-        val Seq(pstr, startDate) = requiredHeaders("pstr", "startDate")
-        eventReportService.getVersions(pstr, startDate).map {
-          data => {
-            val sortedData = data.value.sortBy(y => y.as[ReportVersion].versionDetails.version).reverse
-            Ok(Json.toJson(sortedData))
+        (for {
+          pstr <- requiredHeader("pstr")
+          startDate <- requiredHeader("startDate")
+        } yield {
+          eventReportService.getVersions(pstr, startDate).map {
+            data => {
+              val sortedData = data.value.sortBy(y => y.as[ReportVersion].versionDetails.version).reverse
+              Ok(Json.toJson(sortedData))
+            }
           }
+        }) match {
+          case Left(msg) => Future.successful(BadRequest(msg))
+          case Right(result) => result
         }
       }
   }
@@ -352,9 +374,17 @@ class EventReportController @Inject()(
   def getOverview: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { _ =>
-        val Seq(pstr, startDate, endDate) = requiredHeaders("pstr", "startDate", "endDate")
-        eventReportService.getOverview(pstr, startDate, endDate).map {
-          data => Ok(data)
+        (for {
+          pstr <- requiredHeader("pstr")
+          startDate <- requiredHeader("startDate")
+          endDate <- requiredHeader("endDate")
+        } yield {
+          eventReportService.getOverview(pstr, startDate, endDate).map {
+            data => Ok(data)
+          }
+        }) match {
+          case Left(msg) => Future.successful(BadRequest(msg))
+          case Right(result) => result
         }
       }
   }
@@ -376,32 +406,41 @@ class EventReportController @Inject()(
 
   def compileEvent: Action[AnyContent] = Action.async { implicit request =>
     withAuth.flatMap { case Credentials(externalId, psaPspId, _) =>
-      val Seq(pstr, et, version, currentVersion, year) = requiredHeaders("pstr", "eventType", "version", "currentVersion", "year")
-
-      val delete = request.headers.get("delete").contains("true")
-      EventType.getEventType(et) match {
-        case Some(eventType) => if(delete)
-          eventReportService.deleteEvent(
-            externalId,
-            psaPspId,
-            pstr,
-            eventType,
-            year.toInt,
-            version,
-            currentVersion,
-            None
-          )
-        else
-          eventReportService.compileEventReport(
-            externalId,
-            psaPspId,
-            pstr,
-            eventType,
-            year.toInt,
-            version,
-            currentVersion
-          )
-        case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
+      (for {
+        pstr <- requiredHeader("pstr")
+        et <- requiredHeader("eventType")
+        version <- requiredHeader("version")
+        currentVersion <- requiredHeader("currentVersion")
+        year <- requiredHeader("year")
+      } yield {
+        val delete = request.headers.get("delete").contains("true")
+        EventType.getEventType(et) match {
+          case Some(eventType) => if(delete)
+            eventReportService.deleteEvent(
+              externalId,
+              psaPspId,
+              pstr,
+              eventType,
+              year.toInt,
+              version,
+              currentVersion,
+              None
+            )
+          else
+            eventReportService.compileEventReport(
+              externalId,
+              psaPspId,
+              pstr,
+              eventType,
+              year.toInt,
+              version,
+              currentVersion
+            )
+          case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
+        }
+      }) match {
+        case Left(msg) => Future.successful(BadRequest(msg))
+        case Right(result) => result
       }
     }
   }
@@ -447,20 +486,30 @@ class EventReportController @Inject()(
 
   def deleteMember(): Action[AnyContent] = Action.async { implicit request =>
     withAuth.flatMap { case Credentials(externalId, psaPspId, _) =>
-      val Seq(pstr, et, version, year, memberIdToDelete, currentVersion) =
-        requiredHeaders("pstr", "eventType", "version", "year", "memberIdToDelete", "currentVersion")
-      EventType.getEventType(et) match {
-        case Some(eventType) => eventReportService.deleteMember(
-          externalId,
-          psaPspId,
-          pstr,
-          eventType,
-          year.toInt,
-          version,
-          memberIdToDelete.toInt,
-          currentVersion
-        )
-        case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
+      (for {
+        pstr <- requiredHeader("pstr")
+        et <- requiredHeader("eventType")
+        version <- requiredHeader("version")
+        year <- requiredHeader("year")
+        memberIdToDelete <- requiredHeader("memberIdToDelete")
+        currentVersion <- requiredHeader("currentVersion")
+      } yield {
+        EventType.getEventType(et) match {
+          case Some(eventType) => eventReportService.deleteMember(
+            externalId,
+            psaPspId,
+            pstr,
+            eventType,
+            year.toInt,
+            version,
+            memberIdToDelete.toInt,
+            currentVersion
+          )
+          case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
+        }
+      }) match {
+        case Left(msg) => Future.successful(BadRequest(msg))
+        case Right(result) => result
       }
     }
   }
@@ -496,13 +545,21 @@ class EventReportController @Inject()(
   def submitEventDeclarationReport: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { case Credentials(externalId, psaPspId, _) =>
-        val Seq(pstr, version) = requiredHeaders("pstr", "version")
-        val userAnswersJson = requiredBody
-        eventReportService.submitEventDeclarationReport(pstr, psaPspId, userAnswersJson, version).recoverWith{
-          case e: Exception =>
-            logger.error(s"Error submitting event declaration report: ${e.getMessage}")
-            Future.failed(new BadRequestException(s"Bad Request: ${e.getMessage}"))
+        (for {
+          pstr <- requiredHeader("pstr")
+          version <- requiredHeader("version")
+          userAnswersJson <- requiredBodyEither
+        } yield {
+          val userAnswersJson = requiredBody
+          eventReportService.submitEventDeclarationReport(pstr, psaPspId, userAnswersJson, version).recoverWith{
+            case e: Exception =>
+              logger.error(s"Error submitting event declaration report: ${e.getMessage}")
+              Future.failed(new BadRequestException(s"Bad Request: ${e.getMessage}"))
 
+          }
+        }) match {
+          case Left(msg) => Future.successful(BadRequest(msg))
+          case Right(result) => result
         }
       }
   }
@@ -529,9 +586,16 @@ class EventReportController @Inject()(
   def submitEvent20ADeclarationReport: Action[AnyContent] = Action.async {
     implicit request =>
       withAuth.flatMap { case Credentials(_, psaPspId, _) =>
-        val Seq(pstr, version) = requiredHeaders("pstr", "version")
-        val userAnswersJson = requiredBody
-        eventReportService.submitEvent20ADeclarationReport(pstr, psaPspId, userAnswersJson, version)
+        (for {
+          pstr <- requiredHeader("pstr")
+          version <- requiredHeader("version")
+        } yield {
+          val userAnswersJson = requiredBody
+          eventReportService.submitEvent20ADeclarationReport(pstr, psaPspId, userAnswersJson, version)
+        }) match {
+          case Left(msg) => Future.successful(BadRequest(msg))
+          case Right(result) => result
+        }
       }
   }
 
@@ -584,7 +648,5 @@ class EventReportController @Inject()(
         Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
     }
   }
-
-  private def prettyMissingParamError(param: Option[String], error: String) = if (param.isEmpty) s"$error " else ""
 }
 

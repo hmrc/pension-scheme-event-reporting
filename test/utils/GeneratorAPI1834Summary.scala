@@ -51,7 +51,7 @@ trait GeneratorAPI1834Summary extends Matchers with OptionValues with ResponseGe
       }
       val payloadWithoutSeq = chosenEventTypesWithoutSeq.foldLeft(Json.obj()) { (acc, s) =>
         acc ++ Json.obj(
-          s"""event${s}""" ->
+          s"""event$s""" ->
             Json.obj(
               "recordVersion" -> version
             )
