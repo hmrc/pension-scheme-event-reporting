@@ -37,6 +37,8 @@ PUT           /user-answers/:srn                                                
 DELETE        /user-answers                                                                     controllers.EventReportController.removeUserAnswers
 DELETE        /user-answers/:srn                                                                controllers.EventReportController.removeUserAnswersSrn(srn: SchemeReferenceNumber)
 
+POST          /user-answers/refresh-expire/:srn                                                 controllers.EventReportController.refreshExpire(srn: SchemeReferenceNumber)
+
 POST          /email-response/:submittedBy/:requestId/:email/:psaId/:pstr/:reportVersion        controllers.EmailResponseController.sendAuditEvents(submittedBy: String, requestId: String, email: String, psaId: String, pstr: String, reportVersion: String)
 #deprecated
 GET           /file-upload-response/get                                                         controllers.FileUploadOutcomeController.get

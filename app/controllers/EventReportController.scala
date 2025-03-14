@@ -22,7 +22,7 @@ import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
-import repositories.EventReportCacheEntry
+import repositories.{EventReportCacheEntry, EventReportCacheRepository}
 import services.EventReportService
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.retrieve.{Name, ~}
@@ -32,11 +32,14 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+
+//noinspection ScalaStyle
 @Singleton()
 class EventReportController @Inject()(
                                        cc: ControllerComponents,
                                        val authConnector: AuthConnector,
                                        eventReportService: EventReportService,
+                                       eventReportCacheRepository: EventReportCacheRepository,
                                        authAction: AuthAction
                                      )(implicit ec: ExecutionContext)
   extends BackendController(cc)
@@ -45,6 +48,21 @@ class EventReportController @Inject()(
     with AuthorisedFunctions
     with Logging {
   implicit val formats: Format[EventReportCacheEntry] = Json.format[EventReportCacheEntry]
+
+  def refreshExpire(srn: SchemeReferenceNumber) = authAction(srn).async { req =>
+    eventReportCacheRepository.refreshExpire(req.externalId)
+      .map {
+        case true => Ok("")
+        case false =>
+          logger.error("could not refresh expireAt")
+          InternalServerError("could not refresh expireAt")
+      }
+      .recover {
+        case e =>
+          logger.error("could not refresh expireAt", e)
+          InternalServerError(e.getMessage)
+      }
+  }
 
   def removeUserAnswers: Action[AnyContent] = Action.async {
     implicit request =>
