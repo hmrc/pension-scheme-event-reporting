@@ -22,7 +22,7 @@ import models.enumeration.EventType
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc.{Action, AnyContent, ControllerComponents, Request, Result, Results}
-import repositories.EventReportCacheEntry
+import repositories.{EventReportCacheEntry, EventReportCacheRepository}
 import services.EventReportService
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.retrieve.{Name, ~}
