@@ -539,26 +539,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
           x reduce (_ ++ _)
         }
       }
-
-
   }
-
-
-  //TODO: old implementation. New implementation doesn't include Event 20A.
-  // Below commented out code can be used as a guide for when event20A is implemented
-  //  def getVersions(pstr: String, startDate: String)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
-  //    val erVersions = eventReportConnector.getVersions(pstr, reportType = "ER", startDate)
-  //    val er20AVersions = eventReportConnector.getVersions(pstr, reportType = "ER20A", startDate)
-  //    erVersions.flatMap{ g =>er20AVersions.map { h =>
-  //      (h.transform(API1537.reads), g.transform(API1537.reads)) match {
-  //        case (JsSuccess(j, _), JsSuccess(k, _)) =>
-  //          j ++ k
-  //        case (JsError(e), _ ) => throw JsResultException(e)
-  //        case (_, JsError(e) ) => throw JsResultException(e)
-  //      }
-  //     }
-  //    }
-  //  }
 
   def getVersions(pstr: String, startDate: String)(implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
     val erVersions = eventReportConnector.getVersions(pstr, reportType = "ER", startDate)
