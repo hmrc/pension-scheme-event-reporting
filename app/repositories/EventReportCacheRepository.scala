@@ -61,6 +61,9 @@ object EventReportCacheEntry {
 
     private val localDateTimeReads = MongoJavatimeFormats.instantReads.map(LocalDateTime.ofInstant(_, ZoneId.of("UTC")))
 
+    //TODO: Most likely can remove ".orElse(Reads.pure(LocalDateTime.now()))" from date fields.
+    //TODO: Previously we've fixed an issue where date was stored as strings, which would not get picked up for expiry deletion in mongoDB.
+    //TODO: We have performed migration in production environments. Everything should now be stored as Date objects.
     override def reads(json: JsValue): JsResult[EventReportCacheEntry] = {
       (
         (JsPath \ "pstr").read[String] and
@@ -68,8 +71,8 @@ object EventReportCacheEntry {
           (JsPath \ yearKey).read[Int] and
           (JsPath \ versionKey).read[Int] and
           (JsPath \ dataKey).read[JsValue] and
-          (JsPath \ lastUpdatedKey).read(localDateTimeReads).orElse(Reads.pure(LocalDateTime.now())) and //TODO: PODS-8791 remove after data was fixed
-          (JsPath \ expireAtKey).read(localDateTimeReads).orElse(Reads.pure(LocalDateTime.now())) and //TODO: PODS-8791 remove after data was fixed
+          (JsPath \ lastUpdatedKey).read(localDateTimeReads).orElse(Reads.pure(LocalDateTime.now())) and
+          (JsPath \ expireAtKey).read(localDateTimeReads).orElse(Reads.pure(LocalDateTime.now())) and
           (JsPath \ externalIdKey).read[String]
       )(
         (pstr, eventType, year, version, data, lastUpdated, expireAt, externalId) =>
