@@ -20,7 +20,7 @@ import uk.gov.hmrc.DefaultBuildSettings
 val appName: String = "pension-scheme-event-reporting"
 
 ThisBuild / majorVersion := 0
-ThisBuild / scalaVersion := "2.13.12"
+ThisBuild / scalaVersion := "2.13.16"
 
 lazy val root = (project in file("."))
   .disablePlugins(JUnitXmlReportPlugin)
