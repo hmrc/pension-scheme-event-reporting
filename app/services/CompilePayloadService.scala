@@ -129,7 +129,7 @@ class CompilePayloadService @Inject()(
             .map(_ => jsObject)
         }
       case _ => {
-        // logger.info(s"jsonForEventBeingCompiled is: $jsonForEventBeingCompiled")
+        logger.debug(s"jsonForEventBeingCompiled is: $jsonForEventBeingCompiled")
         Future.successful(jsonForEventBeingCompiled)
       }
     }

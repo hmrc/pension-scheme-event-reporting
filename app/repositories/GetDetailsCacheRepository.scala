@@ -50,7 +50,10 @@ object GetDetailsCacheEntry {
   val lastUpdatedKey = "lastUpdated"
   val dataKey = "data"
 
-  private val dateReads = new Reads[Instant] { //TODO: Remove after expireAt migration fix
+  //TODO: Most likely can just use MongoJavatimeFormats.instantReads.
+  //TODO: Previously we've fixed an issue where date was stored as strings, which would not get picked up for expiry deletion in mongoDB.
+  //TODO: We have performed migration in production environments. Everything should now be stored as Date objects.
+  private val dateReads = new Reads[Instant] {
     def reads(json: JsValue): JsResult[Instant] = {
       val result = json.asOpt[String].map {
         Instant.parse

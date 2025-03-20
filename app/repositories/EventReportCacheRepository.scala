@@ -61,6 +61,9 @@ object EventReportCacheEntry {
 
     private val localDateTimeReads = MongoJavatimeFormats.instantReads.map(LocalDateTime.ofInstant(_, ZoneId.of("UTC")))
 
+    //TODO: Most likely can remove ".orElse(Reads.pure(LocalDateTime.now()))" from date fields.
+    //TODO: Previously we've fixed an issue where date was stored as strings, which would not get picked up for expiry deletion in mongoDB.
+    //TODO: We have performed migration in production environments. Everything should now be stored as Date objects.
     override def reads(json: JsValue): JsResult[EventReportCacheEntry] = {
       (
         (JsPath \ "pstr").read[String] and
@@ -68,8 +71,8 @@ object EventReportCacheEntry {
           (JsPath \ yearKey).read[Int] and
           (JsPath \ versionKey).read[Int] and
           (JsPath \ dataKey).read[JsValue] and
-          (JsPath \ lastUpdatedKey).read(localDateTimeReads).orElse(Reads.pure(LocalDateTime.now())) and //TODO: PODS-8791 remove after data was fixed
-          (JsPath \ expireAtKey).read(localDateTimeReads).orElse(Reads.pure(LocalDateTime.now())) and //TODO: PODS-8791 remove after data was fixed
+          (JsPath \ lastUpdatedKey).read(localDateTimeReads).orElse(Reads.pure(LocalDateTime.now())) and
+          (JsPath \ expireAtKey).read(localDateTimeReads).orElse(Reads.pure(LocalDateTime.now())) and
           (JsPath \ externalIdKey).read[String]
       )(
         (pstr, eventType, year, version, data, lastUpdated, expireAt, externalId) =>
@@ -140,7 +143,7 @@ class EventReportCacheRepository @Inject()(
       filter = selector(pstr),
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => debugLog("save user answers", edi, pstr, data)).flatMap {
       case _ if !pstr.contains("_original_cache")=> updateExpire(selector(pstr + "_original_cache"), isEvent(edi.eventType)).toFuture().map { _ => () }
-      case _ => Future.successful()
+      case _ => Future.successful(())
     }
   }
 
@@ -214,7 +217,7 @@ class EventReportCacheRepository @Inject()(
       debugLog("save user answers", externalId, pstr, data)
     ).flatMap {
       case _ if !pstr.contains("_original_cache")=> updateExpire(selector(pstr + "_original_cache"), isEvent = false).toFuture().map { _ => () }
-      case _ => Future.successful()
+      case _ => Future.successful(())
     }
   }
 
@@ -256,7 +259,7 @@ class EventReportCacheRepository @Inject()(
     }.flatMap { resp =>
       for {
         u1 <- updateExpire(selector(pstr), isEvent(edi.eventType)).toFuture().map { _ => () }
-        u2 <- if(!pstr.contains("_original_cache")) updateExpire(selector(pstr + "_original_cache"), isEvent(edi.eventType)).toFuture().map { _ => () } else Future.successful()
+        u2 <- if(!pstr.contains("_original_cache")) updateExpire(selector(pstr + "_original_cache"), isEvent(edi.eventType)).toFuture().map { _ => () } else Future.successful(())
       } yield {
         resp
       }

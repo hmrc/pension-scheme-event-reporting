@@ -22,17 +22,17 @@ import models.SchemeReferenceNumber
 import play.api.Logging
 import play.api.http.Status._
 import play.api.libs.json.JsValue
+import uk.gov.hmrc.domain.{PsaId, PspId}
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.client.HttpClientV2
-import utils.{ErrorHandler, HttpResponseHelper}
-import uk.gov.hmrc.domain.{PsaId, PspId}
+import utils.HttpResponseHelper
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class SchemeConnector @Inject()(
   httpClientV2: HttpClientV2,
   config: AppConfig
-)(implicit ec: ExecutionContext) extends HttpResponseHelper with ErrorHandler with Logging {
+)(implicit ec: ExecutionContext) extends HttpResponseHelper with Logging {
 
   def checkForAssociation(psaIdOrPspId: Either[PsaId, PspId], srn: SchemeReferenceNumber)
                                   (implicit headerCarrier: HeaderCarrier): Future[Either[HttpException, Boolean]] =
