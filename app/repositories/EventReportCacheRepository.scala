@@ -140,7 +140,7 @@ class EventReportCacheRepository @Inject()(
       filter = selector(pstr),
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => debugLog("save user answers", edi, pstr, data)).flatMap {
       case _ if !pstr.contains("_original_cache")=> updateExpire(selector(pstr + "_original_cache"), isEvent(edi.eventType)).toFuture().map { _ => () }
-      case _ => Future.successful()
+      case _ => Future.successful(())
     }
   }
 
@@ -214,7 +214,7 @@ class EventReportCacheRepository @Inject()(
       debugLog("save user answers", externalId, pstr, data)
     ).flatMap {
       case _ if !pstr.contains("_original_cache")=> updateExpire(selector(pstr + "_original_cache"), isEvent = false).toFuture().map { _ => () }
-      case _ => Future.successful()
+      case _ => Future.successful(())
     }
   }
 
@@ -256,7 +256,7 @@ class EventReportCacheRepository @Inject()(
     }.flatMap { resp =>
       for {
         u1 <- updateExpire(selector(pstr), isEvent(edi.eventType)).toFuture().map { _ => () }
-        u2 <- if(!pstr.contains("_original_cache")) updateExpire(selector(pstr + "_original_cache"), isEvent(edi.eventType)).toFuture().map { _ => () } else Future.successful()
+        u2 <- if(!pstr.contains("_original_cache")) updateExpire(selector(pstr + "_original_cache"), isEvent(edi.eventType)).toFuture().map { _ => () } else Future.successful(())
       } yield {
         resp
       }
