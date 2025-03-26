@@ -16,7 +16,6 @@
 
 package controllers
 
-import ParsingAndValidationOutcomeController.IdNotFoundFromAuth
 import actions.AuthAction
 import org.apache.pekko.util.ByteString
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
@@ -66,85 +65,6 @@ class ParsingAndValidationOutcomeControllerSpec extends AsyncWordSpec with Match
     reset(repo)
     reset(authConnector)
     super.beforeEach()
-  }
-
-  "ParsingAndValidationOutcome Controller" when {
-    "calling get" must {
-      "return OK with the data" in {
-        when(repo.get(eqTo(id))(any())) thenReturn Future.successful(Some(Json.obj("testId" -> "data")))
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
-
-        val result = controller.get(fakeRequest)
-        status(result) mustEqual OK
-        contentAsJson(result) mustEqual Json.obj(fields = "testId" -> "data")
-      }
-
-      "return NOT FOUND when the data doesn't exist" in {
-        when(repo.get(eqTo(id))(any())) thenReturn Future.successful(None)
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
-
-        val result = controller.get(fakeRequest)
-        status(result) mustEqual NOT_FOUND
-      }
-
-      "throw an exception when the repository call fails" in {
-        when(repo.get(eqTo(id))(any())) thenReturn Future.failed(new Exception())
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
-        val result = controller.get(fakeRequest)
-        an[Exception] must be thrownBy status(result)
-      }
-
-      "throw an exception when the call is not authorised" in {
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
-
-        val result = controller.get(fakeRequest)
-        an[IdNotFoundFromAuth] must be thrownBy status(result)
-      }
-
-    }
-
-    "calling save" must {
-
-      "return OK when the data is saved successfully" in {
-        when(repo.save(any(), any())(any())) thenReturn Future.successful((): Unit)
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
-
-        val result = controller.post(fakePostRequest.withJsonBody(Json.obj("value" -> "data")))
-        status(result) mustEqual CREATED
-      }
-
-      "return BAD REQUEST when the request body cannot be parsed" in {
-        when(repo.save(any(), any())(any())) thenReturn Future.successful((): Unit)
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
-
-        val result = controller.post(fakePostRequest.withRawBody(ByteString(Random.alphanumeric.dropWhile(_.isDigit).take(20).mkString)))
-        status(result) mustEqual BAD_REQUEST
-      }
-
-      "throw an exception when the call is not authorised" in {
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
-
-        val result = controller.post(fakePostRequest.withJsonBody(Json.obj(fields = "value" -> "data")))
-        an[IdNotFoundFromAuth] must be thrownBy status(result)
-      }
-    }
-
-    "calling delete" must {
-      "return OK when the data is removed successfully" in {
-        when(repo.remove(eqTo(id))(any())) thenReturn Future.successful(true)
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
-
-        val result = controller.delete(fakeRequest)
-        status(result) mustEqual OK
-      }
-
-      "throw an exception when the call is not authorised" in {
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
-
-        val result = controller.delete(fakeRequest)
-        an[IdNotFoundFromAuth] must be thrownBy status(result)
-      }
-    }
   }
 
   "ParsingAndValidationOutcomeSrn Controller" when {

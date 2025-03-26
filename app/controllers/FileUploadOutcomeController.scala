@@ -35,8 +35,6 @@ class FileUploadOutcomeController @Inject()(
                                              authAction: AuthAction
                                            )(implicit ec: ExecutionContext)
   extends BackendController(cc)
-    with HttpErrorFunctions
-    with Results
     with Logging {
 
   def save: Action[AnyContent] = Action.async {
@@ -47,30 +45,6 @@ class FileUploadOutcomeController @Inject()(
           fileUploadResponseCacheRepository.upsert(reference, json).map(_ => Ok)
         case None =>
           Future.successful(BadRequest("No JSON body"))
-      }
-  }
-
-  def saveSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
-    implicit request =>
-      request.body.asJson match {
-        case Some(json) =>
-          val reference = (json \ "reference").as[String]
-          fileUploadResponseCacheRepository.upsert(reference, json).map(_ => Ok)
-        case None =>
-          Future.successful(BadRequest("No JSON body"))
-      }
-  }
-
-  def get: Action[AnyContent] = Action.async {
-    implicit request =>
-      withReferenceId { reference =>
-        fileUploadResponseCacheRepository.get(reference).map {
-          case Some(value) => Ok(value)
-          case None => NotFound
-        } recover { e =>
-          logger.error("file upload cache get failed",e)
-          InternalServerError("file upload cache get failed")
-        }
       }
   }
 
