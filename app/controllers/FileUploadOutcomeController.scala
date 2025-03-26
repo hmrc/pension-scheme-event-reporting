@@ -37,7 +37,7 @@ class FileUploadOutcomeController @Inject()(
   extends BackendController(cc)
     with Logging {
 
-  def saveSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
+  def save: Action[AnyContent] = Action.async {
     implicit request =>
       request.body.asJson match {
         case Some(json) =>

@@ -19,7 +19,7 @@ POST          /user-answers/refresh-expire/:srn                                 
 POST          /email-response/:submittedBy/:requestId/:email/:psaId/:pstr/:reportVersion        controllers.EmailResponseController.sendAuditEvents(submittedBy: String, requestId: String, email: String, psaId: String, pstr: String, reportVersion: String)
 
 GET           /file-upload-response/get/:srn                                                    controllers.FileUploadOutcomeController.getSrn(srn: SchemeReferenceNumber)
-POST          /file-upload-response/save/:srn                                                   controllers.FileUploadOutcomeController.saveSrn(srn: SchemeReferenceNumber)
+POST          /file-upload-response/save                                                        controllers.FileUploadOutcomeController.save
 
 GET           /parsing-and-validation-outcome/:srn                                              controllers.ParsingAndValidationOutcomeController.getSrn(srn: SchemeReferenceNumber)
 POST          /parsing-and-validation-outcome/:srn                                              controllers.ParsingAndValidationOutcomeController.postSrn(srn: SchemeReferenceNumber)
