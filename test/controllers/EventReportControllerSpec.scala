@@ -80,10 +80,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     ), "Activated", None)
   ))
 
-  private val emptyCredentials = new~(new~(None, emptyEnrolments), None)
-  private val testCredentials = new~(new~(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1"), enrolments), Some(Name(Some("firstName"), Some("lastName"))))
-
-
 
   before {
     reset(mockAuthConnector)

@@ -16,7 +16,6 @@
 
 package controllers
 
-import ParsingAndValidationOutcomeController.IdNotFoundFromAuth
 import actions.AuthAction
 import org.apache.pekko.util.ByteString
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
