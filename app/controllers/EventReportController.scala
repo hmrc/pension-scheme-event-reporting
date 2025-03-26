@@ -17,17 +17,15 @@
 package controllers
 
 import actions.AuthAction
-import models.{ReportVersion, SchemeReferenceNumber}
 import models.enumeration.EventType
+import models.{ReportVersion, SchemeReferenceNumber}
 import play.api.Logging
 import play.api.libs.json._
-import play.api.mvc.{Action, AnyContent, ControllerComponents, Request, Result, Results}
+import play.api.mvc._
 import repositories.{EventReportCacheEntry, EventReportCacheRepository}
 import services.EventReportService
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
-import uk.gov.hmrc.auth.core.retrieve.{Name, ~}
-import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, Enrolment, Enrolments}
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpErrorFunctions, NotFoundException, UnauthorizedException}
+import uk.gov.hmrc.auth.core.AuthConnector
+import uk.gov.hmrc.http.BadRequestException
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
@@ -42,11 +40,7 @@ class EventReportController @Inject()(
                                        eventReportCacheRepository: EventReportCacheRepository,
                                        authAction: AuthAction
                                      )(implicit ec: ExecutionContext)
-  extends BackendController(cc)
-    with HttpErrorFunctions
-    with Results
-    with AuthorisedFunctions
-    with Logging {
+  extends BackendController(cc) with Logging {
   implicit val formats: Format[EventReportCacheEntry] = Json.format[EventReportCacheEntry]
 
   def refreshExpire(srn: SchemeReferenceNumber) = authAction(srn).async { req =>
@@ -64,47 +58,9 @@ class EventReportController @Inject()(
       }
   }
 
-  def removeUserAnswers: Action[AnyContent] = Action.async {
-    implicit request =>
-      withAuth.map { case Credentials(externalId, psaPspId, _) =>
-        eventReportService.removeUserAnswers(externalId)
-        Ok
-      }
-  }
-
   def removeUserAnswersSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
     implicit request =>
       eventReportService.removeUserAnswers(request.externalId).map { _ => Ok("") }
-  }
-
-  def saveUserAnswers: Action[AnyContent] = Action.async {
-    implicit request =>
-
-      withAuth.flatMap { case Credentials(externalId, psaOrPspId, _) =>
-        val userAnswersJson = requiredBody.validate[JsObject].getOrElse(throw new RuntimeException("Expected JsObject body"))
-        requiredHeader("pstr") match {
-          case Left(msg) => Future.successful(BadRequest(msg))
-          case Right(pstr) =>
-            val etVersionYear = (request.headers.get("eventType"), request.headers.get("version"), request.headers.get("year")) match {
-              case (Some(et), Some(version), Some(year)) => Some((et, version.toInt, year.toInt))
-              case _ => None
-            }
-
-            etVersionYear match {
-              case Some((eventType, version, year)) =>
-                EventType.getEventType(eventType) match {
-                  case Some(et) =>
-                    eventReportService.saveUserAnswers(externalId, pstr, et, year, version, userAnswersJson, psaOrPspId).map(_ => Ok)
-                  case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
-                }
-              case _ =>
-                for {
-                  _ <- eventReportService.saveUserAnswers(externalId, pstr, userAnswersJson)
-                  _ <- eventReportService.saveUserAnswers(externalId, pstr + "_original_cache", userAnswersJson)
-                } yield Ok
-            }
-        }
-      }
   }
 
   def saveUserAnswersSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
@@ -136,30 +92,6 @@ class EventReportController @Inject()(
       }
   }
 
-  def changeVersion: Action[AnyContent] = Action.async {
-    implicit request =>
-      withAuth.flatMap { case Credentials(externalId, _, _) =>
-        (for {
-          pstr <- requiredHeader("pstr")
-          version <- requiredHeader("version")
-          newVersion <- requiredHeader("newVersion")
-        } yield {
-          for {
-            x <- eventReportService.changeVersion(externalId, pstr, version.toInt, newVersion.toInt)
-            y <- eventReportService.changeVersion(externalId, pstr + "_original_cache", version.toInt, newVersion.toInt)
-          } yield {
-            (x,y) match {
-              case (Some(_), Some(_)) => NoContent
-              case _ => NotFound
-            }
-          }
-        }) match {
-          case Left(msg) => Future.successful(BadRequest(msg))
-          case Right(result) => result
-        }
-      }
-  }
-
   def changeVersionSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
     implicit request =>
       (for {
@@ -182,23 +114,6 @@ class EventReportController @Inject()(
       }
   }
 
-  def isEventDataChanged: Action[AnyContent] = Action.async {
-    implicit request =>
-      withAuth.flatMap { case Credentials(externalId, psaPspId, _)  =>
-        (for {
-          pstr <- requiredHeader("pstr")
-          version <- requiredHeader("version")
-          eventType <- requiredHeader("eventType")
-          year <- requiredHeader("year")
-        } yield {
-          eventReportService.isNewReportDifferentToPrevious(externalId, pstr, year.toInt, version.toInt, eventType).map(bool => Ok(JsBoolean(bool)))
-        }) match {
-          case Left(msg) => Future.successful(BadRequest(msg))
-          case Right(result) => result
-        }
-      }
-  }
-
   def isEventDataChangedSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
     implicit request =>
       (for {
@@ -212,46 +127,6 @@ class EventReportController @Inject()(
       }) match {
         case Left(msg) => Future.successful(BadRequest(msg))
         case Right(result) => result
-      }
-  }
-
-  def getUserAnswers: Action[AnyContent] = Action.async {
-    implicit request =>
-
-      def process(externalId: String, psaOrPspId: String, pstr: String, optEtVersionYear: Option[(String, Int, Int)]): Future[Result] = {
-
-        optEtVersionYear match {
-          case Some((eventType, version, year)) =>
-            EventType.getEventType(eventType) match {
-              case Some(et) =>
-                logger.warn(s"Retrieving user answers within timeframe ")
-                eventReportService.getUserAnswers(externalId, pstr, et, year, version, psaOrPspId)
-                  .map {
-                    case None => NotFound
-                    case Some(jsobj) => Ok(jsobj)
-                  }
-              case _ => Future.failed(new NotFoundException(s"Bad Request: eventType ($eventType) not found"))
-            }
-          case _ =>
-            logger.warn(s"Retrieving user answers without timeframe ")
-            eventReportService.getUserAnswers(externalId, pstr)
-              .map {
-                case None => NotFound
-                case Some(jsobj) => Ok(jsobj)
-              }
-        }
-      }
-
-      withAuth.flatMap { case Credentials(externalId, psaOrPspId, _) =>
-        requiredHeader("pstr") match {
-          case Left(msg) => Future.successful(BadRequest(msg))
-          case Right(pstr) =>
-            val etVersionYear = (request.headers.get("eventType"), request.headers.get("version"), request.headers.get("year")) match {
-              case (Some(et), Some(version), Some(year)) => Some((et, version.toInt, year.toInt))
-              case _ => None
-            }
-            process(externalId, psaOrPspId, pstr, etVersionYear)
-        }
       }
   }
 
@@ -303,22 +178,6 @@ class EventReportController @Inject()(
     request.body.asJson
       .map(Right(_)).getOrElse(Left(s"Request does not contain required Json body"))
 
-  def getEventSummary: Action[AnyContent] = Action.async {
-    implicit request =>
-      withAuth.flatMap { case Credentials(externalId, psaPspId, name)  =>
-        (for {
-            pstr <- requiredHeader("pstr")
-            version <- requiredHeader("reportVersionNumber")
-            startDate <- requiredHeader("reportStartDate")
-          } yield {
-            eventReportService.getEventSummary(pstr, ("00" + version).takeRight(3), startDate, psaPspId, externalId, name).map(Ok(_))
-          }) match {
-          case Left(msg) => Future.successful(BadRequest(msg))
-          case Right(result) => result
-        }
-      }
-  }
-
   def getEventSummarySrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
     implicit request =>
       (
@@ -331,26 +190,6 @@ class EventReportController @Inject()(
         }) match {
         case Left(msg) => Future.successful(BadRequest(msg))
         case Right(result) => result
-      }
-  }
-
-  def getVersions: Action[AnyContent] = Action.async {
-    implicit request =>
-      withAuth.flatMap { _ =>
-        (for {
-          pstr <- requiredHeader("pstr")
-          startDate <- requiredHeader("startDate")
-        } yield {
-          eventReportService.getVersions(pstr, startDate).map {
-            data => {
-              val sortedData = data.value.sortBy(y => y.as[ReportVersion].versionDetails.version).reverse
-              Ok(Json.toJson(sortedData))
-            }
-          }
-        }) match {
-          case Left(msg) => Future.successful(BadRequest(msg))
-          case Right(result) => result
-        }
       }
   }
 
@@ -371,24 +210,6 @@ class EventReportController @Inject()(
 
   }
 
-  def getOverview: Action[AnyContent] = Action.async {
-    implicit request =>
-      withAuth.flatMap { _ =>
-        (for {
-          pstr <- requiredHeader("pstr")
-          startDate <- requiredHeader("startDate")
-          endDate <- requiredHeader("endDate")
-        } yield {
-          eventReportService.getOverview(pstr, startDate, endDate).map {
-            data => Ok(data)
-          }
-        }) match {
-          case Left(msg) => Future.successful(BadRequest(msg))
-          case Right(result) => result
-        }
-      }
-  }
-
   def getOverviewSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async { implicit req =>
     val okEither = for {
       pstr <- requiredHeader("pstr")
@@ -401,47 +222,6 @@ class EventReportController @Inject()(
     okEither match {
       case Left(message) => Future.successful(BadRequest(message))
       case Right(resp) => resp
-    }
-  }
-
-  def compileEvent: Action[AnyContent] = Action.async { implicit request =>
-    withAuth.flatMap { case Credentials(externalId, psaPspId, _) =>
-      (for {
-        pstr <- requiredHeader("pstr")
-        et <- requiredHeader("eventType")
-        version <- requiredHeader("version")
-        currentVersion <- requiredHeader("currentVersion")
-        year <- requiredHeader("year")
-      } yield {
-        val delete = request.headers.get("delete").contains("true")
-        EventType.getEventType(et) match {
-          case Some(eventType) => if(delete)
-            eventReportService.deleteEvent(
-              externalId,
-              psaPspId,
-              pstr,
-              eventType,
-              year.toInt,
-              version,
-              currentVersion,
-              None
-            )
-          else
-            eventReportService.compileEventReport(
-              externalId,
-              psaPspId,
-              pstr,
-              eventType,
-              year.toInt,
-              version,
-              currentVersion
-            )
-          case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
-        }
-      }) match {
-        case Left(msg) => Future.successful(BadRequest(msg))
-        case Right(result) => result
-      }
     }
   }
 
@@ -484,36 +264,6 @@ class EventReportController @Inject()(
     }
   }
 
-  def deleteMember(): Action[AnyContent] = Action.async { implicit request =>
-    withAuth.flatMap { case Credentials(externalId, psaPspId, _) =>
-      (for {
-        pstr <- requiredHeader("pstr")
-        et <- requiredHeader("eventType")
-        version <- requiredHeader("version")
-        year <- requiredHeader("year")
-        memberIdToDelete <- requiredHeader("memberIdToDelete")
-        currentVersion <- requiredHeader("currentVersion")
-      } yield {
-        EventType.getEventType(et) match {
-          case Some(eventType) => eventReportService.deleteMember(
-            externalId,
-            psaPspId,
-            pstr,
-            eventType,
-            year.toInt,
-            version,
-            memberIdToDelete.toInt,
-            currentVersion
-          )
-          case _ => Future.failed(new BadRequestException(s"Bad Request: invalid eventType ($et)"))
-        }
-      }) match {
-        case Left(msg) => Future.successful(BadRequest(msg))
-        case Right(result) => result
-      }
-    }
-  }
-
   def deleteMemberSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async { implicit request =>
     (for {
       pstr <- requiredHeader("pstr")
@@ -542,28 +292,6 @@ class EventReportController @Inject()(
     }
   }
 
-  def submitEventDeclarationReport: Action[AnyContent] = Action.async {
-    implicit request =>
-      withAuth.flatMap { case Credentials(externalId, psaPspId, _) =>
-        (for {
-          pstr <- requiredHeader("pstr")
-          version <- requiredHeader("version")
-          userAnswersJson <- requiredBodyEither
-        } yield {
-          val userAnswersJson = requiredBody
-          eventReportService.submitEventDeclarationReport(pstr, psaPspId, userAnswersJson, version).recoverWith{
-            case e: Exception =>
-              logger.error(s"Error submitting event declaration report: ${e.getMessage}")
-              Future.failed(new BadRequestException(s"Bad Request: ${e.getMessage}"))
-
-          }
-        }) match {
-          case Left(msg) => Future.successful(BadRequest(msg))
-          case Right(result) => result
-        }
-      }
-  }
-
   def submitEventDeclarationReportSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
     implicit request =>
       (for {
@@ -583,22 +311,6 @@ class EventReportController @Inject()(
       }
   }
 
-  def submitEvent20ADeclarationReport: Action[AnyContent] = Action.async {
-    implicit request =>
-      withAuth.flatMap { case Credentials(_, psaPspId, _) =>
-        (for {
-          pstr <- requiredHeader("pstr")
-          version <- requiredHeader("version")
-        } yield {
-          val userAnswersJson = requiredBody
-          eventReportService.submitEvent20ADeclarationReport(pstr, psaPspId, userAnswersJson, version)
-        }) match {
-          case Left(msg) => Future.successful(BadRequest(msg))
-          case Right(result) => result
-        }
-      }
-  }
-
   def submitEvent20ADeclarationReportSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
     implicit request =>
       (for {
@@ -613,40 +325,5 @@ class EventReportController @Inject()(
       }
   }
 
-  private def getPsaId(enrolments: Enrolments): Option[String] =
-    enrolments
-      .getEnrolment(key = "HMRC-PODS-ORG")
-      .flatMap(_.getIdentifier("PSAID"))
-      .map(_.value)
-
-  private def getPspId(enrolments: Enrolments): Option[String] =
-    enrolments
-      .getEnrolment(key = "HMRC-PODSPP-ORG")
-      .flatMap(_.getIdentifier("PSPID"))
-      .map(_.value)
-
-  private def getPsaPspId(enrolments: Enrolments): Option[String] =
-    getPsaId(enrolments) match {
-      case id@Some(_) => id
-      case _ =>
-        getPspId(enrolments) match {
-          case id@Some(_) => id
-          case _ => None
-        }
-    }
-
-  private case class Credentials(externalId: String, psaPspId: String, name: Option[Name])
-
-  private def withAuth(implicit hc: HeaderCarrier) = {
-    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId and Retrievals.allEnrolments and Retrievals.name) {
-      case Some(externalId) ~ enrolments ~ name =>
-        getPsaPspId(enrolments) match {
-          case Some(psaPspId) => Future.successful(Credentials(externalId, psaPspId, name))
-          case psa => Future.failed(new BadRequestException(s"Bad Request without psaPspId $psa"))
-        }
-      case _ =>
-        Future.failed(new UnauthorizedException("Not Authorised - Unable to retrieve credentials - externalId"))
-    }
-  }
 }
 

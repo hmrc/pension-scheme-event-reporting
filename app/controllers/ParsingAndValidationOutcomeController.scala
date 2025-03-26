@@ -21,9 +21,7 @@ import com.google.inject.Inject
 import models.SchemeReferenceNumber
 import play.api.mvc._
 import repositories.ParsingAndValidationOutcomeRepository
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
-import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions, Enrolment}
-import uk.gov.hmrc.http.{HeaderCarrier, UnauthorizedException}
+import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -33,37 +31,7 @@ class ParsingAndValidationOutcomeController @Inject()(
                                              val authConnector: AuthConnector,
                                              cc: ControllerComponents,
                                              authAction: AuthAction
-                                           )(implicit ec: ExecutionContext) extends BackendController(cc) with AuthorisedFunctions {
-
-  import ParsingAndValidationOutcomeController._
-
-  def get: Action[AnyContent] = Action.async {
-    implicit request =>
-      getId { id =>
-        repository.get(id).map { response =>
-          response.map(Ok(_)) getOrElse NotFound
-        }
-      }
-  }
-
-  def post: Action[AnyContent] = Action.async {
-    implicit request =>
-      getId { id =>
-        request.body.asJson.map {
-          jsValue =>
-            repository.save(id, jsValue)
-              .map(_ => Created)
-        } getOrElse Future.successful(BadRequest)
-      }
-  }
-
-  def delete: Action[AnyContent] = Action.async {
-    implicit request =>
-      getId { id =>
-        repository.remove(id).map(_ => Ok)
-      }
-  }
-
+                                           )(implicit ec: ExecutionContext) extends BackendController(cc) {
   def getSrn(srn: SchemeReferenceNumber): Action[AnyContent] = authAction(srn).async {
     implicit request =>
      repository.get(request.externalId).map { response =>
@@ -84,20 +52,6 @@ class ParsingAndValidationOutcomeController @Inject()(
     implicit request =>
       repository.remove(request.externalId).map(_ => Ok)
   }
-
-  private def getId(block: String => Future[Result])
-                   (implicit hc: HeaderCarrier): Future[Result] = {
-    authorised(Enrolment("HMRC-PODS-ORG") or Enrolment("HMRC-PODSPP-ORG")).retrieve(Retrievals.externalId) {
-      case Some(id) => block(id)
-      case _ => Future.failed(IdNotFoundFromAuth())
-    }
-  }
-}
-
-object ParsingAndValidationOutcomeController {
-
-  case class IdNotFoundFromAuth() extends UnauthorizedException("Not Authorised - Unable to retrieve id")
-
 }
 
 
