@@ -20,7 +20,7 @@ import uk.gov.hmrc.DefaultBuildSettings
 val appName: String = "pension-scheme-event-reporting"
 
 ThisBuild / majorVersion := 0
-ThisBuild / scalaVersion := "2.13.16"
+ThisBuild / scalaVersion := "3.6.2"
 
 lazy val root = (project in file("."))
   .disablePlugins(JUnitXmlReportPlugin)
@@ -31,8 +31,14 @@ lazy val root = (project in file("."))
   .settings(
     name := appName,
     PlayKeys.playDefaultPort := 8215,
-    scalacOptions ++= Seq("-feature", "-deprecation"),
-    scalacOptions += "-Wconf:src=routes/.*:s",
+    scalacOptions := Seq(
+      "-deprecation",
+      "-feature",
+      "-unchecked",
+      "-encoding", "utf8",
+      "-Xfatal-warnings",
+      "-Wconf:src=routes/.*:s"
+    ),
     libraryDependencies ++= AppDependencies(),
     retrieveManaged := true,
     resolvers ++= Seq(
