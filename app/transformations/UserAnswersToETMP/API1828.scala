@@ -22,7 +22,7 @@ import play.api.libs.json._
 import transformations.{ReadsUtils, Transformer}
 
 
-object API1828 extends {
+object API1828 {
   import transformations.UserAnswersToETMP.API1828Paths._
   import transformations.UserAnswersToETMP.API1828ReadsUtilities._
 

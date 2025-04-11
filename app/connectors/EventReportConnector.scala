@@ -30,6 +30,7 @@ import services.PostToAPIAuditService
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.client.HttpClientV2
 import utils.HttpResponseHelper
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -62,7 +63,7 @@ class EventReportConnector @Inject()(
 
     logger.debug("Get overview (IF) called - URL:" + getErOverviewUrl)
 
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader*)
 
     httpV2Client
       .get(url"$getErOverviewUrl")(hc)
@@ -113,7 +114,7 @@ class EventReportConnector @Inject()(
       val etAsString = eventType.getOrElse(EventType.EventTypeNone)
 
       val apiUrl: String = s"${config.getApiUrlByApiNum(api.toString).format(pstr)}"
-      implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = headers: _*)
+      implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = headers*)
       val versionAsString = ("00" + version).takeRight(3)
       val logMessage =
         s"Get ${api.toString} (IF) called (URL $apiUrl). Event type: $etAsString reportStartDate: $startDate and reportVersionNumber: $versionAsString"
@@ -159,7 +160,7 @@ class EventReportConnector @Inject()(
                                (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
     val createCompileEventReportSummaryUrl = config.createCompileEventReportSummaryUrl.format(pstr)
     logger.debug("Compile Event Report Summary called - URL:" + createCompileEventReportSummaryUrl)
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader*)
     httpV2Client
       .post(url"$createCompileEventReportSummaryUrl")(hc)
       .withBody(data)
@@ -179,7 +180,7 @@ class EventReportConnector @Inject()(
                            (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
     val compileEvent1ReportUrl = config.compileEvent1ReportUrl.format(pstr)
     logger.debug("Compile Event Report One - URL:" + compileEvent1ReportUrl)
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader*)
     httpV2Client
       .post(url"$compileEvent1ReportUrl")(hc)
       .withBody(data)
@@ -199,7 +200,7 @@ class EventReportConnector @Inject()(
                               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
     val compileMemberEventReportUrl = config.compileMemberEventReportUrl.format(pstr)
     logger.debug("Compile Member Event Report- URL:" + compileMemberEventReportUrl)
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader*)
     httpV2Client
       .post(url"$compileMemberEventReportUrl")(hc).withBody(data)
       .transform(_.withRequestTimeout(config.ifsTimeout))
@@ -218,7 +219,7 @@ class EventReportConnector @Inject()(
                                                                                        ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
     val submitEventDeclarationReportUrl = config.submitEventDeclarationReportUrl.format(pstr)
     logger.debug("Submit Event Declaration Report called URL:" + submitEventDeclarationReportUrl)
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader*)
     httpV2Client
       .post(url"$submitEventDeclarationReportUrl")(hc)
       .withBody(data)
@@ -237,7 +238,7 @@ class EventReportConnector @Inject()(
                                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
     val submitEvent20ADeclarationReportUrl = config.submitEvent20ADeclarationReportUrl.format(pstr)
     logger.debug("Submit Event 20A Report - URL:" + submitEvent20ADeclarationReportUrl)
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader*)
     httpV2Client
       .post(url"$submitEvent20ADeclarationReportUrl")(hc)
       .withBody(data)
@@ -257,7 +258,7 @@ class EventReportConnector @Inject()(
                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
     val versionUrl: String = config.versionUrl.format(pstr, reportType, startDate)
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader: _*)
+    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers = integrationFrameworkHeader*)
 
     httpV2Client
       .get(url"$versionUrl")(hc)

@@ -45,7 +45,7 @@ object ApiType extends Enumerable.Implicits {
   }
 
   implicit val enumerable: Enumerable[ApiType] =
-    Enumerable(values.map(v => v.toString -> v): _*)
+    Enumerable(values.map(v => v.toString -> v)*)
 
   implicit val formats: Format[ApiType] = new Format[ApiType] {
     override def writes(o: ApiType): JsValue = JsString(o.toString)

@@ -30,7 +30,7 @@ object Event extends Enumerable.Implicits {
   override def toString: String = super.toString.toLowerCase
 
   implicit val enumerable: Enumerable[Event] = Enumerable(
-    Seq(Sent, Delivered, PermanentBounce, Opened, Complained).map(v => v.toString -> v): _*
+    Seq(Sent, Delivered, PermanentBounce, Opened, Complained).map(v => v.toString -> v)*
   )
 }
 
@@ -55,7 +55,7 @@ object EmailEvent {
   }
 
   implicit val read: Reads[EmailEvent] = {
-    ((JsPath \ "event").read[Event] and ((JsPath \ "detected").read[String] map ZonedDateTime.parse))(EmailEvent.apply _)
+    ((JsPath \ "event").read[Event] and ((JsPath \ "detected").read[String] map ZonedDateTime.parse))(EmailEvent.apply)
   }
 
   implicit val write: Writes[EmailEvent] = (

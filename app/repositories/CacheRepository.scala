@@ -20,6 +20,7 @@ import com.google.inject.Inject
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import org.mongodb.scala.model.Updates.set
 import org.mongodb.scala.model._
+import org.mongodb.scala.ObservableFuture
 import play.api.Logging
 import play.api.libs.json._
 import repositories.CacheRepository.collectionIndexes

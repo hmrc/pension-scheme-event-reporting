@@ -19,7 +19,7 @@ package transformations.ETMPToFrontEnd
 import models.enumeration.EventType
 import models.enumeration.EventType.{Event10, Event11, Event12, Event13, Event14, Event18, Event19, Event20, WindUp}
 import play.api.libs.functional.syntax._
-import play.api.libs.json.Reads._
+import play.api.libs.json.Reads.JsObjectReducer
 import play.api.libs.json._
 import transformations.{ReadsUtils, Transformer}
 
@@ -106,12 +106,12 @@ private object API1834ReadsUtilities extends Transformer with ReadsUtils {
 
 
   private val readsEvent13SchemeStructure = {
-        def mapStructure(s: String) = s match {
-          case "A single trust under which all of the assets are held for the benefit of all members of the scheme" => "single"
-          case "A group life/death in service scheme" => "group"
-          case "A body corporate" => "corporate"
-          case "Other" => "other"
-        }
+    def mapStructure(s: String) = s match {
+      case "A single trust under which all of the assets are held for the benefit of all members of the scheme" => "single"
+      case "A group life/death in service scheme" => "group"
+      case "A body corporate" => "corporate"
+      case "Other" => "other"
+    }
 
     etmpEvent13SchemeStructure.json.pick.flatMap {
       case JsString(str) => Reads.pure(JsString(mapStructure(str)))

@@ -55,12 +55,12 @@ class SchemeConnector @Inject()(
 
 
     httpClientV2.get(url"${config.checkAssociationUrl}")
-      .setHeader(headers: _*)
+      .setHeader(headers*)
       .execute[HttpResponse] map { response =>
       val badResponse = Seq("Bad Request with missing parameters PSA Id or SRN")
       response.status match {
         case OK => Right(response.json)
-        case _ => Left(handleErrorResponse("GET", config.checkAssociationUrl, badResponse: _*)(response))
+        case _ => Left(handleErrorResponse("GET", config.checkAssociationUrl, badResponse*)(response))
       }
     }
 
