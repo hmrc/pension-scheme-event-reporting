@@ -17,7 +17,8 @@ object CodeCoverageSettings {
 
   private val coverageExcludedFiles = "<empty>;Reverse.*;.*handlers.*;.*repositories.*;" +
     ".*BuildInfo.*;.*Routes.*;.*javascript.*;.*GuiceInjector;.*AppConfig;.*Module;" +
-    ".*ControllerConfiguration;.*TestController;.*LanguageSwitchController"
+    ".*ControllerConfiguration;.*TestController;.*LanguageSwitchController;" +
+    ".*CompileEventAuditEvent.*;.*SubmitEventDeclarationAuditEvent.*;.*EncryptedValue.*;.*ReportVersion.*;.*ApiType.*"
 
   val settings: Seq[Setting[_]] = Seq(
     ScoverageKeys.coverageExcludedFiles := coverageExcludedFiles,

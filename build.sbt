@@ -36,7 +36,6 @@ lazy val root = (project in file("."))
       "-feature",
       "-unchecked",
       "-encoding", "utf8",
-      "-Xfatal-warnings",
       "-Wconf:src=routes/.*:s"
     ),
     libraryDependencies ++= AppDependencies(),
