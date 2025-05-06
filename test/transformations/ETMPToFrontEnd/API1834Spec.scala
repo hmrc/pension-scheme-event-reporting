@@ -39,10 +39,10 @@ class API1834Spec extends AnyFreeSpec with Matchers with MockitoSugar with JsonF
       }
 
       s"transform a randomly generated valid payload from API 1834 correctly (Event ${eventType.toString}) when empty" in {
-          val payload: JsObject = Json.obj()
+        val payload: JsObject = Json.obj()
         val expectedResponse: JsObject = Json.obj()
-            val result = payload.validate(API1834.reads(eventType))
-            result.asOpt mustBe Some(expectedResponse)
+        val result = payload.validate(API1834.reads(eventType))
+        result.asOpt mustBe Some(expectedResponse)
 
       }
     }

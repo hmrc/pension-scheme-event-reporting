@@ -28,6 +28,8 @@ import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
 import uk.gov.hmrc.mongo.MongoComponent
+import org.mongodb.scala.ObservableFuture
+
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -49,7 +51,7 @@ class EventLockRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
     new EventLockRepository(MongoComponent(mongoUri), mockAppConfig)
   }
 
-  var eventLockRepository: EventLockRepository = _
+  var eventLockRepository: EventLockRepository = mock[EventLockRepository]
 
   override def beforeAll(): Unit = {
     when(mockAppConfig.get[String]("mongodb.event-reporting-event-lock.name")).thenReturn("event-reporting-lock-data")

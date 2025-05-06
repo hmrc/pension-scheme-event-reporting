@@ -20,6 +20,7 @@ import com.google.inject.Inject
 import play.api.Logging
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.lock.{LockService, MongoLockRepository}
+import org.mongodb.scala.gridfs.ObservableFuture
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.Duration
@@ -27,7 +28,7 @@ import scala.concurrent.ExecutionContext
 
 class MigrationService @Inject()(mongoLockRepository: MongoLockRepository,
                                  mongoComponent: MongoComponent)(implicit ec: ExecutionContext) extends Logging {
-   private val lock = LockService(mongoLockRepository, "eventReportingEventLock_lock", Duration(10, TimeUnit.MINUTES))
+  private val lock = LockService(mongoLockRepository, "eventReportingEventLock_lock", Duration(10, TimeUnit.MINUTES))
 
   private def dropCollection(collectionName: String) = {
     val collection = mongoComponent.database.getCollection(collectionName)

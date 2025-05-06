@@ -43,7 +43,7 @@ object AuthUtils {
   val externalId = "externalId"
 
   def failedAuthStub(mockAuthConnector: AuthConnector): OngoingStubbing[Future[Unit]] =
-    when(mockAuthConnector.authorise[Unit](any(), any())(any(), any())) thenReturn Future.failed(InsufficientEnrolments())
+    when(mockAuthConnector.authorise[Unit](any(), any())(any(), any())).thenReturn (Future.failed(InsufficientEnrolments()))
 
   def authStub(mockAuthConnector: AuthConnector, mockSchemeConnector: SchemeConnector): OngoingStubbing[Future[Either[HttpException, Boolean]]] = {
     when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any()))
@@ -67,8 +67,8 @@ object AuthUtils {
   }
 
   def authStubPsp(mockAuthConnector: AuthConnector, mockSchemeConnector: SchemeConnector): OngoingStubbing[Future[Either[HttpException, Boolean]]] = {
-    when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any())) thenReturn
-      Future.successful(AuthUtils.authResponsePsp)
+    when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any()))
+      .thenReturn(Future.successful(AuthUtils.authResponsePsp))
     when(mockSchemeConnector.checkForAssociation(ArgumentMatchers.eq(Right(PspId(pspId))), ArgumentMatchers.eq(srn))(any()))
       .thenReturn(Future.successful(Right(true)))
   }
@@ -98,8 +98,9 @@ object AuthUtils {
 
 
   def noEnrolmentAuthStub(mockAuthConnector: AuthConnector): OngoingStubbing[Future[Option[String]]] =
-    when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn
-      Future.successful(AuthUtils.noEnrolmentAuthResponse)
+    when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any()))
+      .thenReturn(Future.successful(AuthUtils.noEnrolmentAuthResponse))
+
 
   val noEnrolmentAuthResponse: Option[String] = Some(externalId)
 
@@ -107,7 +108,7 @@ object AuthUtils {
   private val mockParser = mock[BodyParsers.Default]
   private val mockSchemeConnector = mock[SchemeConnector]
   class FakeAuthAction extends AuthAction(mockAuthConnector, mockParser, mockSchemeConnector, mock[SessionDataCacheConnector]) {
-    override def apply(srn: SchemeReferenceNumber): ActionBuilder[AuthRequest, AnyContent] with ActionFunction[Request, AuthRequest] = {
+    override def apply(srn: SchemeReferenceNumber): ActionBuilder[AuthRequest, AnyContent] & ActionFunction[Request, AuthRequest] = {
       new ActionBuilder[AuthRequest, AnyContent] {
         override def parser: BodyParser[AnyContent] = mockParser
 

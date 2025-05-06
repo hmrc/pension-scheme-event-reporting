@@ -41,5 +41,5 @@ object AdministratorOrPractitioner {
   implicit val writes: Writes[AdministratorOrPractitioner] =
     Writes(value => JsString(value.toString))
 
-  implicit val enumerable: Enumerable[AdministratorOrPractitioner] = Enumerable(values.map(v => v.toString -> v): _*)
+  implicit val enumerable: Enumerable[AdministratorOrPractitioner] = Enumerable(values.map(v => v.toString -> v)*)
 }

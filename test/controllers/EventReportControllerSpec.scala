@@ -69,7 +69,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
 
   val application: Application = new GuiceApplicationBuilder()
     .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false).
-    overrides(modules: _*).build()
+    overrides(modules*).build()
   private val controller = application.injector.instanceOf[EventReportController]
 
   private val emptyEnrolments = Enrolments(Set(): Set[Enrolment])
@@ -85,9 +85,10 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     reset(mockAuthConnector)
     reset(mockJSONPayloadSchemaValidator)
     reset(mockEventReportService)
-    when(mockAuthConnector.authorise[Option[String] ~ Enrolments ~ Option[Name]](any(), any())(any(), any())) thenReturn
-      Future.successful(new~(new~(Some(externalId), enrolments), Some(Name(Some("FirstName"), Some("lastName")))))
-    when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any())).thenReturn(Failure(EventReportValidationFailureException("Test")))
+    when(mockAuthConnector.authorise[Option[String] ~ Enrolments ~ Option[Name]](any(), any())(any(), any()))
+      .thenReturn(Future.successful(new~(new~(Some(externalId), enrolments), Some(Name(Some("FirstName"), Some("lastName"))))))
+    when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
+      .thenReturn(Failure(EventReportValidationFailureException("Test")))
   }
 
   "getOverviewSrn" must {

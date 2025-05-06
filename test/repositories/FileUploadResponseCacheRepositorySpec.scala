@@ -28,6 +28,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.mongo.MongoComponent
+import org.mongodb.scala.ObservableFuture
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -41,7 +42,7 @@ class FileUploadResponseCacheRepositorySpec extends AnyWordSpec with MockitoSuga
 
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(1, Millis))
 
-  var fileUploadResponseCacheRepository: FileUploadResponseCacheRepository = _
+  var fileUploadResponseCacheRepository: FileUploadResponseCacheRepository = mock[FileUploadResponseCacheRepository]
 
   override def beforeAll(): Unit = {
     when(mockAppConfig.underlying).thenReturn(mockConfig)
@@ -80,7 +81,7 @@ class FileUploadResponseCacheRepositorySpec extends AnyWordSpec with MockitoSuga
         } yield documentsInDB
 
         whenReady(documentsInDB) { documentsInDB =>
-          documentsInDB.isDefined mustBe true
+          documentsInDB.isDefined.mustBe(true)
         }
       }
     }

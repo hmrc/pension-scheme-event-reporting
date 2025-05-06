@@ -34,6 +34,8 @@ import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.Json
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.mongo.MongoComponent
+import org.mongodb.scala.ObservableFuture
+
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -48,7 +50,7 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
   import EventReportCacheRepositorySpec._
 
   private val externalId = "externalId"
-  var eventReportCacheRepository: EventReportCacheRepository = _
+  var eventReportCacheRepository: EventReportCacheRepository = mock[EventReportCacheRepository]
 
   private val modules: Seq[GuiceableModule] = Seq(
     bind[AuthConnector].toInstance(mock[AuthConnector]),
@@ -61,7 +63,7 @@ class EventReportCacheRepositorySpec extends AnyWordSpec with MockitoSugar with 
       "metrics.enabled" -> false,
       "metrics.jvm" -> false,
       "run.mode" -> "Test"
-    ).overrides(modules: _*).build()
+    ).overrides(modules*).build()
 
   private val cipher = app.injector.instanceOf[DataEncryptor]
 

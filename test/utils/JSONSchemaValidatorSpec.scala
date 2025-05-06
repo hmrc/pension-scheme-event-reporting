@@ -44,7 +44,7 @@ class JSONSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with Matcher
     )
 
   val app: Application = new GuiceApplicationBuilder()
-    .overrides(modules: _*).build()
+    .overrides(modules*).build()
 
   private lazy val jsonPayloadSchemaValidator: JSONSchemaValidator = app.injector.instanceOf[JSONSchemaValidator]
 

@@ -19,7 +19,7 @@ package transformations.UserAnswersToETMP
 import models.enumeration.EventType
 import models.enumeration.EventType.{Event2, Event24, Event3, Event4, Event5, Event6, Event7, Event8, Event8A}
 import play.api.libs.functional.syntax._
-import play.api.libs.json.Reads._
+import play.api.libs.json.Reads.JsObjectReducer
 import play.api.libs.json._
 import transformations.{ReadsUtils, Transformer}
 

@@ -134,10 +134,10 @@ class AuthActionImpl (
       Retrievals.authorisedEnrolments and
         Retrievals.externalId and
         Retrievals.name) {
-      case enrolments ~ Some(externalId) ~ name =>
+      case enrolments ~ Some(externalId) ~ name  =>
         enrolmentResult(enrolments) { psaOrPspId =>
           schemeConnector.checkForAssociation(psaOrPspId, srn).flatMap {
-            case Right(true) => block(AuthRequest(request, psaOrPspId, externalId, name))
+            case Right(true) => block(AuthRequest(request, psaOrPspId, externalId,name))
             case Right(false) =>
               logger.warn("User is not associated with the scheme")
               Future.successful(Forbidden("User is not associated with the scheme"))
@@ -167,6 +167,6 @@ class AuthAction @Inject()(authConnector: AuthConnector,
                            parser: BodyParsers.Default,
                            schemeConnector: SchemeConnector,
                            sessionDataCacheConnector: SessionDataCacheConnector)(implicit executionContext: ExecutionContext) {
-  def apply(srn: SchemeReferenceNumber):ActionBuilder[AuthRequest, AnyContent] with ActionFunction[Request, AuthRequest] =
+  def apply(srn: SchemeReferenceNumber):ActionBuilder[AuthRequest, AnyContent] & ActionFunction[Request, AuthRequest] =
     new AuthActionImpl(authConnector, parser, schemeConnector, srn, sessionDataCacheConnector)
 }

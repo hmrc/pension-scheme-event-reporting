@@ -57,7 +57,7 @@ class ParsingAndValidationOutcomeControllerSpec extends AsyncWordSpec with Match
 
   private val application: Application = new GuiceApplicationBuilder()
     .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false).
-    overrides(modules: _*).build()
+    overrides(modules*).build()
 
   private val controller: ParsingAndValidationOutcomeController = application.injector.instanceOf[ParsingAndValidationOutcomeController]
 
@@ -70,7 +70,7 @@ class ParsingAndValidationOutcomeControllerSpec extends AsyncWordSpec with Match
   "ParsingAndValidationOutcomeSrn Controller" when {
     "calling get" must {
       "return OK with the data" in {
-        when(repo.get(eqTo(id))(any())) thenReturn Future.successful(Some(Json.obj("testId" -> "data")))
+        when(repo.get(eqTo(id))(any())).thenReturn (Future.successful(Some(Json.obj("testId" -> "data"))))
 
         val result = controller.getSrn(srn)(fakeRequest)
         status(result) mustEqual OK
@@ -78,14 +78,14 @@ class ParsingAndValidationOutcomeControllerSpec extends AsyncWordSpec with Match
       }
 
       "return NOT FOUND when the data doesn't exist" in {
-        when(repo.get(eqTo(id))(any())) thenReturn Future.successful(None)
+        when(repo.get(eqTo(id))(any())).thenReturn (Future.successful(None))
 
         val result = controller.getSrn(srn)(fakeRequest)
         status(result) mustEqual NOT_FOUND
       }
 
       "throw an exception when the repository call fails" in {
-        when(repo.get(eqTo(id))(any())) thenReturn Future.failed(new Exception())
+        when(repo.get(eqTo(id))(any())).thenReturn (Future.failed(new Exception()))
         val result = controller.getSrn(srn)(fakeRequest)
         an[Exception] must be thrownBy status(result)
       }
@@ -94,14 +94,14 @@ class ParsingAndValidationOutcomeControllerSpec extends AsyncWordSpec with Match
     "calling save" must {
 
       "return OK when the data is saved successfully" in {
-        when(repo.save(any(), any())(any())) thenReturn Future.successful((): Unit)
+        when(repo.save(any(), any())(any())).thenReturn (Future.successful((): Unit))
 
         val result = controller.postSrn(srn)(fakePostRequest.withJsonBody(Json.obj("value" -> "data")))
         status(result) mustEqual CREATED
       }
 
       "return BAD REQUEST when the request body cannot be parsed" in {
-        when(repo.save(any(), any())(any())) thenReturn Future.successful((): Unit)
+        when(repo.save(any(), any())(any())).thenReturn (Future.successful((): Unit))
 
         val result = controller.postSrn(srn)(fakePostRequest.withRawBody(ByteString(Random.alphanumeric.dropWhile(_.isDigit).take(20).mkString)))
         status(result) mustEqual BAD_REQUEST
@@ -110,7 +110,7 @@ class ParsingAndValidationOutcomeControllerSpec extends AsyncWordSpec with Match
 
     "calling delete" must {
       "return OK when the data is removed successfully" in {
-        when(repo.remove(eqTo(id))(any())) thenReturn Future.successful(true)
+        when(repo.remove(eqTo(id))(any())).thenReturn (Future.successful(true))
 
         val result = controller.deleteSrn(srn)(fakeRequest)
         status(result) mustEqual OK

@@ -32,6 +32,7 @@ import play.api.Configuration
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.Json
 import uk.gov.hmrc.mongo.MongoComponent
+import org.mongodb.scala.ObservableFuture
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import uk.gov.hmrc.auth.core.AuthConnector
@@ -52,7 +53,7 @@ class GetDetailsCacheRepositorySpec extends AnyWordSpec with MockitoSugar with M
       "metrics.enabled" -> false,
       "metrics.jvm" -> false,
       "run.mode" -> "Test"
-    ).overrides(modules: _*).build()
+    ).overrides(modules*).build()
 
   private val cipher = app.injector.instanceOf[DataEncryptor]
 
@@ -69,7 +70,7 @@ class GetDetailsCacheRepositorySpec extends AnyWordSpec with MockitoSugar with M
 
   import GetDetailsCacheRepositorySpec._
 
-  var getDetailsCacheRepository: GetDetailsCacheRepository = _
+  var getDetailsCacheRepository: GetDetailsCacheRepository  = mock[GetDetailsCacheRepository]
 
   override def beforeAll(): Unit = {
     when(mockAppConfig.underlying).thenReturn(mockConfig)

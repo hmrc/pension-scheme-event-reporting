@@ -100,8 +100,8 @@ class AuthActionSpec extends SpecBase with BeforeAndAfterEach {
         contentAsString(result) mustEqual "User is not associated with the scheme"
       }
       "must return Forbidden if no scheme access for PSP" in {
-        when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any())) thenReturn
-          Future.successful(AuthUtils.authResponsePsp)
+        when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any()))
+          .thenReturn(Future.successful(AuthUtils.authResponsePsp))
         when(mockSchemeConnector.checkForAssociation(ArgumentMatchers.eq(Right(PspId(pspId))), ArgumentMatchers.eq(srn))(any()))
           .thenReturn(Future.successful(Right(false)))
 
@@ -112,8 +112,8 @@ class AuthActionSpec extends SpecBase with BeforeAndAfterEach {
         contentAsString(result) mustEqual "User is not associated with the scheme"
       }
       "must return internal server errors if association check failed" in {
-        when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any())) thenReturn
-          Future.successful(AuthUtils.authResponsePsp)
+        when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any()))
+          .thenReturn(Future.successful(AuthUtils.authResponsePsp))
         when(mockSchemeConnector.checkForAssociation(ArgumentMatchers.eq(Right(PspId(pspId))), ArgumentMatchers.eq(srn))(any()))
           .thenReturn(Future.successful(Left(new HttpException("", 500))))
 
@@ -127,12 +127,10 @@ class AuthActionSpec extends SpecBase with BeforeAndAfterEach {
 
     "when the user is logged in with both PSA and PSP enrolments" must {
       "must succeed if logged in as PSA and PSA is authorised" in {
-        when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any())) thenReturn
-          Future.successful(AuthUtils.authResponsePsaPsp)
+        when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any()))
+          .thenReturn(Future.successful(AuthUtils.authResponsePsaPsp))
         when(mockSessionDataConnector.fetch()(any(), any())).thenReturn(Future.successful(Some(
-          Json.toJson(
-            Map("administratorOrPractitioner" -> Administrator.asInstanceOf[AdministratorOrPractitioner])
-          )
+          Json.toJson(Map("administratorOrPractitioner" -> Administrator.asInstanceOf[AdministratorOrPractitioner]))
         )))
         when(mockSchemeConnector.checkForAssociation(ArgumentMatchers.eq(Left(PsaId(psaId))), ArgumentMatchers.eq(srn))(any()))
           .thenReturn(Future.successful(Right(true)))
@@ -144,12 +142,10 @@ class AuthActionSpec extends SpecBase with BeforeAndAfterEach {
       }
 
       "must fail if logged in as PSA and PSA is unauthorised" in {
-        when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any())) thenReturn
-          Future.successful(AuthUtils.authResponsePsaPsp)
+        when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any()))
+          .thenReturn(Future.successful(AuthUtils.authResponsePsaPsp))
         when(mockSessionDataConnector.fetch()(any(), any())).thenReturn(Future.successful(Some(
-          Json.toJson(
-            Map("administratorOrPractitioner" -> Administrator.asInstanceOf[AdministratorOrPractitioner])
-          )
+          Json.toJson(Map("administratorOrPractitioner" -> Administrator.asInstanceOf[AdministratorOrPractitioner]))
         )))
         when(mockSchemeConnector.checkForAssociation(ArgumentMatchers.eq(Left(PsaId(psaId))), ArgumentMatchers.eq(srn))(any()))
           .thenReturn(Future.successful(Right(false)))
@@ -161,12 +157,10 @@ class AuthActionSpec extends SpecBase with BeforeAndAfterEach {
       }
 
       "must succeed if logged in as PSP and PSP is authorised" in {
-        when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any())) thenReturn
-          Future.successful(AuthUtils.authResponsePsaPsp)
+        when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any()))
+          .thenReturn(Future.successful(AuthUtils.authResponsePsaPsp))
         when(mockSessionDataConnector.fetch()(any(), any())).thenReturn(Future.successful(Some(
-          Json.toJson(
-            Map("administratorOrPractitioner" -> Practitioner.asInstanceOf[AdministratorOrPractitioner])
-          )
+          Json.toJson(Map("administratorOrPractitioner" -> Practitioner.asInstanceOf[AdministratorOrPractitioner]))
         )))
         when(mockSchemeConnector.checkForAssociation(ArgumentMatchers.eq(Right(PspId(pspId))), ArgumentMatchers.eq(srn))(any()))
           .thenReturn(Future.successful(Right(true)))
@@ -178,13 +172,12 @@ class AuthActionSpec extends SpecBase with BeforeAndAfterEach {
       }
 
       "must fail if logged in as PSP and PSP is unauthorised" in {
-        when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any())) thenReturn
-          Future.successful(AuthUtils.authResponsePsaPsp)
-        when(mockSessionDataConnector.fetch()(any(), any())).thenReturn(Future.successful(Some(
-          Json.toJson(
-            Map("administratorOrPractitioner" -> Practitioner.asInstanceOf[AdministratorOrPractitioner])
-          )
-        )))
+        when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any()))
+          .thenReturn(Future.successful(AuthUtils.authResponsePsaPsp))
+        when(mockSessionDataConnector.fetch()(any(), any()))
+          .thenReturn(Future.successful(Some(
+            Json.toJson(Map("administratorOrPractitioner" -> Practitioner.asInstanceOf[AdministratorOrPractitioner]))
+          )))
         when(mockSchemeConnector.checkForAssociation(ArgumentMatchers.eq(Right(PspId(pspId))), ArgumentMatchers.eq(srn))(any()))
           .thenReturn(Future.successful(Right(false)))
 

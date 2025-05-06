@@ -159,7 +159,7 @@ object EventType extends Enumerable.Implicits {
       case _ => None
     }
   }
-  def memberEventTypes: Seq[WithName with EventType] = Seq(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
+  def memberEventTypes: Seq[WithName & EventType] = Seq(Event2, Event3, Event4, Event5, Event6, Event7, Event8, Event8A, Event22, Event23, Event24)
 
   implicit val formats: Format[EventType] = new Format[EventType] {
     override def writes(o: EventType): JsValue = JsString(o.toString)
