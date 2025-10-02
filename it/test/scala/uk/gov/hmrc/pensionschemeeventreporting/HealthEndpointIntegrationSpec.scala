@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package test.scala.uk.gov.hmrc.pensionschemeeventreporting
+package scala.uk.gov.hmrc.pensionschemeeventreporting
 
 import org.scalatest.concurrent.{IntegrationPatience, ScalaFutures}
 import org.scalatest.matchers.should.Matchers
