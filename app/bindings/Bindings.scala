@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 HM Revenue & Customs
+ * Copyright 2025 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-import com.google.inject.AbstractModule
-import play.api.{Configuration, Environment}
-import services.MigrationService
+package bindings
 
-class StartupModule(environment: Environment, configuration: Configuration) extends AbstractModule {
-  override def configure(): Unit = {
-    if (configuration.get[Boolean]("mongo.migration.enable.migration")) bind(classOf[MigrationService]).asEagerSingleton()
-  }
+import play.api.inject.{Binding, Module}
+import play.api.{Configuration, Environment}
+import repositories.DropMongoCollections
+
+class Bindings extends Module {
+  override def bindings(environment: Environment, configuration: Configuration): Seq[Binding[?]] =
+    Seq(bind[DropMongoCollections].toSelf.eagerly())
 }
