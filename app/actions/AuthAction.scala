@@ -129,23 +129,20 @@ class AuthActionImpl (
 
   private def invoke[A](request: Request[A], block: AuthRequest[A] => Future[Result])
                        (implicit hc: HeaderCarrier): Future[Result] = {
-    authorised(Enrolment(PSAEnrolmentKey) or
-      Enrolment(PSPEnrolmentKey)).retrieve(
-      Retrievals.authorisedEnrolments and
-        Retrievals.externalId and
-        Retrievals.name) {
-      case enrolments ~ Some(externalId) ~ name  =>
-        enrolmentResult(enrolments) { psaOrPspId =>
-          schemeConnector.checkForAssociation(psaOrPspId, srn).flatMap {
-            case Right(true) => block(AuthRequest(request, psaOrPspId, externalId,name))
-            case Right(false) =>
-              logger.warn("User is not associated with the scheme")
-              Future.successful(Forbidden("User is not associated with the scheme"))
-            case Left(e) =>
-              logger.error("Association check failed", e)
-              Future.successful(InternalServerError("Association check failed"))
+    authorised(Enrolment(PSAEnrolmentKey) or Enrolment(PSPEnrolmentKey))
+      .retrieve(Retrievals.authorisedEnrolments and Retrievals.externalId) {
+        case enrolments ~ Some(externalId) =>
+          enrolmentResult(enrolments) { psaOrPspId =>
+            schemeConnector.checkForAssociation(psaOrPspId, srn).flatMap {
+              case Right(true) => block(AuthRequest(request, psaOrPspId, externalId, None))
+              case Right(false) =>
+                logger.warn("User is not associated with the scheme")
+                Future.successful(Forbidden("User is not associated with the scheme"))
+              case Left(e) =>
+                logger.error("Association check failed", e)
+                Future.successful(InternalServerError("Association check failed"))
+            }
           }
-        }
       case _ => Future.failed(new RuntimeException("No externalId found"))
     }
   } recover {
