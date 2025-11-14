@@ -143,14 +143,14 @@ class AuthActionImpl (
                 Future.successful(InternalServerError("Association check failed"))
             }
           }
-      case _ => Future.failed(new RuntimeException("No externalId found"))
-    }
+        case _ => Future.failed(new RuntimeException("No externalId found"))
+      }
   } recover {
-    case e:
+    case e: 
       InsufficientEnrolments =>
       logger.warn("Failed to authorise due to insufficient enrolments", e)
       Forbidden("Current user doesn't have a valid enrolment.")
-    case e:
+    case e: 
       AuthorisationException =>
       logger.warn(s"Failed to authorise", e)
       Unauthorized(s"Failed to authorise user: ${e.reason}")
