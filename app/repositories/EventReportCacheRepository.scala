@@ -25,7 +25,6 @@ import models.enumeration.EventType.EventTypeNone
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model._
 import org.mongodb.scala.result
-import org.mongodb.scala.gridfs.ObservableFuture
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
@@ -163,9 +162,12 @@ class EventReportCacheRepository @Inject()(
       if (foundItem.isDefined) {
         collection.updateMany(
           filter = selector,
-          update = modifier).toFuture().map {
-          case resultSeq if resultSeq.nonEmpty => Some(resultSeq.head)
-          case _ => None
+          update = modifier
+        ).toFuture().map {
+          case updateResult if updateResult.wasAcknowledged() && updateResult.getModifiedCount > 0 =>
+            Some(updateResult)
+          case _ =>
+            None
         }
       } else {
         Future.successful(None)
@@ -277,7 +279,7 @@ class EventReportCacheRepository @Inject()(
 
   def removeAllOnSignOut(externalId: String)(implicit ec: ExecutionContext): Future[Unit] = {
     collection.deleteMany(filterByKeys(Map("externalId" -> externalId))).toFuture().map { result =>
-      if (result.headOption.exists(_.wasAcknowledged())) {
+      if (result.wasAcknowledged()) {
         logger.info(s"Removing all data from collection associated with ExternalId: $externalId")
       } else {
         logger.warn(s"Issue removing all data from collection associated with ExternalId: $externalId")
@@ -305,6 +307,7 @@ class EventReportCacheRepository @Inject()(
           Filters.notEqual(eventTypeKey, EventTypeNone.toString)
         ),
         isEvent = true).toFuture()
-    } yield u.headOption.exists(_.wasAcknowledged()) && u2.headOption.exists(_.wasAcknowledged())
+    } yield u.wasAcknowledged() && u2.wasAcknowledged()
+
   }
 }

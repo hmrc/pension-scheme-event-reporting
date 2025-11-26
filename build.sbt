@@ -25,8 +25,6 @@ ThisBuild / scalaVersion := "3.6.2"
 lazy val root = (project in file("."))
   .disablePlugins(JUnitXmlReportPlugin)
   .enablePlugins(play.sbt.PlayScala, SbtDistributablesPlugin)
-  .settings(DefaultBuildSettings.scalaSettings)
-  .settings(DefaultBuildSettings.defaultSettings())
   .settings(inConfig(Test)(testSettings))
   .settings(
     name := appName,
@@ -40,14 +38,10 @@ lazy val root = (project in file("."))
     ),
     libraryDependencies ++= AppDependencies(),
     retrieveManaged := true,
-    resolvers ++= Seq(
-      Resolver.jcenterRepo
-    ),
     RoutesKeys.routesImport ++= Seq(
       "models.SchemeReferenceNumber"
     )
   )
-  .settings(resolvers += Resolver.jcenterRepo)
   .settings(CodeCoverageSettings.settings)
 
 lazy val it = project

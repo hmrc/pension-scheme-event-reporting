@@ -35,7 +35,8 @@ import play.api.test.Helpers._
 import repositories.EventReportCacheRepository
 import services.AuditService
 import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.crypto.{ApplicationCrypto, PlainText}
+import uk.gov.hmrc.crypto.{PlainText}
+import uk.gov.hmrc.play.bootstrap.frontend.filters.crypto.ApplicationCrypto
 import java.time.ZonedDateTime
 
 import scala.concurrent.Future

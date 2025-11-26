@@ -19,9 +19,8 @@ package controllers
 import actions.AuthAction
 import models.SchemeReferenceNumber
 import play.api.Logging
-import play.api.mvc.{Action, AnyContent, ControllerComponents, Request, Result, Results}
+import play.api.mvc.{Action, AnyContent, ControllerComponents, Request, Result}
 import repositories.FileUploadResponseCacheRepository
-import uk.gov.hmrc.http.HttpErrorFunctions
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.{Inject, Singleton}
