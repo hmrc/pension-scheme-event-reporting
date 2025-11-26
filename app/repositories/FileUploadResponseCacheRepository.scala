@@ -25,6 +25,7 @@ import repositories.FileUploadResponseCacheEntry.{apiTypesKey, expireAtKey, refe
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
+import org.mongodb.scala.gridfs.ObservableFuture
 
 
 import java.time.Instant

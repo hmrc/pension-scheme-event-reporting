@@ -24,8 +24,7 @@ import play.api.libs.json.JsValue
 import play.api.mvc._
 import services.AuditService
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
-import uk.gov.hmrc.crypto.{Crypted}
-import uk.gov.hmrc.play.bootstrap.frontend.filters.crypto.ApplicationCrypto
+import uk.gov.hmrc.crypto.{ApplicationCrypto, Crypted}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.ExecutionContext

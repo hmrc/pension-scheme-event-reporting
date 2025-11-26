@@ -46,44 +46,54 @@ object AuthUtils {
     when(mockAuthConnector.authorise[Unit](any(), any())(any(), any())).thenReturn (Future.failed(InsufficientEnrolments()))
 
   def authStub(mockAuthConnector: AuthConnector, mockSchemeConnector: SchemeConnector): OngoingStubbing[Future[Either[HttpException, Boolean]]] = {
-    when(mockAuthConnector.authorise[Enrolments ~ Option[String]](any(), any())(any(), any()))
+    when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any()))
       .thenReturn(Future.successful(AuthUtils.authResponse))
     when(mockSchemeConnector.checkForAssociation(ArgumentMatchers.eq(Left(PsaId(psaId))), ArgumentMatchers.eq(srn))(any()))
       .thenReturn(Future.successful(Right(true)))
   }
 
-  val authResponse: Enrolments ~ Some[String] = {
+  val authResponse: Enrolments ~ Some[String] ~ Some[Name] = {
     new ~(
-      Enrolments(
-        Set(
-          new Enrolment("HMRC-PODS-ORG", Seq(EnrolmentIdentifier("PsaId", psaId)), "Activated")
-        )
-      ), Some(id)
+      new ~(
+        Enrolments(
+          Set(
+            new Enrolment("HMRC-PODS-ORG", Seq(EnrolmentIdentifier("PsaId", psaId)), "Activated")
+          )
+        ), Some(id)
+      ),
+      Some(Name(Some("John"), Some("Smith")))
     )
+
   }
 
   def authStubPsp(mockAuthConnector: AuthConnector, mockSchemeConnector: SchemeConnector): OngoingStubbing[Future[Either[HttpException, Boolean]]] = {
-    when(mockAuthConnector.authorise[Enrolments ~ Option[String]](any(), any())(any(), any()))
+    when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any()))
       .thenReturn(Future.successful(AuthUtils.authResponsePsp))
     when(mockSchemeConnector.checkForAssociation(ArgumentMatchers.eq(Right(PspId(pspId))), ArgumentMatchers.eq(srn))(any()))
       .thenReturn(Future.successful(Right(true)))
   }
 
   val authResponsePsp = new ~(
-    Enrolments(
-      Set(
-        new Enrolment("HMRC-PODSPP-ORG", Seq(EnrolmentIdentifier("PspId", pspId)), "Activated")
-      )
-    ), Some(id)
+    new ~(
+      Enrolments(
+        Set(
+          new Enrolment("HMRC-PODSPP-ORG", Seq(EnrolmentIdentifier("PspId", pspId)), "Activated")
+        )
+      ), Some(id)
+    ),
+    Some(Name(Some("John"), Some("Smith")))
   )
 
   val authResponsePsaPsp = new ~(
-    Enrolments(
-      Set(
-        new Enrolment("HMRC-PODS-ORG", Seq(EnrolmentIdentifier("PsaId", psaId)), "Activated"),
-        new Enrolment("HMRC-PODSPP-ORG", Seq(EnrolmentIdentifier("PspId", pspId)), "Activated")
-      )
-    ), Some(id)
+    new ~(
+      Enrolments(
+        Set(
+          new Enrolment("HMRC-PODS-ORG", Seq(EnrolmentIdentifier("PsaId", psaId)), "Activated"),
+          new Enrolment("HMRC-PODSPP-ORG", Seq(EnrolmentIdentifier("PspId", pspId)), "Activated")
+        )
+      ), Some(id)
+    ),
+    Some(Name(Some("John"), Some("Smith")))
   )
 
 
