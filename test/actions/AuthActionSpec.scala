@@ -142,7 +142,7 @@ class AuthActionSpec extends SpecBase with BeforeAndAfterEach {
       }
 
       "must fail if logged in as PSA and PSA is unauthorised" in {
-        when(mockAuthConnector.authorise[Enrolments ~ Option[String]](any(), any())(any(), any()))
+        when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any()))
           .thenReturn(Future.successful(AuthUtils.authResponsePsaPsp))
         when(mockSessionDataConnector.fetch()(any(), any())).thenReturn(Future.successful(Some(
           Json.toJson(Map("administratorOrPractitioner" -> Administrator.asInstanceOf[AdministratorOrPractitioner]))
@@ -196,7 +196,7 @@ class AuthActionSpec extends SpecBase with BeforeAndAfterEach {
 
           when(mockAuthConnector.authorise[RetrievalsType](any(), any())(any(), any()))
             .thenReturn(Future.successful(
-              new~(
+              new ~ (
                 new~(Enrolments(Set.empty), Some("id")),
                 Some(Name(Some("first"), Some("last")))
               )

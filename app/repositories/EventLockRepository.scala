@@ -23,7 +23,9 @@ import models.enumeration.EventType
 import org.mongodb.scala.{MongoWriteException, SingleObservable}
 import org.mongodb.scala.model._
 import org.mongodb.scala.result.DeleteResult
+import org.mongodb.scala.ObservableFuture
 import org.mongodb.scala.model.Filters
+import org.mongodb.scala._
 
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
