@@ -30,7 +30,6 @@ lazy val root = (project in file("."))
     name := appName,
     PlayKeys.playDefaultPort := 8215,
     scalacOptions := Seq(
-      "-deprecation",
       "-feature",
       "-unchecked",
       "-encoding", "utf8",
