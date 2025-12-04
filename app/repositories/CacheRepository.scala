@@ -20,10 +20,8 @@ import com.google.inject.Inject
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import org.mongodb.scala.model.Updates.set
 import org.mongodb.scala.model._
-import org.mongodb.scala.ObservableFuture
 import play.api.Logging
 import play.api.libs.json._
-import repositories.CacheRepository.collectionIndexes
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
@@ -43,7 +41,7 @@ class CacheRepository @Inject()(collectionName: String,
     collectionName = collectionName,
     mongoComponent = mongoComponent,
     domainFormat = implicitly,
-    indexes = collectionIndexes,
+    indexes = repositories.CacheRepository.collectionIndexes,
     extraCodecs = Seq(
       Codecs.playFormatCodec(MongoJavatimeFormats.instantFormat)
     )
@@ -66,12 +64,12 @@ class CacheRepository @Inject()(collectionName: String,
   def save(id: String, userData: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val upsertOptions = new FindOneAndUpdateOptions().upsert(true)
     collection.findOneAndUpdate(
-      filter = Filters.eq(idKey, id),
+      filter = Filters.eq(IdKey, id),
       update = Updates.combine(
-        set(idKey, id),
-        set(dataKey, Codecs.toBson(userData)),
-        set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC")))),
-        set(expireAtKey, getExpireAt)
+        set(IdKey, id),
+        set(DataKey, Codecs.toBson(userData)),
+        set(LastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC")))),
+        set(ExpireAtKey, getExpireAt)
       ),
       upsertOptions
     ).toFuture().map(_ => (): Unit)
@@ -79,35 +77,35 @@ class CacheRepository @Inject()(collectionName: String,
 
   def get(id: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
     collection.find(
-      filter = Filters.eq(idKey, id)
+      filter = Filters.eq(IdKey, id)
     ).toFuture().map {
       _.headOption.map { jsValue =>
-        (jsValue \ dataKey).as[JsValue]
+        (jsValue \ DataKey).as[JsValue]
       }
     }
   }
 
   def remove(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {
     collection.deleteOne(
-      filter = Filters.eq(idKey, id)
+      filter = Filters.eq(IdKey, id)
     ).toFuture().map(_ => true)
   }
 }
 
 
 object CacheRepository {
-  private val idKey = "id"
-  private val dataKey = "data"
-  private val expireAtKey = "expireAt"
-  private val lastUpdatedKey = "lastUpdated"
+  private val IdKey = "id"
+  private val DataKey = "data"
+  private val ExpireAtKey = "expireAt"
+  private val LastUpdatedKey = "lastUpdated"
 
   private val collectionIndexes: Seq[IndexModel] = Seq(
     IndexModel(
-      keys = Indexes.ascending(idKey),
-      indexOptions = IndexOptions().name(idKey).unique(true).background(true)
+      keys = Indexes.ascending(IdKey),
+      indexOptions = IndexOptions().name(IdKey).unique(true).background(true)
     ),
     IndexModel(
-      keys = Indexes.ascending(expireAtKey),
+      keys = Indexes.ascending(ExpireAtKey),
       indexOptions = IndexOptions().name("dataExpiry")
         .expireAfter(0, TimeUnit.SECONDS)
         .background(true)

@@ -20,7 +20,6 @@ import com.google.inject.Inject
 import models.cache.DeclarationLockJson
 import org.mongodb.scala.MongoWriteException
 import org.mongodb.scala.model._
-import org.mongodb.scala.ObservableFuture
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository

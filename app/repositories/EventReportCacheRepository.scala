@@ -19,17 +19,14 @@ package repositories
 import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import crypto.DataEncryptor
-import models.EventDataIdentifier
+import models.{EventDataIdentifier, EventReportCacheEntry}
 import models.enumeration.EventType
 import models.enumeration.EventType.EventTypeNone
 import org.mongodb.scala.bson.conversions.Bson
-import org.mongodb.scala.model._
+import org.mongodb.scala.model.*
 import org.mongodb.scala.result
-import org.mongodb.scala.gridfs.ObservableFuture
-import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.{Configuration, Logging}
-import repositories.EventReportCacheEntry.{eventTypeKey, expireAtKey, externalIdKey, pstrKey, versionKey, yearKey}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
@@ -38,50 +35,7 @@ import java.time.{Instant, LocalDateTime, ZoneId}
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
-
-case class EventReportCacheEntry(pstr: String, edi: EventDataIdentifier, data: JsValue, lastUpdated: LocalDateTime, expireAt: LocalDateTime)
-
-object EventReportCacheEntry {
-  implicit val format: Format[EventReportCacheEntry] = Json.format[EventReportCacheEntry]
-
-  val externalIdKey = "externalId"
-  val pstrKey = "pstr"
-  val eventTypeKey = "eventType"
-  val yearKey = "year"
-  val versionKey = "version"
-  val expireAtKey = "expireAt"
-  val lastUpdatedKey = "lastUpdated"
-  val dataKey = "data"
-
-  implicit val formats: Format[EventReportCacheEntry] = new Format[EventReportCacheEntry] {
-    override def writes(o: EventReportCacheEntry): JsValue = {
-      Json.obj(
-        "pstr" -> o.pstr
-      ) ++ EventDataIdentifier.formats.writes(o.edi).as[JsObject]
-    }
-
-    private val localDateTimeReads = MongoJavatimeFormats.instantReads.map(LocalDateTime.ofInstant(_, ZoneId.of("UTC")))
-
-    //TODO: Most likely can remove ".orElse(Reads.pure(LocalDateTime.now()))" from date fields.
-    //TODO: Previously we've fixed an issue where date was stored as strings, which would not get picked up for expiry deletion in mongoDB.
-    //TODO: We have performed migration in production environments. Everything should now be stored as Date objects.
-    override def reads(json: JsValue): JsResult[EventReportCacheEntry] = {
-      (
-        (JsPath \ "pstr").read[String] and
-          (JsPath \ eventTypeKey).read[EventType](EventType.formats) and
-          (JsPath \ yearKey).read[Int] and
-          (JsPath \ versionKey).read[Int] and
-          (JsPath \ dataKey).read[JsValue] and
-          (JsPath \ lastUpdatedKey).read(localDateTimeReads).orElse(Reads.pure(LocalDateTime.now())) and
-          (JsPath \ expireAtKey).read(localDateTimeReads).orElse(Reads.pure(LocalDateTime.now())) and
-          (JsPath \ externalIdKey).read[String]
-      )(
-        (pstr, eventType, year, version, data, lastUpdated, expireAt, externalId) =>
-            EventReportCacheEntry(pstr, EventDataIdentifier(eventType, year, version, externalId), data, lastUpdated, expireAt)
-      ).reads(json)
-    }
-  }
-}
+import EventReportCacheEntry.*
 
 @Singleton
 class EventReportCacheRepository @Inject()(
@@ -95,12 +49,13 @@ class EventReportCacheRepository @Inject()(
     domainFormat = EventReportCacheEntry.formats,
     indexes = Seq(
       IndexModel(
-        Indexes.ascending(expireAtKey),
+        Indexes.ascending(ExpireAtKey),
         IndexOptions().name("dataExpiry").expireAfter(0, TimeUnit.SECONDS).background(true)
       ),
       IndexModel(
-        Indexes.ascending(pstrKey, eventTypeKey, yearKey, versionKey, externalIdKey),
-        IndexOptions().name(pstrKey + eventTypeKey + yearKey + versionKey + externalIdKey).background(true).unique(true)
+        Indexes.ascending(PstrKey, EventTypeKey, YearKey, VersionKey, ExternalIdKey
+        ),
+        IndexOptions().name(PstrKey + EventTypeKey + YearKey + VersionKey + ExternalIdKey).background(true).unique(true)
       )
     ),
     extraCodecs = Seq(
@@ -109,8 +64,6 @@ class EventReportCacheRepository @Inject()(
       Codecs.playFormatCodec(MongoJavatimeFormats.instantFormat)
     )
   ) with Logging {
-
-  import EventReportCacheEntry._
 
   private val expireInSeconds = config.get[Int](path = "mongodb.event-reporting-data.timeToLiveInSeconds")
   private val nonEventTypeExpireInSeconds = config.get[Int](path = "mongodb.event-reporting-data.nonEventTypeTimeToLiveInSeconds")
@@ -125,20 +78,20 @@ class EventReportCacheRepository @Inject()(
 
   def upsert(pstr: String, edi: EventDataIdentifier, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val modifier = Updates.combine(
-      Updates.set(pstrKey, pstr),
-      Updates.set(eventTypeKey, edi.eventType.toString),
-      Updates.set(yearKey, edi.year),
-      Updates.set(versionKey, edi.version),
-      Updates.set(dataKey, Codecs.toBson(cipher.encrypt(pstr, Json.toJson(data)))),
-      Updates.set(lastUpdatedKey, LocalDateTime.now(ZoneId.of("UTC"))),
-      Updates.set(expireAtKey, evaluatedExpireAt)
+      Updates.set(PstrKey, pstr),
+      Updates.set(EventTypeKey, edi.eventType.toString),
+      Updates.set(YearKey, edi.year),
+      Updates.set(VersionKey, edi.version),
+      Updates.set(DataKey, Codecs.toBson(cipher.encrypt(pstr, Json.toJson(data)))),
+      Updates.set(LastUpdatedKey, LocalDateTime.now(ZoneId.of("UTC"))),
+      Updates.set(ExpireAtKey, evaluatedExpireAt)
     )
     def selector(pstr: String) = Filters.and(
-      Filters.equal(pstrKey, pstr),
-      Filters.equal(eventTypeKey, edi.eventType.toString),
-      Filters.equal(yearKey, edi.year),
-      Filters.equal(versionKey, edi.version),
-      Filters.equal(externalIdKey, edi.externalId)
+      Filters.equal(PstrKey, pstr),
+      Filters.equal(EventTypeKey, edi.eventType.toString),
+      Filters.equal(YearKey, edi.year),
+      Filters.equal(VersionKey, edi.version),
+      Filters.equal(ExternalIdKey, edi.externalId)
     )
     collection.findOneAndUpdate(
       filter = selector(pstr),
@@ -150,13 +103,13 @@ class EventReportCacheRepository @Inject()(
 
   def changeVersion(externalId: String, pstr: String, version: Int, newVersion: Int)(implicit ec: ExecutionContext): Future[Option[result.UpdateResult]] = {
     val modifier = Updates.combine(
-      Updates.set(versionKey, newVersion),
-      Updates.set(lastUpdatedKey, LocalDateTime.now(ZoneId.of("UTC")))
+      Updates.set(VersionKey, newVersion),
+      Updates.set(LastUpdatedKey, LocalDateTime.now(ZoneId.of("UTC")))
     )
     val selector = Filters.and(
-      Filters.equal(pstrKey, pstr),
-      Filters.equal(versionKey, version),
-      Filters.equal(externalIdKey, externalId)
+      Filters.equal(PstrKey, pstr),
+      Filters.equal(VersionKey, version),
+      Filters.equal(ExternalIdKey, externalId)
     )
 
     collection.find(filter = selector).headOption().flatMap { foundItem =>
@@ -166,7 +119,7 @@ class EventReportCacheRepository @Inject()(
           update = modifier).toFuture().map {
           case result if result.getModifiedCount > 0 =>
             Some(result)
-          case _ => 
+          case _ =>
             None
         }
       } else {
@@ -199,21 +152,21 @@ class EventReportCacheRepository @Inject()(
   def upsert(externalId:String, pstr: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
 
     val modifier = Updates.combine(
-      Updates.set(externalIdKey, externalId),
-      Updates.set(pstrKey, pstr),
-      Updates.set(eventTypeKey, "None"),
-      Updates.set(yearKey, 0),
-      Updates.set(versionKey, 0),
-      Updates.set(dataKey, Codecs.toBson(cipher.encrypt(pstr, Json.toJson(data)))),
-      Updates.set(lastUpdatedKey, LocalDateTime.now(ZoneId.of("UTC"))),
-      Updates.set(expireAtKey, nonEventTypeEvaluatedExpireAt)
+      Updates.set(ExternalIdKey, externalId),
+      Updates.set(PstrKey, pstr),
+      Updates.set(EventTypeKey, "None"),
+      Updates.set(YearKey, 0),
+      Updates.set(VersionKey, 0),
+      Updates.set(DataKey, Codecs.toBson(cipher.encrypt(pstr, Json.toJson(data)))),
+      Updates.set(LastUpdatedKey, LocalDateTime.now(ZoneId.of("UTC"))),
+      Updates.set(ExpireAtKey, nonEventTypeEvaluatedExpireAt)
     )
     def selector(pstr: String) = Filters.and(
-      Filters.equal(pstrKey, pstr),
-      Filters.equal(eventTypeKey, "None"),
-      Filters.equal(yearKey, 0),
-      Filters.equal(versionKey, 0),
-      Filters.equal(externalIdKey, externalId)
+      Filters.equal(PstrKey, pstr),
+      Filters.equal(EventTypeKey, "None"),
+      Filters.equal(YearKey, 0),
+      Filters.equal(VersionKey, 0),
+      Filters.equal(ExternalIdKey, externalId)
     )
 
     collection.findOneAndUpdate(
@@ -245,11 +198,11 @@ class EventReportCacheRepository @Inject()(
 
   private def getByEDI(pstr: String, edi: EventDataIdentifier)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
     def selector(pstr: String) = Filters.and(
-      Filters.equal(pstrKey, pstr),
-      Filters.equal(eventTypeKey, edi.eventType.toString),
-      Filters.equal(yearKey, edi.year),
-      Filters.equal(versionKey, edi.version),
-      Filters.equal(externalIdKey, edi.externalId)
+      Filters.equal(PstrKey, pstr),
+      Filters.equal(EventTypeKey, edi.eventType.toString),
+      Filters.equal(YearKey, edi.year),
+      Filters.equal(VersionKey, edi.version),
+      Filters.equal(ExternalIdKey, edi.externalId)
     )
     collection.find[EventReportCacheEntry](
       selector(pstr)
@@ -264,7 +217,11 @@ class EventReportCacheRepository @Inject()(
     }.flatMap { resp =>
       for {
         u1 <- updateExpire(selector(pstr), isEvent(edi.eventType)).toFuture().map { _ => () }
-        u2 <- if(!pstr.contains("_original_cache")) updateExpire(selector(pstr + "_original_cache"), isEvent(edi.eventType)).toFuture().map { _ => () } else Future.successful(())
+        u2 <- if (!pstr.contains("_original_cache")) {
+          updateExpire(selector(pstr + "_original_cache"), isEvent(edi.eventType)).toFuture().map { _ => () }
+        } else {
+          Future.successful(())
+        }
       } yield {
         resp
       }
@@ -272,7 +229,7 @@ class EventReportCacheRepository @Inject()(
   }
 
   private def updateExpire(selector: Bson, isEvent: Boolean) = {
-    val modifier = Updates.set(expireAtKey, if(isEvent) evaluatedExpireAt else nonEventTypeEvaluatedExpireAt)
+    val modifier = Updates.set(ExpireAtKey, if(isEvent) evaluatedExpireAt else nonEventTypeEvaluatedExpireAt)
 
     collection.updateOne(selector, modifier)
   }
@@ -297,14 +254,14 @@ class EventReportCacheRepository @Inject()(
     for {
       u <- updateExpire(
         Filters.and(
-          Filters.equal(externalIdKey, externalId),
-          Filters.equal(eventTypeKey, EventTypeNone.toString)
+          Filters.equal(ExternalIdKey, externalId),
+          Filters.equal(EventTypeKey, EventTypeNone.toString)
         ),
         isEvent = false).toFuture()
       u2 <- updateExpire(
         Filters.and(
-          Filters.equal(externalIdKey, externalId),
-          Filters.notEqual(eventTypeKey, EventTypeNone.toString)
+          Filters.equal(ExternalIdKey, externalId),
+          Filters.notEqual(EventTypeKey, EventTypeNone.toString)
         ),
         isEvent = true).toFuture()
     } yield u.wasAcknowledged() && u2.wasAcknowledged()

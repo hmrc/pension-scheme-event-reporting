@@ -17,27 +17,26 @@
 package controllers
 
 import audit.EmailAuditEvent
-import models._
+import models.*
 import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
-import org.mockito.Mockito._
+import org.mockito.Mockito.*
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Application
-import play.api.http.Status.FORBIDDEN
 import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
-import play.api.test.Helpers._
+import play.api.test.Helpers.*
 import repositories.EventReportCacheRepository
 import services.AuditService
-import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.crypto.{ApplicationCrypto, PlainText}
-import java.time.ZonedDateTime
+import uk.gov.hmrc.auth.core.*
+import uk.gov.hmrc.crypto.{ApplicationCrypto, Decrypter, Encrypter, PlainText}
 
+import java.time.ZonedDateTime
 import scala.concurrent.Future
 
 class EmailResponseControllerSpec extends AsyncWordSpec with Matchers with MockitoSugar with BeforeAndAfterEach { // scalastyle:off magic.number
@@ -57,9 +56,10 @@ class EmailResponseControllerSpec extends AsyncWordSpec with Matchers with Mocki
 
   private val injector = application.injector
   private val controller = injector.instanceOf[EmailResponseController]
-  private val encryptedPsaId = injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(psaOrPspId)).value
-  private val encryptedPstr = injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(pstr)).value
-  private val encryptedEmail = injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(email)).value
+  private val crypto: Encrypter & Decrypter = injector.instanceOf[ApplicationCrypto].QueryParameterCrypto
+  private val encryptedPsaId = crypto.encrypt(PlainText(psaOrPspId)).value
+  private val encryptedPstr = crypto.encrypt(PlainText(pstr)).value
+  private val encryptedEmail = crypto.encrypt(PlainText(email)).value
 
   override def beforeEach(): Unit = {
     reset(mockAuditService)
@@ -97,7 +97,7 @@ class EmailResponseControllerSpec extends AsyncWordSpec with Matchers with Mocki
     "decryptPsaOrPspIdAndEmail" should {
       "return IllegalArgumentException when email does not match regex" in {
         val invalidEmail = "test.com"
-        val encryptedInvalidEmail = injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(invalidEmail)).value
+        val encryptedInvalidEmail = crypto.encrypt(PlainText(invalidEmail)).value
 
         val result = controller.sendAuditEvents(
           schemeAdministratorTypeAsPsp,
