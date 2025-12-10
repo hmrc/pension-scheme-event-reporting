@@ -12,7 +12,9 @@ object CodeCoverageSettings {
     ".*Routes.*",
     "testOnly.*",
     "testOnlyDoNotUseInAppConf.*",
-    "target.*"
+    "target.*",
+    ".*\\$anon.*",
+    "models.*"
   )
 
   private val coverageExcludedFiles = "<empty>;Reverse.*;.*handlers.*;.*repositories.*;" +
