@@ -18,7 +18,7 @@ package repositories
 
 import com.typesafe.config.Config
 import crypto.DataEncryptor
-import models.GetDetailsCacheDataIdentifier
+import models.{GetDetailsCacheDataIdentifier, GetDetailsCacheEntry}
 import models.enumeration.EventType
 import org.mockito.Mockito.when
 import org.mongodb.scala.model.Filters
@@ -37,10 +37,13 @@ import org.mongodb.scala.ObservableFuture
 import scala.concurrent.ExecutionContext.Implicits.global
 import uk.gov.hmrc.auth.core.AuthConnector
 import play.api.inject.bind
-import repositories.GetDetailsCacheRepositorySpec.mockAppConfig
 
 class GetDetailsCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers
   with BeforeAndAfter with BeforeAndAfterAll with ScalaFutures { // scalastyle:off magic.number
+
+  private val mockAppConfig = mock[Configuration]
+  private val mockConfig = mock[Config]
+  private val ttlValue = 28
 
   private val modules: Seq[GuiceableModule] = Seq(
     bind[AuthConnector].toInstance(mock[AuthConnector]),
@@ -67,8 +70,6 @@ class GetDetailsCacheRepositorySpec extends AnyWordSpec with MockitoSugar with M
   var mongoPort: Int = 27017
 
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(1, Millis))
-
-  import GetDetailsCacheRepositorySpec._
 
   var getDetailsCacheRepository: GetDetailsCacheRepository  = mock[GetDetailsCacheRepository]
 
@@ -185,11 +186,3 @@ class GetDetailsCacheRepositorySpec extends AnyWordSpec with MockitoSugar with M
 
   }
 }
-
-object GetDetailsCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
-
-  private val mockAppConfig = mock[Configuration]
-  private val mockConfig = mock[Config]
-  private val ttlValue = 28
-}
-

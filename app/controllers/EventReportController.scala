@@ -18,11 +18,11 @@ package controllers
 
 import actions.AuthAction
 import models.enumeration.EventType
-import models.{ReportVersion, SchemeReferenceNumber}
+import models.{EventReportCacheEntry, ReportVersion, SchemeReferenceNumber}
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc._
-import repositories.{EventReportCacheEntry, EventReportCacheRepository}
+import repositories.EventReportCacheRepository
 import services.EventReportService
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.BadRequestException

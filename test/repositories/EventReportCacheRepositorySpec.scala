@@ -18,7 +18,7 @@ package repositories
 
 import com.typesafe.config.Config
 import crypto.DataEncryptor
-import models.EventDataIdentifier
+import models.{EventDataIdentifier, EventReportCacheEntry}
 import models.enumeration.EventType
 import org.mockito.Mockito.when
 import org.mongodb.scala.model.Filters
@@ -35,7 +35,6 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.mongo.MongoComponent
 import org.mongodb.scala.ObservableFuture
-
 
 import scala.concurrent.ExecutionContext.Implicits.global
 

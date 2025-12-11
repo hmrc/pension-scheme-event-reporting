@@ -72,8 +72,6 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     overrides(modules*).build()
   private val controller = application.injector.instanceOf[EventReportController]
 
-  private val emptyEnrolments = Enrolments(Set(): Set[Enrolment])
-
   private val enrolments = Enrolments(Set(
     Enrolment("HMRC-PODS-ORG", Seq(
       EnrolmentIdentifier("PSAID", "A0000000")

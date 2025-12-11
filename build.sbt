@@ -21,6 +21,15 @@ val appName: String = "pension-scheme-event-reporting"
 
 ThisBuild / majorVersion := 0
 ThisBuild / scalaVersion := "3.6.2"
+ThisBuild / scalacOptions := Seq(
+  "-feature",
+  "-deprecation",
+  "-unchecked",
+  "-encoding", "utf8",
+  "-Wconf:src=routes/.*:s",
+  "-Wconf:msg=Flag.*repeatedly:s",
+  "-Wconf:msg=Setting.-Wunused.set.to.all.redundantly:s"
+)
 
 lazy val root = (project in file("."))
   .disablePlugins(JUnitXmlReportPlugin)
@@ -29,12 +38,6 @@ lazy val root = (project in file("."))
   .settings(
     name := appName,
     PlayKeys.playDefaultPort := 8215,
-    scalacOptions := Seq(
-      "-feature",
-      "-unchecked",
-      "-encoding", "utf8",
-      "-Wconf:src=routes/.*:s"
-    ),
     libraryDependencies ++= AppDependencies(),
     retrieveManaged := true,
     RoutesKeys.routesImport ++= Seq(

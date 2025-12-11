@@ -21,31 +21,13 @@ import com.mongodb.client.model.FindOneAndUpdateOptions
 import org.mongodb.scala.model._
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
-import repositories.FileUploadResponseCacheEntry.{apiTypesKey, expireAtKey, referenceKey}
+import models.FileUploadResponseCacheEntry.*
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
-import org.mongodb.scala.gridfs.ObservableFuture
-
 
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
-
-
-case class FileUploadResponseCacheEntry(pstr: String, apiTypes: String, data: JsValue, lastUpdated: Instant, expireAt: Instant)
-
-object FileUploadResponseCacheEntry {
-
-  implicit val dateFormat: Format[Instant] = MongoJavatimeFormats.instantFormat
-  implicit val format: Format[FileUploadResponseCacheEntry] = Json.format[FileUploadResponseCacheEntry]
-
-  val referenceKey = "reference"
-  val apiTypesKey = "apiTypes"
-  val expireAtKey = "expireAt"
-  val lastUpdatedKey = "lastUpdated"
-  val dataKey = "data"
-}
 
 @Singleton
 class FileUploadResponseCacheRepository @Inject()(
@@ -58,44 +40,40 @@ class FileUploadResponseCacheRepository @Inject()(
     domainFormat = implicitly[Format[JsValue]],
     indexes = Seq(
       IndexModel(
-        Indexes.ascending(expireAtKey),
+        Indexes.ascending(ExpireAtKey),
         IndexOptions().name("dataExpiry").expireAfter(0, TimeUnit.SECONDS).background(true)
       ),
       IndexModel(
-        Indexes.ascending(referenceKey, apiTypesKey),
-        IndexOptions().name(referenceKey).background(true)
+        Indexes.ascending(ReferenceKey, ApiTypesKey),
+        IndexOptions().name(ReferenceKey).background(true)
       )
     )
   ) with Logging {
-
-  import FileUploadResponseCacheEntry._
 
   private val expireInSeconds = config.get[Int](path = "mongodb.file-upload-response.timeToLiveInSeconds")
 
   private def evaluatedExpireAt: Instant = Instant.now().plusSeconds(expireInSeconds + 1)
 
-  private def selector(reference: String) = Filters.equal(referenceKey, reference)
+  private def selector(reference: String) = Filters.equal(ReferenceKey, reference)
 
   def upsert(reference: String, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val lastUpdated = Instant.now()
     val modifier = Updates.combine(
-      Updates.set(referenceKey, Codecs.toBson(reference)),
-      Updates.set(dataKey, Codecs.toBson(Json.toJson(data))),
-      Updates.set(lastUpdatedKey, Codecs.toBson(lastUpdated)),
-      Updates.set(expireAtKey, Codecs.toBson(evaluatedExpireAt))
+      Updates.set(ReferenceKey, Codecs.toBson(reference)),
+      Updates.set(DataKey, Codecs.toBson(Json.toJson(data))),
+      Updates.set(LastUpdatedKey, Codecs.toBson(lastUpdated)),
+      Updates.set(ExpireAtKey, Codecs.toBson(evaluatedExpireAt))
     )
-
-
+    
     collection.findOneAndUpdate(
       filter = selector(reference),
       update = modifier, new FindOneAndUpdateOptions().upsert(true)).toFuture().map(_ => ())
   }
 
-  def get(reference: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
+  def get(reference: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] =
    collection.find(
       filter = selector(reference)
     ).headOption().map{ a => a.flatMap{ jsValue =>
      (jsValue.as[JsObject] \ "data").asOpt[JsValue]
    }}
-  }
 }

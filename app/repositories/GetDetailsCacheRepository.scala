@@ -19,74 +19,19 @@ package repositories
 import com.google.inject.{Inject, Singleton}
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import crypto.DataEncryptor
-import models.GetDetailsCacheDataIdentifier
+import models.{GetDetailsCacheDataIdentifier, GetDetailsCacheEntry}
 import models.enumeration.EventType
-import org.mongodb.scala.model._
-import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json._
+import models.GetDetailsCacheEntry.*
+import org.mongodb.scala.model.*
+import play.api.libs.json.*
 import play.api.{Configuration, Logging}
-import repositories.GetDetailsCacheEntry.{eventTypeKey, expireAtKey, pstrKey, versionKey, yearKey}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
-import org.mongodb.scala.gridfs.ObservableFuture
-
 
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
-
-
-case class GetDetailsCacheEntry(pstr: String, gdcdi: GetDetailsCacheDataIdentifier, data: JsValue, lastUpdated: Instant, expireAt: Instant)
-
-object GetDetailsCacheEntry {
-  implicit val dateFormat: Format[Instant] = MongoJavatimeFormats.instantFormat
-
-  implicit val format: Format[GetDetailsCacheEntry] = Json.format[GetDetailsCacheEntry]
-
-  val pstrKey = "pstr"
-  val eventTypeKey = "eventType"
-  val yearKey = "year"
-  val versionKey = "version"
-  val expireAtKey = "expireAt"
-  val lastUpdatedKey = "lastUpdated"
-  val dataKey = "data"
-
-  //TODO: Most likely can just use MongoJavatimeFormats.instantReads.
-  //TODO: Previously we've fixed an issue where date was stored as strings, which would not get picked up for expiry deletion in mongoDB.
-  //TODO: We have performed migration in production environments. Everything should now be stored as Date objects.
-  private val dateReads = new Reads[Instant] {
-    def reads(json: JsValue): JsResult[Instant] = {
-      val result = json.asOpt[String].map {
-        Instant.parse
-      }.getOrElse(json.as[Instant](MongoJavatimeFormats.instantReads))
-      JsSuccess(result)
-    }
-  }
-
-  implicit val formats: Format[GetDetailsCacheEntry] = new Format[GetDetailsCacheEntry] {
-    override def writes(o: GetDetailsCacheEntry): JsValue = {
-      Json.obj(
-        "pstr" -> o.pstr
-      ) ++ GetDetailsCacheDataIdentifier.formats.writes(o.gdcdi).as[JsObject]
-    }
-
-    override def reads(json: JsValue): JsResult[GetDetailsCacheEntry] = {
-      (
-        (JsPath \ "pstr").read[String] and
-          (JsPath \ eventTypeKey).read[EventType](EventType.formats) and
-          (JsPath \ yearKey).read[Int] and
-          (JsPath \ versionKey).read[Int] and
-          (JsPath \ dataKey).read[JsValue] and
-          (JsPath \ lastUpdatedKey).read[Instant](dateReads) and
-          (JsPath \ expireAtKey).read[Instant](dateReads)
-        )(
-        (pstr, eventType, year, version, data, lastUpdated, expireAt) =>
-          GetDetailsCacheEntry(pstr, GetDetailsCacheDataIdentifier(eventType, year, version), data, lastUpdated, expireAt)
-      ).reads(json)
-    }
-  }
-}
 
 @Singleton
 class GetDetailsCacheRepository @Inject()(
@@ -100,12 +45,12 @@ class GetDetailsCacheRepository @Inject()(
     domainFormat = GetDetailsCacheEntry.formats,
     indexes = Seq(
       IndexModel(
-        Indexes.ascending(expireAtKey),
+        Indexes.ascending(ExpireAtKey),
         IndexOptions().name("dataExpiry").expireAfter(0, TimeUnit.SECONDS).background(true)
       ),
       IndexModel(
-        Indexes.ascending(pstrKey, eventTypeKey, yearKey, versionKey),
-        IndexOptions().name(pstrKey + eventTypeKey + yearKey + versionKey).background(true).unique(true)
+        Indexes.ascending(PstrKey, EventTypeKey, YearKey, VersionKey),
+        IndexOptions().name(PstrKey + EventTypeKey + YearKey + VersionKey).background(true).unique(true)
       )
     ),
     extraCodecs = Seq(
@@ -115,8 +60,6 @@ class GetDetailsCacheRepository @Inject()(
     )
   ) with Logging {
 
-  import GetDetailsCacheEntry._
-
   private val expireInSeconds = config.get[Int](path = "mongodb.get-details-cache-data.timeToLiveInSeconds")
 
   private def evaluatedExpireAt: Instant = {
@@ -125,19 +68,19 @@ class GetDetailsCacheRepository @Inject()(
 
   def upsert(pstr: String, gdcdi: GetDetailsCacheDataIdentifier, data: JsValue)(implicit ec: ExecutionContext): Future[Unit] = {
     val modifier = Updates.combine(
-      Updates.set(pstrKey, pstr),
-      Updates.set(eventTypeKey, gdcdi.eventType.toString),
-      Updates.set(yearKey, gdcdi.year),
-      Updates.set(versionKey, gdcdi.version),
-      Updates.set(dataKey, Codecs.toBson(cipher.encrypt(pstr, Json.toJson(data)))),
-      Updates.set(lastUpdatedKey, Codecs.toBson(Instant.now())),
-      Updates.set(expireAtKey, evaluatedExpireAt)
+      Updates.set(PstrKey, pstr),
+      Updates.set(EventTypeKey, gdcdi.eventType.toString),
+      Updates.set(YearKey, gdcdi.year),
+      Updates.set(VersionKey, gdcdi.version),
+      Updates.set(DataKey, Codecs.toBson(cipher.encrypt(pstr, Json.toJson(data)))),
+      Updates.set(LastUpdatedKey, Codecs.toBson(Instant.now())),
+      Updates.set(ExpireAtKey, evaluatedExpireAt)
     )
     val selector = Filters.and(
-      Filters.equal(pstrKey, pstr),
-      Filters.equal(eventTypeKey, gdcdi.eventType.toString),
-      Filters.equal(yearKey, gdcdi.year),
-      Filters.equal(versionKey, gdcdi.version)
+      Filters.equal(PstrKey, pstr),
+      Filters.equal(EventTypeKey, gdcdi.eventType.toString),
+      Filters.equal(YearKey, gdcdi.year),
+      Filters.equal(VersionKey, gdcdi.version)
     )
     collection.findOneAndUpdate(
       filter = selector,
@@ -147,10 +90,10 @@ class GetDetailsCacheRepository @Inject()(
   def get(pstr: String, gdcdi: GetDetailsCacheDataIdentifier)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
     collection.find[GetDetailsCacheEntry](
       Filters.and(
-        Filters.equal(pstrKey, pstr),
-        Filters.equal(eventTypeKey, gdcdi.eventType.toString),
-        Filters.equal(yearKey, gdcdi.year),
-        Filters.equal(versionKey, gdcdi.version)
+        Filters.equal(PstrKey, pstr),
+        Filters.equal(EventTypeKey, gdcdi.eventType.toString),
+        Filters.equal(YearKey, gdcdi.year),
+        Filters.equal(VersionKey, gdcdi.version)
       )
     ).headOption().map {
       _.map {
@@ -163,10 +106,10 @@ class GetDetailsCacheRepository @Inject()(
   def remove(pstr: String, gdcdi: GetDetailsCacheDataIdentifier)(implicit ec: ExecutionContext): Future[Unit] = {
     collection.deleteOne(
       filter = Filters.and(
-        Filters.equal(pstrKey, pstr),
-        Filters.equal(eventTypeKey, gdcdi.eventType.toString),
-        Filters.equal(yearKey, gdcdi.year),
-        Filters.equal(versionKey, gdcdi.version)
+        Filters.equal(PstrKey, pstr),
+        Filters.equal(EventTypeKey, gdcdi.eventType.toString),
+        Filters.equal(YearKey, gdcdi.year),
+        Filters.equal(VersionKey, gdcdi.version)
       )
     ).toFuture().map(_ => ())
   }
