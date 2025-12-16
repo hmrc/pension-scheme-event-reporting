@@ -16,7 +16,6 @@ DELETE        /user-answers/:srn                                                
 
 POST          /user-answers/refresh-expire/:srn                                                 controllers.EventReportController.refreshExpire(srn: SchemeReferenceNumber)
 
-POST          /email-response/:submittedBy/:requestId/:email/:psaId/:pstr/:reportVersion        controllers.EmailResponseOldController.sendAuditEvents(submittedBy: String, requestId: String, email: String, psaId: String, pstr: String, reportVersion: String)
 POST          /email-status-response/:submittedBy/:requestId/:email/:psaId/:pstr/:reportVersion controllers.EmailResponseController.sendAuditEvents(submittedBy: String, requestId: String, email: String, psaId: String, pstr: String, reportVersion: String)
 
 GET           /file-upload-response/get/:srn                                                    controllers.FileUploadOutcomeController.getSrn(srn: SchemeReferenceNumber)
