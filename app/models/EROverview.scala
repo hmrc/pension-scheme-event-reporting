@@ -28,22 +28,18 @@ case class EROverviewVersion(
                             )
 
 object EROverviewVersion {
-  implicit val rds: Reads[Option[EROverviewVersion]] = {
-    (JsPath \ "tpssReportPresent").readNullable[String].flatMap {
-      case Some("Yes") => Reads(_ => JsSuccess(None))
-      case _ => (
-        (JsPath \ "numberOfVersions").read[Int] and
-          (JsPath \ "submittedVersionAvailable").read[String] and
-          (JsPath \ "compiledVersionAvailable").read[String]
-        )(
-        (noOfVersions, isSubmitted, isCompiled) =>
-          Some(EROverviewVersion(
-            noOfVersions,
-            isSubmitted.equals("Yes"),
-            isCompiled.equals("Yes")
-          )))
-    }
-  }
+  implicit val rds: Reads[Option[EROverviewVersion]] = (
+    (JsPath \ "numberOfVersions").readNullable[Int] and
+      (JsPath \ "submittedVersionAvailable").readNullable[String] and
+      (JsPath \ "compiledVersionAvailable").readNullable[String]
+    )(
+    (noOfVersions, isSubmitted, isCompiled) =>
+      noOfVersions.map(n =>
+        EROverviewVersion(
+          n,
+          isSubmitted.contains("Yes"),
+          isCompiled.contains("Yes")
+        )))
   implicit val formats: Format[EROverviewVersion] = Json.format[EROverviewVersion]
 
   def combine(a: EROverviewVersion, b: EROverviewVersion): EROverviewVersion = {

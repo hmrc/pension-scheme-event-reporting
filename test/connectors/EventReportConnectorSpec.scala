@@ -468,6 +468,57 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
       }
     }
 
+    "preserve versionDetails when IF incorrectly sets tpssReportPresent to Yes" in {
+      val responseJson: JsArray = Json.arr(
+        Json.obj(
+          "periodStartDate" -> "2022-04-06",
+          "periodEndDate" -> "2023-04-05",
+          "tpssReportPresent" -> "Yes",
+          "numberOfVersions" -> 1,
+          "submittedVersionAvailable" -> "Yes",
+          "compiledVersionAvailable" -> "No"
+        )
+      )
+
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(ok.withHeader("Content-Type", "application/json").withBody(responseJson.toString()))
+      )
+
+      connector.getOverview(pstr, reportTypeER, fromDt, toDt).map { response =>
+        response mustBe Seq(EROverview(
+          LocalDate.of(2022, 4, 6),
+          LocalDate.of(2023, 4, 5),
+          tpssReportPresent = true,
+          Some(EROverviewVersion(1, submittedVersionAvailable = true, compiledVersionAvailable = false))
+        ))
+      }
+    }
+
+    "return None for versionDetails when IF sets tpssReportPresent to Yes with no version fields" in {
+      val responseJson: JsArray = Json.arr(
+        Json.obj(
+          "periodStartDate" -> "2022-04-06",
+          "periodEndDate" -> "2023-04-05",
+          "tpssReportPresent" -> "Yes"
+        )
+      )
+
+      server.stubFor(
+        get(urlEqualTo(getErOverviewUrl))
+          .willReturn(ok.withHeader("Content-Type", "application/json").withBody(responseJson.toString()))
+      )
+
+      connector.getOverview(pstr, reportTypeER, fromDt, toDt).map { response =>
+        response mustBe Seq(EROverview(
+          LocalDate.of(2022, 4, 6),
+          LocalDate.of(2023, 4, 5),
+          tpssReportPresent = true,
+          versionDetails = None
+        ))
+      }
+    }
+
     "return a Seq.empty for NOT FOUND - 404 with response code NO_REPORT_FOUND" in {
       server.stubFor(
         get(urlEqualTo(getErOverviewUrl))
