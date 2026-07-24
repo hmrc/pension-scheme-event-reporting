@@ -24,9 +24,8 @@ import play.api.Logging
 import play.api.mvc.Results._
 import play.api.mvc._
 import uk.gov.hmrc.auth.core._
-import uk.gov.hmrc.auth.core.retrieve.ItmpName
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
-import uk.gov.hmrc.auth.core.retrieve.~
+import uk.gov.hmrc.auth.core.retrieve.{ItmpName, ~}
 import uk.gov.hmrc.domain.{PsaId, PspId}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
@@ -124,7 +123,7 @@ class AuthActionImpl (
     psaOrPspIdFtr.flatMap {
       case Right(msg) =>
         Future.successful(Forbidden(msg))
-      case Left(psaOrPspId) =>
+      case Left(psaOrPspId: PsaOrPspId) =>
         block(psaOrPspId)
     }
   }

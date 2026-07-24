@@ -489,7 +489,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def getEventSummary(pstr: String, version: String, startDate: String, psaOrPspId: String, externalId: String, itmpName: Option[ItmpName])
+  def getEventSummary(pstr: String, version: String, startDate: String, psaOrPspId: String, externalId: String, nameOfUser: Option[ItmpName])
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
     eventLockRepository.getLockedEventTypes(pstr, psaOrPspId, startDate.split("-").head.toInt, version.toInt, externalId)
@@ -501,7 +501,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
             val eventIsLocked = lockedEvents.contains(eventType)
             if(eventIsLocked) {
               event + ("lockedBy" -> JsString(
-                itmpName.map(name => name.givenName.getOrElse("") + " " + name.familyName.getOrElse("")).getOrElse("Unknown")
+                nameOfUser.map(name => name.givenName.getOrElse("") + " " + name.familyName.getOrElse("")).getOrElse("Unknown")
               ))
             } else {
               event
