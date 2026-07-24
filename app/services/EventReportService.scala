@@ -34,7 +34,7 @@ import play.api.mvc.{RequestHeader, Result}
 import repositories.{DeclarationLockRepository, EventLockRepository, EventReportCacheRepository}
 import transformations.ETMPToFrontEnd._
 import transformations.UserAnswersToETMP._
-import uk.gov.hmrc.auth.core.retrieve.Name
+import uk.gov.hmrc.auth.core.retrieve.ItmpName
 import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
 
@@ -489,7 +489,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def getEventSummary(pstr: String, version: String, startDate: String, psaOrPspId: String, externalId: String, nameOfUser: Option[Name])
+  def getEventSummary(pstr: String, version: String, startDate: String, psaOrPspId: String, externalId: String, itmpName: Option[ItmpName])
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
     eventLockRepository.getLockedEventTypes(pstr, psaOrPspId, startDate.split("-").head.toInt, version.toInt, externalId)
@@ -501,7 +501,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
             val eventIsLocked = lockedEvents.contains(eventType)
             if(eventIsLocked) {
               event + ("lockedBy" -> JsString(
-                nameOfUser.map(name => name.name.getOrElse("") + " " + name.lastName.getOrElse("")).getOrElse("Unknown")
+                itmpName.map(name => name.givenName.getOrElse("") + " " + name.familyName.getOrElse("")).getOrElse("Unknown")
               ))
             } else {
               event

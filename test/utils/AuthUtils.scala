@@ -28,7 +28,7 @@ import play.api.mvc._
 import services.AuditServiceSpec.mock
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.authorise.Predicate
-import uk.gov.hmrc.auth.core.retrieve.{Name, Retrieval, ~}
+import uk.gov.hmrc.auth.core.retrieve.{ItmpName, Retrieval, ~}
 import uk.gov.hmrc.domain.{PsaId, PspId}
 import uk.gov.hmrc.http.{HeaderCarrier, HttpException}
 
@@ -46,13 +46,13 @@ object AuthUtils {
     when(mockAuthConnector.authorise[Unit](any(), any())(any(), any())).thenReturn (Future.failed(InsufficientEnrolments()))
 
   def authStub(mockAuthConnector: AuthConnector, mockSchemeConnector: SchemeConnector): OngoingStubbing[Future[Either[HttpException, Boolean]]] = {
-    when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any()))
+    when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[ItmpName]](any(), any())(any(), any()))
       .thenReturn(Future.successful(AuthUtils.authResponse))
     when(mockSchemeConnector.checkForAssociation(ArgumentMatchers.eq(Left(PsaId(psaId))), ArgumentMatchers.eq(srn))(any()))
       .thenReturn(Future.successful(Right(true)))
   }
 
-  val authResponse: Enrolments ~ Some[String] ~ Some[Name] = {
+  val authResponse: Enrolments ~ Some[String] ~ Some[ItmpName] = {
     new ~(
       new ~(
         Enrolments(
@@ -61,13 +61,13 @@ object AuthUtils {
           )
         ), Some(id)
       ),
-      Some(Name(Some("John"), Some("Smith")))
+      Some(ItmpName(Some("John"), None, Some("Smith")))
     )
 
   }
 
   def authStubPsp(mockAuthConnector: AuthConnector, mockSchemeConnector: SchemeConnector): OngoingStubbing[Future[Either[HttpException, Boolean]]] = {
-    when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[Name]](any(), any())(any(), any()))
+    when(mockAuthConnector.authorise[Enrolments ~ Option[String] ~ Option[ItmpName]](any(), any())(any(), any()))
       .thenReturn(Future.successful(AuthUtils.authResponsePsp))
     when(mockSchemeConnector.checkForAssociation(ArgumentMatchers.eq(Right(PspId(pspId))), ArgumentMatchers.eq(srn))(any()))
       .thenReturn(Future.successful(Right(true)))
@@ -81,7 +81,7 @@ object AuthUtils {
         )
       ), Some(id)
     ),
-    Some(Name(Some("John"), Some("Smith")))
+    Some(ItmpName(Some("John"), None, Some("Smith")))
   )
 
   val authResponsePsaPsp = new ~(
@@ -93,7 +93,7 @@ object AuthUtils {
         )
       ), Some(id)
     ),
-    Some(Name(Some("John"), Some("Smith")))
+    Some(ItmpName(Some("John"), None, Some("Smith")))
   )
 
 
@@ -113,7 +113,7 @@ object AuthUtils {
         override def parser: BodyParser[AnyContent] = mockParser
 
         override def invokeBlock[A](request: Request[A], block: AuthRequest[A] => Future[Result]): Future[Result] =
-          block(AuthRequest(request, Left(PsaId(AuthUtils.psaId)),AuthUtils.externalId, Some(Name(Some("first"), Some("last")))))
+          block(AuthRequest(request, Left(PsaId(AuthUtils.psaId)), AuthUtils.externalId, Some(ItmpName(Some("first"), None, Some("last")))))
 
         override protected def executionContext: ExecutionContext = global
       }

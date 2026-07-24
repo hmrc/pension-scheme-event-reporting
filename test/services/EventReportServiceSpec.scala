@@ -37,7 +37,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
 import repositories.{DeclarationLockRepository, EventLockRepository, EventReportCacheRepository}
-import uk.gov.hmrc.auth.core.retrieve.Name
+import uk.gov.hmrc.auth.core.retrieve.ItmpName
 import uk.gov.hmrc.http._
 import utils.{GeneratorAPI1828, GeneratorAPI1829, JSONSchemaValidator, JsonFileReader}
 
@@ -71,7 +71,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val payload2 = Json.obj("test" -> "test2")
   private val year = 2020
   private val testValue = "test"
-  private val testName = Name(Some("firstName"), Some("lastName"))
+  private val testName = ItmpName(Some("firstName"), None, Some("lastName"))
 
   val modules: Seq[GuiceableModule] =
     Seq(
@@ -583,7 +583,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
             |{"eventType":"5","recordVersion":4},
             |{"eventType":"6","recordVersion":7},
             |{"eventType":"7","recordVersion":2},
-            |{"eventType":"8","recordVersion":4,"lockedBy":"${testName.name.get} ${testName.lastName.get}"},
+            |{"eventType":"8","recordVersion":4,"lockedBy":"${testName.givenName.get} ${testName.familyName.get}"},
             |{"eventType":"8A","recordVersion":3},
             |{"eventType":"22","recordVersion":4},
             |{"eventType":"23","recordVersion":3},
@@ -1243,5 +1243,4 @@ object EventReportServiceSpec {
       | }
       |""".stripMargin).as[JsObject])
 }
-
 

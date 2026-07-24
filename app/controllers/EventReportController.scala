@@ -186,7 +186,7 @@ class EventReportController @Inject()(
           version <- requiredHeader("reportVersionNumber")
           startDate <- requiredHeader("reportStartDate")
         } yield {
-          eventReportService.getEventSummary(pstr, ("00" + version).takeRight(3), startDate, request.getId, request.externalId, request.name).map(Ok(_))
+          eventReportService.getEventSummary(pstr, ("00" + version).takeRight(3), startDate, request.getId, request.externalId, request.itmpName).map(Ok(_))
         }) match {
         case Left(msg) => Future.successful(BadRequest(msg))
         case Right(result) => result
@@ -326,4 +326,3 @@ class EventReportController @Inject()(
   }
 
 }
-
