@@ -34,7 +34,6 @@ import play.api.mvc.{RequestHeader, Result}
 import repositories.{DeclarationLockRepository, EventLockRepository, EventReportCacheRepository}
 import transformations.ETMPToFrontEnd._
 import transformations.UserAnswersToETMP._
-import uk.gov.hmrc.auth.core.retrieve.ItmpName
 import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
 
@@ -49,7 +48,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
                                    jsonPayloadSchemaValidator: JSONSchemaValidator,
                                    compilePayloadService: CompilePayloadService,
                                    memberChangeInfoService: MemberChangeInfoService,
-                                   eventLockRepository: EventLockRepository
+                                  eventLockRepository: EventLockRepository
                                   ) extends Logging {
 
   private final val SchemaPath1826 = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.1.0.json"
@@ -489,7 +488,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def getEventSummary(pstr: String, version: String, startDate: String, psaOrPspId: String, externalId: String, nameOfUser: Option[ItmpName])
+  def getEventSummary(pstr: String, version: String, startDate: String, psaOrPspId: String, externalId: String)
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
     eventLockRepository.getLockedEventTypes(pstr, psaOrPspId, startDate.split("-").head.toInt, version.toInt, externalId)
@@ -500,9 +499,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
             val eventType = (event \ "eventType").as[String]
             val eventIsLocked = lockedEvents.contains(eventType)
             if(eventIsLocked) {
-              event + ("lockedBy" -> JsString(
-                nameOfUser.map(name => name.givenName.getOrElse("") + " " + name.familyName.getOrElse("")).getOrElse("Unknown")
-              ))
+              event + ("lockedBy" -> JsString("Locked by another user"))
             } else {
               event
             }

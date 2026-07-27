@@ -37,7 +37,7 @@ import play.api.mvc.Results.{BadRequest, NoContent}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import services.EventReportService
-import uk.gov.hmrc.auth.core.retrieve.{ItmpName, ~}
+import uk.gov.hmrc.auth.core.retrieve.~
 import uk.gov.hmrc.auth.core.{AuthConnector, Enrolment, EnrolmentIdentifier, Enrolments}
 import uk.gov.hmrc.http._
 import utils.AuthUtils.FakeAuthAction
@@ -83,8 +83,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     reset(mockAuthConnector)
     reset(mockJSONPayloadSchemaValidator)
     reset(mockEventReportService)
-    when(mockAuthConnector.authorise[Option[String] ~ Enrolments ~ Option[ItmpName]](any(), any())(any(), any()))
-      .thenReturn(Future.successful(new~(new~(Some(externalId), enrolments), Some(ItmpName(Some("FirstName"), None, Some("lastName"))))))
+    when(mockAuthConnector.authorise[Option[String] ~ Enrolments](any(), any())(any(), any()))
+      .thenReturn(Future.successful(new~(Some(externalId), enrolments)))
     when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
       .thenReturn(Failure(EventReportValidationFailureException("Test")))
   }
@@ -233,8 +233,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
         ArgumentMatchers.eq(pstr),
         ArgumentMatchers.eq("001"),
         ArgumentMatchers.eq(startDate),
-        any(),
-        any(),
+        any()
+        ,
         any()
       )(any(), any()))
         .thenReturn(Future.successful(dummyJsValue))
