@@ -48,6 +48,8 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig,
   def versionUrl: String  = s"$ifURL${config.get[String](path = "serviceUrls.version")}"
   val submitEventDeclarationReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event-declaration-report")}"
   val submitEvent20ADeclarationReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event20a-declaration-report")}"
+  lazy val minimalPsaDetailsUrl: String =
+    s"$pensionsAdministratorUrl${config.get[String](path = "serviceUrls.minimalPsaDetails")}"
 
   private val baseUrlPensionsScheme: String = servicesConfig.baseUrl("pensions-scheme")
   val checkAssociationUrl: String = s"$baseUrlPensionsScheme${runModeConfiguration.underlying.getString("serviceUrls.checkPsaAssociation")}"

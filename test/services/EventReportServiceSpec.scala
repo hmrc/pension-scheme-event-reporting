@@ -20,7 +20,7 @@ import com.mongodb.client.result.DeleteResult
 import connectors.EventReportConnector
 import models.enumeration.EventType
 import models.enumeration.EventType.{Event1, Event20A, Event22, Event3, Event5, Event6, WindUp}
-import models.{EROverview, EROverviewVersion, EventDataIdentifier}
+import models.{EROverview, EROverviewVersion, EventDataIdentifier, IndividualDetails, MinimalDetails}
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
@@ -37,7 +37,6 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import play.api.{Application, inject}
 import repositories.{DeclarationLockRepository, EventLockRepository, EventReportCacheRepository}
-import uk.gov.hmrc.auth.core.retrieve.Name
 import uk.gov.hmrc.http._
 import utils.{GeneratorAPI1828, GeneratorAPI1829, JSONSchemaValidator, JsonFileReader}
 
@@ -71,7 +70,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
   private val payload2 = Json.obj("test" -> "test2")
   private val year = 2020
   private val testValue = "test"
-  private val testName = Name(Some("firstName"), Some("lastName"))
+  private val testName = MinimalDetails(None, Some(IndividualDetails("firstName", None, "lastName")))
 
   val modules: Seq[GuiceableModule] =
     Seq(
@@ -583,7 +582,7 @@ class EventReportServiceSpec extends AsyncWordSpec with Matchers with MockitoSug
             |{"eventType":"5","recordVersion":4},
             |{"eventType":"6","recordVersion":7},
             |{"eventType":"7","recordVersion":2},
-            |{"eventType":"8","recordVersion":4,"lockedBy":"${testName.name.get} ${testName.lastName.get}"},
+            |{"eventType":"8","recordVersion":4,"lockedBy":"${testName.name.trim}"},
             |{"eventType":"8A","recordVersion":3},
             |{"eventType":"22","recordVersion":4},
             |{"eventType":"23","recordVersion":3},
@@ -1243,5 +1242,4 @@ object EventReportServiceSpec {
       | }
       |""".stripMargin).as[JsObject])
 }
-
 

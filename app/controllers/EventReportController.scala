@@ -17,6 +17,7 @@
 package controllers
 
 import actions.AuthAction
+import connectors.MinimalDetailsConnector
 import models.enumeration.EventType
 import models.{EventReportCacheEntry, ReportVersion, SchemeReferenceNumber}
 import play.api.Logging
@@ -38,6 +39,7 @@ class EventReportController @Inject()(
                                        val authConnector: AuthConnector,
                                        eventReportService: EventReportService,
                                        eventReportCacheRepository: EventReportCacheRepository,
+                                       minimalDetailsConnector: MinimalDetailsConnector,
                                        authAction: AuthAction
                                      )(implicit ec: ExecutionContext)
   extends BackendController(cc) with Logging {
@@ -186,7 +188,11 @@ class EventReportController @Inject()(
           version <- requiredHeader("reportVersionNumber")
           startDate <- requiredHeader("reportStartDate")
         } yield {
-          eventReportService.getEventSummary(pstr, ("00" + version).takeRight(3), startDate, request.getId, request.externalId, request.name).map(Ok(_))
+          minimalDetailsConnector.getMinimalDetails.flatMap { minimalDetails =>
+            eventReportService
+              .getEventSummary(pstr, ("00" + version).takeRight(3), startDate, request.getId, request.externalId, Some(minimalDetails))
+              .map(Ok(_))
+          }
         }) match {
         case Left(msg) => Future.successful(BadRequest(msg))
         case Right(result) => result
@@ -326,4 +332,3 @@ class EventReportController @Inject()(
   }
 
 }
-
