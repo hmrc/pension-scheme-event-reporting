@@ -23,7 +23,7 @@ import models.MemberChangeInfo.Deleted
 import models.enumeration.ApiType._
 import models.enumeration.EventType._
 import models.enumeration.{ApiType, EventType}
-import models.{EROverview, EventDataIdentifier, EventTypeNotFoundException}
+import models.{EROverview, EventDataIdentifier, EventTypeNotFoundException, MinimalDetails}
 import org.mongodb.scala.result
 import play.api.Logging
 import play.api.http.Status.NOT_IMPLEMENTED
@@ -34,7 +34,6 @@ import play.api.mvc.{RequestHeader, Result}
 import repositories.{DeclarationLockRepository, EventLockRepository, EventReportCacheRepository}
 import transformations.ETMPToFrontEnd._
 import transformations.UserAnswersToETMP._
-import uk.gov.hmrc.auth.core.retrieve.Name
 import uk.gov.hmrc.http.{BadRequestException, ExpectationFailedException, HeaderCarrier, HttpResponse}
 import utils.JSONSchemaValidator
 
@@ -489,7 +488,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
     }
   }
 
-  def getEventSummary(pstr: String, version: String, startDate: String, psaOrPspId: String, externalId: String, nameOfUser: Option[Name])
+  def getEventSummary(pstr: String, version: String, startDate: String, psaOrPspId: String, externalId: String, nameOfUser: Option[MinimalDetails])
                      (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
     eventLockRepository.getLockedEventTypes(pstr, psaOrPspId, startDate.split("-").head.toInt, version.toInt, externalId)
@@ -501,7 +500,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
             val eventIsLocked = lockedEvents.contains(eventType)
             if(eventIsLocked) {
               event + ("lockedBy" -> JsString(
-                nameOfUser.map(name => name.name.getOrElse("") + " " + name.lastName.getOrElse("")).getOrElse("Unknown")
+                nameOfUser.map(minimalDetails => minimalDetails.name.trim).getOrElse(psaOrPspId)
               ))
             } else {
               event

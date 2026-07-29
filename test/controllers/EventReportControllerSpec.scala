@@ -18,7 +18,8 @@ package controllers
 
 import actions.AuthAction
 import com.mongodb.client.result.UpdateResult
-import models.EventReportValidationFailureException
+import connectors.MinimalDetailsConnector
+import models.{EventReportValidationFailureException, IndividualDetails, MinimalDetails}
 import models.enumeration.EventType
 import models.enumeration.EventType._
 import org.mockito.ArgumentMatchers
@@ -37,8 +38,7 @@ import play.api.mvc.Results.{BadRequest, NoContent}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import services.EventReportService
-import uk.gov.hmrc.auth.core.retrieve.{Name, ~}
-import uk.gov.hmrc.auth.core.{AuthConnector, Enrolment, EnrolmentIdentifier, Enrolments}
+import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http._
 import utils.AuthUtils.FakeAuthAction
 import utils.{AuthUtils, JSONSchemaValidator}
@@ -55,6 +55,7 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
   private val fakeRequest = FakeRequest("GET", "/")
   private val mockJSONPayloadSchemaValidator = mock[JSONSchemaValidator]
   private val mockEventReportService = mock[EventReportService]
+  private val mockMinimalDetailsConnector = mock[MinimalDetailsConnector]
   private val mockAuthConnector: AuthConnector = mock[AuthConnector]
 
   private val srn = AuthUtils.srn
@@ -64,7 +65,8 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
       bind[AuthAction].to[FakeAuthAction],
       bind[AuthConnector].toInstance(mockAuthConnector),
       bind[JSONSchemaValidator].toInstance(mockJSONPayloadSchemaValidator),
-      bind[EventReportService].toInstance(mockEventReportService)
+      bind[EventReportService].toInstance(mockEventReportService),
+      bind[MinimalDetailsConnector].toInstance(mockMinimalDetailsConnector)
     )
 
   val application: Application = new GuiceApplicationBuilder()
@@ -72,21 +74,15 @@ class EventReportControllerSpec extends AsyncWordSpec with Matchers with Mockito
     overrides(modules*).build()
   private val controller = application.injector.instanceOf[EventReportController]
 
-  private val enrolments = Enrolments(Set(
-    Enrolment("HMRC-PODS-ORG", Seq(
-      EnrolmentIdentifier("PSAID", "A0000000")
-    ), "Activated", None)
-  ))
-
-
   before {
     reset(mockAuthConnector)
     reset(mockJSONPayloadSchemaValidator)
     reset(mockEventReportService)
-    when(mockAuthConnector.authorise[Option[String] ~ Enrolments ~ Option[Name]](any(), any())(any(), any()))
-      .thenReturn(Future.successful(new~(new~(Some(externalId), enrolments), Some(Name(Some("FirstName"), Some("lastName"))))))
+    reset(mockMinimalDetailsConnector)
     when(mockJSONPayloadSchemaValidator.validatePayload(any(), any(), any()))
       .thenReturn(Failure(EventReportValidationFailureException("Test")))
+    when(mockMinimalDetailsConnector.getMinimalDetails(any(), any()))
+      .thenReturn(Future.successful(MinimalDetails(None, Some(IndividualDetails("FirstName", None, "lastName")))))
   }
 
   "getOverviewSrn" must {
@@ -499,4 +495,3 @@ object EventReportControllerSpec {
 
   private val json = Json.obj("test" -> "test")
 }
-

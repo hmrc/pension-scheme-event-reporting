@@ -25,7 +25,7 @@ import play.api.mvc.Results._
 import play.api.mvc._
 import uk.gov.hmrc.auth.core._
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
-import uk.gov.hmrc.auth.core.retrieve.{Name, ~}
+import uk.gov.hmrc.auth.core.retrieve.~
 import uk.gov.hmrc.domain.{PsaId, PspId}
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
@@ -35,8 +35,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 case class AuthRequest[A](request: Request[A],
                           psaOrPspId:Either[PsaId, PspId],
-                          externalId: String,
-                          name: Option[Name]) extends WrappedRequest[A](request) {
+                          externalId: String) extends WrappedRequest[A](request) {
   def getId: String = psaOrPspId match {
     case Left(psaId) => psaId.id
     case Right(pspId) => pspId.id
@@ -132,12 +131,11 @@ class AuthActionImpl (
     authorised(Enrolment(PSAEnrolmentKey) or
       Enrolment(PSPEnrolmentKey)).retrieve(
       Retrievals.authorisedEnrolments and
-        Retrievals.externalId and
-        Retrievals.name) {
-      case enrolments ~ Some(externalId) ~ name  =>
+        Retrievals.externalId) {
+      case enrolments ~ Some(externalId)  =>
         enrolmentResult(enrolments) { psaOrPspId =>
           schemeConnector.checkForAssociation(psaOrPspId, srn).flatMap {
-            case Right(true) => block(AuthRequest(request, psaOrPspId, externalId,name))
+            case Right(true) => block(AuthRequest(request, psaOrPspId, externalId))
             case Right(false) =>
               logger.warn("User is not associated with the scheme")
               Future.successful(Forbidden("User is not associated with the scheme"))
