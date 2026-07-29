@@ -500,7 +500,7 @@ class EventReportService @Inject()(eventReportConnector: EventReportConnector,
             val eventIsLocked = lockedEvents.contains(eventType)
             if(eventIsLocked) {
               event + ("lockedBy" -> JsString(
-                nameOfUser.map(minimalDetails => minimalDetails.name.trim).getOrElse("Unknown")
+                nameOfUser.map(minimalDetails => minimalDetails.name.trim).getOrElse(psaOrPspId)
               ))
             } else {
               event
