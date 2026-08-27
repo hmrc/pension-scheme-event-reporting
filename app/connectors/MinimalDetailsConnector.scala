@@ -45,7 +45,7 @@ class MinimalDetailsConnector @Inject() (
           hc.withExtraHeaders("loggedInAsPsa" -> "true")
         case Right(_) =>
           hc.withExtraHeaders("loggedInAsPsa" -> "false")
-        case _ =>
+        case null =>
           throw new Exception("Could not retrieve ID from request")
       }
 

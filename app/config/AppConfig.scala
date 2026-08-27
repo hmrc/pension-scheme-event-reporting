@@ -16,6 +16,7 @@
 
 package config
 
+import models.enumeration.ApiType
 import play.api.Configuration
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
@@ -23,37 +24,38 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.Duration
 
 @Singleton
-class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig, runModeConfiguration: Configuration) {
+class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig) {
 
-  lazy val appName: String = config.get[String](path = "appName")
+  lazy val appName: String =
+    config.get[String]("appName")
 
-  private val ifURL: String = servicesConfig.baseUrl(serviceName = "if-hod")
-  val ifsTimeout: Duration = config.get[Duration]("ifs.timeout")
+  private val ifURL: String =
+    servicesConfig.baseUrl("if-hod")
+  private val hipURL: String =
+    s"${servicesConfig.baseUrl("hip-hod")}/RESTAdapter"
+    
+  val ifsTimeout: Duration =
+    config.get[Duration]("ifs.timeout")
+  
+  lazy val integrationFrameworkEnvironment: String =
+    config.getOptional[String]("microservice.services.if-hod.env").getOrElse("local")
+  lazy val integrationFrameworkAuthorization: String =
+    s"Bearer ${config.getOptional[String]("microservice.services.if-hod.authorizationToken").getOrElse("local")}"
 
-  lazy val desEnvironment: String = runModeConfiguration.getOptional[String]("microservice.services.des-hod.env").getOrElse("local")
-  lazy val authorization: String = "Bearer " + runModeConfiguration.getOptional[String]("microservice.services.des-hod.authorizationToken").getOrElse("local")
-
-  lazy val integrationFrameworkEnvironment: String = runModeConfiguration.getOptional[String](
-    path = "microservice.services.if-hod.env").getOrElse("local")
-  lazy val integrationFrameworkAuthorization: String = "Bearer " + runModeConfiguration.getOptional[String](
-    path = "microservice.services.if-hod.authorizationToken").getOrElse("local")
-
-  val createCompileEventReportSummaryUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.create-compile-event-report-summary")}"
-
-  val compileEvent1ReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.compile-event1-report")}"
-  val compileMemberEventReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.compile-member-event-report")}"
-
-  def overviewUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.overview")}"
-  def getApiUrlByApiNum(apiNumAsString: String): String = s"$ifURL${config.get[String](path = s"serviceUrls.api$apiNumAsString")}"
-  def versionUrl: String  = s"$ifURL${config.get[String](path = "serviceUrls.version")}"
-  val submitEventDeclarationReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event-declaration-report")}"
-  val submitEvent20ADeclarationReportUrl: String = s"$ifURL${config.get[String](path = "serviceUrls.submit-event20a-declaration-report")}"
+  def apiUrl(apiType: ApiType, hip: Boolean = false): String =
+    s"${if (hip) hipURL else ifURL}${config.get[String](s"serviceUrls.api${apiType.toString}")}"
+  def overviewUrl: String =
+    s"$ifURL${config.get[String]("serviceUrls.overview")}"
+  def versionUrl: String  =
+    s"$ifURL${config.get[String]( "serviceUrls.version")}"
   lazy val minimalPsaDetailsUrl: String =
-    s"$pensionsAdministratorUrl${config.get[String](path = "serviceUrls.minimalPsaDetails")}"
-
-  private val baseUrlPensionsScheme: String = servicesConfig.baseUrl("pensions-scheme")
-  val checkAssociationUrl: String = s"$baseUrlPensionsScheme${runModeConfiguration.underlying.getString("serviceUrls.checkPsaAssociation")}"
-  val pensionsAdministratorUrl: String = servicesConfig.baseUrl("pension-administrator")
-
-  val mongoEncryptionKey: Option[String] = config.getOptional[String]("mongodb.encryption.key")
+    s"$pensionsAdministratorUrl${config.get[String]("serviceUrls.minimalPsaDetails")}"
+  private val baseUrlPensionsScheme: String =
+    servicesConfig.baseUrl("pensions-scheme")
+  val checkAssociationUrl: String =
+    s"$baseUrlPensionsScheme${config.underlying.getString("serviceUrls.checkPsaAssociation")}"
+  val pensionsAdministratorUrl: String =
+    servicesConfig.baseUrl("pension-administrator")
+  val mongoEncryptionKey: Option[String] =
+    config.getOptional[String]("mongodb.encryption.key")
 }

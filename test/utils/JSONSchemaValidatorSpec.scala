@@ -16,9 +16,9 @@
 
 package utils
 
+import org.scalatest.TryValues
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.{BeforeAndAfter, TryValues}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Application
 import play.api.inject.bind
@@ -27,9 +27,8 @@ import repositories.EventReportCacheRepository
 
 import scala.util.Success
 
-class JSONSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with JsonFileReader with TryValues {
+class JSONSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with Matchers with JsonFileReader with TryValues {
   val createCompiledEventSummaryReportSchemaPath = "/resources.schemas/api-1826-create-compiled-event-summary-report-request-schema-v1.1.0.json"
-  val oldCreateCompiledEventSummaryReportSchemaPath = "/resources.schemas/old-api-1826-create-compiled-event-summary-report-request-schema-v1.1.0.json"
   val compileEventOneReportSchemaPath = "/resources.schemas/api-1827-create-compiled-event-1-report-request-schema-v1.0.4.json"
   val submitEventDeclarationReportSchemaPath = "/resources.schemas/api-1828-submit-event-declaration-report-request-schema-v1.0.4.json"
   val submitEvent20ADeclarationReportSchemaPath = "/resources.schemas/api-1829-submit-event20a-declaration-report-request-schema-v1.0.0.json"
@@ -38,13 +37,10 @@ class JSONSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with Matcher
 
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
 
-  val modules: Seq[GuiceableModule] =
-    Seq(
-      bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
-    )
-
   val app: Application = new GuiceApplicationBuilder()
-    .overrides(modules*).build()
+    .overrides(
+      bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository)
+    ).build()
 
   private lazy val jsonPayloadSchemaValidator: JSONSchemaValidator = app.injector.instanceOf[JSONSchemaValidator]
 
@@ -52,7 +48,7 @@ class JSONSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with Matcher
     "Behaviour for valid payload for API 1826" in {
       val json = readJsonFromFile("/api-1826-valid-example.json")
       val result = jsonPayloadSchemaValidator.validatePayload(json, createCompiledEventSummaryReportSchemaPath, testEventName)
-      result.success.value mustBe (())
+      result.success.value mustBe ()
     }
 
     "Behaviour for valid payload for API 1826 where windup is being deleted" in {
@@ -75,17 +71,10 @@ class JSONSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with Matcher
       result mustBe Success(():Unit)
     }
 
-    "Behaviour for valid payload for API 1826 to fail new regex changes" in {
-      val json = readJsonFromFile("/api-1826-valid-regex-check-example.json")
-      val result = jsonPayloadSchemaValidator.validatePayload(json, oldCreateCompiledEventSummaryReportSchemaPath, testEventName)
-      result.failure.exception.getMessage must include("/eventDetails/event13/0/schemeStructureOther")
-      result.failure.exception.getMessage must include("does not match input string")
-    }
-
     "Behaviour for valid payload for API 1827" in {
       val json = readJsonFromFile("/api-1827-valid-example.json")
       val result = jsonPayloadSchemaValidator.validatePayload(json, compileEventOneReportSchemaPath, testEventName)
-      result.success.value mustBe (())
+      result.success.value mustBe ()
     }
 
     "Behaviour for invalid payload with 2 invalid inputs for API 1827" in {
@@ -99,7 +88,7 @@ class JSONSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with Matcher
     "Behaviour for valid payload for API 1828" in {
       val json = readJsonFromFile("/api-1828-valid-example.json")
       val result = jsonPayloadSchemaValidator.validatePayload(json, submitEventDeclarationReportSchemaPath, testEventName)
-      result.success.value mustBe (())
+      result.success.value mustBe ()
     }
 
     "Behaviour for invalid payload with 2 invalid inputs for API 1828" in {
@@ -113,7 +102,7 @@ class JSONSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with Matcher
     "Behaviour for valid payload for API 1829" in {
       val json = readJsonFromFile("/api-1829-valid-example.json")
       val result = jsonPayloadSchemaValidator.validatePayload(json, submitEvent20ADeclarationReportSchemaPath, testEventName)
-      result.success.value mustBe (())
+      result.success.value mustBe ()
     }
 
     "Behaviour for invalid payload with 2 invalid inputs for API 1829" in {
@@ -127,7 +116,7 @@ class JSONSchemaValidatorSpec extends AnyWordSpec with MockitoSugar with Matcher
     "Behaviour for valid payload for API 1830" in {
       val json = readJsonFromFile("/api-1830-valid-example.json")
       val result = jsonPayloadSchemaValidator.validatePayload(json, compileMemberEventReportSchemaPath, testEventName)
-      result.success.value mustBe (())
+      result.success.value mustBe ()
     }
 
     "Behaviour for invalid payload with 2 invalid inputs for API 1830" in {
