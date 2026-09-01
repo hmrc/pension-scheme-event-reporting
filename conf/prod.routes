@@ -1,3 +1,4 @@
 # Add all the application routes to the app.routes file
-->         /pension-scheme-event-reporting              app.Routes
-->         /                                            health.Routes
+->        /pension-scheme-event-reporting        app.Routes
+->        /                                      health.Routes
+->        /admin                                 admin.Routes

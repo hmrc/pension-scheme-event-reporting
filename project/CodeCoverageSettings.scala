@@ -22,7 +22,7 @@ object CodeCoverageSettings {
     ".*ControllerConfiguration;.*TestController;.*LanguageSwitchController;" +
     ".*CompileEventAuditEvent.*;.*SubmitEventDeclarationAuditEvent.*;.*EncryptedValue.*;.*ReportVersion.*;.*ApiType.*"
 
-  val settings: Seq[Setting[_]] = Seq(
+  val settings: Seq[Setting[?]] = Seq(
     ScoverageKeys.coverageExcludedFiles := coverageExcludedFiles,
     ScoverageKeys.coverageExcludedPackages := excludedPackages.mkString(";"),
     ScoverageKeys.coverageMinimumStmtTotal := 80,
