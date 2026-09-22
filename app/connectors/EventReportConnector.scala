@@ -19,6 +19,7 @@ package connectors
 import com.google.inject.Inject
 import config.AppConfig
 import models.EROverview
+import models.admin.*
 import models.enumeration.ApiType.*
 import models.enumeration.EventType.getApiTypeByEventType
 import models.enumeration.{ApiType, EventType}
@@ -29,19 +30,30 @@ import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
 import play.api.mvc.RequestHeader
 import services.PostToAPIAuditService
 import uk.gov.hmrc.http.*
+import uk.gov.hmrc.http.HttpVerbs.{GET, POST}
 import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.mongoFeatureToggles.services.FeatureFlagService
 import utils.HttpResponseHelper
 
+import java.nio.charset.StandardCharsets
+import java.time.format.DateTimeFormatter
+import java.time.{Instant, ZoneId, ZonedDateTime}
+import java.util.{Base64, UUID}
 import scala.concurrent.{ExecutionContext, Future}
 
 class EventReportConnector @Inject()(
                                       config: AppConfig,
                                       httpV2Client: HttpClientV2,
-                                      headerUtils: HeaderUtils,
-                                      postToAPIAuditService: PostToAPIAuditService
+                                      postToAPIAuditService: PostToAPIAuditService,
+                                      featureFlagService: FeatureFlagService
                                     )
   extends HttpResponseHelper
     with Logging {
+
+  private val token: String =
+    Base64
+      .getEncoder
+      .encodeToString(s"${config.hipClientId}:${config.hipClientSecret}".getBytes(StandardCharsets.UTF_8))
 
   private def debugLogs(title:String, url: String, headers: Seq[(String, String)], data: => JsValue): Unit = {
     logger.debug(
@@ -56,16 +68,12 @@ class EventReportConnector @Inject()(
 
   //scalastyle:off cyclomatic.complexity
   def getOverview(pstr: String, reportType: String, startDate: String, endDate: String)
-                 (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]] = {
+                 (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]] = {
 
     val url: String = config.overviewUrl.format(pstr, reportType, startDate, endDate)
-
-    logger.debug(s"Get overview (IF) called - URL:$url")
-
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(integrationFrameworkHeader*)
-
+    
     httpV2Client
-      .get(url"$url")(hc)
+      .get(url"$url")(hc.withExtraHeaders(connectorHeaders() *))
       .transform(_.withRequestTimeout(config.ifsTimeout))
       .execute[HttpResponse]
       .map { response =>
@@ -84,33 +92,26 @@ class EventReportConnector @Inject()(
               (Json.parse(response.body) \ "failures").asOpt[JsArray]
             ) match {
               case (Some(err), _) if err.equals("NO_REPORT_FOUND") =>
-                logger.info("The remote endpoint has indicated No Scheme report was found for the given period.")
                 Seq.empty[EROverview]
               case (_, Some(seqErr)) if seqErr.value.exists(jsValue => (jsValue \ "code").asOpt[String].contains("NO_REPORT_FOUND")) =>
-                logger.info("The remote endpoint has indicated No Scheme report was found for the given period.")
                 Seq.empty[EROverview]
               case _ =>
-                handleErrorResponse("GET", url)(response)
+                println(s"\n\n\n\n${Json.parse(response.body)}\n\n\n\n\n")
+                handleErrorResponse(GET, url)(response)
             }
           case _ =>
-            handleErrorResponse("GET", url)(response)
+            handleErrorResponse(GET, url)(response)
         }
       }
   }
 
-  private def getForApi(headers: Seq[(String, String)], pstr: String, api: ApiType, eventType: Option[EventType], version: String, startDate: String)
-                       (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] = {
-
-    val url: String = config.apiUrl(api).format(pstr)
-
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(headers *)
+  private def getForApi(api: ApiType, eventType: Option[EventType], version: String, startDate: String, url: String, toggleEnabled: Boolean)
+                       (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] = {
 
     val logMessage =
-      s"Get ${api.toString} (IF) called (URL $url). " +
+      s"Get ${api.toString} called URL: $url. " +
         s"Event type: ${eventType.getOrElse(EventType.EventTypeNone)} " +
         s"reportStartDate: $startDate and reportVersionNumber: $version"
-
-    logger.info(logMessage)
 
     httpV2Client
       .get(url"$url")(hc)
@@ -120,12 +121,12 @@ class EventReportConnector @Inject()(
         response.status match {
           case OK =>
             debugLogs("get event API " + api.toString, url, hc.extraHeaders, response.json)
-            Some(response.json.as[JsObject])
+            Some(if (toggleEnabled) (response.json \ "success").as[JsObject] else response.json.as[JsObject])
           case NOT_FOUND | UNPROCESSABLE_ENTITY =>
             logger.warn(s"$logMessage and returned ${response.status} with message ${response.body}")
             None
           case _ =>
-            handleErrorResponse("GET", url)(response)
+            handleErrorResponse(GET, url)(response)
         }
       }
   }
@@ -135,180 +136,219 @@ class EventReportConnector @Inject()(
     val formattedVersion: String =
       s"00$version".takeRight(3)
 
-    val headers = integrationFrameworkHeader ++
-      Seq(
-        "reportStartDate"     -> startDate,
-        "reportVersionNumber" -> formattedVersion
+    def hc(hipEnabled: Boolean, extraHeaders: Seq[(String, String)] = Seq.empty): HeaderCarrier =
+      headerCarrier.withExtraHeaders(
+        connectorHeaders(hipEnabled) ++
+          Seq("reportStartDate" -> startDate, "reportVersionNumber" -> formattedVersion) ++
+          extraHeaders *
       )
 
     eventType match {
       case Some(et) =>
         getApiTypeByEventType(et) match {
           case Some(api) =>
-            val headersWithEventType: Seq[(String, String)] =
-              api match {
-                case apiType if apiType == Api1832 || apiType == Api1834 =>
-                  headers ++ Seq("eventType" -> s"Event${et.toString}")
-                case _ =>
-                  headers
-              }
-            getForApi(headersWithEventType, pstr, api, eventType, formattedVersion, startDate)
+            api match {
+              case Api1831 =>
+                featureFlagService.get(Api1831HipMigrationToggle).flatMap { toggle =>
+                  getForApi(api, eventType, formattedVersion, startDate, config.apiUrl(Api1831, toggle.isEnabled).format(pstr), toggle.isEnabled)(hc(toggle.isEnabled))
+                }
+              case Api1832 =>
+                featureFlagService.get(Api1832HipMigrationToggle).flatMap { toggle =>
+                  getForApi(api, eventType, formattedVersion, startDate, config.apiUrl(Api1832, toggle.isEnabled).format(pstr), toggle.isEnabled)(hc(toggle.isEnabled, Seq("eventType" -> s"Event${et.toString}")))
+                }
+              case Api1833 =>
+                featureFlagService.get(Api1833HipMigrationToggle).flatMap { toggle =>
+                  getForApi(api, eventType, formattedVersion, startDate, config.apiUrl(Api1833, toggle.isEnabled).format(pstr), toggle.isEnabled)(hc(toggle.isEnabled))
+                }
+              case Api1834 =>
+                featureFlagService.get(Api1834HipMigrationToggle).flatMap { toggle =>
+                  getForApi(api, eventType, formattedVersion, startDate, config.apiUrl(Api1834, toggle.isEnabled).format(pstr), toggle.isEnabled)(hc(toggle.isEnabled, Seq("eventType" -> s"Event${et.toString}")))
+                }
+              case _ =>
+                Future.successful(None)
+            }
           case None =>
             Future.successful(None)
         }
       case _ =>
-        getForApi(headers, pstr, Api1834, eventType, formattedVersion, startDate)
+        featureFlagService.get(Api1834HipMigrationToggle).flatMap { toggle =>
+          getForApi(Api1834, eventType, formattedVersion, startDate, config.apiUrl(Api1834, toggle.isEnabled).format(pstr), toggle.isEnabled)(hc(toggle.isEnabled))
+        }
     }
   }
 
   def compileEventReportSummary(psaPspId: String, pstr: String, data: JsValue, reportVersion: String)
-                               (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
+                               (implicit hc: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] =
+    featureFlagService.get(Api1826HipMigrationToggle).flatMap { toggle =>
+      val url: String = config.apiUrl(Api1826, toggle.isEnabled).format(pstr)
 
-    val url: String = config.apiUrl(Api1826).format(pstr)
-
-    logger.debug(s"Compile Event Report Summary called - URL:$url")
-
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(integrationFrameworkHeader*)
-
-    httpV2Client
-      .post(url"$url")(hc)
-      .withBody(data)
-      .transform(_.withRequestTimeout(config.ifsTimeout))
-      .execute[HttpResponse]
-      .map { response =>
-        response.status match {
-          case OK =>
-            debugLogs("compile event report summary ", url, hc.extraHeaders, data)
-            response
-          case _ =>
-            handleErrorResponse("POST", url)(response)
+      httpV2Client
+        .post(url"$url")(hc.withExtraHeaders(connectorHeaders() *))
+        .withBody(data)
+        .transform(_.withRequestTimeout(config.ifsTimeout))
+        .execute[HttpResponse]
+        .map { response =>
+          response.status match {
+            case OK =>
+              debugLogs("compile event report summary ", url, hc.extraHeaders, data)
+              if (toggle.isEnabled) {
+                (response.json \ "success").validate[JsObject] match {
+                  case JsSuccess(value, path) =>
+                    HttpResponse(status = OK, json = value, headers = response.headers)
+                  case JsError(errors) =>
+                    throw HttpException(errors.mkString("\n"), BAD_REQUEST)
+                }
+              } else {
+                response
+              }
+            case _ =>
+              handleErrorResponse(POST, url)(response)
+          }
         }
-      }
-      .andThen {
-        postToAPIAuditService.sendCompileEventDeclarationAuditEvent(psaPspId, pstr, data, reportVersion)
-      }
-  }
+    }
+    .andThen {
+      postToAPIAuditService.sendCompileEventDeclarationAuditEvent(psaPspId, pstr, data, reportVersion)
+    }
 
   def compileEventOneReport(psaPspId: String, pstr: String, data: JsValue, reportVersion: String)
-                           (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
+                           (implicit hc: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] =
+    featureFlagService.get(Api1827HipMigrationToggle).flatMap { toggle =>
+      val url: String = config.apiUrl(Api1827, toggle.isEnabled).format(pstr)
 
-    val url: String = config.apiUrl(Api1827).format(pstr)
-
-    logger.debug(s"Compile Event Report One - URL:$url")
-
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(integrationFrameworkHeader*)
-
-    httpV2Client
-      .post(url"$url")(hc)
-      .withBody(data)
-      .transform(_.withRequestTimeout(config.ifsTimeout))
-      .execute[HttpResponse]
-      .map { response =>
-        response.status match {
-          case OK =>
-            debugLogs("compile event 1 API 1827", url, hc.extraHeaders, data)
-            response
-          case _ =>
-            handleErrorResponse("POST", url)(response)
+      httpV2Client
+        .post(url"$url")(hc.withExtraHeaders(connectorHeaders(toggle.isEnabled) *))
+        .withBody(data)
+        .transform(_.withRequestTimeout(config.ifsTimeout))
+        .execute[HttpResponse]
+        .map { response =>
+          response.status match {
+            case OK =>
+              debugLogs("compile event 1 API 1827", url, hc.extraHeaders, data)
+              if (toggle.isEnabled) {
+                (response.json \ "successes").validate[JsObject] match {
+                  case JsSuccess(value, path) =>
+                    HttpResponse(status = OK, json = value, headers = response.headers)
+                  case JsError(errors) =>
+                    throw HttpException(errors.mkString("\n"), BAD_REQUEST)
+                }
+              } else {
+                response
+              }
+            case _ =>
+              handleErrorResponse(POST, url)(response)
+          }
         }
       }
       .andThen {
         postToAPIAuditService.sendCompileEventDeclarationAuditEvent(psaPspId, pstr, data, reportVersion)
       }
-  }
 
   def compileMemberEventReport(psaPspId: String, pstr: String, data: JsValue, reportVersion: String)
-                              (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
+                              (implicit hc: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] =
+    featureFlagService.get(Api1830HipMigrationToggle).flatMap { toggle =>
+      val url: String = config.apiUrl(Api1830, toggle.isEnabled).format(pstr)
 
-    val url: String = config.apiUrl(Api1830).format(pstr)
-
-    logger.debug(s"Compile Member Event Report- URL:$url")
-
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(integrationFrameworkHeader*)
-
-    httpV2Client
-      .post(url"$url")(hc)
-      .withBody(data)
-      .transform(_.withRequestTimeout(config.ifsTimeout))
-      .execute[HttpResponse]
-      .map { response =>
-        response.status match {
-          case OK =>
-            debugLogs("compile Member Event API 1830", url, hc.extraHeaders, data)
-            response
-          case _ =>
-            handleErrorResponse("POST", url)(response)
+      httpV2Client
+        .post(url"$url")(hc.withExtraHeaders(connectorHeaders(toggle.isEnabled) *))
+        .withBody(data)
+        .transform(_.withRequestTimeout(config.ifsTimeout))
+        .execute[HttpResponse]
+        .map { response =>
+          response.status match {
+            case OK =>
+              debugLogs("compile Member Event API 1830", url, hc.extraHeaders, data)
+              if (toggle.isEnabled) {
+                (response.json \ "success").validate[JsObject] match {
+                  case JsSuccess(value, path) =>
+                    HttpResponse(status = OK, json = value, headers = response.headers)
+                  case JsError(errors) =>
+                    throw HttpException(errors.mkString("\n"), BAD_REQUEST)
+                }
+              } else {
+                response
+              }
+            case _ =>
+              handleErrorResponse(POST, url)(response)
+          }
         }
       }
       .andThen {
         postToAPIAuditService.sendCompileEventDeclarationAuditEvent(psaPspId, pstr, data, reportVersion)
       }
-  }
 
   def submitEventDeclarationReport(pstr: String, data: JsValue, reportVersion: String)
-                                  (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
+                                  (implicit hc: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] =
+    featureFlagService.get(Api1828HipMigrationToggle).flatMap { toggle =>
+      val url: String = config.apiUrl(Api1828, toggle.isEnabled).format(pstr)
 
-    val url: String = config.apiUrl(Api1828).format(pstr)
+      httpV2Client
+        .post(url"$url")(hc.withExtraHeaders(connectorHeaders(toggle.isEnabled) *))
+        .withBody(data)
+        .transform(_.withRequestTimeout(config.ifsTimeout))
+        .execute[HttpResponse]
+        .map { response =>
+          response.status match {
+            case OK =>
+              debugLogs("submit event declaration report API 1828", url, hc.extraHeaders, data)
+              if (toggle.isEnabled) {
+                (response.json \ "success").validate[JsObject] match {
+                  case JsSuccess(value, path) =>
+                    HttpResponse(status = OK, json = value, headers = response.headers)
+                  case JsError(errors) =>
+                    throw HttpException(errors.mkString("\n"), BAD_REQUEST)
+                }
+              } else {
+                response
+              }
+            case _ =>
+              handleErrorResponse(POST, url)(response)
+          }
+        }
+    }
+    .andThen {
+      postToAPIAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data, reportVersion, None)
+    }
 
-    logger.debug(s"Submit Event Declaration Report called URL:$url")
-
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(integrationFrameworkHeader*)
-
-    httpV2Client
-      .post(url"$url")(hc)
-      .withBody(data)
-      .transform(_.withRequestTimeout(config.ifsTimeout))
-      .execute[HttpResponse]
-      .map { response =>
-        response.status match {
-          case OK =>
-            debugLogs("submit event declaration report API 1828", url, hc.extraHeaders, data)
-            response
-          case _ =>
-            handleErrorResponse("POST", url)(response)
+  def submitEvent20ADeclarationReport(pstr: String, data: JsValue, reportVersion: String)
+                                     (implicit hc: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] =
+    featureFlagService.get(Api1829HipMigrationToggle).flatMap { toggle =>
+      val url: String = config.apiUrl(Api1829, toggle.isEnabled).format(pstr)
+      
+      httpV2Client
+        .post(url"$url")(hc.withExtraHeaders(connectorHeaders(toggle.isEnabled) *))
+        .withBody(data)
+        .transform(_.withRequestTimeout(config.ifsTimeout))
+        .execute[HttpResponse]
+        .map { response =>
+          response.status match {
+            case OK =>
+              debugLogs("submit event declaration report Event20A API 1829", url, hc.extraHeaders, data)
+              if (toggle.isEnabled) {
+                (response.json \ "success").validate[JsObject] match {
+                  case JsSuccess(value, path) =>
+                    HttpResponse(status = OK, json = value, headers = response.headers)
+                  case JsError(errors) =>
+                    throw HttpException(errors.mkString("\n"), BAD_REQUEST)
+                }
+              } else {
+                response
+              }
+            case _ =>
+              handleErrorResponse(POST, url)(response)
+          }
         }
       }
       .andThen {
-        postToAPIAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data, reportVersion, None)
-      }
-  }
-
-  def submitEvent20ADeclarationReport(pstr: String, data: JsValue, reportVersion: String)
-                                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] = {
-
-    val url: String = config.apiUrl(Api1829).format(pstr)
-
-    logger.debug(s"Submit Event 20A Report - URL:$url")
-
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(integrationFrameworkHeader*)
-
-    httpV2Client
-      .post(url"$url")(hc)
-      .withBody(data)
-      .transform(_.withRequestTimeout(config.ifsTimeout))
-      .execute[HttpResponse]
-      .map { response =>
-        response.status match {
-          case OK =>
-            debugLogs("submit event declaration report Event20A API 1829", url, hc.extraHeaders, data)
-            response
-          case _ =>
-            handleErrorResponse("POST", url)(response)
-        }
-      }.andThen {
         postToAPIAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data, reportVersion, Some(EventType.Event20A))
       }
-  }
 
   def getVersions(pstr: String, reportType: String, startDate: String)
-                 (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
+                 (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
 
     val url: String = config.versionUrl.format(pstr, reportType, startDate)
-
-    implicit val hc: HeaderCarrier = headerCarrier.withExtraHeaders(integrationFrameworkHeader*)
-
+    
     httpV2Client
-      .get(url"$url")(hc)
+      .get(url"$url")(hc.withExtraHeaders(connectorHeaders() *))
       .transform(_.withRequestTimeout(config.ifsTimeout))
       .execute[HttpResponse]
       .map { response =>
@@ -317,17 +357,32 @@ class EventReportConnector @Inject()(
             debugLogs("get versions", url, hc.extraHeaders, Json.obj())
             response.json.as[JsArray]
           case _ =>
-            handleErrorResponse("GET", url)(response)
+            handleErrorResponse(GET, url)(response)
         }
     }
   }
 
+  private val xReceiptDate: String =
+    ZonedDateTime
+      .ofInstant(Instant.now(), ZoneId.of("UTC"))
+      .withNano(0)
+      .format(DateTimeFormatter.ISO_INSTANT)
 
-  private def integrationFrameworkHeader: Seq[(String, String)] =
-    Seq(
-      "Environment"   -> config.integrationFrameworkEnvironment,
-      "Authorization" -> config.integrationFrameworkAuthorization,
-      "Content-Type"  -> "application/json",
-      "CorrelationId" -> headerUtils.getCorrelationId
-    )
+  private def connectorHeaders(hipEnabled: Boolean = false): Seq[(String, String)] =
+    if (hipEnabled) {
+      Seq(
+        "X-Transmitting-System" -> "HIP",
+        "X-Originating-System"  -> "MDTP",
+        "X-Receipt-Date"        -> xReceiptDate,
+        "correlationid"         -> UUID.randomUUID().toString,
+        "Authorization"         -> s"Basic $token"
+      )
+    } else {
+      Seq(
+        "Environment"   -> config.integrationFrameworkEnvironment,
+        "Authorization" -> config.integrationFrameworkAuthorization,
+        "Content-Type"  -> "application/json",
+        "CorrelationId" -> UUID.randomUUID().toString
+      )
+    }
 }

@@ -42,6 +42,11 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig)
   lazy val integrationFrameworkAuthorization: String =
     s"Bearer ${config.getOptional[String]("microservice.services.if-hod.authorizationToken").getOrElse("local")}"
 
+  lazy val hipClientId: String =
+    servicesConfig.getConfString("hip-hod.clientId", "local")
+  lazy val hipClientSecret: String =
+    servicesConfig.getConfString("hip-hod.clientSecret", "local")
+  
   def apiUrl(apiType: ApiType, hip: Boolean = false): String =
     s"${if (hip) hipURL else ifURL}${config.get[String](s"serviceUrls.api${apiType.toString}")}"
   def overviewUrl: String =

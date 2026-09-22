@@ -61,7 +61,6 @@ class PostToAPIAuditService @Inject()(auditService: AuditService) {
         maybeErrorMessage = None,
         maybeEventType = maybeEventType
       ))
-
     case Failure(error: Throwable) =>
       auditService.sendEvent(SubmitEventDeclarationAuditEvent(
         pstr = pstr,
@@ -106,7 +105,6 @@ class PostToAPIAuditService @Inject()(auditService: AuditService) {
         response = None,
         errorMessage = None
       ))
-
     case Failure(error: Throwable) =>
       auditService.sendEvent(CompileEventAuditEvent(
         psaPspIdentifier = psaPspIdentifier,

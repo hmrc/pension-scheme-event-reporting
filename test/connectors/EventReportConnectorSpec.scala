@@ -16,8 +16,9 @@
 
 package connectors
 
-import com.github.tomakehurst.wiremock.client.WireMock._
-import models.enumeration.EventType._
+import com.github.tomakehurst.wiremock.client.WireMock.*
+import models.admin.*
+import models.enumeration.EventType.*
 import models.{EROverview, EROverviewVersion}
 import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.any
@@ -25,7 +26,7 @@ import org.mockito.Mockito.{reset, times, verify, when}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.http.Status._
+import play.api.http.Status.*
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.{JsArray, JsObject, Json}
@@ -33,36 +34,44 @@ import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import repositories.EventReportCacheRepository
 import services.PostToAPIAuditService
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.*
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.test.HttpClientV2Support
-import utils.{JsonFileReader, UnrecognisedHttpResponseException, WireMockHelper}
+import uk.gov.hmrc.mongoFeatureToggles.model.FeatureFlag
+import uk.gov.hmrc.mongoFeatureToggles.services.FeatureFlagService
+import utils.{UnrecognisedHttpResponseException, WireMockHelper}
 
 import java.time.LocalDate
+import scala.concurrent.Future
 import scala.util.Try
 
 
-class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMockHelper with HttpClientV2Support with JsonFileReader with MockitoSugar {
+class EventReportConnectorSpec
+  extends AsyncWordSpec
+    with Matchers
+    with WireMockHelper
+    with HttpClientV2Support
+    with MockitoSugar {
 
-  import EventReportConnectorSpec._
+  import EventReportConnectorSpec.*
 
   private implicit lazy val hc: HeaderCarrier = HeaderCarrier()
   private implicit lazy val rh: RequestHeader = FakeRequest("", "")
 
   override protected def portConfigKeys: String = "microservice.services.if-hod.port,microservice.services.des-hod.port"
 
-  private val mockHeaderUtils = mock[HeaderUtils]
   private val mockEventReportCacheRepository = mock[EventReportCacheRepository]
   private val mockPostToAPIAuditService = mock[PostToAPIAuditService]
+  private val mockFeatureFlagService: FeatureFlagService = mock[FeatureFlagService]
   private lazy val connector: EventReportConnector = injector.instanceOf[EventReportConnector]
 
 
   override protected def bindings: Seq[GuiceableModule] =
     Seq(
       bind[HttpClientV2].toInstance(httpClientV2),
-      bind[HeaderUtils].toInstance(mockHeaderUtils),
       bind[EventReportCacheRepository].toInstance(mockEventReportCacheRepository),
-      bind[PostToAPIAuditService].toInstance(mockPostToAPIAuditService)
+      bind[PostToAPIAuditService].toInstance(mockPostToAPIAuditService),
+      bind[FeatureFlagService].toInstance(mockFeatureFlagService)
     )
 
   private val pfSuccess: PartialFunction[Try[HttpResponse], Unit] = new PartialFunction[Try[HttpResponse], Unit] {
@@ -73,11 +82,23 @@ class EventReportConnectorSpec extends AsyncWordSpec with Matchers with WireMock
 
 
   override def beforeEach(): Unit = {
-    reset(mockPostToAPIAuditService)
-    when(mockHeaderUtils.getCorrelationId).thenReturn(testCorrelationId)
+    reset(mockPostToAPIAuditService, mockFeatureFlagService)
     when(mockPostToAPIAuditService.sendSubmitEventDeclarationAuditEvent(any(), any(), any(), any())(any(), any()))
       .thenReturn(pfSuccess)
-    super.beforeEach()
+    Seq(
+      Api1826HipMigrationToggle,
+      Api1827HipMigrationToggle,
+      Api1828HipMigrationToggle,
+      Api1829HipMigrationToggle,
+      Api1830HipMigrationToggle,
+      Api1831HipMigrationToggle,
+      Api1832HipMigrationToggle,
+      Api1833HipMigrationToggle,
+      Api1834HipMigrationToggle
+    ).foreach { toggle =>
+      when(mockFeatureFlagService.get(toggle))
+        .thenReturn(Future.successful(FeatureFlag(toggle, isEnabled = false)))
+    }
   }
 
   private def errorResponse(code: String): String = {
