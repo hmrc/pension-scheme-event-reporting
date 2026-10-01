@@ -86,6 +86,8 @@ class EventReportConnectorSpec
     when(mockPostToAPIAuditService.sendSubmitEventDeclarationAuditEvent(any(), any(), any(), any())(any(), any()))
       .thenReturn(pfSuccess)
     Seq(
+      Api1537HipMigrationToggle,
+      Api1557HipMigrationToggle,
       Api1826HipMigrationToggle,
       Api1827HipMigrationToggle,
       Api1828HipMigrationToggle,

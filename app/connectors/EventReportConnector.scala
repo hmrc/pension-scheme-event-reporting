@@ -68,42 +68,44 @@ class EventReportConnector @Inject()(
 
   //scalastyle:off cyclomatic.complexity
   def getOverview(pstr: String, reportType: String, startDate: String, endDate: String)
-                 (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]] = {
+                 (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Seq[EROverview]] =
+    featureFlagService.get(Api1557HipMigrationToggle).flatMap { toggle =>
 
-    val url: String = config.overviewUrl.format(pstr, reportType, startDate, endDate)
-    
-    httpV2Client
-      .get(url"$url")(hc.withExtraHeaders(connectorHeaders() *))
-      .transform(_.withRequestTimeout(config.ifsTimeout))
-      .execute[HttpResponse]
-      .map { response =>
-        response.status match {
-          case OK =>
-            Json.parse(response.body).validate[Seq[EROverview]](Reads.seq(EROverview.rds)) match {
-              case JsSuccess(data, _) =>
-                debugLogs("get overview", url, hc.extraHeaders, Json.parse(response.body))
-                data
-              case JsError(errors) =>
-                throw JsResultException(errors)
-            }
-          case NOT_FOUND =>
-            (
-              (Json.parse(response.body) \ "code").asOpt[String],
-              (Json.parse(response.body) \ "failures").asOpt[JsArray]
-            ) match {
-              case (Some(err), _) if err.equals("NO_REPORT_FOUND") =>
-                Seq.empty[EROverview]
-              case (_, Some(seqErr)) if seqErr.value.exists(jsValue => (jsValue \ "code").asOpt[String].contains("NO_REPORT_FOUND")) =>
-                Seq.empty[EROverview]
-              case _ =>
-                println(s"\n\n\n\n${Json.parse(response.body)}\n\n\n\n\n")
-                handleErrorResponse(GET, url)(response)
-            }
-          case _ =>
-            handleErrorResponse(GET, url)(response)
+      val url: String = config.apiUrl(Api1557, toggle.isEnabled).format(pstr, reportType, startDate, endDate)
+
+      httpV2Client
+        .get(url"$url")(hc.withExtraHeaders(connectorHeaders(toggle.isEnabled) *))
+        .transform(_.withRequestTimeout(config.ifsTimeout))
+        .execute[HttpResponse]
+        .map { response =>
+          response.status match {
+            case OK =>
+              val json: JsReadable = if (toggle.isEnabled) response.json \ "success" else response.json
+              
+              json.validate[Seq[EROverview]](Reads.seq(EROverview.rds)) match {
+                case JsSuccess(data, _) =>
+                  debugLogs("get overview", url, hc.extraHeaders, response.json)
+                  data
+                case JsError(errors) =>
+                  throw JsResultException(errors)
+              }
+            case NOT_FOUND =>
+              (
+                (response.json \ "code").asOpt[String],
+                (response.json \ "failures").asOpt[JsArray]
+              ) match {
+                case (Some(err), _) if err.equals("NO_REPORT_FOUND") =>
+                  Seq.empty[EROverview]
+                case (_, Some(seqErr)) if seqErr.value.exists(jsValue => (jsValue \ "code").asOpt[String].contains("NO_REPORT_FOUND")) =>
+                  Seq.empty[EROverview]
+                case _ =>
+                  handleErrorResponse(GET, url)(response)
+              }
+            case _ =>
+              handleErrorResponse(GET, url)(response)
+          }
         }
-      }
-  }
+    }
 
   private def getForApi(api: ApiType, eventType: Option[EventType], version: String, startDate: String, url: String, toggleEnabled: Boolean)
                        (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Option[JsObject]] = {
@@ -193,7 +195,7 @@ class EventReportConnector @Inject()(
               debugLogs("compile event report summary ", url, hc.extraHeaders, data)
               if (toggle.isEnabled) {
                 (response.json \ "success").validate[JsObject] match {
-                  case JsSuccess(value, path) =>
+                  case JsSuccess(value, _) =>
                     HttpResponse(status = OK, json = value, headers = response.headers)
                   case JsError(errors) =>
                     throw HttpException(errors.mkString("\n"), BAD_REQUEST)
@@ -226,7 +228,7 @@ class EventReportConnector @Inject()(
               debugLogs("compile event 1 API 1827", url, hc.extraHeaders, data)
               if (toggle.isEnabled) {
                 (response.json \ "successes").validate[JsObject] match {
-                  case JsSuccess(value, path) =>
+                  case JsSuccess(value, _) =>
                     HttpResponse(status = OK, json = value, headers = response.headers)
                   case JsError(errors) =>
                     throw HttpException(errors.mkString("\n"), BAD_REQUEST)
@@ -259,7 +261,7 @@ class EventReportConnector @Inject()(
               debugLogs("compile Member Event API 1830", url, hc.extraHeaders, data)
               if (toggle.isEnabled) {
                 (response.json \ "success").validate[JsObject] match {
-                  case JsSuccess(value, path) =>
+                  case JsSuccess(value, _) =>
                     HttpResponse(status = OK, json = value, headers = response.headers)
                   case JsError(errors) =>
                     throw HttpException(errors.mkString("\n"), BAD_REQUEST)
@@ -292,7 +294,7 @@ class EventReportConnector @Inject()(
               debugLogs("submit event declaration report API 1828", url, hc.extraHeaders, data)
               if (toggle.isEnabled) {
                 (response.json \ "success").validate[JsObject] match {
-                  case JsSuccess(value, path) =>
+                  case JsSuccess(value, _) =>
                     HttpResponse(status = OK, json = value, headers = response.headers)
                   case JsError(errors) =>
                     throw HttpException(errors.mkString("\n"), BAD_REQUEST)
@@ -325,7 +327,7 @@ class EventReportConnector @Inject()(
               debugLogs("submit event declaration report Event20A API 1829", url, hc.extraHeaders, data)
               if (toggle.isEnabled) {
                 (response.json \ "success").validate[JsObject] match {
-                  case JsSuccess(value, path) =>
+                  case JsSuccess(value, _) =>
                     HttpResponse(status = OK, json = value, headers = response.headers)
                   case JsError(errors) =>
                     throw HttpException(errors.mkString("\n"), BAD_REQUEST)
@@ -343,24 +345,24 @@ class EventReportConnector @Inject()(
       }
 
   def getVersions(pstr: String, reportType: String, startDate: String)
-                 (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[JsArray] = {
+                 (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[JsArray] =
+    featureFlagService.get(Api1537HipMigrationToggle).flatMap { toggle =>
+      val url: String = config.apiUrl(Api1537, toggle.isEnabled).format(pstr, reportType, startDate)
 
-    val url: String = config.versionUrl.format(pstr, reportType, startDate)
-    
-    httpV2Client
-      .get(url"$url")(hc.withExtraHeaders(connectorHeaders() *))
-      .transform(_.withRequestTimeout(config.ifsTimeout))
-      .execute[HttpResponse]
-      .map { response =>
-        response.status match {
-          case OK =>
-            debugLogs("get versions", url, hc.extraHeaders, Json.obj())
-            response.json.as[JsArray]
-          case _ =>
-            handleErrorResponse(GET, url)(response)
+      httpV2Client
+        .get(url"$url")(hc.withExtraHeaders(connectorHeaders(toggle.isEnabled) *))
+        .transform(_.withRequestTimeout(config.ifsTimeout))
+        .execute[HttpResponse]
+        .map { response =>
+          response.status match {
+            case OK =>
+              debugLogs("get versions", url, hc.extraHeaders, Json.obj())
+              if (toggle.isEnabled) (response.json \ "success").as[JsArray] else response.json.as[JsArray]
+            case _ =>
+              handleErrorResponse(GET, url)(response)
+          }
         }
     }
-  }
 
   private val xReceiptDate: String =
     ZonedDateTime

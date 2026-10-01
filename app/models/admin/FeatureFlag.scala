@@ -26,56 +26,57 @@ trait HipMigrationToggle {
   def desc(api: ApiType): Option[String] = Some(s"Migrate API ${api.toString} to HIP")
 }
 
-case object Api1826HipMigrationToggle extends FeatureFlagName with HipMigrationToggle {
+case object Api1537HipMigrationToggle extends FeatureFlagName with HipMigrationToggle {
+  override val name: String = name(Api1537)
+  override val description: Option[String] = desc(Api1537)
+}
 
+case object Api1557HipMigrationToggle extends FeatureFlagName with HipMigrationToggle {
+  override val name: String = name(Api1557)
+  override val description: Option[String] = desc(Api1557)
+}
+
+case object Api1826HipMigrationToggle extends FeatureFlagName with HipMigrationToggle {
   override val name: String = name(Api1826)
   override val description: Option[String] = desc(Api1826)
 }
 
 case object Api1827HipMigrationToggle extends FeatureFlagName with HipMigrationToggle {
-
   override val name: String = name(Api1827)
   override val description: Option[String] = desc(Api1827)
 }
 
 case object Api1828HipMigrationToggle extends FeatureFlagName with HipMigrationToggle {
-
   override val name: String = name(Api1828)
   override val description: Option[String] = desc(Api1828)
 }
 
 case object Api1829HipMigrationToggle extends FeatureFlagName with HipMigrationToggle {
-
   override val name: String = name(Api1829)
   override val description: Option[String] = desc(Api1829)
 }
 
 case object Api1830HipMigrationToggle extends FeatureFlagName with HipMigrationToggle {
-
   override val name: String = name(Api1830)
   override val description: Option[String] = desc(Api1830)
 }
 
 case object Api1831HipMigrationToggle extends FeatureFlagName with HipMigrationToggle {
-
   override val name: String = name(Api1831)
   override val description: Option[String] = desc(Api1831)
 }
 
 case object Api1832HipMigrationToggle extends FeatureFlagName with HipMigrationToggle {
-
   override val name: String = name(Api1832)
   override val description: Option[String] = desc(Api1832)
 }
 
 case object Api1833HipMigrationToggle extends FeatureFlagName with HipMigrationToggle {
-
   override val name: String = name(Api1833)
   override val description: Option[String] = desc(Api1833)
 }
 
 case object Api1834HipMigrationToggle extends FeatureFlagName with HipMigrationToggle {
-
   override val name: String = name(Api1834)
   override val description: Option[String] = desc(Api1834)
 }

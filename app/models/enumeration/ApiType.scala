@@ -22,6 +22,10 @@ sealed trait ApiType
 
 object ApiType extends Enumerable.Implicits {
 
+  case object Api1537 extends WithName("1537") with ApiType
+  
+  case object Api1557 extends WithName("1557") with ApiType
+  
   case object Api1826 extends WithName("1826") with ApiType
 
   case object Api1827 extends WithName("1827") with ApiType
@@ -43,7 +47,7 @@ object ApiType extends Enumerable.Implicits {
   case object ApiNone extends WithName("None") with ApiType
 
   def values: Seq[ApiType] = {
-    Seq(Api1826, Api1827, Api1829, Api1828, Api1830, Api1832, Api1833, Api1831, Api1834, ApiNone)
+    Seq(Api1537, Api1557, Api1826, Api1827, Api1829, Api1828, Api1830, Api1832, Api1833, Api1831, Api1834, ApiNone)
   }
 
   implicit val enumerable: Enumerable[ApiType] =

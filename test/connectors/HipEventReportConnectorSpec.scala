@@ -97,6 +97,8 @@ class HipEventReportConnectorSpec
     )
 
     Seq(
+      Api1537HipMigrationToggle,
+      Api1557HipMigrationToggle,
       Api1826HipMigrationToggle,
       Api1827HipMigrationToggle,
       Api1828HipMigrationToggle,
@@ -444,22 +446,25 @@ class HipEventReportConnectorSpec
 
   "getOverview" must {
     "return the seq of overviewDetails returned from the ETMP" in {
-      val erOverviewResponseJson: JsArray = Json.arr(
-        Json.obj(
-          "periodStartDate" -> "2022-04-06",
-          "periodEndDate" -> "2023-04-05",
-          "numberOfVersions" -> 3,
-          "submittedVersionAvailable" -> "No",
-          "compiledVersionAvailable" -> "Yes"
-        ),
-        Json.obj(
-          "periodStartDate" -> "2022-04-06",
-          "periodEndDate" -> "2023-04-05",
-          "numberOfVersions" -> 2,
-          "submittedVersionAvailable" -> "Yes",
-          "compiledVersionAvailable" -> "Yes"
+      val erOverviewResponseJson: JsObject =
+        Json.obj("success" ->
+          Json.arr(
+            Json.obj(
+              "periodStartDate" -> "2022-04-06",
+              "periodEndDate" -> "2023-04-05",
+              "numberOfVersions" -> 3,
+              "submittedVersionAvailable" -> "No",
+              "compiledVersionAvailable" -> "Yes"
+            ),
+            Json.obj(
+              "periodStartDate" -> "2022-04-06",
+              "periodEndDate" -> "2023-04-05",
+              "numberOfVersions" -> 2,
+              "submittedVersionAvailable" -> "Yes",
+              "compiledVersionAvailable" -> "Yes"
+            )
+          )
         )
-      )
 
       wireMockServer.stubFor(
         get(urlEqualTo(getErOverviewUrl))
@@ -830,7 +835,7 @@ class HipEventReportConnectorSpec
   }
 
   "return 204 when ETMP has returned Unrecognized http response" in {
-    val data = Json.obj(fields = "Id" -> "value")
+    val data = Json.obj("success" -> Json.obj(fields = "Id" -> "value"))
     wireMockServer.stubFor(
       post(urlEqualTo(postApi1828Url))
         .withRequestBody(equalTo(Json.stringify(data)))
@@ -848,7 +853,7 @@ class HipEventReportConnectorSpec
     "return successfully when DES has returned OK" in {
 
       wireMockServer.stubFor(
-        get(urlEqualTo(getErVersionUrl(reportTypeER)))
+        get(urlEqualTo(getErVersionUrl))
           .willReturn(
             ok
               .withHeader("Content-Type", "application/json")
@@ -863,7 +868,7 @@ class HipEventReportConnectorSpec
     "throw NotFoundException" in {
 
       wireMockServer.stubFor(
-        get(urlEqualTo(getErVersionUrl(reportTypeER)))
+        get(urlEqualTo(getErVersionUrl))
           .willReturn(notFound())
       )
 
@@ -1014,9 +1019,9 @@ object HipEventReportConnectorSpec {
   private val getApi1834Url: String =
     s"/RESTAdapter/pension-online/event-status-reports/$pstr"
   private val getErOverviewUrl: String =
-    s"/pension-online/reports/overview/pods/$pstr/ER?fromDate=$fromDt&toDate=$toDt"
-  private def getErVersionUrl(reportType: String): String =
-    s"/pension-online/reports/$pstr/$reportType/versions?startDate=$startDt"
+    s"/RESTAdapter/pension-online/reports/overview/pods/$pstr/ER?fromDate=$fromDt&toDate=$toDt"
+  private val getErVersionUrl: String =
+    s"/RESTAdapter/pension-online/reports/$pstr/ER/versions?startDate=$startDt"
 
   private val overview1: EROverview =
     EROverview(
@@ -1042,22 +1047,24 @@ object HipEventReportConnectorSpec {
       ))
     )
 
-  private val erVersionResponseJson: JsArray =
-    Json.arr(
-      Json.obj(
-        "reportFormBundleNumber" -> "123456789012",
-        "reportVersion" -> 1,
-        "reportStatus" -> "Compiled",
-        "compilationOrSubmissionDate" -> s"${startDt}T09:30:47Z",
-        "reportSubmitterDetails" -> Json.obj(
-          "reportSubmittedBy" -> "PSP",
-          "organisationOrPartnershipDetails" -> Json.obj(
-            "organisationOrPartnershipName" -> "ABC Limited"
-          )
-        ),
-        "psaDetails" -> Json.obj(
-          "psaOrganisationOrPartnershipDetails" -> Json.obj(
-            "organisationOrPartnershipName" -> "XYZ Limited"
+  private val erVersionResponseJson: JsObject =
+    Json.obj("success" ->
+      Json.arr(
+        Json.obj(
+          "reportFormBundleNumber" -> "123456789012",
+          "reportVersion" -> 1,
+          "reportStatus" -> "Compiled",
+          "compilationOrSubmissionDate" -> s"${startDt}T09:30:47Z",
+          "reportSubmitterDetails" -> Json.obj(
+            "reportSubmittedBy" -> "PSP",
+            "organisationOrPartnershipDetails" -> Json.obj(
+              "organisationOrPartnershipName" -> "ABC Limited"
+            )
+          ),
+          "psaDetails" -> Json.obj(
+            "psaOrganisationOrPartnershipDetails" -> Json.obj(
+              "organisationOrPartnershipName" -> "XYZ Limited"
+            )
           )
         )
       )

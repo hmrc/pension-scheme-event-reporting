@@ -49,10 +49,6 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig)
   
   def apiUrl(apiType: ApiType, hip: Boolean = false): String =
     s"${if (hip) hipURL else ifURL}${config.get[String](s"serviceUrls.api${apiType.toString}")}"
-  def overviewUrl: String =
-    s"$ifURL${config.get[String]("serviceUrls.overview")}"
-  def versionUrl: String  =
-    s"$ifURL${config.get[String]( "serviceUrls.version")}"
   lazy val minimalPsaDetailsUrl: String =
     s"$pensionsAdministratorUrl${config.get[String]("serviceUrls.minimalPsaDetails")}"
   private val baseUrlPensionsScheme: String =
