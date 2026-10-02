@@ -190,21 +190,26 @@ class EventReportConnector @Inject()(
         .transform(_.withRequestTimeout(config.ifsTimeout))
         .execute[HttpResponse]
         .map { response =>
-          response.status match {
-            case OK =>
-              debugLogs("compile event report summary ", url, hc.extraHeaders, data)
-              if (toggle.isEnabled) {
+          debugLogs("compile event report summary ", url, hc.extraHeaders, data)
+          if (toggle.isEnabled) {
+            response.status match {
+              case CREATED =>
                 (response.json \ "success").validate[JsObject] match {
                   case JsSuccess(value, _) =>
                     HttpResponse(status = OK, json = value, headers = response.headers)
                   case JsError(errors) =>
                     throw HttpException(errors.mkString("\n"), BAD_REQUEST)
                 }
-              } else {
+              case _ =>
+                handleErrorResponse(POST, url)(response)
+            }
+          } else {
+            response.status match {
+              case OK =>
                 response
-              }
-            case _ =>
-              handleErrorResponse(POST, url)(response)
+              case _ =>
+                handleErrorResponse(POST, url)(response)
+            }
           }
         }
     }
@@ -223,27 +228,32 @@ class EventReportConnector @Inject()(
         .transform(_.withRequestTimeout(config.ifsTimeout))
         .execute[HttpResponse]
         .map { response =>
-          response.status match {
-            case OK =>
-              debugLogs("compile event 1 API 1827", url, hc.extraHeaders, data)
-              if (toggle.isEnabled) {
+          debugLogs("compile event 1 API 1827", url, hc.extraHeaders, data)
+          if (toggle.isEnabled) {
+            response.status match {
+              case CREATED =>
                 (response.json \ "successes").validate[JsObject] match {
                   case JsSuccess(value, _) =>
                     HttpResponse(status = OK, json = value, headers = response.headers)
                   case JsError(errors) =>
                     throw HttpException(errors.mkString("\n"), BAD_REQUEST)
                 }
-              } else {
+              case _ =>
+                handleErrorResponse(POST, url)(response)
+            }
+          } else {
+            response.status match {
+              case OK =>
                 response
-              }
-            case _ =>
-              handleErrorResponse(POST, url)(response)
+              case _ =>
+                handleErrorResponse(POST, url)(response)
+            }
           }
         }
-      }
-      .andThen {
-        postToAPIAuditService.sendCompileEventDeclarationAuditEvent(psaPspId, pstr, data, reportVersion)
-      }
+    }
+    .andThen {
+      postToAPIAuditService.sendCompileEventDeclarationAuditEvent(psaPspId, pstr, data, reportVersion)
+    }
 
   def compileMemberEventReport(psaPspId: String, pstr: String, data: JsValue, reportVersion: String)
                               (implicit hc: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] =
@@ -256,27 +266,32 @@ class EventReportConnector @Inject()(
         .transform(_.withRequestTimeout(config.ifsTimeout))
         .execute[HttpResponse]
         .map { response =>
-          response.status match {
-            case OK =>
-              debugLogs("compile Member Event API 1830", url, hc.extraHeaders, data)
-              if (toggle.isEnabled) {
+          debugLogs("compile Member Event API 1830", url, hc.extraHeaders, data)
+          if (toggle.isEnabled) {
+            response.status match {
+              case CREATED =>
                 (response.json \ "success").validate[JsObject] match {
                   case JsSuccess(value, _) =>
                     HttpResponse(status = OK, json = value, headers = response.headers)
                   case JsError(errors) =>
                     throw HttpException(errors.mkString("\n"), BAD_REQUEST)
                 }
-              } else {
+              case _ =>
+                handleErrorResponse(POST, url)(response)
+            }
+          } else {
+            response.status match {
+              case OK =>
                 response
-              }
-            case _ =>
-              handleErrorResponse(POST, url)(response)
+              case _ =>
+                handleErrorResponse(POST, url)(response)
+            }
           }
         }
-      }
-      .andThen {
-        postToAPIAuditService.sendCompileEventDeclarationAuditEvent(psaPspId, pstr, data, reportVersion)
-      }
+    }
+    .andThen {
+      postToAPIAuditService.sendCompileEventDeclarationAuditEvent(psaPspId, pstr, data, reportVersion)
+    }
 
   def submitEventDeclarationReport(pstr: String, data: JsValue, reportVersion: String)
                                   (implicit hc: HeaderCarrier, ec: ExecutionContext, request: RequestHeader): Future[HttpResponse] =
@@ -289,21 +304,26 @@ class EventReportConnector @Inject()(
         .transform(_.withRequestTimeout(config.ifsTimeout))
         .execute[HttpResponse]
         .map { response =>
-          response.status match {
-            case OK =>
-              debugLogs("submit event declaration report API 1828", url, hc.extraHeaders, data)
-              if (toggle.isEnabled) {
+          debugLogs("submit event declaration report API 1828", url, hc.extraHeaders, data)
+          if (toggle.isEnabled) {
+            response.status match {
+              case CREATED =>
                 (response.json \ "success").validate[JsObject] match {
                   case JsSuccess(value, _) =>
                     HttpResponse(status = OK, json = value, headers = response.headers)
                   case JsError(errors) =>
                     throw HttpException(errors.mkString("\n"), BAD_REQUEST)
                 }
-              } else {
+              case _ =>
+                handleErrorResponse(POST, url)(response)
+            }
+          } else {
+            response.status match {
+              case OK =>
                 response
-              }
-            case _ =>
-              handleErrorResponse(POST, url)(response)
+              case _ =>
+                handleErrorResponse(POST, url)(response)
+            }
           }
         }
     }
@@ -322,27 +342,32 @@ class EventReportConnector @Inject()(
         .transform(_.withRequestTimeout(config.ifsTimeout))
         .execute[HttpResponse]
         .map { response =>
-          response.status match {
-            case OK =>
-              debugLogs("submit event declaration report Event20A API 1829", url, hc.extraHeaders, data)
-              if (toggle.isEnabled) {
+          debugLogs("submit event declaration report Event20A API 1829", url, hc.extraHeaders, data)
+          if (toggle.isEnabled) {
+            response.status match {
+              case CREATED =>
                 (response.json \ "success").validate[JsObject] match {
                   case JsSuccess(value, _) =>
                     HttpResponse(status = OK, json = value, headers = response.headers)
                   case JsError(errors) =>
                     throw HttpException(errors.mkString("\n"), BAD_REQUEST)
                 }
-              } else {
+              case _ =>
+                handleErrorResponse(POST, url)(response)
+            }
+          } else {
+            response.status match {
+              case OK =>
                 response
-              }
-            case _ =>
-              handleErrorResponse(POST, url)(response)
+              case _ =>
+                handleErrorResponse(POST, url)(response)
+            }
           }
         }
-      }
-      .andThen {
-        postToAPIAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data, reportVersion, Some(EventType.Event20A))
-      }
+    }
+    .andThen {
+      postToAPIAuditService.sendSubmitEventDeclarationAuditEvent(pstr, data, reportVersion, Some(EventType.Event20A))
+    }
 
   def getVersions(pstr: String, reportType: String, startDate: String)
                  (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[JsArray] =

@@ -146,7 +146,7 @@ class HipEventReportConnectorSpec
         post(urlEqualTo(postApi1826Url))
           .withHeader("Content-Type", equalTo("application/json"))
           .withRequestBody(equalTo(Json.stringify(data)))
-          .willReturn(ok.withBody(Json.obj("success" -> Json.obj("key" -> "value")).toString))
+          .willReturn(created.withBody(Json.obj("success" -> Json.obj("key" -> "value")).toString))
       )
 
       connector.compileEventReportSummary(psaId, pstr, data, reportVersion).map {
@@ -248,7 +248,7 @@ class HipEventReportConnectorSpec
         post(urlEqualTo(postApi1827Url))
           .withHeader("Content-Type", equalTo("application/json"))
           .withRequestBody(equalTo(Json.stringify(data)))
-          .willReturn(ok.withBody(Json.obj("successes" -> Json.obj("key" -> "value")).toString))
+          .willReturn(created.withBody(Json.obj("successes" -> Json.obj("key" -> "value")).toString))
       )
       connector.compileEventOneReport(psaId, pstr, data, reportVersion).map {
         verify(mockPostToAPIAuditService, times(1))
@@ -350,7 +350,7 @@ class HipEventReportConnectorSpec
         post(urlEqualTo(postApi1830Url))
           .withHeader("Content-Type", equalTo("application/json"))
           .withRequestBody(equalTo(Json.stringify(data)))
-          .willReturn(ok.withBody(Json.obj("success" -> Json.obj("key" -> "value")).toString))
+          .willReturn(created.withBody(Json.obj("success" -> Json.obj("key" -> "value")).toString))
       )
       connector.compileMemberEventReport(psaId, pstr, data, reportVersion).map {
         verify(mockPostToAPIAuditService, times(1))
@@ -743,12 +743,12 @@ class HipEventReportConnectorSpec
 
   "submitEventDeclarationReport" must {
     val data = Json.obj("Id" -> "value")
-    "return 200 when ETMP has returned OK & send audit event" in {
+    "return 201 when ETMP has returned OK & send audit event" in {
       wireMockServer.stubFor(
         post(urlEqualTo(postApi1828Url))
           .withHeader("Content-Type", equalTo("application/json"))
           .withRequestBody(equalTo(Json.stringify(data)))
-          .willReturn(ok.withBody(Json.obj("success" -> Json.obj("key" -> "value")).toString))
+          .willReturn(created.withBody(Json.obj("success" -> Json.obj("key" -> "value")).toString))
       )
 
       connector.submitEventDeclarationReport(pstr, data, reportVersion).map {
@@ -889,7 +889,7 @@ class HipEventReportConnectorSpec
         post(urlEqualTo(postApi1829Url))
           .withHeader("Content-Type", equalTo("application/json"))
           .withRequestBody(equalTo(Json.stringify(data)))
-          .willReturn(ok.withBody(Json.obj("success" -> Json.obj("key" -> "value")).toString))
+          .willReturn(created.withBody(Json.obj("success" -> Json.obj("key" -> "value")).toString))
       )
       connector.submitEvent20ADeclarationReport(pstr, data, reportVersion).map {
         verify(mockPostToAPIAuditService, times(1))
