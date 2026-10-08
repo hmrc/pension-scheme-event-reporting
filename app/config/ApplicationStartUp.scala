@@ -24,6 +24,8 @@ import uk.gov.hmrc.mongoFeatureToggles.model.FeatureFlagNamesLibrary
 class ApplicationStartUp {
   FeatureFlagNamesLibrary.addFlags(
     List(
+      Api1537HipMigrationToggle,
+      Api1557HipMigrationToggle,
       Api1826HipMigrationToggle,
       Api1827HipMigrationToggle,
       Api1828HipMigrationToggle,

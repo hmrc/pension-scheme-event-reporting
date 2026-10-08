@@ -31,7 +31,7 @@ trait WireMockHelper extends BeforeAndAfterAll with BeforeAndAfterEach {
   protected def portConfigKeys: String
 
   protected lazy val app: Application = {
-    val keyValueConfig = portConfigKeys.split(",").map(_ -> server.port().toString) ++ Seq("auditing.enabled" -> false, "metrics.enabled" -> false)
+    val keyValueConfig = portConfigKeys.split(",").map(_ -> server.port().toString)
     new GuiceApplicationBuilder()
       .configure(keyValueConfig.toSeq*)
       .overrides(bindings*)
