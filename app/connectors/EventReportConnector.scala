@@ -185,7 +185,7 @@ class EventReportConnector @Inject()(
       val url: String = config.apiUrl(Api1826, toggle.isEnabled).format(pstr)
 
       httpV2Client
-        .post(url"$url")(hc.withExtraHeaders(connectorHeaders() *))
+        .post(url"$url")(hc.withExtraHeaders(connectorHeaders(toggle.isEnabled) *))
         .withBody(data)
         .transform(_.withRequestTimeout(config.ifsTimeout))
         .execute[HttpResponse]
