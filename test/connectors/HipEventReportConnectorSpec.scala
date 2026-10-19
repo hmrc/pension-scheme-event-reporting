@@ -1001,27 +1001,27 @@ object HipEventReportConnectorSpec {
   private val startDt: String = "2022-04-01"
 
   private val postApi1826Url: String =
-    s"/RESTAdapter/pension-online/event-reports/pods/$pstr"
+    s"/etmp/RESTAdapter/pension-online/event-reports/pods/$pstr"
   private val postApi1827Url: String =
-    s"/RESTAdapter/pension-online/event1-reports/pods/$pstr"
+    s"/etmp/RESTAdapter/pension-online/event1-reports/pods/$pstr"
   private val postApi1828Url: String =
-    s"/RESTAdapter/pension-online/event-declaration-reports/$pstr"
+    s"/etmp/RESTAdapter/pension-online/event-declaration-reports/$pstr"
   private val postApi1829Url: String =
-    s"/RESTAdapter/pension-online/event20a-declaration-reports/$pstr"
+    s"/etmp/RESTAdapter/pension-online/event20a-declaration-reports/$pstr"
   private val postApi1830Url: String =
-    s"/RESTAdapter/pension-online/member-event-reports/$pstr"
+    s"/etmp/RESTAdapter/pension-online/member-event-reports/$pstr"
   private val getApi1831Url: String =
-    s"/RESTAdapter/pension-online/event20a-status-reports/$pstr"
+    s"/etmp/RESTAdapter/pension-online/event20a-status-reports/$pstr"
   private val getApi1832Url: String =
-    s"/RESTAdapter/pension-online/member-event-status-reports/$pstr"
+    s"/etmp/RESTAdapter/pension-online/member-event-status-reports/$pstr"
   private val getApi1833Url: String =
-    s"/RESTAdapter/pension-online/event1-status-reports/$pstr"
+    s"/etmp/RESTAdapter/pension-online/event1-status-reports/$pstr"
   private val getApi1834Url: String =
-    s"/RESTAdapter/pension-online/event-status-reports/$pstr"
+    s"/etmp/RESTAdapter/pension-online/event-status-reports/$pstr"
   private val getErOverviewUrl: String =
-    s"/RESTAdapter/pension-online/reports/overview/pods/$pstr/ER?fromDate=$fromDt&toDate=$toDt"
+    s"/etmp/RESTAdapter/pension-online/reports/overview/pods/$pstr/ER?fromDate=$fromDt&toDate=$toDt"
   private val getErVersionUrl: String =
-    s"/RESTAdapter/pension-online/reports/$pstr/ER/versions?startDate=$startDt"
+    s"/etmp/RESTAdapter/pension-online/reports/$pstr/ER/versions?startDate=$startDt"
 
   private val overview1: EROverview =
     EROverview(
