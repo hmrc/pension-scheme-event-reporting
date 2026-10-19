@@ -32,7 +32,7 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig)
   private val ifURL: String =
     servicesConfig.baseUrl("if-hod")
   private val hipURL: String =
-    s"${servicesConfig.baseUrl("hip-hod")}/RESTAdapter"
+    s"${servicesConfig.baseUrl("hip-hod")}/etmp/RESTAdapter"
     
   val ifsTimeout: Duration =
     config.get[Duration]("ifs.timeout")
