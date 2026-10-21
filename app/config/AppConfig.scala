@@ -47,8 +47,12 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig)
   lazy val hipClientSecret: String =
     servicesConfig.getConfString("hip-hod.clientSecret", "local")
   
-  def apiUrl(apiType: ApiType, hip: Boolean = false): String =
-    s"${if (hip) hipURL else ifURL}${config.get[String](s"serviceUrls.api${apiType.toString}")}"
+  def apiUrl(apiType: ApiType, hip: Boolean = false): String = {
+    val apiPath: String = config.get[String](s"serviceUrls.api${apiType.toString}")
+
+    if (hip) s"$hipURL${apiPath.replace("/pods", "")}" else s"$ifURL$apiPath"
+  }
+
   lazy val minimalPsaDetailsUrl: String =
     s"$pensionsAdministratorUrl${config.get[String]("serviceUrls.minimalPsaDetails")}"
   private val baseUrlPensionsScheme: String =
