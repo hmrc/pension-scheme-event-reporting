@@ -1001,9 +1001,9 @@ object HipEventReportConnectorSpec {
   private val startDt: String = "2022-04-01"
 
   private val postApi1826Url: String =
-    s"/etmp/RESTAdapter/pension-online/event-reports/pods/$pstr"
+    s"/etmp/RESTAdapter/pension-online/event-reports/$pstr"
   private val postApi1827Url: String =
-    s"/etmp/RESTAdapter/pension-online/event1-reports/pods/$pstr"
+    s"/etmp/RESTAdapter/pension-online/event1-reports/$pstr"
   private val postApi1828Url: String =
     s"/etmp/RESTAdapter/pension-online/event-declaration-reports/$pstr"
   private val postApi1829Url: String =
@@ -1019,7 +1019,7 @@ object HipEventReportConnectorSpec {
   private val getApi1834Url: String =
     s"/etmp/RESTAdapter/pension-online/event-status-reports/$pstr"
   private val getErOverviewUrl: String =
-    s"/etmp/RESTAdapter/pension-online/reports/overview/pods/$pstr/ER?fromDate=$fromDt&toDate=$toDt"
+    s"/etmp/RESTAdapter/pension-online/reports/overview/$pstr/ER?fromDate=$fromDt&toDate=$toDt"
   private val getErVersionUrl: String =
     s"/etmp/RESTAdapter/pension-online/reports/$pstr/ER/versions?startDate=$startDt"
 
